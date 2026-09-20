@@ -33,12 +33,12 @@ export function ExamDetail() {
   const pdfRef = useRef<HTMLDivElement>(null)
 
   const examQuery = useQuery({
-    queryKey: ['exam', examType, subject, province, yearNumber],
+    queryKey: ['exam', examType, subjectLabel, provinceLabel, yearNumber],
     queryFn: () =>
       getExamByPath({
         examType,
-        subject,
-        province,
+        subject: subjectLabel,
+        province: provinceLabel,
         year: yearNumber,
       }),
   })
