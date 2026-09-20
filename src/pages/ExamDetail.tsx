@@ -9,7 +9,7 @@ import { Card } from '../components/ui/Card'
 import { useNotify } from '../context/NotificationContext'
 import { useUser } from '../context/UserContext'
 import { getExamByPath, getRelatedExams, recordView, requestDownload } from '../services/examService'
-import { SUBJECTS, PROVINCES } from '../utils/constants'
+import { BASE_URL, SUBJECTS, PROVINCES } from '../utils/constants'
 import { formatNumber } from '../utils/dateFormat'
 import { setJsonLd, useSeo } from '../utils/seo'
 import { examTypeLabel, pathToExamType, slugify } from '../utils/slug'
@@ -153,6 +153,7 @@ export function ExamDetail() {
 
       <div ref={pdfRef} className="mb-10">
         {(() => {
+          const absoluteFileUrl = exam.fileUrl?.startsWith('http') ? exam.fileUrl : `${BASE_URL}${exam.fileUrl}`;
           const fileExt = exam.fileUrl?.split('.').pop()?.toLowerCase();
           const isPdf = fileExt === 'pdf';
           const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileExt ?? '');
@@ -161,7 +162,7 @@ export function ExamDetail() {
           if (isPdf) {
             return (
               <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang khởi tạo trình xem PDF...</p></div>}>
-                <PDFViewer src={exam.fileUrl} title={exam.examCode} />
+                <PDFViewer src={absoluteFileUrl} title={exam.examCode} />
               </Suspense>
             );
           }
@@ -169,7 +170,7 @@ export function ExamDetail() {
           if (isImage) {
             return (
               <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface p-4">
-                <img src={exam.fileUrl} alt={title} className="max-w-full rounded shadow" />
+                <img src={absoluteFileUrl} alt={title} className="max-w-full rounded shadow" />
               </div>
             );
           }
@@ -178,7 +179,7 @@ export function ExamDetail() {
             // Encode the file URL for Office Viewer.
             // Note: This requires the fileUrl to be a public internet URL to work.
             // Locally uploaded files on localhost won't load in Microsoft's viewer.
-            const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(exam.fileUrl)}`;
+            const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(absoluteFileUrl)}`;
             return (
               <div className="flex flex-col min-h-[70vh] rounded-2xl border border-line bg-surface overflow-hidden">
                  <div className="bg-page p-2 text-center text-xs text-ink-muted border-b border-line">

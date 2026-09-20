@@ -5,6 +5,7 @@ import { useUser } from '../../context/UserContext'
 import type { Exam } from '../../types/exam'
 import { formatNumber } from '../../utils/dateFormat'
 import { examPath, examTypeLabel, slugify } from '../../utils/slug'
+import { BASE_URL } from '../../utils/constants'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 
@@ -48,7 +49,7 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
         {exam.thumbnailUrl && (
           <div className="absolute inset-0 z-0">
             <img 
-              src={exam.thumbnailUrl.startsWith('http') ? exam.thumbnailUrl : `http://localhost:8081${exam.thumbnailUrl}`} 
+              src={exam.thumbnailUrl.startsWith('http') ? exam.thumbnailUrl : `${BASE_URL}${exam.thumbnailUrl}`} 
               alt="Thumbnail" 
               className="w-full h-full object-cover object-top opacity-50 mix-blend-multiply transition-opacity duration-300 group-hover:opacity-80" 
             />
