@@ -206,13 +206,16 @@ export function Admin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: adminPassword })
       })
-      if (!res.ok) throw new Error('Sai mật khẩu')
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) throw new Error('Sai mật khẩu admin')
+        throw new Error('Lỗi kết nối máy chủ (Backend chưa chạy)')
+      }
       const data = await res.json()
       localStorage.setItem('adminToken', data.token)
       setIsAuthenticated(true)
       notify('Đăng nhập thành công', 'success')
-    } catch (e) {
-      notify('Sai mật khẩu admin', 'danger')
+    } catch (e: any) {
+      notify(e.message || 'Lỗi đăng nhập', 'danger')
     }
   }
 
