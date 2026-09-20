@@ -17,6 +17,9 @@ import { examTypeLabel, pathToExamType, slugify } from '../utils/slug'
 const PDFViewer = lazy(() =>
   import('../components/exam/PDFViewer').then((mod) => ({ default: mod.PDFViewer })),
 )
+const DocxViewer = lazy(() =>
+  import('../components/exam/DocxViewer').then((mod) => ({ default: mod.DocxViewer })),
+)
 
 export function ExamDetail() {
   const { examType = 'vao-10', subject = 'toan', province = 'nam-dinh', year = '2024' } = useParams()
@@ -160,38 +163,29 @@ export function ExamDetail() {
           const absoluteFileUrl = exam.fileUrl?.startsWith('http') ? exam.fileUrl : `${BASE_URL}${exam.fileUrl}`;
           const fileExt = exam.fileUrl?.split('.').pop()?.toLowerCase();
           const isPdf = fileExt === 'pdf';
+          const isDocx = ['docx', 'doc'].includes(fileExt ?? '');
           const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileExt ?? '');
-          const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExt ?? '');
           
           if (isPdf) {
             return (
               <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang khởi tạo trình xem PDF...</p></div>}>
-                <PDFViewer src={absoluteFileUrl} title={exam.examCode} />
+                <PDFViewer src={absoluteFileUrl} title={exam.title || exam.examCode} />
+              </Suspense>
+            );
+          }
+
+          if (isDocx) {
+            return (
+              <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang kết xuất tài liệu Word...</p></div>}>
+                <DocxViewer src={absoluteFileUrl} title={exam.title || exam.examCode} />
               </Suspense>
             );
           }
           
           if (isImage) {
             return (
-              <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface p-4">
-                <img src={absoluteFileUrl} alt={title} className="max-w-full rounded shadow" />
-              </div>
-            );
-          }
-
-          if (isOffice) {
-            // Encode the file URL for Office Viewer.
-            // Note: This requires the fileUrl to be a public internet URL to work.
-            // Locally uploaded files on localhost won't load in Microsoft's viewer.
-            const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(absoluteFileUrl)}`;
-            return (
-              <div className="flex flex-col min-h-[70vh] rounded-2xl border border-line bg-surface overflow-hidden">
-                 <div className="bg-page p-2 text-center text-xs text-ink-muted border-b border-line">
-                   Đang sử dụng Microsoft Office Viewer (Yêu cầu Web phải online để xem được nội dung)
-                 </div>
-                 <iframe src={officeViewerUrl} width="100%" height="100%" frameBorder="0" className="flex-1" title={title}>
-                    Trình duyệt của bạn không hỗ trợ Iframe.
-                 </iframe>
+              <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-2xl border border-line bg-surface p-4">
+                <img src={absoluteFileUrl} alt={title} className="max-w-full max-h-[80vh] rounded-xl shadow-md object-contain" />
               </div>
             );
           }
@@ -199,7 +193,12 @@ export function ExamDetail() {
           return (
              <div className="flex flex-col min-h-[30vh] items-center justify-center rounded-2xl border border-line bg-surface p-6 text-center">
                 <p className="text-ink font-semibold">Tài liệu không hỗ trợ xem trước online (Định dạng {fileExt?.toUpperCase()})</p>
-                <p className="text-ink-muted mt-2">Vui lòng tải xuống để xem nội dung chi tiết.</p>
+                <p className="text-ink-muted mt-2 mb-4">Vui lòng tải xuống để xem nội dung chi tiết.</p>
+                <a href={absoluteFileUrl} download>
+                  <Button>
+                    <Download size={18} className="mr-2" /> Tải về máy
+                  </Button>
+                </a>
              </div>
           );
         })()}
@@ -215,6 +214,19 @@ export function ExamDetail() {
             <Download size={20} className="mr-1" />
             Tải đề thi
           </Button>
+          {exam.answerFileUrl && (
+            <a
+              href={exam.answerFileUrl.startsWith('http') ? exam.answerFileUrl : `${BASE_URL}${exam.answerFileUrl}`}
+              download
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Button variant="secondary" className="min-h-[48px] px-5">
+                <Download size={20} className="mr-1" />
+                Tải đáp án
+              </Button>
+            </a>
+          )}
           <Button variant="ghost" className="min-h-[48px]" onClick={shareExam}>
             <Share2 size={20} className="mr-1" />
             Chia sẻ

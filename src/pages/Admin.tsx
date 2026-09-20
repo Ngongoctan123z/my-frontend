@@ -8,6 +8,7 @@ import { useNotify } from '../context/NotificationContext'
 import { API_BASE, PROVINCES, SUBJECTS, YEARS } from '../utils/constants'
 import ExamListAdmin from '../components/admin/ExamListAdmin'
 import EditExamModal from '../components/admin/EditExamModal'
+import { convertImageToPdf, isImageFile } from '../utils/fileUtils'
 import type { Exam } from '../types/exam'
 
 // The upload form schema
@@ -47,6 +48,8 @@ type AdminFormValues = z.infer<typeof adminSchema>
 function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
   const { notify } = useNotify()
   const [busy, setBusy] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [statusMessage, setStatusMessage] = useState<string>('')
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<AdminFormValues>({
     resolver: zodResolver(adminSchema),
@@ -62,47 +65,87 @@ function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const onSubmit = async (data: AdminFormValues) => {
     setBusy(true)
-    console.log('Submitting form with data:', data)
-    const form = new FormData()
-    form.append('examType', data.examType)
-    form.append('subject', data.subject)
-    form.append('province', data.province)
-    form.append('year', data.year)
-    form.append('file', data.file[0])
-
-    if (data.title) form.append('title', data.title)
-    if (data.schoolName) form.append('schoolName', data.schoolName)
-    form.append('isOfficial', data.isOfficial === true ? 'true' : 'false')
-    form.append('hasAnswers', data.hasAnswers === true ? 'true' : 'false')
-    if (data.description) form.append('description', data.description)
-    if (data.answerFile && data.answerFile.length > 0) form.append('answerFile', data.answerFile[0])
-    if (data.thumbnailFile && data.thumbnailFile.length > 0) form.append('thumbnailFile', data.thumbnailFile[0])
+    setUploadProgress(0)
+    setStatusMessage('Đang chuẩn bị file...')
 
     try {
+      const form = new FormData()
+      form.append('examType', data.examType)
+      form.append('subject', data.subject)
+      form.append('province', data.province)
+      form.append('year', data.year)
+
+      // Tự động chuyển đổi ảnh sang PDF chuẩn nếu người dùng tải lên file ảnh
+      let examFile = data.file[0]
+      if (isImageFile(examFile)) {
+        setStatusMessage('Đang tự động chuyển đổi ảnh đề thi sang PDF chuẩn...')
+        examFile = await convertImageToPdf(examFile)
+      }
+      form.append('file', examFile)
+
+      if (data.title) form.append('title', data.title)
+      if (data.schoolName) form.append('schoolName', data.schoolName)
+      form.append('isOfficial', data.isOfficial === true ? 'true' : 'false')
+      form.append('hasAnswers', data.hasAnswers === true ? 'true' : 'false')
+      if (data.description) form.append('description', data.description)
+
+      if (data.answerFile && data.answerFile.length > 0) {
+        let ansFile = data.answerFile[0]
+        if (isImageFile(ansFile)) {
+          setStatusMessage('Đang tự động chuyển đổi ảnh đáp án sang PDF...')
+          ansFile = await convertImageToPdf(ansFile)
+        }
+        form.append('answerFile', ansFile)
+      }
+
+      if (data.thumbnailFile && data.thumbnailFile.length > 0) {
+        form.append('thumbnailFile', data.thumbnailFile[0])
+      }
+
       const token = localStorage.getItem('adminToken')
       if (!token) {
         throw new Error('Token không tồn tại. Vui lòng đăng nhập lại')
       }
-      console.log('Sending request to:', `${API_BASE}/admin/exams`)
-      const response = await fetch(`${API_BASE}/admin/exams`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: form,
+
+      setStatusMessage('Đang tải dữ liệu lên máy chủ...')
+
+      // Gửi bằng XMLHttpRequest để theo dõi tiến độ % theo thời gian thực
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', `${API_BASE}/admin/exams`)
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100)
+            setUploadProgress(percent)
+            if (percent >= 100) {
+              setStatusMessage('Đang lưu dữ liệu vào hệ thống...')
+            } else {
+              setStatusMessage(`Đang tải lên: ${percent}%`)
+            }
+          }
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve()
+          } else {
+            let errorMsg = `Lỗi ${xhr.status}`
+            try {
+              const res = JSON.parse(xhr.responseText)
+              errorMsg = res.message || res.error || errorMsg
+            } catch {
+              errorMsg = `Upload failed (${xhr.status}): ${xhr.statusText}`
+            }
+            reject(new Error(errorMsg))
+          }
+        }
+
+        xhr.onerror = () => reject(new Error('Lỗi kết nối mạng khi tải lên'))
+        xhr.send(form)
       })
 
-      if (!response.ok) {
-        let errorMsg = 'Upload thất bại'
-        try {
-          const errorData = await response.json()
-          errorMsg = errorData.message || errorData.error || errorMsg
-        } catch {
-          errorMsg = `Upload failed (${response.status}): ${response.statusText}`
-        }
-        throw new Error(errorMsg)
-      }
-
-      const result = await response.json()
-      console.log('Upload success:', result)
       notify('Đã tải đề lên thành công', 'success')
       reset()
       if (onSuccess) onSuccess()
@@ -112,6 +155,8 @@ function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
       notify(errorMsg, 'danger')
     } finally {
       setBusy(false)
+      setUploadProgress(null)
+      setStatusMessage('')
     }
   }
 
@@ -204,8 +249,30 @@ function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
           </label>
         </div>
 
+        <div className="rounded-xl border border-line bg-page p-3 text-xs text-ink-muted flex items-start gap-2">
+          <span className="text-primary font-bold">💡 Mẹo:</span>
+          <span>
+            Hệ thống tự động chuyển đổi file ảnh (PNG, JPG) thành PDF chuẩn. File Word (.docx) và PDF đều được hỗ trợ xem trực tiếp và xuất PDF chuẩn trên trang chi tiết đề thi.
+          </span>
+        </div>
+
+        {busy && (
+          <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div className="flex justify-between text-xs font-semibold">
+              <span className="text-primary">{statusMessage || 'Đang xử lý...'}</span>
+              {uploadProgress !== null && <span className="font-mono text-primary">{uploadProgress}%</span>}
+            </div>
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-line">
+              <div
+                className="h-full bg-primary transition-all duration-200 rounded-full"
+                style={{ width: `${uploadProgress ?? 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         <Button type="submit" disabled={busy} className="w-full">
-          {busy ? 'Đang tải lên...' : 'Đăng Đề Thi'}
+          {busy ? (statusMessage || 'Đang xử lý...') : 'Đăng Đề Thi'}
         </Button>
       </form>
     </Card>
