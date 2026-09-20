@@ -1,4 +1,4 @@
-import { GraduationCap, Star } from 'lucide-react'
+import { Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { SearchBar } from '../search/SearchBar'
 import { ThemeToggle } from './ThemeToggle'
