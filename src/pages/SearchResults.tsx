@@ -101,76 +101,78 @@ export function SearchResults() {
   return (
     <div className="space-y-6">
       {/* Quick Filters Banner */}
-      <section className="mx-auto max-w-4xl text-center">
-        {/* Quick Exam Type Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={() => updateParam('examType', undefined)}
-            className={`rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
-              !examType
-                ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                : 'border-line bg-page text-ink hover:bg-surface border'
-            }`}
-          >
-            Tất cả đề
-          </button>
-          <button
-            type="button"
-            onClick={() => updateParam('examType', examType === 'VAO_10' ? undefined : 'VAO_10')}
-            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
-              examType === 'VAO_10'
-                ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                : 'border-line bg-page text-ink hover:bg-surface border'
-            }`}
-          >
-            <GraduationCap size={15} />
-            Tuyển sinh Vào 10
-          </button>
-          <button
-            type="button"
-            onClick={() => updateParam('examType', examType === 'THPT' ? undefined : 'THPT')}
-            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
-              examType === 'THPT'
-                ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                : 'border-line bg-page text-ink hover:bg-surface border'
-            }`}
-          >
-            <BookOpen size={15} />
-            Tốt nghiệp THPT
-          </button>
-          
-          <div className="mx-1 h-6 w-px bg-line/50 hidden sm:block"></div>
-          
-          <select
-            value={year || ''}
-            onChange={(e) => updateParam('year', e.target.value || undefined)}
-            className="cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold border-line bg-page text-ink hover:bg-surface border outline-none"
-          >
-            <option value="">Năm: Tất cả</option>
-            {YEARS.map((y) => (
-              <option key={y} value={String(y)}>Năm {y}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Quick Subjects Pills */}
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 pt-2 border-t border-line/50">
-          <span className="text-xs text-ink-muted mr-1 font-medium">Môn:</span>
-          {SUBJECTS.map((s) => (
+      <section className="sticky top-[72px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-2 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
+        <div className="mx-auto max-w-5xl">
+          {/* Quick Exam Type Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 pt-1 [&::-webkit-scrollbar]:hidden">
             <button
-              key={s}
               type="button"
-              onClick={() => updateParam('subject', subject === s ? undefined : s)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
-                subject === s
-                  ? 'bg-[var(--color-accent)] text-white'
-                  : 'text-ink-muted hover:text-ink hover:bg-page'
+              onClick={() => updateParam('examType', undefined)}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                !examType
+                  ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                  : 'bg-page text-ink hover:bg-surface border border-line'
               }`}
             >
-              {s}
+              Tất cả đề
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => updateParam('examType', examType === 'VAO_10' ? undefined : 'VAO_10')}
+              className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                examType === 'VAO_10'
+                  ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                  : 'bg-page text-ink hover:bg-surface border border-line'
+              }`}
+            >
+              <GraduationCap size={14} />
+              Tuyển sinh Vào 10
+            </button>
+            <button
+              type="button"
+              onClick={() => updateParam('examType', examType === 'THPT' ? undefined : 'THPT')}
+              className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                examType === 'THPT'
+                  ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                  : 'bg-page text-ink hover:bg-surface border border-line'
+              }`}
+            >
+              <BookOpen size={14} />
+              Tốt nghiệp THPT
+            </button>
+            
+            <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
+            
+            <select
+              value={year || ''}
+              onChange={(e) => updateParam('year', e.target.value || undefined)}
+              className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold border-line bg-page text-ink hover:bg-surface border outline-none"
+            >
+              <option value="">Năm: Tất cả</option>
+              {YEARS.map((y) => (
+                <option key={y} value={String(y)}>Năm {y}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Quick Subjects Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-1 pt-2 [&::-webkit-scrollbar]:hidden">
+            <span className="text-xs text-ink-muted mr-1 font-medium shrink-0">Môn:</span>
+            {SUBJECTS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => updateParam('subject', subject === s ? undefined : s)}
+                className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                  subject === s
+                    ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                    : 'text-ink-muted hover:text-ink hover:bg-page border border-transparent'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 

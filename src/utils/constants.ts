@@ -5,8 +5,7 @@ export const SAMPLE_PDF =
 
 export const SUBJECTS = [
   'Toán', 'Ngữ văn', 'Tiếng Anh', 'Vật lý', 'Hóa học', 'Sinh học', 
-  'Lịch sử', 'Địa lý', 'GDCD', 'Tin học', 'Công nghệ',
-  'Tiếng Pháp', 'Tiếng Nga', 'Tiếng Trung', 'Tiếng Nhật', 'Tiếng Đức', 'Tiếng Hàn'
+  'Lịch sử', 'Địa lý', 'GDCD'
 ] as const
 
 export const PROVINCES = [
