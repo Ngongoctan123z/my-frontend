@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
 import { apiFetch } from '../../services/api'
+import { API_BASE } from '../../utils/constants'
 import type { Exam } from '../../types/exam'
 
 interface ExamListAdminProps {
@@ -24,14 +25,35 @@ export default function ExamListAdmin({
   const { data, isLoading, error, refetch } = useQuery<ExamListResponse>({
     queryKey: ['admin-exams', page, limit],
     queryFn: async () => {
-      return apiFetch<ExamListResponse>(
-        `/admin/exams?page=${page}&limit=${limit}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-          }
+      const token = localStorage.getItem('adminToken')
+      if (!token) {
+        throw new Error('Token không tồn tại')
+      }
+
+      console.log('Fetching from:', `${API_BASE}/admin/exams?page=${page}&limit=${limit}`)
+
+      const response = await fetch(`${API_BASE}/admin/exams?page=${page}&limit=${limit}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      )
+      })
+      
+      console.log('Fetch response status:', response.status)
+
+      if (!response.ok) {
+        let errorMsg = 'Lỗi tải dữ liệu'
+        try {
+          const errorData = await response.json()
+          errorMsg = errorData.error || errorMsg
+        } catch (e) {
+          errorMsg = `Lỗi ${response.status}: ${response.statusText}`
+        }
+        throw new Error(errorMsg)
+      }
+
+      const result = await response.json()
+      console.log('Fetch success:', result)
+      return result
     }
   })
 
@@ -54,6 +76,7 @@ export default function ExamListAdmin({
       })
       
       alert('Xóa thành công')
+      setPage(0)
       refetch()
     } catch (err) {
       alert('Lỗi xóa: ' + (err as Error).message)
@@ -68,7 +91,7 @@ export default function ExamListAdmin({
     return <div className="text-color-danger py-8">Lỗi: {(error as Error).message}</div>
   }
 
-  const exams: Exam[] = data?.data || []
+  const exams = Array.isArray(data?.data) ? data.data : []
   const totalElements = data?.total || 0
   const totalPages = Math.ceil(totalElements / limit) || 1
 

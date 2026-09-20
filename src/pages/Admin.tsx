@@ -62,6 +62,7 @@ function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const onSubmit = async (data: AdminFormValues) => {
     setBusy(true)
+    console.log('Submitting form with data:', data)
     const form = new FormData()
     form.append('examType', data.examType)
     form.append('subject', data.subject)
@@ -71,24 +72,45 @@ function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
 
     if (data.title) form.append('title', data.title)
     if (data.schoolName) form.append('schoolName', data.schoolName)
-    form.append('isOfficial', String(data.isOfficial))
-    form.append('hasAnswers', String(data.hasAnswers))
+    form.append('isOfficial', data.isOfficial === true ? 'true' : 'false')
+    form.append('hasAnswers', data.hasAnswers === true ? 'true' : 'false')
     if (data.description) form.append('description', data.description)
     if (data.answerFile && data.answerFile.length > 0) form.append('answerFile', data.answerFile[0])
     if (data.thumbnailFile && data.thumbnailFile.length > 0) form.append('thumbnailFile', data.thumbnailFile[0])
 
     try {
+      const token = localStorage.getItem('adminToken')
+      if (!token) {
+        throw new Error('Token không tồn tại. Vui lòng đăng nhập lại')
+      }
+      console.log('Sending request to:', `${API_BASE}/admin/exams`)
       const response = await fetch(`${API_BASE}/admin/exams`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: form,
       })
-      if (!response.ok) throw new Error('Upload failed')
+      console.log('Upload response status:', response.status)
+
+      if (!response.ok) {
+        let errorMsg = 'Upload thất bại'
+        try {
+          const errorData = await response.json()
+          errorMsg = errorData.error || errorMsg
+        } catch (e) {
+          errorMsg = `Upload failed (${response.status}): ${response.statusText}`
+        }
+        throw new Error(errorMsg)
+      }
+
+      const result = await response.json()
+      console.log('Upload success:', result)
       notify('Đã tải đề lên thành công', 'success')
       reset()
       if (onSuccess) onSuccess()
-    } catch {
-      notify('Upload thất bại. Kiểm tra backend và mật khẩu admin.', 'danger')
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      const errorMsg = error.message || 'Upload thất bại. Kiểm tra backend.'
+      notify(errorMsg, 'danger')
     } finally {
       setBusy(false)
     }
@@ -194,28 +216,55 @@ function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
 export function Admin() {
   const [activeTab, setActiveTab] = useState<'list' | 'upload'>('list')
   const [adminPassword, setAdminPassword] = useState('')
+  const [loggingIn, setLoggingIn] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('adminToken'))
   const [editingExam, setEditingExam] = useState<Exam | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const { notify } = useNotify()
 
   const handleLogin = async () => {
+    if (!adminPassword.trim()) {
+      notify('Vui lòng nhập mật khẩu', 'danger')
+      return
+    }
+
+    setLoggingIn(true)
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: adminPassword })
       })
+
+      console.log('Login response status:', res.status)
+
       if (!res.ok) {
-        if (res.status === 401 || res.status === 403) throw new Error('Sai mật khẩu admin')
-        throw new Error('Lỗi kết nối máy chủ (Backend chưa chạy)')
+        const errorData = await res.json().catch(() => ({}))
+        const errorMsg = errorData.error || `Lỗi ${res.status}`
+        
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('Sai mật khẩu admin')
+        } else {
+          throw new Error('Lỗi kết nối - ' + errorMsg)
+        }
       }
+
       const data = await res.json()
+      console.log('Login success:', data)
+
+      if (!data.token) {
+        throw new Error('Không nhận được token từ server')
+      }
+
       localStorage.setItem('adminToken', data.token)
       setIsAuthenticated(true)
+      setAdminPassword('')
       notify('Đăng nhập thành công', 'success')
     } catch (e: any) {
+      console.error('Login error:', e)
       notify(e.message || 'Lỗi đăng nhập', 'danger')
+    } finally {
+      setLoggingIn(false)
     }
   }
 
