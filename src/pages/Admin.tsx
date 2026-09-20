@@ -89,14 +89,13 @@ function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
         headers: { 'Authorization': `Bearer ${token}` },
         body: form,
       })
-      console.log('Upload response status:', response.status)
 
       if (!response.ok) {
         let errorMsg = 'Upload thất bại'
         try {
           const errorData = await response.json()
-          errorMsg = errorData.error || errorMsg
-        } catch (e) {
+          errorMsg = errorData.message || errorData.error || errorMsg
+        } catch {
           errorMsg = `Upload failed (${response.status}): ${response.statusText}`
         }
         throw new Error(errorMsg)
@@ -240,7 +239,7 @@ export function Admin() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        const errorMsg = errorData.error || `Lỗi ${res.status}`
+        const errorMsg = errorData.message || errorData.error || `Lỗi ${res.status}`
         
         if (res.status === 401 || res.status === 403) {
           throw new Error('Sai mật khẩu admin')

@@ -44,7 +44,7 @@ export default function ExamListAdmin({
         let errorMsg = 'Lỗi tải dữ liệu'
         try {
           const errorData = await response.json()
-          errorMsg = errorData.error || errorMsg
+          errorMsg = errorData.message || errorData.error || errorMsg
         } catch (e) {
           errorMsg = `Lỗi ${response.status}: ${response.statusText}`
         }

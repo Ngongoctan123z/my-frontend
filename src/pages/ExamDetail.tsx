@@ -89,7 +89,11 @@ export function ExamDetail() {
         window.open(result.paymentLink, '_blank')
       } else {
         notify('Tải đề thành công', 'success')
-        window.open(result.fileUrl, '_blank')
+        // fileUrl từ backend là relative ("/files/...") → join với BASE_URL
+        const fullUrl = result.fileUrl.startsWith('http')
+          ? result.fileUrl
+          : `${BASE_URL}${result.fileUrl}`
+        window.open(fullUrl, '_blank')
       }
     } catch {
       notify('Không tải được đề', 'danger')
