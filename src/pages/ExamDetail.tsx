@@ -131,7 +131,7 @@ export function ExamDetail() {
   const favorite = isFavorite(exam.id)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 py-12 md:py-16">
       <Breadcrumb
         items={[
           { label: 'Trang chủ', to: '/' },

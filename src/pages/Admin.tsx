@@ -239,7 +239,7 @@ export function Admin() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl mt-8">
+    <div className="mx-auto max-w-6xl py-12 md:py-16">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Quản trị viên</h1>
         <button 

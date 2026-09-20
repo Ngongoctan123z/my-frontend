@@ -101,7 +101,7 @@ export function SearchResults() {
   return (
     <div className="space-y-6">
       {/* Quick Filters Banner */}
-      <section className="-mt-12 md:-mt-16 sticky top-[73px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
+      <section className="sticky top-[73px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
         <div className="mx-auto max-w-5xl">
           {/* Quick Exam Type Pills */}
           <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 pt-1 [&::-webkit-scrollbar]:hidden">
@@ -177,7 +177,7 @@ export function SearchResults() {
       </section>
 
       {/* Main Content Layout: Filters + Results */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_1fr]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_1fr] pt-8 md:pt-10 pb-12 md:pb-16">
         {/* Mobile Filter Toggle Button */}
         <div className="flex items-center justify-between md:hidden">
           <div className="text-sm font-medium text-ink">

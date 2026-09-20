@@ -18,7 +18,7 @@ export function Favorites() {
   })
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 py-12 md:py-16">
       <Breadcrumb items={[{ label: 'Trang chủ', to: '/' }, { label: 'Yêu thích' }]} />
 
       <div className="flex items-center gap-3">
