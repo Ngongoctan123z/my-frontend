@@ -8,9 +8,7 @@ export function Header() {
     <header className="border-line bg-surface/90 sticky top-0 z-40 border-b backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4 md:gap-8 md:px-10">
         <Link to="/" className="flex shrink-0 items-center gap-3 font-bold">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-[var(--color-primary)] to-[#1d4ed8] text-white shadow-sm">
-            <GraduationCap size={22} />
-          </span>
+          <img src="/logo.jpg" alt="Kho Đề Thi Logo" className="h-10 w-10 rounded-[10px] object-cover shadow-sm" />
           <span className="hidden sm:inline">Kho Đề Thi</span>
         </Link>
         <div className="min-w-0 flex-1">
