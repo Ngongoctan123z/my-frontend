@@ -29,15 +29,23 @@ export async function getRelatedExams(id: number): Promise<Exam[]> {
   return await apiFetch<Exam[]>('/exams/' + id + '/related')
 }
 
+export async function getExamById(id: number): Promise<Exam> {
+  return await apiFetch<Exam>('/exams/' + id)
+}
+
 export async function getExamByPath(params: {
   examType: string
   subject: string
   province: string
   year: number
 }): Promise<Exam | undefined> {
-  return await apiFetch<Exam>(
-    '/exams/lookup?examType=' + params.examType + '&subject=' + params.subject + '&province=' + params.province + '&year=' + params.year,
-  )
+  const query = new URLSearchParams({
+    examType: params.examType,
+    subject: params.subject,
+    province: params.province,
+    year: String(params.year),
+  })
+  return await apiFetch<Exam>('/exams/lookup?' + query.toString())
 }
 
 export async function getPopularExams(): Promise<Exam[]> {

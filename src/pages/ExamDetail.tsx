@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { useNotify } from '../context/NotificationContext'
 import { useUser } from '../context/UserContext'
-import { getExamByPath, getRelatedExams, recordView, requestDownload } from '../services/examService'
+import { getExamById, getExamByPath, getExams, getRelatedExams, recordView, requestDownload } from '../services/examService'
 import { BASE_URL, SUBJECTS, PROVINCES } from '../utils/constants'
 import { formatNumber } from '../utils/dateFormat'
 import { setJsonLd, useSeo } from '../utils/seo'
@@ -22,29 +22,72 @@ const DocxViewer = lazy(() =>
 )
 
 export function ExamDetail() {
-  const { examType = 'vao-10', subject = 'toan', province = 'nam-dinh', year = '2024' } = useParams()
-  const type = pathToExamType(examType)
-  const subjectLabel = SUBJECTS.find((item) => slugify(item) === subject) ?? subject
-  const provinceLabel = PROVINCES.find((item) => slugify(item) === province) ?? province
-  const yearNumber = Number(year)
+  const params = useParams<{ id?: string; examType?: string; subject?: string; province?: string; year?: string }>()
+  const { id } = params
+  const examType = params.examType ?? 'vao-10'
+  const subject = params.subject ?? 'toan'
+  const province = params.province ?? 'nam-dinh'
+  const year = params.year ?? '2024'
+
+  const parsedType = pathToExamType(examType)
+  const fallbackSubject = SUBJECTS.find((item) => slugify(item) === subject) ?? subject
+  const fallbackProvince = PROVINCES.find((item) => slugify(item) === province) ?? province
+  const fallbackYear = Number(year)
+
   const { isFavorite, toggleFavorite } = useUser()
   const { notify } = useNotify()
   const [downloading, setDownloading] = useState(false)
   const pdfRef = useRef<HTMLDivElement>(null)
 
   const examQuery = useQuery({
-    queryKey: ['exam', examType, subjectLabel, provinceLabel, yearNumber],
-    queryFn: () =>
-      getExamByPath({
-        examType,
-        subject: subjectLabel,
-        province: provinceLabel,
-        year: yearNumber,
-      }),
+    queryKey: ['exam', id, examType, fallbackSubject, fallbackProvince, fallbackYear],
+    queryFn: async () => {
+      // 1. Nếu có param id -> truy vấn trực tiếp bằng ID
+      if (id && !isNaN(Number(id))) {
+        return await getExamById(Number(id))
+      }
+
+      // 2. Thử lookup theo path chuẩn
+      try {
+        const found = await getExamByPath({
+          examType,
+          subject: fallbackSubject,
+          province: fallbackProvince,
+          year: fallbackYear,
+        })
+        if (found) return found
+      } catch (e) {
+        console.warn('Path lookup error, trying fallback search...', e)
+      }
+
+      // 3. Fallback: tìm theo danh sách đề theo năm và so khớp slug
+      try {
+        const res = await getExams({
+          examType: parsedType,
+          year: fallbackYear,
+          limit: 50,
+        })
+        const match = res.data.find(
+          (e) =>
+            slugify(e.subject) === subject &&
+            slugify(e.province) === province &&
+            e.year === fallbackYear,
+        )
+        if (match) return match
+      } catch (err) {
+        console.error('Fallback search error:', err)
+      }
+
+      return undefined
+    },
   })
 
   const exam = examQuery.data
-  const title = `Đề thi ${subjectLabel} ${examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} ${provinceLabel} ${yearNumber}`
+  const type = exam ? exam.examType : parsedType
+  const subjectLabel = exam?.subject ?? fallbackSubject
+  const provinceLabel = exam?.province ?? fallbackProvince
+  const yearNumber = exam?.year ?? fallbackYear
+  const title = exam?.title || `Đề thi ${subjectLabel} ${examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} ${provinceLabel} ${yearNumber}`
 
   useSeo(
     `${title} | Tải PDF`,
@@ -125,12 +168,20 @@ export function ExamDetail() {
 
   if (!exam) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 py-16 text-center max-w-lg mx-auto">
+        <div className="text-5xl mb-3">🔍</div>
         <h1 className="text-2xl font-bold">Không tìm thấy đề này</h1>
-        <p className="text-ink-muted">Thử năm khác hoặc quay lại danh sách tỉnh.</p>
-        <Link to={`/exams/${examType}/${subject}/${province}`} className="text-[var(--color-primary)]">
-          Xem các năm có đề
-        </Link>
+        <p className="text-ink-muted">
+          Đề thi môn {subjectLabel} tỉnh {provinceLabel} năm {yearNumber} chưa có hoặc đang cập nhật.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3 pt-3">
+          <Link to="/" className="btn-press bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-medium inline-block">
+            Về trang chủ tìm kiếm
+          </Link>
+          <Link to={`/`} className="btn-press border border-line px-5 py-2.5 rounded-xl font-medium inline-block hover:bg-page">
+            Xem tất cả đề thi
+          </Link>
+        </div>
       </div>
     )
   }

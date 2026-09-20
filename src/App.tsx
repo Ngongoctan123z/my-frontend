@@ -112,6 +112,7 @@ export default function App() {
                       <Route path="search" element={<Home />} />
 
                       {/* Single Exam Details view */}
+                      <Route path="exams/:id" element={<ExamDetail />} />
                       <Route path="exams/:examType/:subject/:province/:year" element={<ExamDetail />} />
 
                       {/* Admin & Favorites */}

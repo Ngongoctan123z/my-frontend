@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { API_BASE } from '../../utils/constants'
 import type { Exam } from '../../types/exam'
@@ -127,6 +128,14 @@ export default function ExamListAdmin({
                 </td>
                 <td className="border border-line p-3">
                   <div className="flex gap-2 justify-center">
+                    <Link
+                      to={`/exams/${exam.id}`}
+                      target="_blank"
+                      className="text-emerald-600 hover:text-emerald-700 p-1 rounded"
+                      title="Xem đề thi"
+                    >
+                      <Eye size={18} />
+                    </Link>
                     <button
                       onClick={() => onEdit(exam)}
                       className="text-color-primary hover:text-blue-700 p-1 rounded"
