@@ -1,4 +1,4 @@
-export const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8081'
+export const BASE_URL = import.meta.env.VITE_API_URL || 'https://p01--backend--4j4v4pb6yj96.code.run'
 export const API_BASE = `${BASE_URL}/api/v1`
 export const SAMPLE_PDF =
   'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf'
