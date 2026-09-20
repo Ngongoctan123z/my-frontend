@@ -284,7 +284,9 @@ export function Admin() {
           onChange={(e) => setAdminPassword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
         />
-        <Button className="w-full" onClick={handleLogin}>Đăng nhập</Button>
+        <Button className="w-full" onClick={handleLogin} disabled={loggingIn}>
+          {loggingIn ? 'Đang xử lý...' : 'Đăng nhập'}
+        </Button>
       </div>
     )
   }
