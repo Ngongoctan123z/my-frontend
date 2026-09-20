@@ -268,7 +268,6 @@ export function Admin() {
       {activeTab === 'list' && (
         <ExamListAdmin
           key={refreshTrigger}
-          adminPassword={adminPassword} // kept for prop compatibility but unused if refactored inside
           onEdit={setEditingExam}
         />
       )}
@@ -280,7 +279,6 @@ export function Admin() {
       {editingExam && (
         <EditExamModal
           exam={editingExam}
-          adminPassword={adminPassword}
           onClose={() => setEditingExam(null)}
           onSuccess={() => {
             setEditingExam(null)

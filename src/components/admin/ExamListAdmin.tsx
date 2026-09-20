@@ -5,7 +5,6 @@ import { apiFetch } from '../../services/api'
 import type { Exam } from '../../types/exam'
 
 interface ExamListAdminProps {
-  adminPassword: string
   onEdit: (exam: Exam) => void
 }
 
@@ -17,7 +16,6 @@ interface ExamListResponse {
 }
 
 export default function ExamListAdmin({ 
-  adminPassword, 
   onEdit 
 }: ExamListAdminProps) {
   const [page, setPage] = useState(0)
@@ -34,8 +32,7 @@ export default function ExamListAdmin({
           }
         }
       )
-    },
-    enabled: !!adminPassword
+    }
   })
 
   // Watch for external refresh trigger if we had one, but we can just expose refetch

@@ -6,14 +6,12 @@ import { Button } from '../ui/Button'
 
 interface EditExamModalProps {
   exam: Exam
-  adminPassword: string
   onClose: () => void
   onSuccess: () => void
 }
 
 export default function EditExamModal({
   exam,
-  adminPassword,
   onClose,
   onSuccess
 }: EditExamModalProps) {
