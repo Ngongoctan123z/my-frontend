@@ -188,6 +188,50 @@ export function ExamDetail() {
 
   const favorite = isFavorite(exam.id)
 
+  const renderFileViewer = (fileUrl: string, fileTitle: string) => {
+    const absoluteFileUrl = fileUrl.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`
+    const fileExt = fileUrl.split('.').pop()?.toLowerCase()
+    const isPdf = fileExt === 'pdf'
+    const isDocx = ['docx', 'doc'].includes(fileExt ?? '')
+    const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileExt ?? '')
+    
+    if (isPdf) {
+      return (
+        <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang khởi tạo trình xem PDF...</p></div>}>
+          <PDFViewer src={absoluteFileUrl} title={fileTitle} />
+        </Suspense>
+      )
+    }
+
+    if (isDocx) {
+      return (
+        <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang kết xuất tài liệu Word...</p></div>}>
+          <DocxViewer src={absoluteFileUrl} title={fileTitle} />
+        </Suspense>
+      )
+    }
+    
+    if (isImage) {
+      return (
+        <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-2xl border border-line bg-surface p-4">
+          <img src={absoluteFileUrl} alt={fileTitle} className="max-w-full max-h-[80vh] rounded-xl shadow-md object-contain" />
+        </div>
+      )
+    }
+    
+    return (
+        <div className="flex flex-col min-h-[30vh] items-center justify-center rounded-2xl border border-line bg-surface p-6 text-center">
+          <p className="text-ink font-semibold">Tài liệu không hỗ trợ xem trước online (Định dạng {fileExt?.toUpperCase()})</p>
+          <p className="text-ink-muted mt-2 mb-4">Vui lòng tải xuống để xem nội dung chi tiết.</p>
+          <a href={absoluteFileUrl} download>
+            <Button>
+              <Download size={18} className="mr-2" /> Tải về máy
+            </Button>
+          </a>
+        </div>
+    )
+  }
+
   return (
     <div className="space-y-6 py-12 md:py-16">
       <Breadcrumb
@@ -210,49 +254,7 @@ export function ExamDetail() {
       </div>
 
       <div ref={pdfRef} className="mb-10">
-        {(() => {
-          const absoluteFileUrl = exam.fileUrl?.startsWith('http') ? exam.fileUrl : `${BASE_URL}${exam.fileUrl}`;
-          const fileExt = exam.fileUrl?.split('.').pop()?.toLowerCase();
-          const isPdf = fileExt === 'pdf';
-          const isDocx = ['docx', 'doc'].includes(fileExt ?? '');
-          const isImage = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileExt ?? '');
-          
-          if (isPdf) {
-            return (
-              <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang khởi tạo trình xem PDF...</p></div>}>
-                <PDFViewer src={absoluteFileUrl} title={exam.title || exam.examCode} />
-              </Suspense>
-            );
-          }
-
-          if (isDocx) {
-            return (
-              <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang kết xuất tài liệu Word...</p></div>}>
-                <DocxViewer src={absoluteFileUrl} title={exam.title || exam.examCode} />
-              </Suspense>
-            );
-          }
-          
-          if (isImage) {
-            return (
-              <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-2xl border border-line bg-surface p-4">
-                <img src={absoluteFileUrl} alt={title} className="max-w-full max-h-[80vh] rounded-xl shadow-md object-contain" />
-              </div>
-            );
-          }
-          
-          return (
-             <div className="flex flex-col min-h-[30vh] items-center justify-center rounded-2xl border border-line bg-surface p-6 text-center">
-                <p className="text-ink font-semibold">Tài liệu không hỗ trợ xem trước online (Định dạng {fileExt?.toUpperCase()})</p>
-                <p className="text-ink-muted mt-2 mb-4">Vui lòng tải xuống để xem nội dung chi tiết.</p>
-                <a href={absoluteFileUrl} download>
-                  <Button>
-                    <Download size={18} className="mr-2" /> Tải về máy
-                  </Button>
-                </a>
-             </div>
-          );
-        })()}
+        {renderFileViewer(exam.fileUrl, exam.title || exam.examCode)}
       </div>
 
       <Card className="mb-12 flex flex-col gap-6 md:flex-row md:items-center md:justify-between" padding={false}>
@@ -295,6 +297,28 @@ export function ExamDetail() {
           </Button>
         </div>
       </Card>
+
+      {/* Phần hiển thị đáp án */}
+      <div className="mb-12">
+        {exam.answerFileUrl ? (
+          <>
+            <h2 className="mb-6 text-2xl font-bold tracking-tight">Đáp án / Hướng dẫn giải</h2>
+            <div className="mb-10">
+              {renderFileViewer(exam.answerFileUrl, `Đáp án ${exam.title || exam.examCode}`)}
+            </div>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-line bg-surface p-12 text-center text-ink-muted shadow-sm">
+            <div className="mb-4 flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bg-primary)] text-[var(--color-primary)]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+              </div>
+            </div>
+            <p className="text-xl font-semibold text-ink">Tài liệu này không có đáp án</p>
+            <p className="mt-2 text-base">Hiện tại hệ thống chưa cập nhật file đáp án cho đề thi này.</p>
+          </div>
+        )}
+      </div>
 
       {related.data && related.data.length > 0 ? (
         <section className="mt-16">
