@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next'
-import { BASE_URL } from '../src/utils/constants'
+import { FRONTEND_URL } from '../src/utils/constants'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -8,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/quan-tri-he-thong-123/', '/api/'],
     },
-    sitemap: `${BASE_URL}/sitemap.xml`,
+    sitemap: `${FRONTEND_URL}/sitemap.xml`,
   }
 }
