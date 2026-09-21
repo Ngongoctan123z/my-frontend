@@ -117,7 +117,7 @@ export default function App() {
 
                       {/* Admin & Favorites */}
                       <Route path="favorites" element={<Favorites />} />
-                      <Route path="admin" element={<Admin />} />
+                      <Route path="quan-tri-he-thong-123" element={<Admin />} />
 
                       {/* Seamless redirects from intermediate pages to the main search portal */}
                       <Route path="category" element={<Navigate to="/" replace />} />
