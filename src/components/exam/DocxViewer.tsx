@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { renderAsync } from 'docx-preview'
-import { Download, Maximize2, Minus, Plus, Printer } from 'lucide-react'
+import { Download, Minus, Plus, Printer, RefreshCw } from 'lucide-react'
 import { Button } from '../ui/Button'
 
 type Props = {
@@ -9,6 +9,49 @@ type Props = {
 }
 
 export function DocxViewer({ src, title }: Props) {
+  const [useLocalViewer, setUseLocalViewer] = useState(false)
+
+  const handleToggleViewer = () => {
+    setUseLocalViewer((prev) => !prev)
+  }
+
+  return (
+    <div id="docx-preview" className="bg-surface border-line overflow-hidden rounded-2xl border">
+      <div className="border-line flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+        <div>
+          <p className="text-sm font-medium">Nội dung tài liệu (Word) - {title}</p>
+          <p className="text-ink-muted text-xs">
+            {useLocalViewer ? 'Đang hiển thị bằng trình xem cục bộ' : 'Đang hiển thị qua Google Docs Viewer'}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="ghost" onClick={handleToggleViewer} title="Đổi trình xem nếu bị lỗi">
+            <RefreshCw size={16} className="mr-1" /> {useLocalViewer ? 'Dùng Google Viewer' : 'Dùng Trình Xem Cục Bộ'}
+          </Button>
+          <a href={src} download>
+            <Button variant="ghost">
+              <Download size={16} className="mr-1" /> Tải về
+            </Button>
+          </a>
+        </div>
+      </div>
+
+      <div className="bg-page relative w-full h-[70vh] md:h-[75vh]">
+        {useLocalViewer ? (
+          <LocalDocxViewer src={src} title={title} />
+        ) : (
+          <iframe
+            src={`https://docs.google.com/gview?url=${encodeURIComponent(src)}&embedded=true`}
+            className="w-full h-full border-none"
+            title={title}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function LocalDocxViewer({ src, title }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +85,7 @@ export function DocxViewer({ src, title }: Props) {
       } catch (err: any) {
         if (!active) return
         console.error('Docx render error:', err)
-        setError(err.message || 'Lỗi hiển thị tài liệu Word')
+        setError(err.message || 'Lỗi hiển thị tài liệu Word. Vui lòng thử dùng Google Viewer.')
         setLoading(false)
       }
     }
@@ -58,32 +101,20 @@ export function DocxViewer({ src, title }: Props) {
   }
 
   return (
-    <div id="docx-preview" className="bg-surface border-line overflow-hidden rounded-2xl border">
-      <div className="border-line flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-        <div>
-          <p className="text-sm font-medium">Nội dung tài liệu (Word) - {title}</p>
-          <p className="text-ink-muted text-xs">Đang hiển thị trực tiếp · Bạn có thể In hoặc Xuất sang PDF</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" onClick={() => setZoom((v) => Math.max(60, v - 10))}>
-            <Minus size={16} />
-          </Button>
-          <span className="text-ink-muted w-12 text-center text-sm">{zoom}%</span>
-          <Button variant="ghost" onClick={() => setZoom((v) => Math.min(150, v + 10))}>
-            <Plus size={16} />
-          </Button>
-          <Button variant="ghost" onClick={handlePrint} title="In hoặc Lưu thành file PDF">
-            <Printer size={16} className="mr-1" /> Xuất / In PDF
-          </Button>
-          <a href={src} download>
-            <Button variant="ghost">
-              <Download size={16} className="mr-1" /> Tải về
-            </Button>
-          </a>
-        </div>
+    <div className="flex h-full flex-col">
+      <div className="border-line flex flex-wrap items-center justify-end gap-2 border-b bg-surface px-4 py-2">
+        <Button variant="ghost" onClick={() => setZoom((v) => Math.max(60, v - 10))}>
+          <Minus size={16} />
+        </Button>
+        <span className="text-ink-muted w-12 text-center text-sm">{zoom}%</span>
+        <Button variant="ghost" onClick={() => setZoom((v) => Math.min(150, v + 10))}>
+          <Plus size={16} />
+        </Button>
+        <Button variant="ghost" onClick={handlePrint} title="In hoặc Lưu thành file PDF">
+          <Printer size={16} className="mr-1" /> Xuất / In PDF
+        </Button>
       </div>
-
-      <div className="bg-page relative flex min-h-[60vh] max-h-[75vh] flex-col items-center overflow-auto p-4 md:p-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6 flex flex-col items-center">
         {loading && (
           <div className="my-auto flex flex-col items-center justify-center gap-3 py-16 text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -94,11 +125,6 @@ export function DocxViewer({ src, title }: Props) {
         {error && (
           <div className="my-auto flex flex-col items-center justify-center gap-4 py-16 text-center">
             <p className="text-sm text-color-danger font-medium">{error}</p>
-            <a href={src} download>
-              <Button>
-                <Download size={16} className="mr-1" /> Tải file Word về máy để xem
-              </Button>
-            </a>
           </div>
         )}
 
