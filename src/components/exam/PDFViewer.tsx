@@ -1,4 +1,4 @@
-import { Maximize2, Minus, Plus } from 'lucide-react'
+import { Maximize2, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
@@ -16,13 +16,15 @@ type Props = {
 export function PDFViewer({ src, title }: Props) {
   const [zoom, setZoom] = useState(100)
   const [numPages, setNumPages] = useState<number>()
+  const [pageNumber, setPageNumber] = useState(1)
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages)
   }
 
-  // Show all pages
-  const pagesToShow = numPages || 0
+  function changePage(offset: number) {
+    setPageNumber(prevPageNumber => Math.min(Math.max(1, prevPageNumber + offset), numPages || 1));
+  }
 
   return (
     <div id="pdf-preview" className="bg-surface border-line overflow-hidden rounded-2xl border">
@@ -53,16 +55,25 @@ export function PDFViewer({ src, title }: Props) {
           loading={<div className="text-ink-muted">Đang tải PDF...</div>}
           error={<div className="text-color-danger">Lỗi khi tải PDF</div>}
         >
-          {Array.from(new Array(pagesToShow), (_el, index) => (
-            <div key={`page_${index + 1}`} className="mb-4 shadow-md">
-              <Page
-                pageNumber={index + 1}
-                scale={zoom / 100}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-              />
+          <div className="mb-4 shadow-md bg-white">
+            <Page
+              pageNumber={pageNumber}
+              scale={zoom / 100}
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+            />
+          </div>
+          {numPages && (
+            <div className="flex items-center gap-4 mt-2 mb-8 bg-surface px-4 py-2 rounded-full border border-line shadow-sm">
+              <Button variant="ghost" onClick={() => changePage(-1)} disabled={pageNumber <= 1}>
+                <ChevronLeft size={20} /> Trước
+              </Button>
+              <span className="text-sm font-medium">Trang {pageNumber} / {numPages}</span>
+              <Button variant="ghost" onClick={() => changePage(1)} disabled={pageNumber >= numPages}>
+                Sau <ChevronRight size={20} />
+              </Button>
             </div>
-          ))}
+          )}
         </Document>
       </div>
     </div>

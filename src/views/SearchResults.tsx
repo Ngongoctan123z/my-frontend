@@ -12,7 +12,7 @@ import type { ExamType } from '../types/exam'
 import { SUBJECTS, YEARS } from '../utils/constants'
 import { useSeo } from '../utils/seo'
 
-export function SearchResults() {
+export function SearchResults({ initialExams }: { initialExams?: import('../types/exam').ExamListResponse }) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -53,6 +53,7 @@ export function SearchResults() {
   const results = useQuery({
     queryKey: ['exams-search', filters],
     queryFn: () => getExams(filters),
+    initialData: (!q && !examType && !subject && !province && !year && sort === 'recent' && page === 0) ? initialExams : undefined
   })
 
   const totalCount = results.data?.total ?? 0

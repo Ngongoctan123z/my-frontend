@@ -1,9 +1,7 @@
 'use client'
 
 import { lazy, Suspense, useEffect, useRef, useState, use } from 'react'
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
 import { Download, Share2, Star } from 'lucide-react'
 import { Breadcrumb } from '../components/common/Breadcrumb'
 import { ExamList } from '../components/exam/ExamList'
@@ -11,7 +9,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { useNotify } from '../context/NotificationContext'
 import { useUser } from '../context/UserContext'
-import { getExamById, getExamByPath, getExams, getRelatedExams, recordView, requestDownload } from '../services/examService'
+import { getRelatedExams, recordView, requestDownload } from '../services/examService'
 import { BASE_URL, SUBJECTS, PROVINCES } from '../utils/constants'
 import { formatNumber } from '../utils/dateFormat'
 import { setJsonLd, useSeo } from '../utils/seo'
@@ -24,9 +22,7 @@ const DocxViewer = lazy(() =>
   import('../components/exam/DocxViewer').then((mod) => ({ default: mod.DocxViewer })),
 )
 
-export function ExamDetail() {
-  const params = useParams<{ slug?: string[] }>()
-  const slug = params?.slug || []
+export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam: any, initialRelated: any[], slug: string[] }) {
   
   const id = slug.length === 1 ? slug[0] : undefined
   const examType = slug.length >= 4 ? slug[0] : 'vao-10'
@@ -44,50 +40,7 @@ export function ExamDetail() {
   const [downloading, setDownloading] = useState(false)
   const pdfRef = useRef<HTMLDivElement>(null)
 
-  const examQuery = useQuery({
-    queryKey: ['exam', id, examType, fallbackSubject, fallbackProvince, fallbackYear],
-    queryFn: async () => {
-      // 1. Nếu có param id -> truy vấn trực tiếp bằng ID
-      if (id && !isNaN(Number(id))) {
-        return await getExamById(Number(id))
-      }
-
-      // 2. Thử lookup theo path chuẩn
-      try {
-        const found = await getExamByPath({
-          examType,
-          subject: fallbackSubject,
-          province: fallbackProvince,
-          year: fallbackYear,
-        })
-        if (found) return found
-      } catch (e) {
-        console.warn('Path lookup error, trying fallback search...', e)
-      }
-
-      // 3. Fallback: tìm theo danh sách đề theo năm và so khớp slug
-      try {
-        const res = await getExams({
-          examType: parsedType,
-          year: fallbackYear,
-          limit: 50,
-        })
-        const match = res.data.find(
-          (e) =>
-            slugify(e.subject) === subject &&
-            slugify(e.province) === province &&
-            e.year === fallbackYear,
-        )
-        if (match) return match
-      } catch (err) {
-        console.error('Fallback search error:', err)
-      }
-
-      return undefined
-    },
-  })
-
-  const exam = examQuery.data
+  const exam = initialExam
   const type = exam ? exam.examType : parsedType
   const subjectLabel = exam?.subject ?? fallbackSubject
   const provinceLabel = exam?.province ?? fallbackProvince
@@ -103,32 +56,8 @@ export function ExamDetail() {
     if (exam?.id) recordView(exam.id)
   }, [exam?.id])
 
-  useEffect(() => {
-    if (!exam) {
-      setJsonLd('exam-jsonld', null)
-      return
-    }
-    setJsonLd('exam-jsonld', {
-      '@context': 'https://schema.org',
-      '@type': 'LearningResource',
-      name: title,
-      identifier: exam.examCode,
-      educationalLevel: examTypeLabel(type),
-      about: subjectLabel,
-      spatialCoverage: provinceLabel,
-      datePublished: String(yearNumber),
-      url: window.location.href,
-    })
-    return () => setJsonLd('exam-jsonld', null)
-  }, [exam, title, type, subjectLabel, provinceLabel, yearNumber])
 
-  const related = useQuery({
-    queryKey: ['related', exam?.id],
-    queryFn: () => getRelatedExams(exam!.id),
-    enabled: Boolean(exam?.id),
-  })
-
-
+  const relatedExams = initialRelated
 
   const handleDownload = async (bulk: boolean) => {
     if (!exam) return
@@ -167,9 +96,7 @@ export function ExamDetail() {
     }
   }
 
-  if (examQuery.isLoading) {
-    return <p className="text-ink-muted">Đang tải đề thi...</p>
-  }
+
 
   if (!exam) {
     return (
@@ -325,12 +252,12 @@ export function ExamDetail() {
         </div>
       </Card>
 
-      {related.data && related.data.length > 0 ? (
+      {relatedExams && relatedExams.length > 0 ? (
         <section className="mt-16">
           <h2 className="mb-6 text-2xl font-bold tracking-tight">
             Xem thêm đề {subjectLabel} tại {provinceLabel}
           </h2>
-          <ExamList exams={related.data} />
+          <ExamList exams={relatedExams} />
         </section>
       ) : null}
 
