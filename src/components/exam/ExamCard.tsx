@@ -1,5 +1,8 @@
+'use client'
+
 import { BookOpen, Download, Eye, Star } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
+
 import { useNotify } from '../../context/NotificationContext'
 import { useUser } from '../../context/UserContext'
 import type { Exam } from '../../types/exam'
@@ -92,8 +95,7 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
 
         {/* Actions */}
         <div className="flex gap-2 pt-0.5">
-          <Link
-            to={examPath(exam)}
+          <Link href={examPath(exam)}
             className="btn-press bg-[var(--color-primary)] inline-flex min-h-[40px] flex-1 items-center justify-center rounded-xl px-3 py-1.5 text-[0.875rem] font-semibold text-white transition-opacity hover:opacity-90"
           >
             Xem đề thi

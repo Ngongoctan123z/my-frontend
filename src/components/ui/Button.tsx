@@ -1,12 +1,13 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'accent' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'danger'
   children: ReactNode
 }
 
 const variants = {
   primary: 'bg-[var(--color-primary)] text-white hover:opacity-90',
+  secondary: 'bg-[var(--color-secondary)] text-white hover:opacity-90',
   accent: 'bg-[var(--color-accent)] text-white hover:opacity-90',
   ghost: 'bg-transparent text-ink border border-line hover:bg-page',
   danger: 'bg-[var(--color-danger)] text-white hover:opacity-90',

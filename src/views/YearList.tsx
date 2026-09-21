@@ -1,5 +1,8 @@
+'use client'
+
 import { CalendarDays, Download, Eye } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { Breadcrumb } from '../components/common/Breadcrumb'
 import { getExams } from '../services/examService'
@@ -9,7 +12,10 @@ import { examTypeLabel, pathToExamType, slugify } from '../utils/slug'
 import { useSeo } from '../utils/seo'
 
 export function YearList() {
-  const { examType = 'vao-10', subject = 'toan', province = 'nam-dinh' } = useParams()
+  const params = useParams() as { examType?: string; subject?: string; province?: string; year?: string };
+  const examType = params?.examType || 'vao-10';
+  const subject = params?.subject || 'toan';
+  const province = params?.province || 'nam-dinh';
   const type = pathToExamType(examType)
   const subjectLabel = SUBJECTS.find((item) => slugify(item) === subject) ?? subject
   const provinceLabel = PROVINCES.find((item) => slugify(item) === province) ?? province
@@ -69,10 +75,7 @@ export function YearList() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           {examList.map((exam, index) => (
-            <Link
-              key={exam.id}
-              id={`year-${exam.year}`}
-              to={`/exams/${examType}/${subject}/${province}/${exam.year}`}
+            <Link href={`/exams/${examType}/${subject}/${province}/${exam.year}`}
               className="year-card bg-surface border-line fade-in group flex flex-col gap-4 rounded-2xl border p-5"
               style={{ animationDelay: `${index * 60}ms` }}
             >

@@ -1,4 +1,7 @@
-import { Link } from 'react-router-dom'
+'use client'
+
+import Link from 'next/link'
+
 
 type Crumb = { label: string; to?: string }
 
@@ -8,7 +11,7 @@ export function Breadcrumb({ items }: { items: Crumb[] }) {
       {items.map((item, index) => (
         <span key={`${item.label}-${index}`} className="flex items-center gap-2">
           {item.to ? (
-            <Link to={item.to} className="hover:text-[var(--color-primary)]">
+            <Link href={item.to} className="hover:text-[var(--color-primary)]">
               {item.label}
             </Link>
           ) : (

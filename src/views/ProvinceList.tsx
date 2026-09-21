@@ -1,5 +1,8 @@
+'use client'
+
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { Breadcrumb } from '../components/common/Breadcrumb'
 import { Card } from '../components/ui/Card'
@@ -8,7 +11,10 @@ import { SUBJECTS } from '../utils/constants'
 import { examTypeLabel, pathToExamType, slugify } from '../utils/slug'
 
 export function ProvinceList() {
-  const { examType = 'vao-10', subject = 'toan' } = useParams()
+  const params = useParams() as { examType?: string; subject?: string; province?: string; year?: string };
+  const examType = params?.examType || 'vao-10';
+  const subject = params?.subject || 'toan';
+  const province = params?.province || 'nam-dinh';
   const type = pathToExamType(examType)
   const subjectLabel = SUBJECTS.find((item) => slugify(item) === subject) ?? subject
   const [query, setQuery] = useState('')
@@ -68,7 +74,7 @@ export function ProvinceList() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, index) => (
-            <Link key={item.province} to={`/exams/${examType}/${subject}/${slugify(item.province)}`}>
+            <Link href={`/exams/${examType}/${subject}/${slugify(item.province)}`}>
               <Card className="exam-card fade-in" style={{ animationDelay: `${index * 40}ms` }}>
                 <h2 className="text-xl font-semibold">{item.province}</h2>
                 <p className="text-ink-muted mt-2 text-sm">{item.yearCount} năm đề</p>

@@ -1,5 +1,8 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+'use client'
+
+import { lazy, Suspense, useEffect, useRef, useState, use } from 'react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Download, Share2, Star } from 'lucide-react'
 import { Breadcrumb } from '../components/common/Breadcrumb'
@@ -22,12 +25,14 @@ const DocxViewer = lazy(() =>
 )
 
 export function ExamDetail() {
-  const params = useParams<{ id?: string; examType?: string; subject?: string; province?: string; year?: string }>()
-  const { id } = params
-  const examType = params.examType ?? 'vao-10'
-  const subject = params.subject ?? 'toan'
-  const province = params.province ?? 'nam-dinh'
-  const year = params.year ?? '2024'
+  const params = useParams<{ slug?: string[] }>()
+  const slug = params?.slug || []
+  
+  const id = slug.length === 1 ? slug[0] : undefined
+  const examType = slug.length >= 4 ? slug[0] : 'vao-10'
+  const subject = slug.length >= 4 ? slug[1] : 'toan'
+  const province = slug.length >= 4 ? slug[2] : 'nam-dinh'
+  const year = slug.length >= 4 ? slug[3] : '2024'
 
   const parsedType = pathToExamType(examType)
   const fallbackSubject = SUBJECTS.find((item) => slugify(item) === subject) ?? subject
@@ -175,10 +180,10 @@ export function ExamDetail() {
           Đề thi môn {subjectLabel} tỉnh {provinceLabel} năm {yearNumber} chưa có hoặc đang cập nhật.
         </p>
         <div className="flex flex-wrap justify-center gap-3 pt-3">
-          <Link to="/" className="btn-press bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-medium inline-block">
+          <Link href="/" className="btn-press bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-medium inline-block">
             Về trang chủ tìm kiếm
           </Link>
-          <Link to={`/`} className="btn-press border border-line px-5 py-2.5 rounded-xl font-medium inline-block hover:bg-page">
+          <Link href={`/`} className="btn-press border border-line px-5 py-2.5 rounded-xl font-medium inline-block hover:bg-page">
             Xem tất cả đề thi
           </Link>
         </div>

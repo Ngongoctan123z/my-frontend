@@ -1,5 +1,7 @@
+'use client'
+
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
 import { useDebounce } from '../../hooks/useDebounce'
 import { getSuggestions } from '../../services/searchService'
@@ -9,7 +11,7 @@ export function SearchBar() {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [open, setOpen] = useState(false)
   const debounced = useDebounce(query, 200)
-  const navigate = useNavigate()
+  const router = useRouter()
   const boxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function SearchBar() {
     const next = value.trim()
     if (!next) return
     setOpen(false)
-    navigate(`/?q=${encodeURIComponent(next)}`)
+    router.push(`/?q=${encodeURIComponent(next)}`)
   }
 
   return (

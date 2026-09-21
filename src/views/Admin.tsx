@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { Button } from '../components/ui/Button'
 import { useNotify } from '../context/NotificationContext'
@@ -11,7 +13,7 @@ export function Admin() {
   const [activeTab, setActiveTab] = useState<'list' | 'upload'>('list')
   const [adminPassword, setAdminPassword] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('adminToken'))
+  const [isAuthenticated, setIsAuthenticated] = useState(!!(typeof window !== 'undefined' ? localStorage.getItem.bind(localStorage) : () => null)('adminToken'))
   const [editingExam, setEditingExam] = useState<Exam | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const { notify } = useNotify()
@@ -46,7 +48,7 @@ export function Admin() {
         throw new Error('Không nhận được token từ server')
       }
 
-      localStorage.setItem('adminToken', data.token)
+      (typeof window !== 'undefined' ? localStorage.setItem.bind(localStorage) : () => {})('adminToken', data.token)
       setIsAuthenticated(true)
       setAdminPassword('')
       notify('Đăng nhập thành công', 'success')
@@ -59,7 +61,7 @@ export function Admin() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken')
+    (typeof window !== 'undefined' ? localStorage.removeItem.bind(localStorage) : () => {})('adminToken')
     setIsAuthenticated(false)
   }
 

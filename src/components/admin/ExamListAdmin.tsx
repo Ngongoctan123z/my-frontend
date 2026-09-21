@@ -1,5 +1,8 @@
+'use client'
+
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
+
 import { useQuery } from '@tanstack/react-query'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { apiFetch } from '../../services/api'
@@ -26,7 +29,7 @@ export default function ExamListAdmin({
   const { data, isLoading, error, refetch } = useQuery<ExamListResponse>({
     queryKey: ['admin-exams', page, limit],
     queryFn: async () => {
-      const token = localStorage.getItem('adminToken')
+      const token = (typeof window !== 'undefined' ? localStorage.getItem.bind(localStorage) : () => null)('adminToken')
       if (!token) {
         throw new Error('Token không tồn tại')
       }
@@ -72,7 +75,7 @@ export default function ExamListAdmin({
       await apiFetch(`/admin/exams/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${(typeof window !== 'undefined' ? localStorage.getItem.bind(localStorage) : () => null)('adminToken')}`
         }
       })
       
@@ -129,7 +132,7 @@ export default function ExamListAdmin({
                 <td className="border border-line p-3">
                   <div className="flex gap-2 justify-center">
                     <Link
-                      to={`/exams/${exam.id}`}
+                      href={`/exams/${exam.id}`}
                       target="_blank"
                       className="text-emerald-600 hover:text-emerald-700 p-1 rounded"
                       title="Xem đề thi"

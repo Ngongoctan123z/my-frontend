@@ -1,4 +1,7 @@
-import { Link } from 'react-router-dom'
+'use client'
+
+import Link from 'next/link'
+
 
 export function Footer() {
   return (
@@ -18,13 +21,13 @@ export function Footer() {
 
           {/* Quick Links */}
           <div className="flex gap-6 text-sm font-medium">
-            <Link to="/" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
+            <Link href="/" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
               Trang chủ
             </Link>
-            <Link to="/search" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
+            <Link href="/search" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
               Tìm kiếm
             </Link>
-            <Link to="/favorites" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
+            <Link href="/favorites" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
               Yêu thích
             </Link>
           </div>

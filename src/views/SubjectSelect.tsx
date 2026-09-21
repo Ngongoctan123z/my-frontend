@@ -1,5 +1,8 @@
+'use client'
+
 import { BookOpen, Calculator, Globe } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { Breadcrumb } from '../components/common/Breadcrumb'
 import { SUBJECTS } from '../utils/constants'
 import { examTypeLabel, pathToExamType, slugify } from '../utils/slug'
@@ -29,7 +32,10 @@ const SUBJECT_CONFIG: Record<
 }
 
 export function SubjectSelect() {
-  const { examType = 'vao-10' } = useParams()
+  const params = useParams() as { examType?: string; subject?: string; province?: string; year?: string };
+  const examType = params?.examType || 'vao-10';
+  const subject = params?.subject || 'toan';
+  const province = params?.province || 'nam-dinh';
   const type = pathToExamType(examType)
 
   return (
@@ -49,10 +55,7 @@ export function SubjectSelect() {
           const cfg = SUBJECT_CONFIG[subject]
           const Icon = cfg?.icon ?? BookOpen
           return (
-            <Link
-              key={subject}
-              id={`subject-${slugify(subject)}`}
-              to={`/exams/${examType}/${slugify(subject)}`}
+            <Link href={`/exams/${examType}/${slugify(subject)}`}
               className="subject-card group relative overflow-hidden rounded-2xl"
             >
               {/* Gradient top band */}

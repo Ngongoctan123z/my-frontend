@@ -1,5 +1,7 @@
+'use client'
+
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { BookOpen, Filter, GraduationCap, X } from 'lucide-react'
 import { ExamFilter } from '../components/exam/ExamFilter'
@@ -11,13 +13,16 @@ import { SUBJECTS, YEARS } from '../utils/constants'
 import { useSeo } from '../utils/seo'
 
 export function SearchResults() {
-  const [params, setParams] = useSearchParams()
-  const q = params.get('q') ?? ''
-  const examType = (params.get('examType') as ExamType | '') || ''
-  const subject = params.get('subject') ?? ''
-  const province = params.get('province') ?? ''
-  const year = params.get('year') ?? ''
-  const sort = (params.get('sort') as 'recent' | 'popular' | 'name') || 'recent'
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const q = searchParams?.get('q') ?? ''
+  const examType = (searchParams?.get('examType') as ExamType | '') || ''
+  const subject = searchParams?.get('subject') ?? ''
+  const province = searchParams?.get('province') ?? ''
+  const year = searchParams?.get('year') ?? ''
+  const sort = (searchParams?.get('sort') as 'recent' | 'popular' | 'name') || 'recent'
 
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [page, setPage] = useState(0)
@@ -54,14 +59,14 @@ export function SearchResults() {
   const totalPages = Math.max(1, Math.ceil(totalCount / 12))
 
   const updateParam = (key: string, value: string | undefined) => {
-    const nextParams = new URLSearchParams(params)
+    const nextParams = new URLSearchParams((searchParams?.toString() || ''))
     if (value) {
       nextParams.set(key, value)
     } else {
       nextParams.delete(key)
     }
     setPage(0)
-    setParams(nextParams)
+    router.push(`${pathname}?${nextParams.toString()}`)
   }
 
   const applyFilters = (next: {
@@ -71,7 +76,7 @@ export function SearchResults() {
     year: string
     sort?: 'recent' | 'popular' | 'name'
   }) => {
-    const nextParams = new URLSearchParams(params)
+    const nextParams = new URLSearchParams((searchParams?.toString() || ''))
     if (next.examType) nextParams.set('examType', next.examType)
     else nextParams.delete('examType')
 
@@ -88,12 +93,12 @@ export function SearchResults() {
     else nextParams.delete('sort')
 
     setPage(0)
-    setParams(nextParams)
+    router.push(`${pathname}?${nextParams.toString()}`)
   }
 
   const handleResetFilters = () => {
     setPage(0)
-    setParams(new URLSearchParams())
+    router.push(pathname || '/')
   }
 
   const hasActiveFilters = Boolean(q || examType || subject || province || year || sort !== 'recent')
