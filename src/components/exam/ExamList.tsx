@@ -3,15 +3,12 @@ import { ExamCard } from './ExamCard'
 
 function SkeletonCard() {
   return (
-    <div className="bg-surface border-line overflow-hidden rounded-2xl border flex flex-row p-3 gap-4 items-center">
-      <div className="skeleton h-12 w-12 rounded-xl shrink-0" />
-      <div className="flex-1 space-y-2">
-        <div className="skeleton h-4 w-1/2 rounded" />
-        <div className="skeleton h-3 w-1/3 rounded" />
-      </div>
-      <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0 hidden sm:flex">
-        <div className="skeleton h-10 w-28 rounded-xl" />
-        <div className="skeleton h-10 w-10 rounded-xl" />
+    <div className="flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0">
+      <div className="skeleton shrink-0 w-[90px] h-[127px] md:w-[130px] md:h-[184px] rounded bg-surface" />
+      <div className="flex-1 space-y-3 pt-1 md:pt-2 w-full">
+        <div className="skeleton h-5 md:h-6 w-full rounded" />
+        <div className="skeleton h-5 md:h-6 w-3/4 rounded" />
+        <div className="skeleton h-4 w-32 rounded mt-2" />
       </div>
     </div>
   )
