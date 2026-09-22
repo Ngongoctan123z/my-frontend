@@ -15,15 +15,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Fetch latest exams to include in sitemap
-    const result = await getExams({ limit: 1000 })
+    const result = await getExams({ limit: 5000 })
     
     if (result && result.data) {
-      const examRoutes = result.data.map((exam) => ({
-        url: `${FRONTEND_URL}${examPath(exam)}`,
-        lastModified: new Date(exam.createdAt || new Date()),
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
-      }))
+      const examRoutes = result.data
+        .filter((exam) => exam.status !== 'DRAFT' && exam.status !== 'NEEDS_REVIEW')
+        .map((exam) => ({
+          url: `${FRONTEND_URL}${examPath(exam as any)}`,
+          lastModified: new Date(exam.updatedAt || exam.createdAt || new Date()),
+          changeFrequency: 'weekly' as const,
+          priority: 0.8,
+        }))
       routes.push(...examRoutes)
     }
   } catch (error) {

@@ -69,14 +69,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Truncate if too long
   const title = titleText.length <= 45 ? `${titleText} | Kho Đề Thi` : titleText
   
-  const desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
+  let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
+  if (exam.seoStructure) {
+    const stripped = exam.seoStructure.replace(/<[^>]+>/g, '').trim()
+    if (stripped) {
+      desc = stripped.substring(0, 150) + (stripped.length > 150 ? '...' : '')
+    }
+  }
+  
   const canonical = `${FRONTEND_URL}${examPath(exam as any)}`
 
   return { 
     title, 
     description: desc, 
     alternates: { canonical },
-    robots: exam.status === 'PUBLISHED' ? { index: true, follow: true } : { index: false, follow: true },
+    robots: (exam.status === 'DRAFT' || exam.status === 'NEEDS_REVIEW') ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: { 
       type: 'article', 
       locale: 'vi_VN', 
@@ -115,6 +122,14 @@ export default async function ExamPage({ params }: Props) {
     relatedExams = await getRelatedExams(exam.id)
   } catch (e) {}
 
+  let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
+  if (exam.seoStructure) {
+    const stripped = exam.seoStructure.replace(/<[^>]+>/g, '').trim()
+    if (stripped) {
+      desc = stripped.substring(0, 150) + (stripped.length > 150 ? '...' : '')
+    }
+  }
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -122,7 +137,7 @@ export default async function ExamPage({ params }: Props) {
         '@type': 'LearningResource',
         '@id': `${FRONTEND_URL}${examPath(exam as any)}#resource`,
         name: exam.title || titleText,
-        description: `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`,
+        description: desc,
         inLanguage: 'vi',
         educationalLevel: examTypeLabel(exam.examType),
         learningResourceType: 'Đề thi',
