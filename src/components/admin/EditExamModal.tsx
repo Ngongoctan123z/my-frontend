@@ -26,6 +26,7 @@ export default function EditExamModal({
     note: exam.description || ''
   })
 
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -64,6 +65,18 @@ export default function EditExamModal({
         },
         body: JSON.stringify(formData)
       })
+
+      if (thumbnailFile) {
+        const thumbForm = new FormData()
+        thumbForm.append('thumbnailFile', thumbnailFile)
+        await apiFetch(`/admin/exams/${exam.id}/thumbnail`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          },
+          body: thumbForm
+        })
+      }
 
       alert('Cập nhật thành công')
       onSuccess()
@@ -154,29 +167,59 @@ export default function EditExamModal({
             />
           </div>
 
-          {/* Checkboxes */}
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                name="isOfficial"
-                checked={formData.isOfficial}
-                onChange={handleChange}
-                className="rounded border-line"
-              />
-              <span className="text-sm">Đề chính thức</span>
-            </label>
+          {/* Properties */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-y border-line py-4">
+            <div>
+              <label className="block text-sm font-bold mb-2">Tính chất đề thi</label>
+              <div className="flex flex-col gap-2 mt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isOfficial"
+                    checked={formData.isOfficial === true}
+                    onChange={() => setFormData(prev => ({ ...prev, isOfficial: true }))}
+                    className="border-line"
+                  />
+                  <span className="text-sm">Đề chính thức</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isOfficial"
+                    checked={formData.isOfficial === false}
+                    onChange={() => setFormData(prev => ({ ...prev, isOfficial: false }))}
+                    className="border-line"
+                  />
+                  <span className="text-sm">Đề thi thử</span>
+                </label>
+              </div>
+            </div>
             
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                name="hasAnswers"
-                checked={formData.hasAnswers}
-                onChange={handleChange}
-                className="rounded border-line"
-              />
-              <span className="text-sm">Có đáp án</span>
-            </label>
+            <div>
+              <label className="block text-sm font-bold mb-2">Tùy chọn khác</label>
+              <label className="flex items-center gap-2 cursor-pointer mt-1">
+                <input
+                  type="checkbox"
+                  name="hasAnswers"
+                  checked={formData.hasAnswers}
+                  onChange={handleChange}
+                  className="rounded border-line"
+                />
+                <span className="text-sm">Đề thi có đáp án</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Thumbnail File */}
+          <div>
+            <label className="block text-sm font-bold mb-2">Cập nhật ảnh bìa mới (Tùy chọn)</label>
+            <input
+              type="file"
+              accept=".png,.jpg,.jpeg,.webp"
+              onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+              className="w-full border border-line bg-page rounded-xl px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-ink-muted mt-1">Bỏ trống nếu không muốn thay đổi ảnh bìa hiện tại.</p>
           </div>
 
           {/* Note */}

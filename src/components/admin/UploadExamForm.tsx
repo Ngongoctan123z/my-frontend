@@ -34,8 +34,8 @@ export default function UploadExamForm({ onSuccess }: { onSuccess?: () => void }
 
     if (data.title) form.append('title', data.title)
     if (data.schoolName) form.append('schoolName', data.schoolName)
-    form.append('isOfficial', data.isOfficial === true ? 'true' : 'false')
-    form.append('hasAnswers', data.hasAnswers === true ? 'true' : 'false')
+    form.append('isOfficial', data.isOfficial === true || String(data.isOfficial) === 'true' ? 'true' : 'false')
+    form.append('hasAnswers', data.hasAnswers === true || String(data.hasAnswers) === 'true' ? 'true' : 'false')
     if (data.description) form.append('description', data.description)
 
     if (data.answerFile && data.answerFile.length > 0) {
@@ -106,15 +106,42 @@ export default function UploadExamForm({ onSuccess }: { onSuccess?: () => void }
           />
         </label>
 
-        <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" {...register('isOfficial')} className="rounded border-line" />
-            Là đề thi chính thức
-          </label>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" {...register('hasAnswers')} className="rounded border-line" />
-            Đề thi có đáp án
-          </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-y border-line py-4">
+          <div>
+            <label className="block text-sm font-bold mb-2">Tính chất đề thi</label>
+            <div className="flex flex-col gap-2 mt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="true"
+                  {...register('isOfficial')}
+                  className="border-line"
+                />
+                <span className="text-sm">Đề chính thức</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="false"
+                  {...register('isOfficial')}
+                  className="border-line"
+                />
+                <span className="text-sm">Đề thi thử</span>
+              </label>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-bold mb-2">Tùy chọn khác</label>
+            <label className="flex items-center gap-2 cursor-pointer mt-1">
+              <input
+                type="checkbox"
+                {...register('hasAnswers')}
+                className="rounded border-line"
+              />
+              <span className="text-sm">Đề thi có đáp án</span>
+            </label>
+          </div>
         </div>
 
         <label className="block text-sm">
