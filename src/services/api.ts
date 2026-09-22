@@ -11,6 +11,7 @@ export class ApiError extends Error {
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
+    cache: 'no-store', // Disable Next.js aggressive caching which traps 404s
     ...init,
     headers: {
       Accept: 'application/json',
