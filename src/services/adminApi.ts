@@ -5,10 +5,7 @@ import { API_BASE } from '../utils/constants'
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
-  timeout: 300000, // 5 phút (cho upload file lớn)
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  timeout: 300000 // 5 phút (cho upload file lớn)
 })
 
 // Request interceptor: Add JWT token
