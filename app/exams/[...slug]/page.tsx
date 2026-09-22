@@ -22,7 +22,7 @@ async function fetchExamData(slug: string[]) {
   }
 
   if (slug.length >= 4) {
-    const [examType, subject, province, year] = slug
+    const [examType, subject, province, year, slugIdentifier] = slug
     const parsedType = pathToExamType(examType)
     const fallbackSubject = SUBJECTS.find((item) => slugify(item) === subject) ?? subject
     const fallbackProvince = PROVINCES.find((item) => slugify(item) === province) ?? province
@@ -34,6 +34,7 @@ async function fetchExamData(slug: string[]) {
         subject: fallbackSubject,
         province: fallbackProvince,
         year: fallbackYear,
+        slugIdentifier: slugIdentifier || undefined,
       })
       if (found) return found
     } catch (e) {}
@@ -59,49 +60,41 @@ async function fetchExamData(slug: string[]) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   
-  let title = 'Kho Đề Thi'
-  let desc = 'Kho đề thi tuyển sinh vào lớp 10 và thi tốt nghiệp THPT của các tỉnh thành. Tải đề và xem online.'
-  let canonical = FRONTEND_URL
+  const exam = await fetchExamData(slug)
+  if (!exam) return {}
   
-  if (slug.length === 1) {
-    const exam = await fetchExamData(slug)
-    if (exam) {
-      title = exam.title || `Đề thi ${exam.subject} ${examTypeLabel(exam.examType)} ${exam.province} ${exam.year}`
-      desc = `${title}. Xem online và tải tài liệu hoàn toàn miễn phí.`
-      canonical = `${FRONTEND_URL}${examPath({ examType: exam.examType, subject: exam.subject, province: exam.province, year: exam.year })}`
-    } else {
-      title = 'Đề thi không tồn tại'
-    }
-  } else if (slug.length >= 4) {
-    const [examType, subject, province, year] = slug
-    const parsedType = pathToExamType(examType)
-    const fallbackSubject = SUBJECTS.find((item) => slugify(item) === subject) ?? subject
-    const fallbackProvince = PROVINCES.find((item) => slugify(item) === province) ?? province
-    const fallbackYear = Number(year)
-
-    title = `Đề thi ${fallbackSubject} ${examTypeLabel(parsedType) === 'Vào 10' ? 'vào 10' : 'THPT'} ${fallbackProvince} ${fallbackYear}`
-    desc = `${title}. Xem online và tải tài liệu hoàn toàn miễn phí.`
-    canonical = `${FRONTEND_URL}/exams/${examType}/${subject}/${province}/${year}`
-  }
+  const isVao10 = examTypeLabel(exam.examType) === 'Vào 10'
+  const prefix = `Đề thi ${exam.subject} ${isVao10 ? 'vào 10' : 'THPT'} ${exam.province} ${exam.year}`
+  const titleText = `${prefix}${exam.hasAnswers ? ' (có đáp án)' : ''}`
+  // Truncate if too long
+  const title = titleText.length <= 45 ? `${titleText} | Kho Đề Thi` : titleText
+  
+  const desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
+  const canonical = `${FRONTEND_URL}${examPath(exam as any)}`
 
   return { 
     title, 
     description: desc, 
+    alternates: { canonical },
+    robots: exam.status === 'PUBLISHED' ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: { 
+      type: 'article', 
+      locale: 'vi_VN', 
+      siteName: 'Kho Đề Thi',
       title, 
       description: desc, 
-      type: 'article', 
       url: canonical,
       images: [
         {
-          url: `${FRONTEND_URL}/og-image.jpg`,
+          url: `${FRONTEND_URL}/api/og?slug=${slug.join('/')}`,
           width: 1200,
           height: 630,
           alt: title,
         }
-      ]
-    },
-    alternates: { canonical }
+      ],
+      publishedTime: exam.createdAt,
+      modifiedTime: exam.updatedAt || exam.createdAt
+    }
   }
 }
 
@@ -113,6 +106,10 @@ export default async function ExamPage({ params }: Props) {
     notFound()
   }
 
+  const isVao10 = examTypeLabel(exam.examType) === 'Vào 10'
+  const prefix = `Đề thi ${exam.subject} ${isVao10 ? 'vào 10' : 'THPT'} ${exam.province} ${exam.year}`
+  const titleText = `${prefix}${exam.hasAnswers ? ' (có đáp án)' : ''}`
+  
   let relatedExams: import('../../../src/types/exam').Exam[] = []
   try {
     relatedExams = await getRelatedExams(exam.id)
@@ -120,56 +117,74 @@ export default async function ExamPage({ params }: Props) {
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'LearningResource',
-    name: exam.title || `Đề thi ${exam.subject} ${examTypeLabel(exam.examType)} ${exam.province} ${exam.year}`,
-    identifier: exam.examCode,
-    educationalLevel: examTypeLabel(exam.examType),
-    about: exam.subject,
-    spatialCoverage: exam.province,
-    datePublished: String(exam.year),
-  }
-
-  const breadcrumbList = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
+    '@graph': [
       {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Trang chủ',
-        item: FRONTEND_URL,
+        '@type': 'LearningResource',
+        '@id': `${FRONTEND_URL}${examPath(exam as any)}#resource`,
+        name: exam.title || titleText,
+        description: `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`,
+        inLanguage: 'vi',
+        educationalLevel: examTypeLabel(exam.examType),
+        learningResourceType: 'Đề thi',
+        about: exam.subject,
+        isAccessibleForFree: true,
+        datePublished: exam.createdAt,
+        dateModified: exam.updatedAt || exam.createdAt,
+        provider: {
+          '@type': 'Organization',
+          name: 'Kho Đề Thi',
+          url: FRONTEND_URL
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Kho Đề Thi',
+          url: FRONTEND_URL
+        },
+        encodingFormat: exam.fileUrl?.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        contentUrl: `${FRONTEND_URL}/files/${exam.slugIdentifier || exam.examCode}`
       },
       {
-        '@type': 'ListItem',
-        position: 2,
-        name: examTypeLabel(exam.examType),
-        item: `${FRONTEND_URL}/category/${slug[0]}`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: exam.subject,
-        item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 4,
-        name: exam.province,
-        item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}/${slug[2]}`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 5,
-        name: String(exam.year),
-        item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}/${slug[2]}/${slug[3]}`,
-      },
-    ],
+        '@type': 'BreadcrumbList',
+        '@id': `${FRONTEND_URL}${examPath(exam as any)}#breadcrumb`,
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Trang chủ',
+            item: FRONTEND_URL,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: examTypeLabel(exam.examType),
+            item: `${FRONTEND_URL}/category/${slug[0]}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: exam.subject,
+            item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 4,
+            name: exam.province,
+            item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}/${slug[2]}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 5,
+            name: String(exam.year),
+            item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}/${slug[2]}/${slug[3]}`,
+          }
+        ]
+      }
+    ]
   }
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbList) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <ExamDetail initialExam={exam} initialRelated={relatedExams} slug={slug} />
     </>
   )

@@ -26,6 +26,11 @@ export function examPath(exam: {
   subject: string
   province: string
   year: number
+  slugIdentifier?: string
 }): string {
-  return `/exams/${examTypeToPath(exam.examType)}/${slugify(exam.subject)}/${slugify(exam.province)}/${exam.year}`
+  let path = `/exams/${examTypeToPath(exam.examType)}/${slugify(exam.subject)}/${slugify(exam.province)}/${exam.year}`
+  if (exam.slugIdentifier && exam.slugIdentifier.trim() !== '') {
+    path += `/${slugify(exam.slugIdentifier)}`
+  }
+  return path
 }

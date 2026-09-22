@@ -18,7 +18,14 @@ export type Exam = {
   downloadCount: number
   viewCount: number
   examCode: string
-  createdAt: string
+  status?: string
+  contentHtml?: string
+  answerHtml?: string
+  plainText?: string
+  pdfUrl?: string
+  slugIdentifier?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export type ExamListResponse = {

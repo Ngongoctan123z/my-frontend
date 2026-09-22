@@ -38,6 +38,7 @@ export async function getExamByPath(params: {
   subject: string
   province: string
   year: number
+  slugIdentifier?: string
 }): Promise<Exam | undefined> {
   const query = new URLSearchParams({
     examType: params.examType,
@@ -45,6 +46,9 @@ export async function getExamByPath(params: {
     province: params.province,
     year: String(params.year),
   })
+  if (params.slugIdentifier) {
+    query.set('slugIdentifier', params.slugIdentifier)
+  }
   return await apiFetch<Exam>('/exams/lookup?' + query.toString())
 }
 

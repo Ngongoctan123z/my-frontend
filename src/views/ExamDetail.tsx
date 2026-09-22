@@ -120,6 +120,14 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
 
   const favorite = isFavorite(exam.id)
 
+  const renderContent = (htmlContent: string, title: string) => {
+    return (
+      <div className="prose max-w-none rounded-2xl border border-line bg-surface p-6 md:p-10">
+        <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+      </div>
+    )
+  }
+
   const renderFileViewer = (fileUrl: string, fileTitle: string) => {
     const absoluteFileUrl = fileUrl.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`
     const fileExt = fileUrl.split('.').pop()?.toLowerCase()
@@ -186,7 +194,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
       </div>
 
       <div ref={pdfRef} className="mb-10">
-        {renderFileViewer(exam.fileUrl, exam.title || exam.examCode)}
+        {exam.contentHtml ? renderContent(exam.contentHtml, "Đề thi") : renderFileViewer(exam.fileUrl, exam.title || exam.examCode)}
       </div>
 
       {/* Phần hiển thị đáp án */}
@@ -195,7 +203,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
           <>
             <h2 className="mb-6 text-2xl font-bold tracking-tight">Đáp án / Hướng dẫn giải</h2>
             <div className="mb-10">
-              {renderFileViewer(exam.answerFileUrl, `Đáp án ${exam.title || exam.examCode}`)}
+              {exam.answerHtml ? renderContent(exam.answerHtml, "Đáp án") : renderFileViewer(exam.answerFileUrl, `Đáp án ${exam.title || exam.examCode}`)}
             </div>
           </>
         ) : (
@@ -217,10 +225,21 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
           <p className="mt-2 text-ink-muted">Bạn có thể xem online đầy đủ hoặc tải tài liệu này về máy hoàn toàn miễn phí.</p>
         </div>
         <div className="flex flex-wrap gap-3 bg-[var(--bg-primary)] p-6 md:p-8 md:rounded-r-2xl">
-          <Button className={`min-h-[48px] px-6 ${downloading ? 'pulse-blue' : ''}`} onClick={() => handleDownload(false)}>
-            <Download size={20} className="mr-1" />
-            Tải đề thi
-          </Button>
+          <a
+            href={`/files/${exam.slugIdentifier || exam.examCode}`}
+            download
+            className="inline-block"
+            onClick={(e) => {
+              if (navigator.sendBeacon) {
+                navigator.sendBeacon(`/api/exams/${exam.id}/download`);
+              }
+            }}
+          >
+            <Button className="min-h-[48px] px-6">
+              <Download size={20} className="mr-1" />
+              Tải đề thi
+            </Button>
+          </a>
           {exam.answerFileUrl && (
             <a
               href={exam.answerFileUrl.startsWith('http') ? exam.answerFileUrl : `${BASE_URL}${exam.answerFileUrl}`}

@@ -182,13 +182,29 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
         </div>
       </section>
 
-      {/* Main Content Layout: Filters + Results */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_1fr] pt-8 md:pt-10 pb-12 md:pb-16">
-        {/* Mobile Filter Toggle Button */}
-        <div className="flex items-center justify-between md:hidden">
-          <div className="text-sm font-medium text-ink">
-            Tìm thấy <strong className="text-[var(--color-primary)]">{totalCount}</strong> đề thi
-          </div>
+      {/* Filter Toggle Button (Mobile & Desktop) */}
+      <div className="flex items-center justify-between pt-8 md:pt-10 pb-2">
+        <div className="text-sm font-medium text-ink md:hidden">
+          Tìm thấy <strong className="text-[var(--color-primary)]">{totalCount}</strong> đề thi
+        </div>
+        <div className="hidden md:flex items-center gap-2">
+          <h2 className="text-lg font-bold text-ink flex items-center gap-2">
+            Danh sách đề thi
+            <span className="text-xs font-normal px-2.5 py-0.5 rounded-full bg-page border border-line text-ink-muted">
+              {totalCount} kết quả
+            </span>
+          </h2>
+        </div>
+        <div className="flex items-center gap-4">
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="hidden md:block text-xs text-ink-muted hover:text-[var(--color-primary)] underline"
+            >
+              Xóa tất cả bộ lọc
+            </button>
+          )}
           <Button
             variant="ghost"
             className="flex items-center gap-2 rounded-xl text-xs py-2 px-3 border border-line"
@@ -198,9 +214,12 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             {filtersOpen ? 'Ẩn bộ lọc' : 'Lọc đề thi'}
           </Button>
         </div>
+      </div>
 
+      {/* Main Content Layout: Filters + Results */}
+      <div className={`grid grid-cols-1 gap-6 ${filtersOpen ? 'md:grid-cols-[280px_1fr]' : ''} pb-12 md:pb-16`}>
         {/* Sidebar Filters */}
-        <div className={`${filtersOpen ? 'block' : 'hidden'} md:block md:sticky md:top-24 h-max`}>
+        <div className={`${filtersOpen ? 'block' : 'hidden'} md:sticky md:top-24 h-max`}>
           <ExamFilter
             examType={examType}
             subject={subject}
@@ -215,24 +234,6 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
         {/* Results Column */}
         <div className="space-y-4">
           {/* Status and Active Filter Chips */}
-          <div className="hidden md:flex items-center justify-between">
-            <h2 className="text-lg font-bold text-ink flex items-center gap-2">
-              Danh sách đề thi
-              <span className="text-xs font-normal px-2.5 py-0.5 rounded-full bg-page border border-line text-ink-muted">
-                {totalCount} kết quả
-              </span>
-            </h2>
-
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="text-xs text-ink-muted hover:text-[var(--color-primary)] underline"
-              >
-                Xóa tất cả bộ lọc
-              </button>
-            )}
-          </div>
 
           {/* Active filter badges */}
           {hasActiveFilters && (
