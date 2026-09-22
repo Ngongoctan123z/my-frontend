@@ -193,13 +193,19 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
 
       </div>
 
-      {exam.seoStructure && (
-        <div className="mb-8 p-4 rounded-xl border border-line bg-surface">
-          <div dangerouslySetInnerHTML={{ __html: exam.seoStructure }} />
-        </div>
-      )}
+      <div className="mb-8">
+        <h2 className="mb-4 text-2xl font-bold tracking-tight">Cấu trúc đề thi</h2>
+        {exam.seoStructure ? (
+          <div className="p-4 rounded-xl border border-line bg-surface text-ink">
+            <div dangerouslySetInnerHTML={{ __html: exam.seoStructure }} />
+          </div>
+        ) : (
+          <p className="text-ink-muted italic">Đang cập nhật cấu trúc đề thi...</p>
+        )}
+      </div>
 
       <div ref={pdfRef} className="mb-10">
+        <h2 className="mb-4 text-2xl font-bold tracking-tight">Đề thi dạng PDF</h2>
         {exam.contentHtml ? renderContent(exam.contentHtml, "Đề thi") : renderFileViewer(exam.fileUrl, exam.title || exam.examCode)}
       </div>
 
