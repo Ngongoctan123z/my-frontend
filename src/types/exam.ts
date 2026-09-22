@@ -24,6 +24,7 @@ export type Exam = {
   plainText?: string
   pdfUrl?: string
   slugIdentifier?: string
+  seoStructure?: string
   createdAt?: string
   updatedAt?: string
 }

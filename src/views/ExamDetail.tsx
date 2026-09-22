@@ -193,6 +193,12 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
 
       </div>
 
+      {exam.seoStructure && (
+        <div className="mb-8 p-4 rounded-xl border border-line bg-surface">
+          <div dangerouslySetInnerHTML={{ __html: exam.seoStructure }} />
+        </div>
+      )}
+
       <div ref={pdfRef} className="mb-10">
         {exam.contentHtml ? renderContent(exam.contentHtml, "Đề thi") : renderFileViewer(exam.fileUrl, exam.title || exam.examCode)}
       </div>

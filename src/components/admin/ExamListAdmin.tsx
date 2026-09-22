@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 import { useQuery } from '@tanstack/react-query'
-import { Eye, Pencil, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Trash2, Sparkles } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { API_BASE } from '../../utils/constants'
 import type { Exam } from '../../types/exam'
@@ -25,6 +25,7 @@ export default function ExamListAdmin({
 }: ExamListAdminProps) {
   const [page, setPage] = useState(0)
   const [limit] = useState(20)
+  const [generatingId, setGeneratingId] = useState<number | null>(null)
 
   const { data, isLoading, error, refetch } = useQuery<ExamListResponse>({
     queryKey: ['admin-exams', page, limit],
@@ -84,6 +85,26 @@ export default function ExamListAdmin({
       refetch()
     } catch (err) {
       alert('Lỗi xóa: ' + (err as Error).message)
+    }
+  }
+
+  const handleGenerateSeo = async (id: number) => {
+    if (generatingId) return
+    
+    setGeneratingId(id)
+    try {
+      await apiFetch(`/admin/exams/${id}/generate-seo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${(typeof window !== 'undefined' ? localStorage.getItem.bind(localStorage) : () => null)('adminToken')}`
+        }
+      })
+      alert('Tạo cấu trúc đề thi thành công!')
+      refetch()
+    } catch (err) {
+      alert('Lỗi khi gọi AI: ' + (err as Error).message)
+    } finally {
+      setGeneratingId(null)
     }
   }
 
@@ -152,6 +173,14 @@ export default function ExamListAdmin({
                       title="Xóa"
                     >
                       <Trash2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleGenerateSeo(exam.id)}
+                      disabled={generatingId === exam.id}
+                      className={`${generatingId === exam.id ? 'text-gray-400' : 'text-purple-600 hover:text-purple-800'} p-1 rounded font-bold text-xs flex items-center gap-1`}
+                      title="AI tạo cấu trúc đề"
+                    >
+                      {generatingId === exam.id ? '...' : <><Sparkles size={16} /> AI</>}
                     </button>
                   </div>
                 </td>
