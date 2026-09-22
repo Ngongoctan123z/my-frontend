@@ -52,7 +52,7 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
 
       {/* Body */}
       <div className="flex-1 min-w-0 flex flex-col justify-center w-full md:w-auto md:pr-4">
-        <h3 className="text-[1rem] font-bold text-ink leading-snug line-clamp-1 mb-1.5" title={exam.title || exam.subject}>
+        <h3 className="text-[1rem] font-bold text-ink leading-snug mb-1.5 line-clamp-2 md:line-clamp-none" title={exam.title || exam.subject}>
           {exam.title || exam.subject}
         </h3>
         
