@@ -14,7 +14,7 @@ export const adminUploadSchema = z.object({
     }, 'Định dạng file đề thi không được hỗ trợ.'),
   title: z.string().optional(),
   schoolName: z.string().optional(),
-  isOfficial: z.boolean().optional(),
+  isOfficial: z.any().optional(),
   hasAnswers: z.boolean().optional(),
   description: z.string().optional(),
   answerFile: z.any().optional()
