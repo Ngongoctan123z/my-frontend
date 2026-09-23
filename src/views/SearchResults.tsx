@@ -253,14 +253,11 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-semibold border-line bg-page text-ink hover:bg-surface border outline-none"
             >
               <option value="">Năm: Tất cả</option>
-              {YEARS.map((y) =            </select>
+              {YEARS.map((y) => (
+                <option key={y} value={String(y)}>Năm {y}</option>
+              ))}
+            </select>
           </div>
-        </div>
-      </section></svg>
-                Cắt / Gộp File
-              </button>
-            </div>
-          )}
         </div>
       </section>
 
