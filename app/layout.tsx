@@ -7,6 +7,8 @@ export const metadata = {
   description: 'Kho lưu trữ đề thi, tài liệu học tập THCS, THPT miễn phí. Tải xuống định dạng PDF, Word cực kỳ nhanh chóng.',
 }
 
+import Script from 'next/script'
+
 export default function RootLayout({
   children,
 }: {
@@ -15,7 +17,13 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning className="scroll-smooth">
       <head>
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200108977294233" crossOrigin="anonymous"></script>
+        <Script 
+          id="adsense"
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200108977294233" 
+          crossOrigin="anonymous" 
+          strategy="lazyOnload"
+        />
       </head>
       <body suppressHydrationWarning>
         <Providers>
