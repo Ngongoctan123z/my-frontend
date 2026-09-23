@@ -131,7 +131,15 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
     )
   }
 
-  const renderFileViewer = (fileUrl: string, fileTitle: string) => {
+  const renderFileViewer = (fileUrl: string | undefined, fileTitle: string) => {
+    if (!fileUrl) {
+      return (
+        <div className="flex flex-col min-h-[30vh] items-center justify-center rounded-2xl border border-line bg-surface p-6 text-center">
+          <p className="text-ink font-semibold">Tài liệu không có nội dung xem trước</p>
+          <p className="text-ink-muted mt-2 mb-4">Vui lòng tải xuống hoặc xem nội dung khác.</p>
+        </div>
+      )
+    }
     const absoluteFileUrl = fileUrl.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`
     const fileExt = fileUrl.split('.').pop()?.toLowerCase()
     const isPdf = fileExt === 'pdf'
