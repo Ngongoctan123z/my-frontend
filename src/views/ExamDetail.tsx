@@ -140,6 +140,11 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
         </div>
       )
     }
+    // Handle CORS issues by proxying files through Next.js rewrite
+    const proxiedFileUrl = fileUrl.startsWith('http') 
+      ? fileUrl 
+      : `/backend-files${fileUrl.replace('/files', '')}`;
+      
     const absoluteFileUrl = fileUrl.startsWith('http') ? fileUrl : `${BASE_URL}${fileUrl}`
     const fileExt = fileUrl.split('.').pop()?.toLowerCase()
     const isPdf = fileExt === 'pdf'
@@ -149,7 +154,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
     if (isPdf) {
       return (
         <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang khởi tạo trình xem PDF...</p></div>}>
-          <PDFViewer src={absoluteFileUrl} title={fileTitle} />
+          <PDFViewer src={proxiedFileUrl} title={fileTitle} />
         </Suspense>
       )
     }
@@ -157,7 +162,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
     if (isDocx) {
       return (
         <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-line bg-surface"><p className="text-ink-muted">Đang kết xuất tài liệu Word...</p></div>}>
-          <DocxViewer src={absoluteFileUrl} title={fileTitle} />
+          <DocxViewer src={proxiedFileUrl} title={fileTitle} />
         </Suspense>
       )
     }
@@ -165,7 +170,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
     if (isImage) {
       return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-2xl border border-line bg-surface p-4">
-          <img src={absoluteFileUrl} alt={fileTitle} className="max-w-full max-h-[80vh] rounded-xl shadow-md object-contain" />
+          <img src={proxiedFileUrl} alt={fileTitle} className="max-w-full max-h-[80vh] rounded-xl shadow-md object-contain" />
         </div>
       )
     }

@@ -15,6 +15,14 @@ const nextConfig = {
   },
   env: {
     API_URL: process.env.API_URL || 'http://localhost:8081'
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/backend-files/:path*',
+        destination: 'https://p01--backend--4j4v4pb6yj96.code.run/files/:path*'
+      }
+    ]
   }
 };
 
