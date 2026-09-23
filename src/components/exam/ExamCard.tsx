@@ -52,7 +52,26 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
 
       {/* Body */}
       <div className="flex-1 min-w-0 flex flex-col justify-start pt-1 md:pt-2">
-        <h3 className="text-[1.05rem] md:text-[1.2rem] font-bold text-[#1a2b49] leading-snug mb-3">
+        {/* Badges */}
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {/* Year Badge (Bold Blue as requested) */}
+          <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-0.5 text-[11px] uppercase tracking-wide font-bold text-blue-700 border border-blue-200">
+            Năm {exam.year}
+          </span>
+          
+          {/* Official vs Mock Badge */}
+          {exam.isOfficial ? (
+            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
+              Đề chính thức
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">
+              Đề thi thử
+            </span>
+          )}
+        </div>
+
+        <h3 className="text-[1.05rem] md:text-[1.2rem] font-bold text-[#1a2b49] leading-snug mb-3 mt-1">
           <Link href={examPath(exam)} className="group-hover:text-[var(--color-primary)] transition-colors duration-300 line-clamp-3 md:line-clamp-none">
             {exam.title || `Đề thi ${exam.subject} - ${exam.province} - ${exam.year}`}
           </Link>
