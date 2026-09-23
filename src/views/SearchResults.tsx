@@ -3,7 +3,7 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { BookOpen, Filter, GraduationCap, X, ChevronRight } from 'lucide-react'
+import { BookOpen, Filter, GraduationCap, X, ChevronRight, Ban } from 'lucide-react'
 import { ExamFilter } from '../components/exam/ExamFilter'
 import { ExamList } from '../components/exam/ExamList'
 import { Button } from '../components/ui/Button'
@@ -426,7 +426,10 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
         {/* Ad Banner Space */}
         <aside className="hidden lg:block space-y-6">
           <div className="sticky top-24 w-full min-h-[600px] bg-page border border-dashed border-line rounded-xl flex items-center justify-center text-ink-muted text-sm font-medium overflow-hidden relative">
-            <span className="absolute z-0 pointer-events-none opacity-50">Banner Quảng cáo (Đang chờ duyệt)</span>
+            <div className="absolute z-0 flex flex-col items-center justify-center gap-1.5 opacity-30 pointer-events-none">
+              <Ban size={24} />
+              <span className="uppercase tracking-[0.2em] text-[10px] font-bold">Ads</span>
+            </div>
             {/* Auto format, requires a slot ID if you want specific layout, otherwise auto-ads will use this space */}
             <div className="w-full h-full relative z-10">
               <AdBanner dataAdSlot="INSERT_SLOT_ID_HERE" dataAdFormat="vertical" className="w-full h-[600px]" />
