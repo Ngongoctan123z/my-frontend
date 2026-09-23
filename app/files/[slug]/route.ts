@@ -8,31 +8,37 @@ export async function GET(
 ) {
   const { slug } = await params
   
-  // Here we would lookup the exam by slugIdentifier or examCode
-  // For the sake of this implementation without changing the backend API,
-  // we assume the slug is the file basename (e.g. some-exam-file)
-  // or we proxy it directly to the backend API.
-  // Actually, the backend API is /api/v1/admin/files/{filename} but that requires auth.
-  // Or maybe there is a public file download API?
-  // Let's proxy to the known BASE_URL.
+  const searchParams = request.nextUrl.searchParams
+  const urlParam = searchParams.get('url')
   
-  // In a real implementation, we would query the backend to get the actual file URL
-  // But let's just proxy it if it's a known path
-  
-  const fileUrl = `${BASE_URL}/api/v1/files/${slug}`
+  let targetUrl = ''
+  // If the frontend passed the actual file URL in the query string, use it
+  if (urlParam) {
+    targetUrl = urlParam.startsWith('http') ? urlParam : `${BASE_URL.replace('/api/v1', '')}${urlParam}`
+  } else {
+    // Fallback: try to fetch by slug (might fail if backend doesn't support it, but it's a best effort)
+    targetUrl = `${BASE_URL.replace('/api/v1', '')}/files/${slug}`
+  }
   
   try {
-    const response = await fetch(fileUrl, {
+    const response = await fetch(targetUrl, {
       method: 'GET',
     })
     
     if (!response.ok) {
-      return new Response('File not found', { status: 404 })
+      return new Response('File not found or backend error', { status: 404 })
     }
     
     // Create a new response with the file stream
     const headers = new Headers(response.headers)
     headers.set('X-Robots-Tag', 'noindex') // SPEC P1-4: X-Robots-Tag: noindex
+    
+    // If we have the slug, we can use it for the downloaded file name instead of the backend's UUID
+    const contentDisposition = headers.get('content-disposition')
+    if (contentDisposition && slug) {
+      const ext = urlParam ? urlParam.split('.').pop() : 'pdf'
+      headers.set('content-disposition', `attachment; filename="${slug}.${ext}"`)
+    }
     
     return new Response(response.body, {
       status: response.status,

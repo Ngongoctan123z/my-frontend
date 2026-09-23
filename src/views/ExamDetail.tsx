@@ -72,10 +72,10 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
         window.open(result.paymentLink, '_blank')
       } else {
         notify('Tải đề thành công', 'success')
-        // fileUrl từ backend là relative ("/files/...") → join với BASE_URL
+        // fileUrl từ backend là relative ("/files/...") → join qua proxy /backend-files
         const fullUrl = result.fileUrl.startsWith('http')
           ? result.fileUrl
-          : `${BASE_URL}${result.fileUrl}`
+          : `/backend-files${result.fileUrl.replace('/files', '')}`
         window.open(fullUrl, '_blank')
       }
     } catch {
@@ -179,7 +179,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
         <div className="flex flex-col min-h-[30vh] items-center justify-center rounded-2xl border border-line bg-surface p-6 text-center">
           <p className="text-ink font-semibold">Tài liệu không hỗ trợ xem trước online (Định dạng {fileExt?.toUpperCase()})</p>
           <p className="text-ink-muted mt-2 mb-4">Vui lòng tải xuống để xem nội dung chi tiết.</p>
-          <a href={absoluteFileUrl} download>
+          <a href={proxiedFileUrl} download>
             <Button>
               <Download size={18} className="mr-2" /> Tải về máy
             </Button>
@@ -254,7 +254,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
         </div>
         <div className="flex flex-wrap gap-3 bg-[var(--bg-primary)] p-6 md:p-8 md:rounded-r-2xl">
           <a
-            href={`/files/${exam.slugIdentifier || exam.examCode}`}
+            href={`/files/${exam.slugIdentifier || exam.examCode}${exam.fileUrl ? `?url=${encodeURIComponent(exam.fileUrl)}` : ''}`}
             download
             className="inline-block"
             onClick={(e) => {
