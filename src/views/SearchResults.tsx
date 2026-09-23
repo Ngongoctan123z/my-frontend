@@ -136,11 +136,11 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
           </div>
 
           {/* Main Quick Actions Row */}
-          <div className="flex flex-nowrap overflow-x-auto scrollbar-hide items-start gap-2 pb-[400px] -mb-[400px] pt-1 relative z-10 pointer-events-none">
+          <div className="flex flex-wrap items-start gap-2 pt-1 relative z-10">
             <button
               type="button"
               onClick={() => updateParam('examType', undefined)}
-              className={`pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${!examType
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${!examType
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
                   : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
                 }`}
@@ -150,7 +150,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <button
               type="button"
               onClick={() => updateParam('examType', examType === 'VAO_10' ? undefined : 'VAO_10')}
-              className={`pointer-events-auto shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${examType === 'VAO_10'
+              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${examType === 'VAO_10'
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
                   : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
                 }`}
@@ -161,7 +161,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <button
               type="button"
               onClick={() => updateParam('examType', examType === 'THPT' ? undefined : 'THPT')}
-              className={`pointer-events-auto shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${examType === 'THPT'
+              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${examType === 'THPT'
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
                   : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
                 }`}
@@ -173,7 +173,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
 
             {/* Subject Dropdown Trigger */}
-            <div className="relative shrink-0 pointer-events-auto" ref={subjectDropdownRef}>
+            <div className="relative shrink-0" ref={subjectDropdownRef}>
               <button
                 type="button"
                 onClick={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
@@ -208,7 +208,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             </div>
 
             {/* Toolkit Dropdown Trigger */}
-            <div className="relative shrink-0 pointer-events-auto" ref={toolkitDropdownRef}>
+            <div className="relative shrink-0" ref={toolkitDropdownRef}>
               <button
                 type="button"
                 onClick={() => setToolkitDropdownOpen(!toolkitDropdownOpen)}
@@ -253,7 +253,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <select
               value={year || ''}
               onChange={(e) => updateParam('year', e.target.value || undefined)}
-              className="pointer-events-auto shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-semibold border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border outline-none transition-colors"
+              className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-semibold border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border outline-none transition-colors"
             >
               <option value="">Năm: Tất cả</option>
               {YEARS.map((y) => (
