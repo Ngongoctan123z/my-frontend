@@ -3,7 +3,7 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { BookOpen, Filter, GraduationCap, X, ChevronRight, Ban } from 'lucide-react'
+import { BookOpen, Filter, GraduationCap, X, ChevronRight, Star } from 'lucide-react'
 import { ExamFilter } from '../components/exam/ExamFilter'
 import { ExamList } from '../components/exam/ExamList'
 import { Button } from '../components/ui/Button'
@@ -129,7 +129,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       {/* Quick Filters Banner */}
       <section className="sticky top-[73px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
         <div className="mx-auto max-w-5xl relative">
-          
+
           {/* Scrolling Fade Hint */}
           <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-surface/95 to-transparent pointer-events-none z-20 md:hidden flex items-center justify-end pr-1">
             <ChevronRight size={16} className="text-ink-muted/50" />
@@ -140,22 +140,20 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <button
               type="button"
               onClick={() => updateParam('examType', undefined)}
-              className={`pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${
-                !examType
+              className={`pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${!examType
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
                   : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
-              }`}
+                }`}
             >
               Tất cả đề
             </button>
             <button
               type="button"
               onClick={() => updateParam('examType', examType === 'VAO_10' ? undefined : 'VAO_10')}
-              className={`pointer-events-auto shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${
-                examType === 'VAO_10'
+              className={`pointer-events-auto shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${examType === 'VAO_10'
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
                   : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
-              }`}
+                }`}
             >
               <GraduationCap size={14} />
               Tuyển sinh Vào 10
@@ -163,31 +161,29 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <button
               type="button"
               onClick={() => updateParam('examType', examType === 'THPT' ? undefined : 'THPT')}
-              className={`pointer-events-auto shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${
-                examType === 'THPT'
+              className={`pointer-events-auto shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${examType === 'THPT'
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
                   : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
-              }`}
+                }`}
             >
               <BookOpen size={14} />
               Tốt nghiệp THPT
             </button>
-            
+
             <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
-            
+
             {/* Subject Dropdown Trigger */}
             <div className="relative shrink-0 pointer-events-auto" ref={subjectDropdownRef}>
               <button
                 type="button"
                 onClick={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
-                className={`flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${
-                  subject ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border'
-                }`}
+                className={`flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${subject ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border'
+                  }`}
               >
                 Môn: {subject || 'Tất cả'}
                 <svg className={`w-3 h-3 transition-transform ${subjectDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </button>
-              
+
               {subjectDropdownOpen && (
                 <div className="absolute top-full left-0 mt-1.5 w-48 bg-surface border border-line rounded-xl shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                   <button
@@ -222,7 +218,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 Bộ công cụ
                 <svg className={`w-3 h-3 transition-transform ${toolkitDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </button>
-              
+
               {toolkitDropdownOpen && (
                 <div className="absolute top-full left-0 mt-1.5 w-52 bg-surface border border-line rounded-xl shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-4 py-1.5 text-xs font-semibold text-ink-muted uppercase tracking-wider">Tiện ích học tập</div>
@@ -251,9 +247,9 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 </div>
               )}
             </div>
-            
+
             <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
-            
+
             <select
               value={year || ''}
               onChange={(e) => updateParam('year', e.target.value || undefined)}
@@ -398,11 +394,10 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                     setPage(index)
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
-                  className={`min-h-10 min-w-10 rounded-xl px-3 text-xs font-semibold transition-colors ${
-                    page === index
+                  className={`min-h-10 min-w-10 rounded-xl px-3 text-xs font-semibold transition-colors ${page === index
                       ? 'bg-[var(--color-primary)] text-white'
                       : 'border-line bg-surface hover:bg-page border text-ink'
-                  }`}
+                    }`}
                 >
                   {index + 1}
                 </button>
