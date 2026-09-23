@@ -425,14 +425,17 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
 
         {/* Ad Banner Space */}
         <aside className="hidden lg:block space-y-6">
-          <div className="sticky top-24 w-full min-h-[600px] bg-page border border-dashed border-line rounded-xl flex items-center justify-center text-ink-muted text-sm font-medium overflow-hidden relative">
-            <div className="absolute z-0 flex flex-col items-center justify-center gap-1.5 opacity-30 pointer-events-none">
-              <Ban size={24} />
-              <span className="uppercase tracking-[0.2em] text-[10px] font-bold">Ads</span>
+          <div className="sticky top-24 w-full min-h-[600px] bg-surface border border-line rounded-xl flex items-center justify-center text-ink-muted text-sm font-medium overflow-hidden relative shadow-sm">
+            <div className="absolute z-0 flex flex-col items-center justify-center gap-3 opacity-40 pointer-events-none px-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-page border border-line flex items-center justify-center">
+                <Star size={20} className="text-[var(--color-primary)]" />
+              </div>
+              <span className="uppercase tracking-[0.1em] text-xs font-semibold text-ink">Không gian tài trợ</span>
+              <p className="text-[11px] max-w-[200px]">Quảng cáo sẽ tự động hiển thị tại đây khi hệ thống sẵn sàng.</p>
             </div>
             {/* Auto format, requires a slot ID if you want specific layout, otherwise auto-ads will use this space */}
             <div className="w-full h-full relative z-10">
-              <AdBanner dataAdSlot="INSERT_SLOT_ID_HERE" dataAdFormat="vertical" className="w-full h-[600px]" />
+              <AdBanner dataAdSlot="" dataAdFormat="vertical" className="w-full h-[600px]" />
             </div>
           </div>
         </aside>
