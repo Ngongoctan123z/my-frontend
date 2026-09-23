@@ -295,8 +295,8 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
         </div>
       </div>
 
-      {/* Main Content Layout: Filters + Results */}
-      <div className={`grid grid-cols-1 gap-6 ${filtersOpen ? 'md:grid-cols-[280px_1fr]' : ''} pb-12 md:pb-16`}>
+      {/* Main Content Layout: Filters + Results + Ad Banner */}
+      <div className={`grid grid-cols-1 gap-6 ${filtersOpen ? 'lg:grid-cols-[280px_1fr_300px] md:grid-cols-[280px_1fr]' : 'lg:grid-cols-[1fr_300px]'} pb-12 md:pb-16`}>
         {/* Sidebar Filters */}
         <div className={`${filtersOpen ? 'block' : 'hidden'} md:sticky md:top-24 h-max`}>
           <ExamFilter
@@ -415,6 +415,13 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             </div>
           )}
         </div>
+
+        {/* Ad Banner Space */}
+        <aside className="hidden lg:block space-y-6">
+          <div className="sticky top-24 w-full h-[600px] bg-page border border-dashed border-line rounded-xl flex items-center justify-center text-ink-muted text-sm font-medium">
+            Vị trí đặt Banner Quảng cáo
+          </div>
+        </aside>
       </div>
     </div>
   )
