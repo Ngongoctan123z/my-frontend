@@ -73,7 +73,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (exam.seoStructure) {
     const stripped = exam.seoStructure.replace(/<[^>]+>/g, '').trim()
     if (stripped) {
-      desc = stripped.length > 155 ? stripped.substring(0, 155).replace(/\s+\S*$/, '') + '...' : stripped
+      const firstSentenceMatch = stripped.match(/^.*?[.!?](?=\s|$)/)
+      if (firstSentenceMatch && firstSentenceMatch[0].length > 50 && firstSentenceMatch[0].length < 180) {
+        desc = firstSentenceMatch[0].trim()
+      } else {
+        desc = stripped.length > 155 ? stripped.substring(0, 155).replace(/\s+\S*$/, '') + '...' : stripped
+      }
     }
   }
   
@@ -130,7 +135,12 @@ export default async function ExamPage({ params }: Props) {
   if (exam.seoStructure) {
     const stripped = exam.seoStructure.replace(/<[^>]+>/g, '').trim()
     if (stripped) {
-      desc = stripped.length > 155 ? stripped.substring(0, 155).replace(/\s+\S*$/, '') + '...' : stripped
+      const firstSentenceMatch = stripped.match(/^.*?[.!?](?=\s|$)/)
+      if (firstSentenceMatch && firstSentenceMatch[0].length > 50 && firstSentenceMatch[0].length < 180) {
+        desc = firstSentenceMatch[0].trim()
+      } else {
+        desc = stripped.length > 155 ? stripped.substring(0, 155).replace(/\s+\S*$/, '') + '...' : stripped
+      }
     }
   }
 

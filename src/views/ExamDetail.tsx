@@ -225,7 +225,11 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
         <h2 className="mb-4 text-2xl font-bold tracking-tight">Cấu trúc đề thi</h2>
         {exam.seoStructure ? (
           <div className="p-4 rounded-xl border border-line bg-surface text-ink">
-            <div dangerouslySetInnerHTML={{ __html: exam.seoStructure.replace(/<\/?details[^>]*>/g, '').replace(/<\/?summary[^>]*>.*?<\/summary>/g, '') }} />
+            <div dangerouslySetInnerHTML={{ __html: exam.seoStructure
+              .replace(/<\/?details[^>]*>/g, '')
+              .replace(/<\/?summary[^>]*>.*?<\/summary>/g, '')
+              .replace(/<strong[^>]*>(Câu\s+\w+[:.]?)<\/strong>/gi, '<h3 class="text-lg font-bold mt-6 mb-2">$1</h3>') 
+            }} />
           </div>
         ) : (
           <p className="text-ink-muted italic">Đang cập nhật cấu trúc đề thi...</p>
