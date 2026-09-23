@@ -7,6 +7,7 @@ import { BookOpen, Filter, GraduationCap, X, ChevronRight } from 'lucide-react'
 import { ExamFilter } from '../components/exam/ExamFilter'
 import { ExamList } from '../components/exam/ExamList'
 import { Button } from '../components/ui/Button'
+import { AdBanner } from '../components/common/AdBanner'
 import { getExams } from '../services/examService'
 import type { ExamType } from '../types/exam'
 import { SUBJECTS, YEARS } from '../utils/constants'
@@ -424,8 +425,12 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
 
         {/* Ad Banner Space */}
         <aside className="hidden lg:block space-y-6">
-          <div className="sticky top-24 w-full h-[600px] bg-page border border-dashed border-line rounded-xl flex items-center justify-center text-ink-muted text-sm font-medium">
-            Vị trí đặt Banner Quảng cáo
+          <div className="sticky top-24 w-full min-h-[600px] bg-page border border-dashed border-line rounded-xl flex items-center justify-center text-ink-muted text-sm font-medium overflow-hidden relative">
+            <span className="absolute z-0 pointer-events-none opacity-50">Banner Quảng cáo (Đang chờ duyệt)</span>
+            {/* Auto format, requires a slot ID if you want specific layout, otherwise auto-ads will use this space */}
+            <div className="w-full h-full relative z-10">
+              <AdBanner dataAdSlot="INSERT_SLOT_ID_HERE" dataAdFormat="vertical" className="w-full h-[600px]" />
+            </div>
           </div>
         </aside>
       </div>
