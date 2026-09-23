@@ -169,7 +169,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
             
             {/* Subject Dropdown Trigger */}
-            <div className="shrink-0" ref={subjectDropdownRef}>
+            <div className="relative shrink-0" ref={subjectDropdownRef}>
               <button
                 type="button"
                 onClick={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
@@ -205,7 +205,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             </div>
 
             {/* Toolkit Dropdown Trigger */}
-            <div className="shrink-0" ref={toolkitDropdownRef}>
+            <div className="relative shrink-0" ref={toolkitDropdownRef}>
               <button
                 type="button"
                 onClick={() => setToolkitDropdownOpen(!toolkitDropdownOpen)}
