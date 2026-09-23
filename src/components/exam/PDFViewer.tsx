@@ -1,5 +1,5 @@
 import { Maximize2, Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
@@ -17,6 +17,21 @@ export function PDFViewer({ src, title }: Props) {
   const [zoom, setZoom] = useState(100)
   const [numPages, setNumPages] = useState<number>()
   const [pageNumber, setPageNumber] = useState(1)
+  
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState<number>()
+
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      if (entries[0]) {
+        setContainerWidth(entries[0].contentRect.width)
+      }
+    })
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+    return () => observer.disconnect()
+  }, [])
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages)
@@ -48,17 +63,18 @@ export function PDFViewer({ src, title }: Props) {
           </a>
         </div>
       </div>
-      <div className="bg-page flex h-[70vh] flex-col items-center gap-4 overflow-auto py-4">
+      <div ref={containerRef} className="bg-page flex h-[70vh] flex-col items-center gap-4 overflow-auto py-4 px-2 md:px-4">
         <Document
           file={src}
           onLoadSuccess={onDocumentLoadSuccess}
           loading={<div className="text-ink-muted">Đang tải PDF...</div>}
           error={<div className="text-color-danger">Lỗi khi tải PDF</div>}
         >
-          <div className="mb-4 shadow-md bg-white">
+          <div className="mb-4 shadow-md bg-white max-w-full overflow-hidden">
             <Page
               pageNumber={pageNumber}
               scale={zoom / 100}
+              width={containerWidth ? Math.min(containerWidth - 16, 900) : undefined}
               renderTextLayer={true}
               renderAnnotationLayer={true}
             />
