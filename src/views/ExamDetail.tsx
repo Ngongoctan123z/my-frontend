@@ -59,6 +59,18 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
     if (exam?.id) recordView(exam.id)
   }, [exam?.id])
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).MathJax) {
+      setTimeout(() => {
+        try {
+          ;(window as any).MathJax.typesetPromise()
+        } catch (err) {
+          console.error('MathJax error:', err)
+        }
+      }, 100)
+    }
+  }, [exam?.seoStructure])
+
 
   const relatedExams = initialRelated
 
