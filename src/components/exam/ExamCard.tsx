@@ -31,12 +31,15 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
 
   return (
     <article
-      className={`group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 transition-all duration-300 ease-out ${
+      className={`relative group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 transition-all duration-300 ease-out ${
         highlight ? 'bg-[var(--color-primary)]/5 -mx-4 px-4' : ''
       }`}
     >
+      {/* Clickable Overlay */}
+      <Link href={examPath(exam)} className="absolute inset-0 z-10" aria-label={`Xem chi tiết ${exam.title || exam.subject}`} />
+
       {/* Thumbnail */}
-      <Link href={examPath(exam)} className="shrink-0 block w-[90px] h-[127px] md:w-[130px] md:h-[184px] border border-line bg-white shadow-sm transition-all duration-300 ease-out group-hover:shadow-lg group-hover:-translate-y-1 relative overflow-hidden rounded-md">
+      <div className="shrink-0 block w-[90px] h-[127px] md:w-[130px] md:h-[184px] border border-line bg-white shadow-sm transition-all duration-300 ease-out group-hover:shadow-lg group-hover:-translate-y-1 relative overflow-hidden rounded-md z-20 pointer-events-none">
         {exam.thumbnailUrl ? (
           <img 
             src={exam.thumbnailUrl.startsWith('http') ? exam.thumbnailUrl : `${BASE_URL}${exam.thumbnailUrl}`} 
@@ -48,12 +51,12 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
             <Icon size={32} className={`${iconColor} opacity-50`} />
           </div>
         )}
-      </Link>
+      </div>
 
       {/* Body */}
       <div className="flex-1 min-w-0 flex flex-col justify-start pt-1 md:pt-2">
         {/* Badges */}
-        <div className="flex flex-wrap items-center gap-2 mb-2">
+        <div className="flex flex-wrap items-center gap-2 mb-2 relative z-20 pointer-events-none">
           {/* Year Badge (Bold Blue as requested) */}
           <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-0.5 text-[11px] uppercase tracking-wide font-bold text-blue-700 border border-blue-200">
             Năm {exam.year}
@@ -71,13 +74,13 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
           )}
         </div>
 
-        <h3 className="text-[1.05rem] md:text-[1.2rem] font-bold text-[#1a2b49] leading-snug mb-3 mt-1">
-          <Link href={examPath(exam)} className="group-hover:text-[var(--color-primary)] transition-colors duration-300 line-clamp-3 md:line-clamp-none">
+        <h3 className="text-[1.05rem] md:text-[1.2rem] font-bold text-[#1a2b49] leading-snug mb-3 mt-1 line-clamp-3 md:line-clamp-none relative z-20 pointer-events-none">
+          <span className="group-hover:text-[var(--color-primary)] transition-colors duration-300">
             {exam.title || `Đề thi ${exam.subject} - ${exam.province} - ${exam.year}`}
-          </Link>
+          </span>
         </h3>
         
-        <div className="flex items-center gap-1.5 text-[0.875rem] text-[#888] font-medium transition-opacity duration-300 group-hover:opacity-80">
+        <div className="flex items-center gap-1.5 text-[0.875rem] text-[#888] font-medium transition-opacity duration-300 group-hover:opacity-80 relative z-20 pointer-events-none">
           <Clock size={16} />
           <span>{displayDate}</span>
         </div>
