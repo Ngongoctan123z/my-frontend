@@ -128,7 +128,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       <section className="sticky top-[73px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
         <div className="mx-auto max-w-5xl">
           {/* Main Quick Actions Row */}
-          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 pt-1 [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-wrap items-center gap-2 pb-2 pt-1">
             <button
               type="button"
               onClick={() => updateParam('examType', undefined)}
