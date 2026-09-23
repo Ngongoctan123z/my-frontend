@@ -108,13 +108,22 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
   const [toolkitDropdownOpen, setToolkitDropdownOpen] = useState(false)
   const subjectDropdownRef = useRef<HTMLDivElement>(null)
   const toolkitDropdownRef = useRef<HTMLDivElement>(null)
+  const subjectMenuRef = useRef<HTMLDivElement>(null)
+  const toolkitMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (subjectDropdownRef.current && !subjectDropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (
+        subjectDropdownRef.current && !subjectDropdownRef.current.contains(target) &&
+        (!subjectMenuRef.current || !subjectMenuRef.current.contains(target))
+      ) {
         setSubjectDropdownOpen(false)
       }
-      if (toolkitDropdownRef.current && !toolkitDropdownRef.current.contains(event.target as Node)) {
+      if (
+        toolkitDropdownRef.current && !toolkitDropdownRef.current.contains(target) &&
+        (!toolkitMenuRef.current || !toolkitMenuRef.current.contains(target))
+      ) {
         setToolkitDropdownOpen(false)
       }
     }
@@ -126,9 +135,9 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
     <div className="space-y-6">
       {/* Quick Filters Banner */}
       <section className="sticky top-[73px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-5xl relative">
           {/* Main Quick Actions Row */}
-          <div className="flex flex-wrap items-center gap-2 pb-2 pt-1">
+          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 pt-1 [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => updateParam('examType', undefined)}
@@ -167,8 +176,8 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             
             <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
             
-            {/* Subject Dropdown */}
-            <div className="relative shrink-0" ref={subjectDropdownRef}>
+            {/* Subject Dropdown Trigger */}
+            <div className="shrink-0" ref={subjectDropdownRef}>
               <button
                 type="button"
                 onClick={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
@@ -179,32 +188,10 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 Môn: {subject || 'Tất cả'}
                 <svg className={`w-3 h-3 transition-transform ${subjectDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </button>
-              
-              {subjectDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1.5 w-48 bg-surface border border-line rounded-xl shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <button
-                    type="button"
-                    onClick={() => { updateParam('subject', undefined); setSubjectDropdownOpen(false) }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-page transition-colors ${!subject ? 'font-bold text-[var(--color-primary)]' : 'text-ink'}`}
-                  >
-                    Tất cả các môn
-                  </button>
-                  {SUBJECTS.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => { updateParam('subject', s); setSubjectDropdownOpen(false) }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-page transition-colors ${subject === s ? 'font-bold text-[var(--color-primary)]' : 'text-ink'}`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Toolkit Dropdown */}
-            <div className="relative shrink-0" ref={toolkitDropdownRef}>
+            {/* Toolkit Dropdown Trigger */}
+            <div className="shrink-0" ref={toolkitDropdownRef}>
               <button
                 type="button"
                 onClick={() => setToolkitDropdownOpen(!toolkitDropdownOpen)}
@@ -214,34 +201,6 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 Bộ công cụ
                 <svg className={`w-3 h-3 transition-transform ${toolkitDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </button>
-              
-              {toolkitDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1.5 w-52 bg-surface border border-line rounded-xl shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="px-4 py-1.5 text-xs font-semibold text-ink-muted uppercase tracking-wider">Tiện ích học tập</div>
-                  <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
-                    <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    Tính điểm GPA
-                  </button>
-                  <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    Máy tính Casio
-                  </button>
-                  <div className="my-1 border-t border-line"></div>
-                  <div className="px-4 py-1.5 text-xs font-semibold text-ink-muted uppercase tracking-wider">Xử lý tài liệu</div>
-                  <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
-                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                    Chuyển đổi File
-                  </button>
-                  <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
-                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                    Khóa File (Bảo mật)
-                  </button>
-                  <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
-                    <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
-                    Cắt / Gộp File
-                  </button>
-                </div>
-              )}
             </div>
             
             <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
@@ -257,6 +216,57 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               ))}
             </select>
           </div>
+          
+          {/* Render Dropdown Menus OUTSIDE the overflow container so they aren't clipped */}
+          {subjectDropdownOpen && (
+            <div ref={subjectMenuRef} className="absolute top-[110%] left-0 w-48 bg-surface border border-line rounded-xl shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <button
+                type="button"
+                onClick={() => { updateParam('subject', undefined); setSubjectDropdownOpen(false) }}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-page transition-colors ${!subject ? 'font-bold text-[var(--color-primary)]' : 'text-ink'}`}
+              >
+                Tất cả các môn
+              </button>
+              {SUBJECTS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { updateParam('subject', s); setSubjectDropdownOpen(false) }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-page transition-colors ${subject === s ? 'font-bold text-[var(--color-primary)]' : 'text-ink'}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {toolkitDropdownOpen && (
+            <div ref={toolkitMenuRef} className="absolute top-[110%] left-10 md:left-48 w-52 bg-surface border border-line rounded-xl shadow-lg z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="px-4 py-1.5 text-xs font-semibold text-ink-muted uppercase tracking-wider">Tiện ích học tập</div>
+              <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                Tính điểm GPA
+              </button>
+              <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                Máy tính Casio
+              </button>
+              <div className="my-1 border-t border-line"></div>
+              <div className="px-4 py-1.5 text-xs font-semibold text-ink-muted uppercase tracking-wider">Xử lý tài liệu</div>
+              <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                Chuyển đổi File
+              </button>
+              <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                Khóa File (Bảo mật)
+              </button>
+              <button type="button" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
+                Cắt / Gộp File
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
