@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi" suppressHydrationWarning>
+    <html lang="vi" suppressHydrationWarning className="scroll-smooth">
       <body suppressHydrationWarning>
         <Providers>
           <AppLayout>{children}</AppLayout>

@@ -31,20 +31,20 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
 
   return (
     <article
-      className={`group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 ${
+      className={`group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 transition-all duration-300 ease-out ${
         highlight ? 'bg-[var(--color-primary)]/5 -mx-4 px-4' : ''
       }`}
     >
       {/* Thumbnail */}
-      <Link href={examPath(exam)} className="shrink-0 block w-[90px] h-[127px] md:w-[130px] md:h-[184px] border border-line bg-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+      <Link href={examPath(exam)} className="shrink-0 block w-[90px] h-[127px] md:w-[130px] md:h-[184px] border border-line bg-white shadow-sm transition-all duration-300 ease-out group-hover:shadow-lg group-hover:-translate-y-1 relative overflow-hidden rounded-md">
         {exam.thumbnailUrl ? (
           <img 
             src={exam.thumbnailUrl.startsWith('http') ? exam.thumbnailUrl : `${BASE_URL}${exam.thumbnailUrl}`} 
             alt={exam.title || exam.subject} 
-            className="w-full h-full object-cover object-top" 
+            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105" 
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-page">
+          <div className="w-full h-full flex items-center justify-center bg-page transition-transform duration-500 group-hover:scale-105">
             <Icon size={32} className={`${iconColor} opacity-50`} />
           </div>
         )}
@@ -53,12 +53,12 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
       {/* Body */}
       <div className="flex-1 min-w-0 flex flex-col justify-start pt-1 md:pt-2">
         <h3 className="text-[1.05rem] md:text-[1.2rem] font-bold text-[#1a2b49] leading-snug mb-3">
-          <Link href={examPath(exam)} className="hover:text-[var(--color-primary)] transition-colors line-clamp-3 md:line-clamp-none">
+          <Link href={examPath(exam)} className="group-hover:text-[var(--color-primary)] transition-colors duration-300 line-clamp-3 md:line-clamp-none">
             {exam.title || `Đề thi ${exam.subject} - ${exam.province} - ${exam.year}`}
           </Link>
         </h3>
         
-        <div className="flex items-center gap-1.5 text-[0.875rem] text-[#888] font-medium">
+        <div className="flex items-center gap-1.5 text-[0.875rem] text-[#888] font-medium transition-opacity duration-300 group-hover:opacity-80">
           <Clock size={16} />
           <span>{displayDate}</span>
         </div>
