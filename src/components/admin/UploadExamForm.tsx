@@ -10,7 +10,7 @@ import { useExamUpload } from '../../hooks/useExamUpload'
 export default function UploadExamForm({ onSuccess }: { onSuccess?: () => void }) {
   const { upload, isLoading, uploadProgress } = useExamUpload()
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<AdminUploadFormValues>({
+  const { register, handleSubmit, watch, formState: { errors }, reset } = useForm<AdminUploadFormValues>({
     resolver: zodResolver(adminUploadSchema),
     defaultValues: {
       examType: 'VAO_10',
@@ -22,19 +22,38 @@ export default function UploadExamForm({ onSuccess }: { onSuccess?: () => void }
     }
   })
 
+  const currentExamType = watch('examType')
+  const currentIsOfficial = watch('isOfficial')
+  const isOfficialBool = currentIsOfficial === true || String(currentIsOfficial) === 'true'
+
+  // Logic hiển thị trường:
+  // - Đề thi thử (isOfficial = false): Hiển thị cả Tỉnh và Trường
+  // - Đề chính thức (isOfficial = true): 
+  //    + Vào 10: Hiện Tỉnh, Ẩn Trường
+  //    + THPT: Ẩn Tỉnh, Ẩn Trường
+  const showProvince = !isOfficialBool || currentExamType === 'VAO_10'
+  const showSchoolName = !isOfficialBool
+
   const onSubmit = (data: AdminUploadFormValues) => {
     const form = new FormData()
     form.append('examType', data.examType)
     form.append('subject', data.subject)
-    form.append('province', data.province)
+    
+    // Ghi đè Tỉnh thành "Bộ GD&ĐT" nếu là đề chính thức THPT (ẩn Tỉnh)
+    form.append('province', showProvince ? data.province : 'Bộ GD&ĐT')
     form.append('year', data.year)
 
     // Backend tự xử lý ảnh -> PDF, Frontend chỉ gửi thẳng file lên!
     form.append('file', data.file[0])
 
     if (data.title) form.append('title', data.title)
-    if (data.schoolName) form.append('schoolName', data.schoolName)
-    form.append('isOfficial', data.isOfficial === true || String(data.isOfficial) === 'true' ? 'true' : 'false')
+    
+    // Chỉ gửi Tên trường nếu trường này được hiển thị
+    if (showSchoolName && data.schoolName) {
+      form.append('schoolName', data.schoolName)
+    }
+    
+    form.append('isOfficial', isOfficialBool ? 'true' : 'false')
     form.append('hasAnswers', data.hasAnswers === true || String(data.hasAnswers) === 'true' ? 'true' : 'false')
     if (data.description) form.append('description', data.description)
 
@@ -77,15 +96,19 @@ export default function UploadExamForm({ onSuccess }: { onSuccess?: () => void }
             </select>
             {errors.subject && <p className="mt-1 text-xs text-color-danger">{errors.subject.message}</p>}
           </label>
-          <label className="block text-sm">
-            Tỉnh
-            <select {...register('province')} className="border-line bg-page mt-1 min-h-11 w-full rounded-xl border px-3">
-              {PROVINCES.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-            {errors.province && <p className="mt-1 text-xs text-color-danger">{errors.province.message}</p>}
-          </label>
+          
+          {showProvince && (
+            <label className="block text-sm">
+              Tỉnh
+              <select {...register('province')} className="border-line bg-page mt-1 min-h-11 w-full rounded-xl border px-3">
+                {PROVINCES.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+              {errors.province && <p className="mt-1 text-xs text-color-danger">{errors.province.message}</p>}
+            </label>
+          )}
+          
           <label className="block text-sm">
             Năm
             <select {...register('year')} className="border-line bg-page mt-1 min-h-11 w-full rounded-xl border px-3">
@@ -97,14 +120,16 @@ export default function UploadExamForm({ onSuccess }: { onSuccess?: () => void }
           </label>
         </div>
 
-        <label className="block text-sm">
-          Tên trường ra đề (Không bắt buộc)
-          <input
-            type="text"
-            {...register('schoolName')}
-            className="border-line bg-page mt-1 min-h-11 w-full rounded-xl border px-3"
-          />
-        </label>
+        {showSchoolName && (
+          <label className="block text-sm">
+            Tên trường ra đề (Không bắt buộc)
+            <input
+              type="text"
+              {...register('schoolName')}
+              className="border-line bg-page mt-1 min-h-11 w-full rounded-xl border px-3"
+            />
+          </label>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-y border-line py-4">
           <div>
