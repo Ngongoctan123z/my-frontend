@@ -1,7 +1,6 @@
 'use client'
 
 import { BookOpen, Clock, Star } from 'lucide-react'
-import Link from 'next/link'
 
 import type { Exam } from '../../types/exam'
 import { examPath, slugify } from '../../utils/slug'
@@ -33,11 +32,12 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
 
   return (
     <article
-      className={`relative group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 transition-all duration-300 ease-out ${highlight ? 'bg-[var(--color-primary)]/5 -mx-4 px-4' : ''
-        }`}
+      className={`relative group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 transition-all duration-300 ease-out ${
+        highlight ? 'bg-[var(--color-primary)]/5 -mx-4 px-4' : ''
+      }`}
     >
       {/* Thumbnail */}
-      <Link
+      <a
         href={path}
         className="shrink-0 block w-[90px] h-[127px] md:w-[130px] md:h-[184px] border border-line bg-white shadow-sm transition-all duration-300 ease-out group-hover:shadow-lg group-hover:-translate-y-1 relative overflow-hidden rounded-md cursor-pointer"
         aria-label={`Xem chi tiết ${exam.title || exam.subject}`}
@@ -53,7 +53,7 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
             <Icon size={32} className={`${iconColor} opacity-50`} />
           </div>
         )}
-      </Link>
+      </a>
 
       {/* Body */}
       <div className="flex-1 min-w-0 flex flex-col justify-start pt-1 md:pt-2">
@@ -77,12 +77,12 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
         </div>
 
         <h3 className="text-[1.05rem] md:text-[1.2rem] font-bold text-[#1a2b49] leading-snug mb-3 mt-1 line-clamp-3 md:line-clamp-none">
-          <Link
+          <a
             href={path}
             className="hover:text-[var(--color-primary)] transition-colors duration-300 block cursor-pointer"
           >
             {exam.title || `Đề thi ${exam.subject} - ${exam.province} - ${exam.year}`}
-          </Link>
+          </a>
         </h3>
 
         <div className="flex items-center gap-1.5 text-[0.875rem] text-[#888] font-medium transition-opacity duration-300 group-hover:opacity-80">
