@@ -73,7 +73,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (exam.seoStructure) {
     const stripped = exam.seoStructure.replace(/<[^>]+>/g, '').trim()
     if (stripped) {
-      desc = stripped.substring(0, 150) + (stripped.length > 150 ? '...' : '')
+      desc = stripped.length > 155 ? stripped.substring(0, 155).replace(/\s+\S*$/, '') + '...' : stripped
     }
   }
   
@@ -83,7 +83,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title, 
     description: desc, 
     alternates: { canonical },
-    robots: (exam.status === 'DRAFT' || exam.status === 'NEEDS_REVIEW') ? { index: false, follow: true } : { index: true, follow: true },
+    robots: { index: true, follow: true },
     openGraph: { 
       type: 'article', 
       locale: 'vi_VN', 
@@ -120,13 +120,17 @@ export default async function ExamPage({ params }: Props) {
   let relatedExams: import('../../../src/types/exam').Exam[] = []
   try {
     relatedExams = await getRelatedExams(exam.id)
+    if (!relatedExams || relatedExams.length === 0) {
+      const fallback = await getExams({ examType: exam.examType, subject: exam.subject, limit: 4 })
+      relatedExams = fallback.data.filter(e => e.id !== exam.id).slice(0, 3)
+    }
   } catch (e) {}
 
   let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
   if (exam.seoStructure) {
     const stripped = exam.seoStructure.replace(/<[^>]+>/g, '').trim()
     if (stripped) {
-      desc = stripped.substring(0, 150) + (stripped.length > 150 ? '...' : '')
+      desc = stripped.length > 155 ? stripped.substring(0, 155).replace(/\s+\S*$/, '') + '...' : stripped
     }
   }
 
