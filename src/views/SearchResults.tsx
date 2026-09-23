@@ -136,7 +136,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${
                 !examType
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                  : 'bg-page text-ink hover:bg-surface border border-line'
+                  : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
               }`}
             >
               Tất cả đề
@@ -147,7 +147,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${
                 examType === 'VAO_10'
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                  : 'bg-page text-ink hover:bg-surface border border-line'
+                  : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
               }`}
             >
               <GraduationCap size={14} />
@@ -159,7 +159,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${
                 examType === 'THPT'
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                  : 'bg-page text-ink hover:bg-surface border border-line'
+                  : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
               }`}
             >
               <BookOpen size={14} />
@@ -174,7 +174,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 type="button"
                 onClick={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
                 className={`flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${
-                  subject ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'border-line bg-page text-ink hover:bg-surface border'
+                  subject ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border'
                 }`}
               >
                 Môn: {subject || 'Tất cả'}
@@ -209,9 +209,9 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               <button
                 type="button"
                 onClick={() => setToolkitDropdownOpen(!toolkitDropdownOpen)}
-                className="flex items-center gap-1.5 rounded-full border border-line bg-page px-3.5 py-1.5 text-[13px] font-semibold text-ink hover:bg-surface transition-all"
+                className="flex items-center gap-1.5 rounded-full border border-line bg-page px-3.5 py-1.5 text-[13px] font-semibold text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all group"
               >
-                <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <svg className="w-3.5 h-3.5 text-[var(--color-primary)] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Bộ công cụ
                 <svg className={`w-3 h-3 transition-transform ${toolkitDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </button>
@@ -250,7 +250,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <select
               value={year || ''}
               onChange={(e) => updateParam('year', e.target.value || undefined)}
-              className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-semibold border-line bg-page text-ink hover:bg-surface border outline-none"
+              className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-semibold border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border outline-none transition-colors"
             >
               <option value="">Năm: Tất cả</option>
               {YEARS.map((y) => (
