@@ -120,6 +120,16 @@ export default function UploadExamForm({ onSuccess }: { onSuccess?: () => void }
           </label>
         </div>
 
+        <label className="block text-sm">
+          Tiêu đề đề thi (Mặc định sẽ tự động tạo từ Tỉnh + Môn + Năm)
+          <input
+            type="text"
+            {...register('title')}
+            placeholder="Ví dụ: Đề thi thử trường KHTN - Lần 1"
+            className="border-line bg-page mt-1 min-h-11 w-full rounded-xl border px-3"
+          />
+        </label>
+
         {showSchoolName && (
           <label className="block text-sm">
             Tên trường ra đề (Không bắt buộc)

@@ -20,6 +20,7 @@ export default function EditExamModal({
     subject: exam.subject,
     province: exam.province,
     year: exam.year,
+    title: exam.title || '',
     schoolName: exam.schoolName || '',
     isOfficial: exam.isOfficial,
     hasAnswers: exam.hasAnswers,
@@ -165,6 +166,20 @@ export default function EditExamModal({
               onChange={handleChange}
               className="w-full border border-line bg-page rounded-xl px-3 py-2"
             />
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-bold mb-2">Tiêu đề đề thi</label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="VD: Đề thi thử trường KHTN - Lần 1"
+              className="w-full border border-line bg-page rounded-xl px-3 py-2"
+            />
+            <p className="text-xs text-ink-muted mt-1">Bỏ trống hệ thống sẽ tự động tạo tên chuẩn.</p>
           </div>
 
           {/* Properties */}
