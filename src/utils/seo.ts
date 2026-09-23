@@ -15,6 +15,7 @@ export function useSeo(title: string, description?: string) {
 }
 
 export function setJsonLd(id: string, data: Record<string, unknown> | null) {
+  if (typeof document === 'undefined') return
   const existing = document.getElementById(id)
   if (existing) existing.remove()
   if (!data) return

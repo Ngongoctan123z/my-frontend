@@ -1,6 +1,7 @@
 'use client'
 
-import { lazy, Suspense, useEffect, useRef, useState, use } from 'react'
+import { Suspense, useEffect, useRef, useState, use } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Download, Share2, Star } from 'lucide-react'
 import { Breadcrumb } from '../components/common/Breadcrumb'
@@ -15,11 +16,13 @@ import { formatNumber } from '../utils/dateFormat'
 import { setJsonLd, useSeo } from '../utils/seo'
 import { examTypeLabel, pathToExamType, slugify } from '../utils/slug'
 
-const PDFViewer = lazy(() =>
-  import('../components/exam/PDFViewer').then((mod) => ({ default: mod.PDFViewer })),
+const PDFViewer = dynamic(
+  () => import('../components/exam/PDFViewer').then((mod) => mod.PDFViewer),
+  { ssr: false, loading: () => <div className="w-full h-[600px] flex items-center justify-center text-ink-muted">Đang tải trình xem PDF...</div> }
 )
-const DocxViewer = lazy(() =>
-  import('../components/exam/DocxViewer').then((mod) => ({ default: mod.DocxViewer })),
+const DocxViewer = dynamic(
+  () => import('../components/exam/DocxViewer').then((mod) => mod.DocxViewer),
+  { ssr: false, loading: () => <div className="w-full h-[600px] flex items-center justify-center text-ink-muted">Đang tải trình xem DOCX...</div> }
 )
 
 export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam: any, initialRelated: any[], slug: string[] }) {
