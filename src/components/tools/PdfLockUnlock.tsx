@@ -4,6 +4,9 @@ import React, { useState, useRef } from 'react'
 import { Lock, Unlock, Upload, Download, FileText, Key, Shield, AlertTriangle } from 'lucide-react'
 import { PDFDocument } from 'pdf-lib'
 
+import { encryptPDF } from '@pdfsmaller/pdf-encrypt'
+import { decryptPDF } from '@pdfsmaller/pdf-decrypt'
+
 export function PdfLockUnlock() {
   const [file, setFile] = useState<File | null>(null)
   const [password, setPassword] = useState('')
@@ -24,6 +27,7 @@ export function PdfLockUnlock() {
       setFile(selectedFile)
       setError(null)
       setSuccessMsg(null)
+      e.target.value = ''
     }
   }
 
@@ -43,27 +47,30 @@ export function PdfLockUnlock() {
 
     try {
       const arrayBuffer = await file.arrayBuffer()
-      let pdfBytes: Uint8Array
+      const uint8Array = new Uint8Array(arrayBuffer)
+      let resultBytes: Uint8Array
 
       if (mode === 'lock') {
-        const pdfDoc = await PDFDocument.load(arrayBuffer)
+        // Encrypt the PDF
         try {
-          pdfBytes = await pdfDoc.save({
-            useObjectStreams: false,
-          })
-          throw new Error('Mã hóa trực tiếp bằng thư viện pdf-lib yêu cầu cài đặt phần mở rộng. Vui lòng cài đặt module mã hóa để khóa file.')
+          resultBytes = await encryptPDF(uint8Array, password)
         } catch (e: any) {
-          throw new Error(e.message || 'Mã hóa trực tiếp bằng thư viện pdf-lib yêu cầu cài đặt phần mở rộng.')
+          if (e.code === 'ALREADY_ENCRYPTED') {
+            throw new Error('File này đã được mã hóa từ trước. Vui lòng chọn file khác hoặc mở khóa trước.')
+          }
+          throw e
         }
       } else {
-        // Unlock
-        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true })
-        // In a real app, you would use a library that supports decryption
-        throw new Error('Tính năng mở khóa bằng mật khẩu đang được nâng cấp. Vui lòng thử lại sau.')
+        // Unlock the PDF
+        try {
+          resultBytes = await decryptPDF(uint8Array, password)
+        } catch (e: any) {
+          throw new Error('Mật khẩu không chính xác hoặc file không được mã hóa đúng chuẩn.')
+        }
       }
 
       // Download the processed file
-      const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' })
+      const blob = new Blob([resultBytes as unknown as BlobPart], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -76,11 +83,7 @@ export function PdfLockUnlock() {
       setSuccessMsg(mode === 'lock' ? 'Đã khóa file thành công!' : 'Đã mở khóa file thành công!')
     } catch (err: any) {
       console.error(err)
-      if (err.message.includes('Password') || err.message.includes('encrypt')) {
-         setError('Mật khẩu không chính xác hoặc file không hợp lệ.')
-      } else {
-         setError(err.message || 'Đã xảy ra lỗi trong quá trình xử lý.')
-      }
+      setError(err.message || 'Đã xảy ra lỗi trong quá trình xử lý.')
     } finally {
       setIsProcessing(false)
     }
