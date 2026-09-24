@@ -1,4 +1,4 @@
-import { ImageResponse } from 'next/og'
+﻿import { ImageResponse } from 'next/og'
 import { getExamByPath, getExamById } from '../../../src/services/examService'
 import { examTypeLabel, pathToExamType, slugify } from '../../../src/utils/slug'
 import { SUBJECTS, PROVINCES } from '../../../src/utils/constants'
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   let province = 'Việt Nam'
   let year = ''
   let type = 'Kỳ Thi'
-  let title = 'Kho Đề Thi'
+  let title = 'VNDocs'
 
   try {
     if (slug.length === 1) {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         }}
       >
         <div style={{ fontSize: 40, fontWeight: 'bold', marginBottom: 20, color: '#f39c12' }}>
-          KHO ĐỀ THI
+          VNDocs
         </div>
         
         <div style={{ fontSize: 60, fontWeight: 'bolder', textAlign: 'center', marginBottom: 30 }}>
@@ -86,3 +86,4 @@ export async function GET(request: NextRequest) {
     }
   )
 }
+

@@ -1,7 +1,7 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Bảo mật & Khóa File PDF | Kho Đề Thi',
+  title: 'Bảo mật & Khóa File PDF | VNDocs',
   description: 'Công cụ đặt mật khẩu bảo vệ file PDF an toàn hoặc gỡ bỏ password cho các tài liệu PDF đã bị khóa.',
 }
 
@@ -22,3 +22,4 @@ export default function LockToolPage() {
     </div>
   )
 }
+

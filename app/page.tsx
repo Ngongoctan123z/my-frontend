@@ -1,4 +1,4 @@
-import { SearchResults } from '../src/views/SearchResults'
+﻿import { SearchResults } from '../src/views/SearchResults'
 import { Suspense } from 'react'
 
 import { getExams } from '../src/services/examService'
@@ -14,27 +14,27 @@ export default async function HomePage() {
     '@graph': [
       {
         '@type': 'Organization',
-        '@id': `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.khodethi.id.vn'}#organization`,
-        name: 'Kho Đề Thi',
-        url: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.khodethi.id.vn',
+        '@id': `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.vndocs.net'}#organization`,
+        name: 'VNDocs',
+        url: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.vndocs.net',
         logo: {
           '@type': 'ImageObject',
-          url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.khodethi.id.vn'}/logo.png`
+          url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.vndocs.net'}/logo.png`
         }
       },
       {
         '@type': 'WebSite',
-        '@id': `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.khodethi.id.vn'}#website`,
-        url: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.khodethi.id.vn',
-        name: 'Kho Đề Thi',
+        '@id': `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.vndocs.net'}#website`,
+        url: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.vndocs.net',
+        name: 'VNDocs',
         publisher: {
-          '@id': `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.khodethi.id.vn'}#organization`
+          '@id': `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.vndocs.net'}#organization`
         },
         potentialAction: {
           '@type': 'SearchAction',
           target: {
             '@type': 'EntryPoint',
-            urlTemplate: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.khodethi.id.vn'}?q={search_term_string}`
+            urlTemplate: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.vndocs.net'}?q={search_term_string}`
           },
           'query-input': 'required name=search_term_string'
         }
@@ -51,3 +51,4 @@ export default async function HomePage() {
     </>
   )
 }
+

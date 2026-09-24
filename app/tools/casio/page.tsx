@@ -1,7 +1,7 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Máy tính Casio Online | Kho Đề Thi',
+  title: 'Máy tính Casio Online | VNDocs',
   description: 'Trình giả lập máy tính bỏ túi Casio Fx-580VN X trực tuyến giúp học sinh giải toán nhanh chóng, mọi lúc mọi nơi.',
 }
 
@@ -22,3 +22,4 @@ export default function CasioToolPage() {
     </div>
   )
 }
+

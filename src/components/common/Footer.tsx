@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 
@@ -12,7 +12,7 @@ export function Footer() {
           {/* Brand & Copyright */}
           <div className="flex flex-col items-center text-center md:items-start md:text-left">
             <h3 className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-lg font-extrabold text-transparent">
-              Kho Đề Thi
+              VNDocs
             </h3>
             <p className="mt-1 text-sm text-ink-muted/80">
               © {new Date().getFullYear()} Nền tảng chia sẻ đề thi trực tuyến. Hành trang vững bước cho tương lai.
@@ -36,3 +36,4 @@ export function Footer() {
     </footer>
   )
 }
+

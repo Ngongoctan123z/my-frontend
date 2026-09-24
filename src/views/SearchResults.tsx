@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
@@ -31,11 +31,11 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
 
   useSeo(
     q
-      ? `Tìm đề thi: ${q} | Kho Đề Thi Online`
-      : 'Kho Đề Thi Online - Tuyển Sinh Vào 10 & THPT Quốc Gia',
+      ? `Tìm đề thi: ${q} | VNDocs Online`
+      : 'VNDocs Online - Tuyển Sinh Vào 10 & THPT Quốc Gia',
     q
       ? `Kết quả tìm kiếm đề thi cho “${q}”. Xem online và tải PDF miễn phí.`
-      : 'Kho đề thi tuyển sinh vào lớp 10 và thi tốt nghiệp THPT của các tỉnh thành. Tải đề và xem online.',
+      : 'VNDocs tuyển sinh vào lớp 10 và thi tốt nghiệp THPT của các tỉnh thành. Tải đề và xem online.',
   )
 
   const filters = useMemo(
@@ -439,3 +439,4 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
     </div>
   )
 }
+

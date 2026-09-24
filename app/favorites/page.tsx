@@ -1,9 +1,10 @@
-import { Favorites } from '../../src/views/Favorites'
+﻿import { Favorites } from '../../src/views/Favorites'
 
 export const metadata = {
-  title: 'Đề thi yêu thích | Kho Đề Thi',
+  title: 'Đề thi yêu thích | VNDocs',
 }
 
 export default function FavoritesPage() {
   return <Favorites />
 }
+

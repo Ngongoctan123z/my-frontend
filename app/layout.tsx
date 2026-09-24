@@ -1,9 +1,9 @@
-import './globals.css'
+﻿import './globals.css'
 import { Providers } from '../src/components/Providers'
 import { Layout as AppLayout } from '../src/components/common/Layout'
 
 export const metadata = {
-  title: 'Kho Đề Thi - Đề thi THCS, THPT miễn phí',
+  title: 'VNDocs - Đề thi THCS, THPT miễn phí',
   description: 'Kho lưu trữ đề thi, tài liệu học tập THCS, THPT miễn phí. Tải xuống định dạng PDF, Word cực kỳ nhanh chóng.',
   robots: {
     index: true,
@@ -43,3 +43,4 @@ export default function RootLayout({
     </html>
   )
 }
+

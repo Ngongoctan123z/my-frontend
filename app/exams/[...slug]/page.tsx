@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const prefix = `Đề thi ${exam.subject} ${isVao10 ? 'vào 10' : 'THPT'} ${exam.province} ${exam.year}`
   const titleText = `${prefix}${exam.hasAnswers ? ' (có đáp án)' : ''}`
   // Truncate if too long
-  const title = titleText.length <= 45 ? `${titleText} | Kho Đề Thi` : titleText
+  const title = titleText.length <= 45 ? `${titleText} | VNDocs` : titleText
   
   let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
   if (exam.seoStructure) {
@@ -92,7 +92,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: { 
       type: 'article', 
       locale: 'vi_VN', 
-      siteName: 'Kho Đề Thi',
+      siteName: 'VNDocs',
       title, 
       description: desc, 
       url: canonical,
@@ -161,12 +161,12 @@ export default async function ExamPage({ params }: Props) {
         dateModified: exam.updatedAt || exam.createdAt,
         provider: {
           '@type': 'Organization',
-          name: 'Kho Đề Thi',
+          name: 'VNDocs',
           url: FRONTEND_URL
         },
         publisher: {
           '@type': 'Organization',
-          name: 'Kho Đề Thi',
+          name: 'VNDocs',
           url: FRONTEND_URL
         },
         encodingFormat: exam.fileUrl?.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

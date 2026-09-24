@@ -1,7 +1,7 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Chuyển đổi File PDF & Word | Kho Đề Thi',
+  title: 'Chuyển đổi File PDF & Word | VNDocs',
   description: 'Công cụ chuyển đổi định dạng linh hoạt giữa PDF sang Word (Docx), Ảnh (JPG/PNG) và ngược lại hoàn toàn miễn phí.',
 }
 
@@ -22,3 +22,4 @@ export default function ConvertToolPage() {
     </div>
   )
 }
+

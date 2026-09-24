@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { CalendarDays, Download, Eye } from 'lucide-react'
 import Link from 'next/link'
@@ -21,7 +21,7 @@ export function YearList() {
   const provinceLabel = PROVINCES.find((item) => slugify(item) === province) ?? province
 
   useSeo(
-    `${subjectLabel} ${examTypeLabel(type)} ${provinceLabel} | Kho Đề Thi Online`,
+    `${subjectLabel} ${examTypeLabel(type)} ${provinceLabel} | VNDocs Online`,
     `Danh sách đề thi ${subjectLabel} ${examTypeLabel(type)} tỉnh ${provinceLabel} các năm. Xem và tải PDF miễn phí.`,
   )
 
@@ -115,3 +115,4 @@ export function YearList() {
     </div>
   )
 }
+

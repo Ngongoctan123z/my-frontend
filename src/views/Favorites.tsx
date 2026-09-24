@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Heart, Search } from 'lucide-react'
 import Link from 'next/link'
@@ -12,7 +12,7 @@ import { useSeo } from '../utils/seo'
 
 export function Favorites() {
   const { favorites } = useUser()
-  useSeo('Đề yêu thích | Kho Đề Thi Online', 'Danh sách đề thi bạn đã đánh dấu yêu thích.')
+  useSeo('Đề yêu thích | VNDocs Online', 'Danh sách đề thi bạn đã đánh dấu yêu thích.')
 
   const exams = useQuery({
     queryKey: ['favorites', favorites],
@@ -63,3 +63,4 @@ export function Favorites() {
     </div>
   )
 }
+

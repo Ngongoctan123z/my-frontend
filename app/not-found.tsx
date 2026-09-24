@@ -1,9 +1,10 @@
-import { NotFound } from '../src/views/NotFound'
+﻿import { NotFound } from '../src/views/NotFound'
 
 export const metadata = {
-  title: 'Không tìm thấy trang | Kho Đề Thi',
+  title: 'Không tìm thấy trang | VNDocs',
 }
 
 export default function NotFoundPage() {
   return <NotFound />
 }
+

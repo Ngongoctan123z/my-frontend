@@ -1,4 +1,4 @@
-export const FRONTEND_URL = 'https://www.khodethi.id.vn'
+﻿export const FRONTEND_URL = 'https://www.vndocs.net'
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://p01--backend--4j4v4pb6yj96.code.run'
 export const API_BASE = `${BASE_URL}/api/v1`
 export const SAMPLE_PDF =
@@ -24,3 +24,4 @@ export const PROVINCES = [
 ] as const
 
 export const YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017] as const
+

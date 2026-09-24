@@ -1,8 +1,8 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Bộ Công Cụ Học Tập & Xử Lý Tài Liệu | Kho Đề Thi',
+  title: 'Bộ Công Cụ Học Tập & Xử Lý Tài Liệu | VNDocs',
   description: 'Khám phá bộ công cụ miễn phí hỗ trợ học tập: Tính điểm GPA, Máy tính Casio ảo, và các tiện ích xử lý tài liệu PDF, Word (chuyển đổi, cắt gộp, bảo mật).',
 }
 
@@ -75,3 +75,4 @@ export default function ToolsIndexPage() {
     </div>
   )
 }
+

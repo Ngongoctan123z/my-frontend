@@ -1,7 +1,7 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Tính điểm GPA tự động | Kho Đề Thi',
+  title: 'Tính điểm GPA tự động | VNDocs',
   description: 'Công cụ tính điểm trung bình môn GPA, hỗ trợ xét học bạ và dự kiến kết quả xét tuyển đại học chuẩn xác, nhanh chóng nhất.',
 }
 
@@ -22,3 +22,4 @@ export default function GPAToolPage() {
     </div>
   )
 }
+

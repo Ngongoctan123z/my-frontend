@@ -1,7 +1,7 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Cắt / Gộp File PDF | Kho Đề Thi',
+  title: 'Cắt / Gộp File PDF | VNDocs',
   description: 'Trình quản lý PDF đa năng: Cho phép ghép nhiều tài liệu thành một file duy nhất hoặc tách rời các trang tài liệu dễ dàng.',
 }
 
@@ -22,3 +22,4 @@ export default function SplitMergeToolPage() {
     </div>
   )
 }
+
