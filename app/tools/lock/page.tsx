@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { PdfLockUnlock } from '@/components/tools/PdfLockUnlock'
+import { PdfLockUnlock } from '@/src/components/tools/PdfLockUnlock'
 
 export const metadata: Metadata = {
   title: 'Bảo mật & Khóa File PDF | VNDocs',

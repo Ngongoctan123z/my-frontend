@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
@@ -241,9 +241,13 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                     <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                     Khóa File (Bảo mật)
                   </Link>
-                  <Link href="/tools/split-merge" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
+                  <Link href="/tools/remove-pages" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
                     <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
-                    Cắt / Gộp File
+                    Xóa Trang
+                  </Link>
+                  <Link href="/tools/merge-files" onClick={() => setToolkitDropdownOpen(false)} className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-page transition-colors flex items-center gap-2">
+                    <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                    Gộp File
                   </Link>
                 </div>
               )}

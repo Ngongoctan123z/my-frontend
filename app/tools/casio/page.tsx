@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { CasioCalculator } from '@/components/tools/CasioCalculator'
+import { CasioCalculator } from '@/src/components/tools/CasioCalculator'
 
 export const metadata: Metadata = {
   title: 'Máy tính Casio Online | VNDocs',
