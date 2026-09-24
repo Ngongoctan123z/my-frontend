@@ -8,7 +8,7 @@ export const metadata = {
   description: 'Kho tàng tài liệu, đề thi vào 10, THPT Quốc gia cập nhật liên tục.'
 }
 
-export default async function TaiLieuPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+export default async function TaiLieuPage() {
   let initialExams: import('@/src/types/exam').ExamListResponse = { data: [], total: 0, page: 0, limit: 12 }
   try {
     initialExams = await getExams({ limit: 12, page: 0, sort: 'recent' })
