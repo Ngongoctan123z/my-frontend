@@ -1,4 +1,5 @@
-﻿import { Metadata } from 'next'
+import { Metadata } from 'next'
+import { CasioCalculator } from '@/components/tools/CasioCalculator'
 
 export const metadata: Metadata = {
   title: 'Máy tính Casio Online | VNDocs',
@@ -7,18 +8,15 @@ export const metadata: Metadata = {
 
 export default function CasioToolPage() {
   return (
-    <div className="py-12 max-w-2xl mx-auto space-y-8">
+    <div className="py-12 max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight">Máy tính Casio Fx-580VN X</h1>
         <p className="text-ink-muted">
-          Phiên bản giả lập máy tính bỏ túi trực tuyến. Đang được tích hợp.
+          Phiên bản giả lập máy tính bỏ túi trực tuyến hỗ trợ tính toán nhanh.
         </p>
       </div>
 
-      <div className="p-8 rounded-2xl border border-dashed border-line bg-surface text-center">
-        <p className="text-lg font-medium text-ink">⏳ Sắp ra mắt!</p>
-        <p className="text-sm text-ink-muted mt-2">Giao diện máy tính Casio sẽ xuất hiện tại đây.</p>
-      </div>
+      <CasioCalculator />
     </div>
   )
 }

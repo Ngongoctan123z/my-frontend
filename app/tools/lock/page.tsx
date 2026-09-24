@@ -1,4 +1,5 @@
-﻿import { Metadata } from 'next'
+import { Metadata } from 'next'
+import { PdfLockUnlock } from '@/components/tools/PdfLockUnlock'
 
 export const metadata: Metadata = {
   title: 'Bảo mật & Khóa File PDF | VNDocs',
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function LockToolPage() {
   return (
-    <div className="py-12 max-w-2xl mx-auto space-y-8">
+    <div className="py-12 max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight">Khóa và Gỡ Khóa PDF</h1>
         <p className="text-ink-muted">
@@ -15,10 +16,7 @@ export default function LockToolPage() {
         </p>
       </div>
 
-      <div className="p-8 rounded-2xl border border-dashed border-line bg-surface text-center">
-        <p className="text-lg font-medium text-ink">⏳ Sắp ra mắt!</p>
-        <p className="text-sm text-ink-muted mt-2">Chúng tôi đang cấu hình công cụ mã hóa file.</p>
-      </div>
+      <PdfLockUnlock />
     </div>
   )
 }
