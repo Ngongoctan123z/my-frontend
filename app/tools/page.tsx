@@ -1,4 +1,4 @@
-﻿import { Metadata } from 'next'
+import { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
@@ -61,15 +61,26 @@ export default function ToolsIndexPage() {
           <p className="text-ink-muted">Đặt mật khẩu an toàn cho file PDF hoặc xóa bỏ lớp bảo vệ tài liệu nhanh chóng.</p>
         </Link>
 
-        {/* Split/Merge */}
-        <Link href="/tools/split-merge" className="group rounded-2xl border border-line bg-surface p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+        {/* Remove Pages */}
+        <Link href="/tools/remove-pages" className="group rounded-2xl border border-line bg-surface p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
           <div className="flex items-center gap-4 mb-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 group-hover:scale-110 transition-transform">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
             </div>
-            <h2 className="text-xl font-bold group-hover:text-[var(--color-primary)] transition-colors">Cắt / Gộp File</h2>
+            <h2 className="text-xl font-bold group-hover:text-[var(--color-primary)] transition-colors">Xóa Trang</h2>
           </div>
-          <p className="text-ink-muted">Ghép nhiều file PDF thành một bản duy nhất, hoặc tách rời các trang PDF chỉ với 1 click.</p>
+          <p className="text-ink-muted">Loại bỏ các trang không cần thiết khỏi tài liệu của bạn một cách nhanh chóng.</p>
+        </Link>
+
+        {/* Merge Files */}
+        <Link href="/tools/merge-files" className="group rounded-2xl border border-line bg-surface p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+            </div>
+            <h2 className="text-xl font-bold group-hover:text-[var(--color-primary)] transition-colors">Gộp File</h2>
+          </div>
+          <p className="text-ink-muted">Ghép nhiều tài liệu thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả.</p>
         </Link>
       </div>
     </div>

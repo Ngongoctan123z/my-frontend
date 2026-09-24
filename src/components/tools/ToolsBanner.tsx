@@ -13,7 +13,8 @@ export function ToolsBanner() {
     { href: '/tools/casio', label: 'Máy tính Casio', icon: <Calculator size={14} /> },
     { href: '/tools/convert', label: 'Chuyển đổi File', icon: <FileText size={14} /> },
     { href: '/tools/lock', label: 'Khóa File', icon: <Lock size={14} /> },
-    { href: '/tools/split-merge', label: 'Cắt / Gộp File', icon: <Layers size={14} /> },
+    { href: '/tools/remove-pages', label: 'Xóa Trang', icon: <Layers size={14} /> },
+    { href: '/tools/merge-files', label: 'Gộp File', icon: <Layers size={14} /> },
   ]
 
   return (
