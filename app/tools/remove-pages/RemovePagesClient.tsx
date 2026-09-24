@@ -21,6 +21,7 @@ export default function RemovePagesClient() {
   
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string>('')
+  const [resultUrl, setResultUrl] = useState<string | null>(null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -33,25 +34,23 @@ export default function RemovePagesClient() {
     }
     setSingleFile(file)
     setPagesToDelete(new Set())
+    setResultUrl(null)
     setError('')
+    // Reset input value to allow selecting the same file again
+    e.target.value = ''
   }
 
   const handleExecutePDF = async () => {
     setIsProcessing(true)
     setError('')
+    setResultUrl(null)
     try {
       if (!singleFile) throw new Error("Chưa chọn file")
       const indices = Array.from(pagesToDelete)
       const newPdfBlob = await removePDFPages(singleFile, indices)
       
       const url = URL.createObjectURL(newPdfBlob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `VNDocs-Cleaned-${singleFile.name}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      setResultUrl(url)
     } catch (err: any) {
       console.error(err)
       setError(err.message || 'Có lỗi xảy ra khi xử lý PDF.')
@@ -79,6 +78,7 @@ export default function RemovePagesClient() {
     if (newSet.has(index)) newSet.delete(index)
     else newSet.add(index)
     setPagesToDelete(newSet)
+    setResultUrl(null) // Cần xử lý lại nếu đổi trang
   }
 
   const getFormatLabel = () => {
@@ -150,34 +150,53 @@ export default function RemovePagesClient() {
               </div>
               
               <div className="flex gap-3 mt-4 sm:mt-0">
-                <button onClick={() => setSingleFile(null)} className="px-4 py-2 flex items-center gap-2 text-ink-muted hover:bg-surface-hover rounded-lg transition">
-                  <Trash2 className="w-4 h-4" /> Hủy
-                </button>
-                <button 
-                  onClick={handleExecute}
-                  disabled={isProcessing || (format === 'pdf' && pagesToDelete.size === 0)}
-                  className="px-6 py-2 flex items-center gap-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover disabled:opacity-50 transition"
-                >
-                  {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                  {format === 'pdf' ? `Xóa ${pagesToDelete.size} trang & Tải xuống` : 'Xử lý file'}
+                <button onClick={() => { setSingleFile(null); setResultUrl(null); }} className="px-4 py-2 flex items-center gap-2 text-ink-muted hover:bg-surface-hover rounded-lg transition">
+                  <Trash2 className="w-4 h-4" /> Đổi file khác
                 </button>
               </div>
             </div>
 
-            {format === 'pdf' && (
+            {/* QUẢNG CÁO CÓ THỂ ĐẶT Ở ĐÂY SAU NÀY */}
+            
+            {resultUrl ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center space-y-6">
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                  <Download className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-emerald-800">Xử lý thành công!</h3>
+                  <p className="text-emerald-600 mt-2">File của bạn đã sẵn sàng để tải xuống. (Đã xóa {pagesToDelete.size} trang)</p>
+                </div>
+                <a 
+                  href={resultUrl} 
+                  download={`VNDocs-Cleaned-${singleFile.name}`}
+                  className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-8 py-4 rounded-xl hover:bg-emerald-700 transition-all hover:scale-105 shadow-lg"
+                >
+                  <Download className="w-5 h-5" /> Tải xuống file ngay
+                </a>
+              </div>
+            ) : format === 'pdf' && (
               <div className="bg-surface p-6 rounded-2xl border border-line shadow-sm">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                   <div>
                     <h3 className="font-semibold text-lg">Click vào các trang bạn muốn XÓA</h3>
                     <p className="text-sm text-ink-muted">Trang bị chọn (Màu đỏ) sẽ bị loại bỏ khỏi file.</p>
                   </div>
+                  <button 
+                    onClick={handleExecute}
+                    disabled={isProcessing || pagesToDelete.size === 0}
+                    className="px-6 py-2.5 flex items-center gap-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover disabled:opacity-50 transition w-full md:w-auto justify-center"
+                  >
+                    {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
+                    Tiến hành Xóa {pagesToDelete.size} trang
+                  </button>
                 </div>
                 
-                <div className="h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="h-[600px] overflow-y-auto pr-2 custom-scrollbar border border-line/50 rounded-xl p-4 bg-page">
                   <Document
                     file={singleFile}
                     onLoadSuccess={onDocumentLoadSuccess}
-                    loading={<div className="flex justify-center py-20 text-ink-muted"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Đang tải trang...</div>}
+                    loading={<div className="flex justify-center py-20 text-ink-muted"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Đang đọc file PDF...</div>}
                     className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
                   >
                     {Array.from({ length: numPages }, (_, index) => {
@@ -185,18 +204,18 @@ export default function RemovePagesClient() {
                       return (
                         <div 
                           key={`page_${index}`} 
-                          className={`relative cursor-pointer group rounded-lg overflow-hidden border-2 transition-all ${
-                            isDeleted ? 'border-red-500 shadow-md ring-4 ring-red-500/20 opacity-80' : 'border-transparent hover:border-line'
+                          className={`relative cursor-pointer group rounded-lg overflow-hidden border-2 transition-all shadow-sm ${
+                            isDeleted ? 'border-red-500 shadow-md ring-4 ring-red-500/20 opacity-80' : 'border-line hover:border-primary'
                           }`}
                           onClick={() => toggleDeletePage(index)}
                         >
                           <Page pageNumber={index + 1} width={200} renderTextLayer={false} renderAnnotationLayer={false} className="w-full flex justify-center bg-white" />
                           {isDeleted && (
                             <div className="absolute inset-0 bg-red-500/10 flex items-center justify-center">
-                              <Trash2 className="w-10 h-10 text-red-500" />
+                              <Trash2 className="w-10 h-10 text-red-500 drop-shadow-md" />
                             </div>
                           )}
-                          <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-xs font-medium py-1.5 text-center">
+                          <div className={`absolute bottom-0 inset-x-0 text-white text-xs font-medium py-1.5 text-center ${isDeleted ? 'bg-red-600' : 'bg-black/60'}`}>
                             Trang {index + 1}
                           </div>
                         </div>

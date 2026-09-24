@@ -12,6 +12,7 @@ export default function MergeFilesClient() {
   
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string>('')
+  const [resultUrl, setResultUrl] = useState<string | null>(null)
   
   const multiFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -28,6 +29,9 @@ export default function MergeFilesClient() {
     } else {
       setMultiFiles(prev => [...prev, ...files])
     }
+    setResultUrl(null)
+    // Reset input value
+    e.target.value = ''
   }
 
   const moveFile = (index: number, direction: 'up' | 'down') => {
@@ -40,27 +44,24 @@ export default function MergeFilesClient() {
     newFiles[index] = newFiles[swapIndex]
     newFiles[swapIndex] = temp
     setMultiFiles(newFiles)
+    setResultUrl(null)
   }
 
   const removeFileFromList = (index: number) => {
     setMultiFiles(prev => prev.filter((_, i) => i !== index))
+    setResultUrl(null)
   }
 
   const handleExecutePDF = async () => {
     setIsProcessing(true)
     setError('')
+    setResultUrl(null)
     try {
       if (multiFiles.length < 2) throw new Error("Cần ít nhất 2 file để gộp")
       const newPdfBlob = await mergePDFs(multiFiles)
       
       const url = URL.createObjectURL(newPdfBlob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `VNDocs-Merged.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      setResultUrl(url)
     } catch (err: any) {
       console.error(err)
       setError(err.message || 'Có lỗi xảy ra khi xử lý file.')
@@ -159,16 +160,37 @@ export default function MergeFilesClient() {
           )}
         </div>
         
-        <div className="flex justify-center">
-          <button 
-            onClick={handleExecute}
-            disabled={isProcessing || multiFiles.length < 2}
-            className="px-8 py-3 flex items-center gap-2 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover disabled:opacity-50 transition shadow-lg"
-          >
-            {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-            Tiến hành Gộp {multiFiles.length} file
-          </button>
-        </div>
+        {/* QUẢNG CÁO CÓ THỂ ĐẶT Ở ĐÂY SAU NÀY */}
+        
+        {resultUrl ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center space-y-6">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+              <Download className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-emerald-800">Xử lý thành công!</h3>
+              <p className="text-emerald-600 mt-2">Đã gộp thành công {multiFiles.length} file tài liệu lại thành 1 bản duy nhất.</p>
+            </div>
+            <a 
+              href={resultUrl} 
+              download={`VNDocs-Merged.pdf`}
+              className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-8 py-4 rounded-xl hover:bg-emerald-700 transition-all hover:scale-105 shadow-lg"
+            >
+              <Download className="w-5 h-5" /> Tải xuống file Gộp ngay
+            </a>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <button 
+              onClick={handleExecute}
+              disabled={isProcessing || multiFiles.length < 2}
+              className="px-8 py-3 flex items-center gap-2 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover disabled:opacity-50 transition shadow-lg"
+            >
+              {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
+              Tiến hành Gộp {multiFiles.length} file
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
