@@ -1,23 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
+// Danh sách model ưu tiên, thử từ trên xuống
+const MODEL_CANDIDATES = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash', 
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+]
+
+async function tryGenerateWithFallback(apiKey: string, prompt: string): Promise<string> {
+  const genAI = new GoogleGenerativeAI(apiKey)
+  
+  for (const modelName of MODEL_CANDIDATES) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName })
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      return response.text()
+    } catch (err: any) {
+      const msg = err.message || ''
+      // Nếu lỗi do model không tồn tại hoặc bị khai tử → thử model tiếp theo
+      if (msg.includes('not found') || msg.includes('no longer available') || msg.includes('404') || msg.includes('is not available')) {
+        continue
+      }
+      // Lỗi khác (key sai, quota hết, ...) → throw ngay, không cần thử tiếp
+      throw err
+    }
+  }
+  
+  throw new Error('MODEL_EXHAUSTED')
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { action, type, prompt, essay } = await req.json()
 
-    // Accept API key from client header, fallback to server env
     const clientKey = req.headers.get('x-gemini-key')
     const apiKey = clientKey || process.env.GEMINI_API_KEY || ''
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Vui lòng nhập API Key của bạn để sử dụng tính năng này.' },
+        { error: 'Vui lòng nhập API Key Gemini để sử dụng tính năng này.' },
         { status: 400 }
       )
     }
-
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' })
 
     if (action === 'generate_prompt') {
       let systemPrompt = ''
@@ -25,16 +52,19 @@ export async function POST(req: NextRequest) {
         systemPrompt = `You are an IELTS Academic exam writer. Generate 1 random IELTS Writing Task 2 question (choose randomly from: Discuss both views, To what extent do you agree, Problems and Solutions, or Advantages and Disadvantages). Only return the English question text, nothing else.`
       } else if (type === 'TOEIC_ESSAY') {
         systemPrompt = `You are a TOEIC Writing exam writer. Generate 1 random TOEIC Writing Question 8 (Opinion Essay) question. Only return the English question text, nothing else.`
+      } else {
+        return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
       }
 
-      const result = await model.generateContent(systemPrompt)
-      const response = await result.response
-      const text = response.text()
-
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt)
       return NextResponse.json({ text })
     }
 
     if (action === 'grade_essay') {
+      if (!prompt || !essay) {
+        return NextResponse.json({ error: 'Thiếu đề bài hoặc bài làm.' }, { status: 400 })
+      }
+
       let systemPrompt = ''
 
       if (type === 'IELTS_TASK_2') {
@@ -105,40 +135,73 @@ Return ONLY valid JSON (no markdown, no backticks):
 }
 Be very strict. Write all feedback in Vietnamese.
 `
+      } else {
+        return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
       }
 
-      const result = await model.generateContent(systemPrompt)
-      const response = await result.response
-      const text = response.text()
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt)
 
       try {
         const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
         const parsed = JSON.parse(cleanedText)
         return NextResponse.json(parsed)
       } catch {
-        console.error('Failed to parse Gemini response:', text)
         return NextResponse.json(
-          { error: 'Hệ thống trả về kết quả không hợp lệ. Vui lòng thử lại.' },
+          { error: 'Kết quả trả về không đúng định dạng. Vui lòng thử lại.' },
           { status: 500 }
         )
       }
     }
 
-    return NextResponse.json({ error: 'Hành động không hợp lệ.' }, { status: 400 })
+    return NextResponse.json({ error: 'Yêu cầu không hợp lệ.' }, { status: 400 })
 
   } catch (error: any) {
-    console.error('AI Grader Error:', error)
+    const msg = (error.message || '').toLowerCase()
 
-    // Handle specific Gemini API errors
-    if (error.message?.includes('API_KEY_INVALID') || error.message?.includes('API key not valid')) {
+    // API Key không hợp lệ
+    if (msg.includes('api_key_invalid') || msg.includes('api key not valid') || msg.includes('permission_denied')) {
       return NextResponse.json(
-        { error: 'API Key không hợp lệ. Vui lòng kiểm tra lại key Gemini của bạn.' },
+        { error: 'API Key không hợp lệ hoặc đã bị vô hiệu hóa. Vui lòng kiểm tra lại.' },
         { status: 401 }
       )
     }
 
+    // Hết quota
+    if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted')) {
+      return NextResponse.json(
+        { error: 'API Key đã hết lượt sử dụng miễn phí. Vui lòng đợi hoặc dùng key khác.' },
+        { status: 429 }
+      )
+    }
+
+    // Tất cả model đều không khả dụng
+    if (msg.includes('model_exhausted')) {
+      return NextResponse.json(
+        { error: 'Tất cả phiên bản xử lý đều đang bảo trì. Vui lòng thử lại sau.' },
+        { status: 503 }
+      )
+    }
+
+    // Nội dung bị chặn bởi safety filter
+    if (msg.includes('safety') || msg.includes('blocked') || msg.includes('harm')) {
+      return NextResponse.json(
+        { error: 'Nội dung bài viết bị từ chối do vi phạm chính sách an toàn.' },
+        { status: 400 }
+      )
+    }
+
+    // Timeout
+    if (msg.includes('timeout') || msg.includes('deadline')) {
+      return NextResponse.json(
+        { error: 'Hệ thống xử lý quá lâu. Vui lòng thử lại.' },
+        { status: 504 }
+      )
+    }
+
+    // Lỗi chung - KHÔNG trả raw error message ra ngoài
+    console.error('[AI-Grader] Unhandled error:', error.message)
     return NextResponse.json(
-      { error: error.message || 'Đã xảy ra lỗi. Vui lòng thử lại sau.' },
+      { error: 'Đã xảy ra lỗi trong quá trình xử lý. Vui lòng thử lại sau.' },
       { status: 500 }
     )
   }
