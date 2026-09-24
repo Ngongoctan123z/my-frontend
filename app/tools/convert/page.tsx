@@ -1,17 +1,10 @@
 import { Metadata } from 'next'
-
+import FileConverterWrapper from './FileConverterWrapper'
 
 export const metadata: Metadata = {
   title: 'Chuyển Đổi File Online | VNDocs',
   description: 'Chuyển đổi linh hoạt giữa các định dạng PDF sang Ảnh (JPG/PNG) và ngược lại hoàn toàn miễn phí.',
 }
-
-import dynamic from 'next/dynamic'
-
-const FileConverter = dynamic(() => import('@/src/components/tools/FileConverter').then(mod => mod.FileConverter), {
-  ssr: false,
-  loading: () => <div className="p-12 text-center text-ink-muted">Đang tải công cụ...</div>
-})
 
 export default function ConvertToolPage() {
   return (
@@ -23,7 +16,7 @@ export default function ConvertToolPage() {
         </p>
       </div>
 
-      <FileConverter />
+      <FileConverterWrapper />
     </div>
   )
 }
