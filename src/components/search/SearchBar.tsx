@@ -40,7 +40,7 @@ export function SearchBar() {
     const next = value.trim()
     if (!next) return
     setOpen(false)
-    router.push(`/?q=${encodeURIComponent(next)}`)
+    router.push(`/tai-lieu?q=${encodeURIComponent(next)}`)
   }
 
   return (
