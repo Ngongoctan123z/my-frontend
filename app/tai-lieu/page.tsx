@@ -3,9 +3,20 @@ import { Suspense } from 'react'
 
 import { getExams } from '@/src/services/examService'
 
-export const metadata = {
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
   title: 'Thư Viện Tài Liệu & Đề Thi | VNDocs',
-  description: 'Kho tàng tài liệu, đề thi vào 10, THPT Quốc gia cập nhật liên tục.'
+  description: 'Kho tàng tài liệu, đề thi vào 10, THPT Quốc gia cập nhật liên tục. Trọn bộ sách giáo khoa và tài liệu chuyên sâu.',
+  keywords: 'tài liệu học tập, đề thi toán, đề thi văn, đề thi tiếng anh, thi vào 10, thi thpt quốc gia',
+  openGraph: {
+    title: 'Thư Viện Tài Liệu & Đề Thi | VNDocs',
+    description: 'Kho tàng tài liệu, đề thi vào 10, THPT Quốc gia cập nhật liên tục.',
+    url: 'https://www.vndocs.net/tai-lieu',
+    siteName: 'VNDocs',
+    locale: 'vi_VN',
+    type: 'website',
+  }
 }
 
 export default async function TaiLieuPage() {
