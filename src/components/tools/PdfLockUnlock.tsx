@@ -53,7 +53,7 @@ export function PdfLockUnlock() {
       if (mode === 'lock') {
         // Encrypt the PDF
         try {
-          resultBytes = await encryptPDF(uint8Array, password)
+          resultBytes = await encryptPDF(uint8Array, password, { algorithm: 'AES-256' })
         } catch (e: any) {
           if (e.code === 'ALREADY_ENCRYPTED') {
             throw new Error('File này đã được mã hóa từ trước. Vui lòng chọn file khác hoặc mở khóa trước.')
