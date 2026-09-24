@@ -1,10 +1,14 @@
-﻿import './globals.css'
+import './globals.css'
 import { Providers } from '../src/components/Providers'
 import { Layout as AppLayout } from '../src/components/common/Layout'
 
 export const metadata = {
   title: 'VNDocs - Đề thi THCS, THPT miễn phí',
   description: 'Kho lưu trữ đề thi, tài liệu học tập THCS, THPT miễn phí. Tải xuống định dạng PDF, Word cực kỳ nhanh chóng.',
+  icons: {
+    icon: '/logo.jpg',
+    apple: '/logo.jpg',
+  },
   robots: {
     index: true,
     follow: true,
