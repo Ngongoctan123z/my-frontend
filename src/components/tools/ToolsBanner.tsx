@@ -9,7 +9,7 @@ export function ToolsBanner() {
 
   const links = [
     { href: '/tools', label: 'Tất cả công cụ', icon: null },
-    { href: '/tools/gpa', label: 'Tính GPA', icon: <Calculator size={14} /> },
+
     { href: '/tools/casio', label: 'Máy tính Casio', icon: <Calculator size={14} /> },
     { href: '/tools/convert', label: 'Chuyển đổi File', icon: <FileText size={14} /> },
     { href: '/tools/lock', label: 'Khóa File', icon: <Lock size={14} /> },

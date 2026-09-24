@@ -1,25 +1,29 @@
-﻿import { Metadata } from 'next'
+import { Metadata } from 'next'
+
 
 export const metadata: Metadata = {
-  title: 'Chuyển đổi File PDF & Word | VNDocs',
-  description: 'Công cụ chuyển đổi định dạng linh hoạt giữa PDF sang Word (Docx), Ảnh (JPG/PNG) và ngược lại hoàn toàn miễn phí.',
+  title: 'Chuyển Đổi File Online | VNDocs',
+  description: 'Chuyển đổi linh hoạt giữa các định dạng PDF sang Ảnh (JPG/PNG) và ngược lại hoàn toàn miễn phí.',
 }
+
+import dynamic from 'next/dynamic'
+
+const FileConverter = dynamic(() => import('@/src/components/tools/FileConverter').then(mod => mod.FileConverter), {
+  ssr: false,
+  loading: () => <div className="p-12 text-center text-ink-muted">Đang tải công cụ...</div>
+})
 
 export default function ConvertToolPage() {
   return (
-    <div className="py-12 max-w-2xl mx-auto space-y-8">
+    <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight">Chuyển đổi định dạng File</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">Chuyển Đổi Định Dạng File</h1>
         <p className="text-ink-muted">
-          PDF sang Word, PDF sang Ảnh và nhiều tính năng chuyển đổi tài liệu khác.
+          Tiện ích hỗ trợ chuyển đổi từ Hình ảnh sang PDF và xuất trang PDF thành Hình ảnh (JPG, PNG).
         </p>
       </div>
 
-      <div className="p-8 rounded-2xl border border-dashed border-line bg-surface text-center">
-        <p className="text-lg font-medium text-ink">⏳ Sắp ra mắt!</p>
-        <p className="text-sm text-ink-muted mt-2">Hệ thống xử lý file đang được xây dựng.</p>
-      </div>
+      <FileConverter />
     </div>
   )
 }
-

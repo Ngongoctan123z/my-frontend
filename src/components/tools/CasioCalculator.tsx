@@ -1,10 +1,14 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState } from 'react'
+import { Settings2 } from 'lucide-react'
+
+type CalculatorModel = 'fx-580VN X' | 'fx-570VN PLUS' | 'fx-880BTG'
 
 export function CasioCalculator() {
   const [displayValue, setDisplayValue] = useState('')
   const [result, setResult] = useState<string | null>(null)
+  const [model, setModel] = useState<CalculatorModel>('fx-580VN X')
 
   const handleInput = (val: string) => {
     if (result !== null) {
@@ -41,53 +45,97 @@ export function CasioCalculator() {
         .replace(/\^/g, '**')
         .replace(/π/g, 'Math.PI')
         .replace(/e/g, 'Math.E')
-        .replace(/sin\(/g, 'Math.sin((Math.PI/180)*') // assume degrees for simplicity
+        .replace(/sin\(/g, 'Math.sin((Math.PI/180)*') // assume degrees
         .replace(/cos\(/g, 'Math.cos((Math.PI/180)*')
         .replace(/tan\(/g, 'Math.tan((Math.PI/180)*')
         .replace(/log\(/g, 'Math.log10(')
         .replace(/ln\(/g, 'Math.log(')
         .replace(/√\(/g, 'Math.sqrt(')
 
-      // A simple check to automatically close opened parentheses
+      // Fix implied multiplication: 2(3) -> 2*(3) or (2)(3) -> (2)*(3)
+      expression = expression.replace(/(\d)\(/g, '$1*(')
+      expression = expression.replace(/\)(\d)/g, ')*$1')
+      expression = expression.replace(/\)\(/g, ')*(')
+
+      // Automatically close opened parentheses
       const openParens = (expression.match(/\(/g) || []).length
       const closeParens = (expression.match(/\)/g) || []).length
       if (openParens > closeParens) {
         expression += ')'.repeat(openParens - closeParens)
       }
 
+      // Evaluate safely
       // eslint-disable-next-line no-new-func
       const evalFunc = new Function('return (' + expression + ')')
       const res = evalFunc()
       
-      // format result to avoid long decimals
-      const finalRes = Number.isInteger(res) ? res.toString() : parseFloat(res.toFixed(8)).toString()
+      if (res === Infinity || Number.isNaN(res)) throw new Error('Math Error')
+      
+      // format result to avoid long decimals and floating point issues
+      const finalRes = Number.isInteger(res) ? res.toString() : parseFloat(res.toFixed(9)).toString()
       setResult(finalRes)
     } catch (e) {
       setResult('Syntax ERROR')
     }
   }
 
+  // Define styling based on model
+  const modelStyles = {
+    'fx-580VN X': {
+      bg: 'linear-gradient(135deg, #2b2b2b 0%, #1a1a1a 100%)',
+      brandColor: 'text-[#a0a0a0]',
+      screenBg: '#9ea794'
+    },
+    'fx-570VN PLUS': {
+      bg: 'linear-gradient(135deg, #b0b5b9 0%, #8b9398 100%)',
+      brandColor: 'text-[#2a2a2a]',
+      screenBg: '#a3b5a0'
+    },
+    'fx-880BTG': {
+      bg: 'linear-gradient(135deg, #111111 0%, #000000 100%)',
+      brandColor: 'text-white',
+      screenBg: '#8c9c86'
+    }
+  }
+
+  const currentStyle = modelStyles[model]
+
   return (
-    <div className="flex justify-center items-center py-4">
+    <div className="flex flex-col items-center py-4 space-y-6">
+      
+      {/* Model Selector */}
+      <div className="bg-surface border border-line p-2 rounded-xl flex items-center gap-2 shadow-sm">
+        <Settings2 className="w-4 h-4 text-ink-muted ml-2" />
+        <select 
+          value={model}
+          onChange={(e) => setModel(e.target.value as CalculatorModel)}
+          className="bg-transparent border-none outline-none font-medium text-ink px-2 py-1 cursor-pointer"
+        >
+          <option value="fx-580VN X">Casio fx-580VN X</option>
+          <option value="fx-570VN PLUS">Casio fx-570VN PLUS</option>
+          <option value="fx-880BTG">Casio fx-880BTG</option>
+        </select>
+      </div>
+
       {/* Outer Shell */}
       <div 
-        className="w-[320px] sm:w-[380px] p-4 sm:p-6 rounded-3xl shadow-2xl relative"
+        className="w-[320px] sm:w-[380px] p-4 sm:p-6 rounded-3xl shadow-2xl relative transition-all duration-500"
         style={{
-          background: 'linear-gradient(135deg, #2b2b2b 0%, #1a1a1a 100%)',
+          background: currentStyle.bg,
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255,255,255,0.1)'
         }}
       >
         {/* Branding */}
         <div className="flex justify-between items-center mb-4 px-2">
-          <div className="text-white font-serif italic text-lg font-bold tracking-wider">CASIO</div>
-          <div className="text-[#a0a0a0] text-xs font-medium italic">fx-580VN X</div>
+          <div className={`font-serif italic text-lg font-bold tracking-wider ${model === 'fx-570VN PLUS' ? 'text-black' : 'text-white'}`}>CASIO</div>
+          <div className={`${currentStyle.brandColor} text-xs font-bold italic`}>{model}</div>
         </div>
 
         {/* Display Screen */}
         <div 
-          className="h-28 rounded-lg mb-6 p-3 flex flex-col justify-between shadow-inner relative"
+          className="h-28 rounded-lg mb-6 p-3 flex flex-col justify-between shadow-inner relative transition-colors duration-500"
           style={{
-            backgroundColor: '#9ea794', // Classic LCD greenish color
+            backgroundColor: currentStyle.screenBg,
             boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.4)',
             fontFamily: '"Courier New", Courier, monospace'
           }}
@@ -102,7 +150,7 @@ export function CasioCalculator() {
             <div className="text-xl sm:text-2xl font-bold text-black/80 tracking-widest break-all line-clamp-2 min-h-[32px]">
               {displayValue}
             </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-black mt-1 h-10 flex items-center">
+            <div className={`text-3xl sm:text-4xl font-extrabold text-black mt-1 h-10 flex items-center ${result === 'Syntax ERROR' || result === 'Math Error' ? 'text-red-900 text-2xl' : ''}`}>
               {result !== null ? result : ''}
             </div>
           </div>
@@ -114,8 +162,8 @@ export function CasioCalculator() {
           {/* Row 1: Function keys */}
           <button onClick={() => handleInput('SHIFT')} className="h-6 rounded-full bg-[#3a3a3a] text-yellow-500 text-[10px] hover:bg-[#4a4a4a] transition">SHIFT</button>
           <button onClick={() => handleInput('ALPHA')} className="h-6 rounded-full bg-[#3a3a3a] text-red-500 text-[10px] hover:bg-[#4a4a4a] transition">ALPHA</button>
-          <button className="h-6 rounded-full bg-[#3a3a3a] text-white/70 text-[10px] hover:bg-[#4a4a4a] transition">MENU</button>
-          <button className="h-6 rounded-full bg-[#3a3a3a] text-white/70 text-[10px] hover:bg-[#4a4a4a] transition">SETUP</button>
+          <button className="h-6 rounded-full bg-[#3a3a3a] text-white/70 text-[10px] hover:bg-[#4a4a4a] transition cursor-not-allowed">MENU</button>
+          <button className="h-6 rounded-full bg-[#3a3a3a] text-white/70 text-[10px] hover:bg-[#4a4a4a] transition cursor-not-allowed">SETUP</button>
           <button onClick={handleClear} className="h-6 rounded-full bg-[#3a3a3a] text-white/70 text-[10px] hover:bg-[#4a4a4a] transition">ON</button>
 
           {/* Row 2: Math functions */}
@@ -127,10 +175,10 @@ export function CasioCalculator() {
 
           {/* Row 3: Math functions */}
           <button onClick={() => handleInput('(-)')} className="h-8 rounded-md bg-[#252525] text-white shadow-sm border-b-2 border-[#151515] hover:bg-[#303030] active:border-b-0 active:translate-y-[2px]">(-)</button>
-          <button onClick={() => handleInput('°\'"')} className="h-8 rounded-md bg-[#252525] text-white shadow-sm border-b-2 border-[#151515] hover:bg-[#303030] active:border-b-0 active:translate-y-[2px]">°\'"</button>
+          <button onClick={() => handleInput('(')} className="h-8 rounded-md bg-[#252525] text-white shadow-sm border-b-2 border-[#151515] hover:bg-[#303030] active:border-b-0 active:translate-y-[2px]">(</button>
+          <button onClick={() => handleInput(')')} className="h-8 rounded-md bg-[#252525] text-white shadow-sm border-b-2 border-[#151515] hover:bg-[#303030] active:border-b-0 active:translate-y-[2px]">)</button>
           <button onClick={() => handleInput('sin(')} className="h-8 rounded-md bg-[#252525] text-white shadow-sm border-b-2 border-[#151515] hover:bg-[#303030] active:border-b-0 active:translate-y-[2px]">sin</button>
           <button onClick={() => handleInput('cos(')} className="h-8 rounded-md bg-[#252525] text-white shadow-sm border-b-2 border-[#151515] hover:bg-[#303030] active:border-b-0 active:translate-y-[2px]">cos</button>
-          <button onClick={() => handleInput('tan(')} className="h-8 rounded-md bg-[#252525] text-white shadow-sm border-b-2 border-[#151515] hover:bg-[#303030] active:border-b-0 active:translate-y-[2px]">tan</button>
 
           {/* Spacer */}
           <div className="col-span-5 h-2"></div>

@@ -17,16 +17,7 @@ export default function ToolsIndexPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* GPA */}
-        <Link href="/tools/gpa" className="group rounded-2xl border border-line bg-surface p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-            </div>
-            <h2 className="text-xl font-bold group-hover:text-[var(--color-primary)] transition-colors">Tính điểm GPA</h2>
-          </div>
-          <p className="text-ink-muted">Công cụ tính điểm trung bình môn, xét học bạ và dự kiến kết quả xét tuyển đại học chuẩn xác nhất.</p>
-        </Link>
+
 
         {/* Casio */}
         <Link href="/tools/casio" className="group rounded-2xl border border-line bg-surface p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
