@@ -153,6 +153,52 @@ Be very strict. Write all feedback in Vietnamese.
       }
     }
 
+    if (action === 'grade_paraphrase') {
+      const { vietnameseText, contextText, userTranslation, level } = await req.json()
+      if (!vietnameseText || !userTranslation) {
+        return NextResponse.json({ error: 'Thiếu câu gốc hoặc câu dịch.' }, { status: 400 })
+      }
+
+      const systemPrompt = `
+You are a very strict English teacher grading a student's translation/paraphrase from Vietnamese to English.
+Level target: CEFR ${level}.
+Vietnamese sentence to translate: "${vietnameseText}"
+Context: "${contextText}"
+Student's English sentence: "${userTranslation}"
+
+Evaluate the student's translation strictly based on:
+1. Accuracy (meaning preservation).
+2. Naturalness and flow (is it idiomatic?).
+3. Grammatical correctness.
+4. Appropriateness for the target CEFR level (${level}).
+
+Return ONLY valid JSON (no markdown, no backticks):
+{
+  "score": 7.5, // out of 10
+  "feedback": "Strict feedback in Vietnamese analyzing grammar, vocabulary, and meaning.",
+  "corrections": [
+    { "original": "wrong part", "corrected": "better part", "explanation": "reason in Vietnamese" }
+  ],
+  "betterAlternatives": [
+    "Alternative way to say it naturally 1",
+    "Alternative way to say it naturally 2"
+  ]
+}
+`
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt)
+
+      try {
+        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
+        const parsed = JSON.parse(cleanedText)
+        return NextResponse.json(parsed)
+      } catch {
+        return NextResponse.json(
+          { error: 'Kết quả trả về không đúng định dạng. Vui lòng thử lại.' },
+          { status: 500 }
+        )
+      }
+    }
+
     return NextResponse.json({ error: 'Yêu cầu không hợp lệ.' }, { status: 400 })
 
   } catch (error: any) {
