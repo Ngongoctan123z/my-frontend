@@ -17,7 +17,9 @@ interface ConversionOption {
   serverSide?: boolean
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://exam-web-production.up.railway.app'
+import { BASE_URL } from '../../utils/constants'
+
+const BACKEND_URL = BASE_URL
 
 const CONVERSION_OPTIONS: ConversionOption[] = [
   // Server-side (LibreOffice) — thiết thực nhất, đặt lên đầu
