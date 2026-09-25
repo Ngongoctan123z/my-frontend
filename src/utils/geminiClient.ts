@@ -1,35 +1,52 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const MODEL_CANDIDATES = [
-  'gemini-3.8-flash',
-  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-exp',
+  'gemini-1.5-pro-latest',
+  'gemini-1.5-pro',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.0-pro'
 ]
 
 async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
   let lastSignificantError: any = null
   
-  for (const modelName of MODEL_CANDIDATES) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName })
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      return response.text()
-    } catch (err: any) {
-      const msg = (err.message || '').toLowerCase()
-      
-      if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid')) {
-        throw err
-      }
-      
-      if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('safety') || msg.includes('blocked')) {
-        lastSignificantError = err
-      }
+  const maxRetries = 2; // Try the whole list twice if needed
 
-      if (modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
-        throw lastSignificantError || err
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    for (const modelName of MODEL_CANDIDATES) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName })
+        const result = await model.generateContent(prompt)
+        const response = await result.response
+        return response.text()
+      } catch (err: any) {
+        const msg = (err.message || '').toLowerCase()
+        
+        // Critical errors that shouldn't be retried
+        if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid')) {
+          throw err
+        }
+        
+        // Record significant errors
+        if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('safety') || msg.includes('blocked') || msg.includes('503')) {
+          lastSignificantError = err
+        }
+
+        // If it's the absolute last attempt on the last model, throw
+        if (attempt === maxRetries - 1 && modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
+          throw lastSignificantError || err
+        }
+        
+        // Wait 500ms before trying the next model to avoid hammering the API
+        await new Promise(resolve => setTimeout(resolve, 500));
+        continue
       }
-      continue
     }
   }
   
