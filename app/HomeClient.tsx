@@ -86,13 +86,13 @@ export function HomeClient() {
           <div className="flex-1 text-center md:text-left">
             <Reveal animation="fade-up" duration={700}>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 leading-snug">
-                Học cho vui, điểm tới lui<br />
+                Kho Đề Thi & Tài Liệu Học Tập<br />
                 <span className="text-blue-600">VNDocs không học thì đừng khóc</span>
               </h1>
             </Reveal>
             <Reveal animation="fade-up" delay={150} duration={600}>
               <p className="text-slate-500 text-sm mb-5">
-                Đề thi, công cụ File, công cụ học tiếng Anh — tất cả miễn phí{' '}
+                Đề thi vào 10, THPT Quốc Gia, luyện Writing IELTS/TOEIC — tất cả miễn phí{' '}
                 <span className="text-blue-600 text-lg md:text-xl font-bold inline-flex items-center gap-1">
                   is for you 🎁
                 </span>
@@ -129,6 +129,7 @@ export function HomeClient() {
 
       {/* Categories — staggered card entrance */}
       <section className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
+        <h2 className="sr-only">Các công cụ và tính năng chính</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StaggerReveal animation="zoom-in" stagger={60} baseDelay={0} duration={300} className="h-full">
             {portalCategories.map((cat, idx) => (
@@ -188,6 +189,31 @@ export function HomeClient() {
             </Reveal>
           </div>
         </Reveal>
+      </section>
+
+      {/* SEO Content Section */}
+      <section className="w-full max-w-4xl mx-auto px-4 pb-12">
+        <article className="prose prose-sm md:prose-base prose-slate max-w-none bg-white p-6 md:p-8 rounded-xl border border-gray-100 shadow-sm text-justify">
+          <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">VNDocs - Nền tảng Đề Thi, Tài Liệu Học Tập và Công Cụ Miễn Phí</h2>
+          
+          <p className="mb-4">
+            Chào mừng bạn đến với <strong>VNDocs</strong>, kho lưu trữ và công cụ học tập toàn diện dành cho học sinh, sinh viên và giáo viên tại Việt Nam. 
+            Chúng tôi cung cấp hàng ngàn <strong>đề thi vào lớp 10</strong>, <strong>đề thi THPT Quốc Gia</strong> chính thức và thi thử từ các trường chuyên trên cả nước. 
+            Tất cả tài liệu đều được chọn lọc kỹ lưỡng, bám sát cấu trúc đề thi mới nhất của Bộ Giáo dục và Đào tạo, kèm theo đáp án chi tiết giúp học sinh dễ dàng ôn tập và tự đánh giá năng lực.
+          </p>
+          
+          <p className="mb-4">
+            Bên cạnh việc cung cấp tài liệu truyền thống, VNDocs còn tiên phong ứng dụng công nghệ Trí tuệ nhân tạo (AI) vào việc hỗ trợ người dùng. 
+            Tính năng <strong>Chấm Writing AI</strong> đột phá giúp các sĩ tử ôn luyện <strong>IELTS</strong> và <strong>TOEIC</strong> nhận được những đánh giá, phân tích và sửa lỗi ngữ pháp một cách khắt khe, chính xác như một giám khảo bản xứ. 
+            Bạn cũng có thể học từ vựng hiệu quả qua hệ thống <strong>Flashcard Spaced Repetition</strong> được tích hợp sẵn.
+          </p>
+          
+          <p>
+            Không chỉ dừng lại ở giáo dục, nền tảng còn cung cấp bộ <strong>công cụ xử lý File PDF</strong> mạnh mẽ hoàn toàn miễn phí. 
+            Người dùng có thể gộp file, cắt trang, chuyển đổi định dạng hay khóa bảo mật PDF chỉ với vài thao tác cơ bản mà không cần cài đặt phần mềm nặng nề. 
+            Với phương châm <em>"Học cho vui, điểm tới lui"</em>, VNDocs cam kết mang đến những tiện ích tốt nhất, đồng hành cùng bạn trên con đường chinh phục tri thức.
+          </p>
+        </article>
       </section>
     </>
   )

@@ -1,10 +1,15 @@
+import { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '../src/components/Providers'
 import { Layout as AppLayout } from '../src/components/common/Layout'
 
-export const metadata = {
-  title: 'VNDocs - Đề thi THCS, THPT miễn phí',
-  description: 'Kho lưu trữ đề thi, tài liệu học tập THCS, THPT miễn phí. Tải xuống định dạng PDF, Word cực kỳ nhanh chóng.',
+export const metadata: Metadata = {
+  metadataBase: new URL('https://vndocs.net'),
+  title: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
+  description: 'Kho đề thi vào 10, đề thi THPT Quốc Gia, luyện Writing IELTS, TOEIC và công cụ xử lý file PDF miễn phí.',
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: '/logo.jpg',
     apple: '/logo.jpg',
