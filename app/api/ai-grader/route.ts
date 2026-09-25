@@ -23,11 +23,18 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
       const response = await result.response
       return response.text()
     } catch (err: any) {
-      const msg = err.message || ''
-      if (msg.includes('not found') || msg.includes('no longer available') || msg.includes('404') || msg.includes('is not available')) {
-        continue
+      const msg = (err.message || '').toLowerCase()
+      
+      // Nếu API Key sai hoàn toàn thì dừng luôn
+      if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid')) {
+        throw err
       }
-      throw err
+      
+      // Các lỗi khác (Quota, Model Not Found, 500, Timeout...) -> Thử model tiếp theo
+      if (modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
+        throw err // Nếu đã thử đến model cuối cùng thì quăng lỗi ra ngoài
+      }
+      continue
     }
   }
   
@@ -230,6 +237,72 @@ Return ONLY valid JSON (no markdown, no backticks):
           { error: 'Kết quả trả về không đúng định dạng. Vui lòng thử lại.' },
           { status: 500 }
         )
+      }
+    }
+
+    if (action === 'translate') {
+      const { textToTranslate, direction } = await req.json()
+      if (!textToTranslate) {
+        return NextResponse.json({ error: 'Thiếu nội dung cần dịch.' }, { status: 400 })
+      }
+
+      const dirContext = direction === 'en-vi' ? 'English to Vietnamese' : 'Vietnamese to English'
+      
+      const systemPrompt = `
+You are a professional translator and linguist. 
+Translate the following text from ${dirContext}.
+
+TEXT TO TRANSLATE:
+"${textToTranslate}"
+
+Analyze and provide the translation strictly in JSON format (no markdown):
+{
+  "translatedText": "The direct translation",
+  "nuances": "Explanation of cultural/linguistic nuances in Vietnamese",
+  "alternativeTranslations": ["Alternative 1", "Alternative 2"],
+  "vocabulary": [
+    { "word": "word", "meaning": "meaning", "example": "example usage" }
+  ]
+}
+`
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
+      try {
+        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
+        return NextResponse.json(JSON.parse(cleanedText))
+      } catch {
+        return NextResponse.json({ error: 'Lỗi định dạng trả về.' }, { status: 500 })
+      }
+    }
+
+    if (action === 'grammar_check') {
+      const { textToCheck } = await req.json()
+      if (!textToCheck) {
+        return NextResponse.json({ error: 'Thiếu nội dung cần soi lỗi.' }, { status: 400 })
+      }
+
+      const systemPrompt = `
+You are an extremely strict English grammar nazi and writing coach.
+Analyze the following English text for ANY grammar, vocabulary, or stylistic errors. Be very harsh.
+
+TEXT TO CHECK:
+"${textToCheck}"
+
+Provide your feedback strictly in JSON format (no markdown):
+{
+  "overallComment": "Harsh overall feedback in Vietnamese",
+  "errorsFound": 5,
+  "corrections": [
+    { "original": "wrong part", "corrected": "fixed part", "explanation": "Detailed harsh explanation in Vietnamese", "type": "Grammar/Vocabulary/Style" }
+  ],
+  "rewrittenText": "The completely rewritten, perfect version of the text"
+}
+`
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
+      try {
+        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
+        return NextResponse.json(JSON.parse(cleanedText))
+      } catch {
+        return NextResponse.json({ error: 'Lỗi định dạng trả về.' }, { status: 500 })
       }
     }
 

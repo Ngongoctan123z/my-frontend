@@ -19,7 +19,7 @@ export function AiBanner() {
   ]
 
   return (
-    <section className="sticky top-[73px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
+    <section className="-mx-6 mb-2 bg-surface px-6 pb-2 pt-3 border-b border-line shadow-sm md:-mx-10 md:px-10 rounded-t-xl">
       <div className="mx-auto max-w-5xl relative">
         <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-surface/95 to-transparent pointer-events-none z-20 md:hidden flex items-center justify-end pr-1">
           <ChevronRight size={16} className="text-ink-muted/50" />

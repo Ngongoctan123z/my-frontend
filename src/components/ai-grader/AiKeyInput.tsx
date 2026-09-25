@@ -9,7 +9,7 @@ export function AiKeyInput() {
   const [showKey, setShowKey] = useState(false)
 
   return (
-    <div className="bg-surface border border-line rounded-xl p-5 mb-8 shadow-sm">
+    <div className="bg-surface border border-line rounded-xl rounded-t-none p-5 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-ink flex items-center gap-2">
           <Key className="w-4 h-4 text-[var(--color-primary)]" /> API Key Gemini
