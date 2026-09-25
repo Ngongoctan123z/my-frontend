@@ -3,12 +3,12 @@ import { Metadata } from 'next'
 import { HomeClient } from './HomeClient'
 
 export const metadata: Metadata = {
-  title: 'VNDocs | Nền tảng Giáo dục & Trợ lý Chấm điểm AI 24/7',
-  description: 'Kho tàng tài liệu, đề thi THPT Quốc gia, vào 10, công cụ PDF tiện ích, và hệ thống chấm thi Writing chuẩn Rubric quốc tế.',
-  keywords: 'đề thi vào 10, đề thi thpt quốc gia, công cụ pdf, gộp pdf, cắt pdf, chấm thi toeic, chấm thi ielts writing, tài liệu học tập',
+  title: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
+  description: 'Nền tảng học tập trực tuyến cung cấp kho đề thi vào 10, đề thi THPT, luyện writing IELTS, TOEIC, cùng bộ công cụ xử lý file (gộp, xóa trang PDF, máy tính Casio) hoàn toàn miễn phí.',
+  keywords: 'đề thi vào 10, đề thi thpt, luyện writing ielts, luyện writing toeic, công cụ gộp file, xóa trang pdf, máy tính casio online',
   openGraph: {
-    title: 'VNDocs | Nền tảng Giáo dục & Trợ lý Chấm điểm AI',
-    description: 'Kho tàng đề thi THPT Quốc gia, vào 10, tiện ích PDF, và hệ thống chấm thi AI hàng đầu.',
+    title: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
+    description: 'Kho đề thi vào 10, đề thi THPT, luyện writing IELTS/TOEIC, công cụ gộp/xóa trang PDF và máy tính Casio hoàn toàn miễn phí.',
     url: 'https://www.vndocs.net',
     siteName: 'VNDocs',
     locale: 'vi_VN',
@@ -32,9 +32,46 @@ export default function HomePage() {
     }
   }
 
+  // Khai báo cấu trúc điều hướng để gợi ý Google tạo Sitelinks (các mục nhỏ bên dưới kết quả tìm kiếm)
+  const sitelinksJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: [
+      {
+        '@type': 'SiteNavigationElement',
+        position: 1,
+        name: 'Đề thi vào 10',
+        description: 'Kho đề thi Toán, Văn, Anh vào lớp 10 chính thức và thi thử.',
+        url: 'https://www.vndocs.net/tai-lieu?examType=VAO_10'
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        position: 2,
+        name: 'Đề thi THPT Quốc Gia',
+        description: 'Bộ đề ôn luyện thi Tốt nghiệp THPT và Đại học.',
+        url: 'https://www.vndocs.net/tai-lieu?examType=THPT'
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        position: 3,
+        name: 'Luyện Writing IELTS, TOEIC',
+        description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS, TOEIC bằng AI.',
+        url: 'https://www.vndocs.net/ai-grader'
+      },
+      {
+        '@type': 'SiteNavigationElement',
+        position: 4,
+        name: 'Công cụ gộp file, xóa trang, máy tính',
+        description: 'Công cụ xử lý PDF miễn phí và máy tính Casio ảo online.',
+        url: 'https://www.vndocs.net/tools'
+      }
+    ]
+  }
+
   return (
     <div className="w-full flex flex-col items-center min-h-screen bg-[#FAFAFA]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(sitelinksJsonLd) }} />
       <HomeClient />
     </div>
   )
