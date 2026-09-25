@@ -4,8 +4,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 
 const MODEL_CANDIDATES = [
-  'gemini-1.5-pro',
-  'gemini-1.5-flash',
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
 ]
 
 async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
