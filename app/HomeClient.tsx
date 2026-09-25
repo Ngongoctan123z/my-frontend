@@ -86,8 +86,8 @@ export function HomeClient() {
           <Reveal animation="slide-right" delay={200} duration={800}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/hero.jpg"
-              alt="VNDocs - Đề thi, công cụ PDF và AI"
+              src="/sad-horse.png"
+              alt="Sad horse - Đừng khóc"
               className="hidden md:block w-72 lg:w-80 rounded-lg hero-float"
             />
           </Reveal>
