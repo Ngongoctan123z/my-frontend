@@ -2,10 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronRight, PenTool, RefreshCw, Languages, SearchCode, Layers, Globe, FileText } from 'lucide-react'
+import { ChevronRight, PenTool, RefreshCw, Languages, SearchCode, Layers, Globe, FileText, Key, Eye, EyeOff } from 'lucide-react'
+import { useState } from 'react'
+import { useAiKey } from '@/src/contexts/AiContext'
 
 export function AiBanner() {
   const pathname = usePathname()
+  const { apiKey, setApiKey } = useAiKey()
+  const [showKey, setShowKey] = useState(false)
 
   const links = [
     { href: '/ai-grader', label: 'Chấm Writing', icon: <PenTool size={14} /> },
@@ -19,13 +23,15 @@ export function AiBanner() {
   ]
 
   return (
-    <section className="-mx-6 mb-2 bg-surface px-6 pb-2 pt-3 border-b border-line shadow-sm md:-mx-10 md:px-10 rounded-t-xl">
+    <section className="sticky top-[73px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
       <div className="mx-auto max-w-5xl relative">
+        {/* Scrolling Fade Hint */}
         <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-surface/95 to-transparent pointer-events-none z-20 md:hidden flex items-center justify-end pr-1">
           <ChevronRight size={16} className="text-ink-muted/50" />
         </div>
 
-        <div className="flex flex-wrap items-start gap-2 pt-1 relative z-10 pb-1">
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap items-start gap-2 pt-1 relative z-10 pb-2">
           {links.map((link) => {
             const isActive = pathname === link.href
             return (
@@ -43,6 +49,36 @@ export function AiBanner() {
               </Link>
             )
           })}
+        </div>
+
+        {/* API Key Row — giống dòng filter của tai-lieu */}
+        <div className="flex items-center gap-3 py-2 border-t border-line/60">
+          <Key className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
+          <span className="text-[12px] font-semibold text-ink shrink-0">API Key Gemini</span>
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-[var(--color-primary)] hover:underline shrink-0"
+          >
+            Lấy key miễn phí →
+          </a>
+          <div className="relative flex-1 max-w-xs ml-auto">
+            <input
+              type={showKey ? 'text' : 'password'}
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Dán API Key vào đây..."
+              className="w-full h-7 px-3 pr-8 rounded-lg border border-line bg-page text-[11px] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-shadow"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors"
+            >
+              {showKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            </button>
+          </div>
         </div>
       </div>
     </section>
