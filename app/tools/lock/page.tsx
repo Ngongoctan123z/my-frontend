@@ -1,6 +1,11 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import PdfLockUnlockWrapper from './PdfLockUnlockWrapper'
+import dynamic from 'next/dynamic'
+
+const PdfLockUnlock = dynamic(() => import('@/src/components/tools/PdfLockUnlock').then(mod => mod.PdfLockUnlock), {
+  ssr: false,
+  loading: () => <div className="p-12 text-center text-slate-500">Đang tải công cụ...</div>
+})
 
 export const metadata: Metadata = {
   title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
@@ -12,7 +17,7 @@ export const metadata: Metadata = {
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
-  }
+  }https://127.0.0.1:49825/static/artifacts/35724134-9315-464e-a536-27cd29d2ea7d/.user_uploaded/media_1790353096577.png?csrf=5333d1c8-3b5d-45bd-bbba-73634406a107
 }
 
 export default function LockToolPage() {
@@ -25,17 +30,17 @@ export default function LockToolPage() {
         </p>
       </div>
 
-      <PdfLockUnlockWrapper />
+      <PdfLockUnlock />
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
         <article className="prose prose-sm md:prose-base prose-slate max-w-none text-justify">
           <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Bảo Mật Tài Liệu PDF Tuyệt Đối Với VNDocs</h2>
-          
+
           <p className="mb-4">
             An toàn thông tin là yếu tố quan trọng hàng đầu trong học tập và công việc. Công cụ <strong>Khóa File PDF (Protect PDF)</strong> của chúng tôi giúp bạn mã hóa các tài liệu nhạy cảm bằng một lớp mật khẩu bảo vệ vững chắc, ngăn chặn những người không có quyền truy cập, sao chép hoặc in ấn tài liệu. Tất cả đều được mã hóa theo chuẩn bảo mật cao cấp (AES 128/256-bit).
           </p>
-          
+
           <p className="mb-4">
             Bên cạnh đó, nếu bạn có một file PDF chính chủ nhưng bị giới hạn một số quyền (như không cho in), tính năng <strong>Mở khóa PDF (Unlock PDF)</strong> sẽ giúp bạn loại bỏ mọi rào cản đó (Yêu cầu phải có mật khẩu gốc của file). Mọi thao tác đều xử lý 100% trên thiết bị của bạn, bảo mật quyền riêng tư tuyệt đối.
           </p>

@@ -59,12 +59,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!apiKey.startsWith('AIza')) {
-      return NextResponse.json(
-        { error: 'API Key không hợp lệ. API Key của Google Gemini luôn bắt đầu bằng "AIza". Vui lòng kiểm tra lại.' },
-        { status: 400 }
-      )
-    }
+
 
     if (action === 'generate_prompt') {
       let systemPrompt = ''
@@ -322,10 +317,18 @@ Provide your feedback strictly in JSON format (no markdown):
   } catch (error: any) {
     const msg = (error.message || '').toLowerCase()
 
-    // API Key không hợp lệ
-    if (msg.includes('api_key_invalid') || msg.includes('api key not valid') || msg.includes('permission_denied')) {
+    // API Key không hợp lệ / sai loại xác thực
+    if (
+      msg.includes('api_key_invalid') ||
+      msg.includes('api key not valid') ||
+      msg.includes('permission_denied') ||
+      msg.includes('unauthorized') ||
+      msg.includes('access_token_type_unsupported') ||
+      msg.includes('invalid authentication') ||
+      msg.includes('401')
+    ) {
       return NextResponse.json(
-        { error: 'API Key không hợp lệ hoặc đã bị vô hiệu hóa. Vui lòng kiểm tra lại.' },
+        { error: 'API Key không hợp lệ hoặc sai loại. Vui lòng vào Google AI Studio để lấy đúng API Key (không phải OAuth token).' },
         { status: 401 }
       )
     }
