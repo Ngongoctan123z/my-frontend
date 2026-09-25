@@ -153,6 +153,38 @@ Be very strict. Write all feedback in Vietnamese.
       }
     }
 
+    if (action === 'generate_paraphrase_prompt') {
+      const { topic, level } = await req.json()
+      if (!topic || !level) {
+        return NextResponse.json({ error: 'Thiếu thông tin chủ đề hoặc trình độ.' }, { status: 400 })
+      }
+
+      const systemPrompt = `
+You are an expert language teacher. 
+Generate ONE random Vietnamese sentence (and its short context) for a student to practice translating into English at CEFR level ${level}.
+Topic: ${topic}.
+The sentence should be natural in Vietnamese and appropriate for someone learning English at ${level} level.
+
+Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
+{
+  "vietnameseText": "Một câu tiếng Việt tự nhiên liên quan đến chủ đề.",
+  "context": "Ngữ cảnh ngắn gọn (VD: Nói với bạn bè, Trong cuộc họp, ...)"
+}
+`
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt)
+
+      try {
+        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
+        const parsed = JSON.parse(cleanedText)
+        return NextResponse.json(parsed)
+      } catch {
+        return NextResponse.json(
+          { error: 'Kết quả trả về không đúng định dạng. Vui lòng thử lại.' },
+          { status: 500 }
+        )
+      }
+    }
+
     if (action === 'grade_paraphrase') {
       const { vietnameseText, contextText, userTranslation, level } = await req.json()
       if (!vietnameseText || !userTranslation) {

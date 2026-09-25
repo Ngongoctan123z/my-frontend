@@ -1,13 +1,26 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getTopics, getPrompt, PracticeTopic, PracticeLevel, PracticePrompt } from '@/src/services/practiceService'
 import { useAiKey } from '@/src/contexts/AiContext'
 import { Loader2, RefreshCw, Send, BrainCircuit, CheckCircle2, AlertCircle, Quote } from 'lucide-react'
 
+export type PracticeTopic = { id: string, name: string, description: string }
+export type PracticeLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+export type PracticePrompt = { vietnameseText: string, context: string }
+
+const HARDCODED_TOPICS: PracticeTopic[] = [
+  { id: 'family', name: 'Gia đình', description: 'Các tình huống giao tiếp trong gia đình' },
+  { id: 'education', name: 'Giáo dục & Học tập', description: 'Chủ đề trường lớp, thi cử' },
+  { id: 'shopping', name: 'Mua sắm', description: 'Giao tiếp khi đi siêu thị, mua đồ' },
+  { id: 'directions', name: 'Chỉ đường', description: 'Hỏi và chỉ đường trên phố' },
+  { id: 'work', name: 'Công sở', description: 'Giao tiếp chuyên nghiệp nơi làm việc' },
+  { id: 'factory', name: 'Dưới xưởng', description: 'Từ vựng và tình huống trong nhà máy, công xưởng' },
+  { id: 'travel', name: 'Du lịch', description: 'Sân bay, khách sạn, nhà hàng' }
+]
+
 export function ParaphraseClient() {
   const { apiKey } = useAiKey()
-  const [topics, setTopics] = useState<PracticeTopic[]>([])
+  const [topics] = useState<PracticeTopic[]>(HARDCODED_TOPICS)
   const [selectedTopic, setSelectedTopic] = useState<string>('family')
   const [selectedLevel, setSelectedLevel] = useState<PracticeLevel>('B1')
   
@@ -22,24 +35,36 @@ export function ParaphraseClient() {
 
   const levels: PracticeLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
 
-  useEffect(() => {
-    getTopics().then(data => {
-      setTopics(data)
-      if (data.length > 0) setSelectedTopic(data[0].id)
-    })
-  }, [])
-
   const fetchPrompt = async () => {
+    if (!apiKey.trim()) {
+      setError('Vui lòng nhập API Key Gemini ở phía trên để AI tạo câu hỏi.')
+      return
+    }
+
     setIsLoadingPrompt(true)
     setError(null)
     setResult(null)
     setUserTranslation('')
     
     try {
-      const prompt = await getPrompt(selectedTopic, selectedLevel)
-      setCurrentPrompt(prompt)
+      const topicName = topics.find(t => t.id === selectedTopic)?.name || selectedTopic
+      const res = await fetch('/api/ai-grader', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-gemini-key': apiKey.trim()
+        },
+        body: JSON.stringify({
+          action: 'generate_paraphrase_prompt',
+          topic: topicName,
+          level: selectedLevel
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Đã xảy ra lỗi.')
+      setCurrentPrompt(data)
     } catch (err: any) {
-      setError('Lỗi khi tải câu hỏi.')
+      setError(err.message)
     } finally {
       setIsLoadingPrompt(false)
     }
