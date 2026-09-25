@@ -3,8 +3,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Danh sách model ưu tiên, thử từ trên xuống
 const MODEL_CANDIDATES = [
-  'gemini-2.5-flash',
-  'gemini-2.0-flash', 
   'gemini-1.5-flash',
   'gemini-1.5-pro',
 ]
@@ -15,11 +13,7 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
   for (const modelName of MODEL_CANDIDATES) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName })
-      const config = isJson ? { responseMimeType: "application/json" } : {}
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: config
-      })
+      const result = await model.generateContent(prompt)
       const response = await result.response
       return response.text()
     } catch (err: any) {
@@ -351,10 +345,10 @@ Provide your feedback strictly in JSON format (no markdown):
       )
     }
 
-    // Lỗi chung - KHÔNG trả raw error message ra ngoài
+    // Lỗi chung - trả raw error ra để debug
     console.error('[AI-Grader] Unhandled error:', error.message)
     return NextResponse.json(
-      { error: 'Đã xảy ra lỗi trong quá trình xử lý. Vui lòng thử lại sau.' },
+      { error: error.message || 'Đã xảy ra lỗi trong quá trình xử lý. Vui lòng thử lại sau.' },
       { status: 500 }
     )
   }
