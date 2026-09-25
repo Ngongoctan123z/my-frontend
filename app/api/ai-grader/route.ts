@@ -4,8 +4,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 
 const MODEL_CANDIDATES = [
-  'gemini-2.5-pro',
-  'gemini-2.0-flash',
   'gemini-1.5-pro',
   'gemini-1.5-flash',
 ]
@@ -368,7 +366,7 @@ Provide your feedback strictly in JSON format (no markdown):
     // Lỗi chung - trả raw error ra để debug
     console.error('[AI-Grader] Unhandled error:', error.message)
     return NextResponse.json(
-      { error: 'Hệ thống AI đang bận hoặc gặp sự cố kết nối. Vui lòng thử lại sau.' },
+      { error: `Hệ thống AI đang bận hoặc gặp sự cố: ${error.message}` },
       { status: 500 }
     )
   }
