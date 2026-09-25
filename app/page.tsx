@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
+  },
+  alternates: {
+    canonical: 'https://www.vndocs.net'
   }
 }
 

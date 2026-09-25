@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import Script from 'next/script'
 import { notFound } from 'next/navigation'
 import { ExamDetail } from '../../../src/views/ExamDetail'
 import { examTypeLabel, pathToExamType, slugify, examPath } from '../../../src/utils/slug'
@@ -214,6 +215,28 @@ export default async function ExamPage({ params }: Props) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      <Script
+        id="mathjax-config"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.MathJax = {
+              tex: {
+                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
+              },
+              startup: {
+                typeset: false
+              }
+            };
+          `,
+        }}
+      />
+      <Script
+        id="mathjax-script"
+        strategy="lazyOnload"
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+      />
       <ExamDetail initialExam={exam} initialRelated={relatedExams} slug={slug} />
     </>
   )

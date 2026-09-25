@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from '../src/components/Providers'
 import { Layout as AppLayout } from '../src/components/common/Layout'
@@ -28,23 +29,14 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning className="scroll-smooth">
       <head>
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200108977294233" crossOrigin="anonymous"></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            window.MathJax = {
-              tex: {
-                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
-                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
-              },
-              startup: {
-                typeset: false
-              }
-            };
-          `
-        }} />
-        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
       </head>
       <body suppressHydrationWarning>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200108977294233"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
         <Providers>
           <AppLayout>{children}</AppLayout>
         </Providers>

@@ -40,7 +40,7 @@ export function AdBanner({
   return (
     <ins
       className={`adsbygoogle ${className}`}
-      style={{ display: 'block' }}
+      style={{ display: 'block', minHeight: '280px' }}
       data-ad-client="ca-pub-7200108977294233"
       data-ad-slot={dataAdSlot}
       data-ad-format={dataAdFormat}
