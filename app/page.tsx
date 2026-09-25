@@ -73,20 +73,21 @@ export default function HomePage() {
     <div className="w-full flex flex-col items-center min-h-screen bg-[#FAFAFA]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       
-      {/* Hero — gọn, không animation thừa */}
+      {/* Hero */}
       <section className="relative w-full bg-white border-b border-gray-100">
-        <div className="max-w-4xl mx-auto px-4 py-10 md:py-14 text-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6">
-            Nền tảng học tập <span className="text-blue-600">VNDocs</span>
-          </h1>
-          
-          <div className="w-full max-w-lg mx-auto">
-            <form action="/tai-lieu" method="GET" className="relative group">
+        <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+          <div className="flex-1 text-center md:text-left">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 leading-snug">
+              Việc gì cũng có <span className="text-blue-600">VNDocs</span> lo
+            </h1>
+            <p className="text-slate-500 text-sm mb-5">Đề thi, công cụ PDF, chấm Writing AI — tất cả miễn phí.</p>
+            
+            <form action="/tai-lieu" method="GET" className="relative group max-w-md mx-auto md:mx-0">
               <input 
                 type="text" 
                 name="q"
                 placeholder="Tìm đề thi, tài liệu..." 
-                className="w-full py-3 md:py-3.5 pl-10 pr-24 bg-white border border-gray-200 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:shadow-md focus:ring-0 outline-none transition-all text-slate-800 placeholder:text-slate-400"
+                className="w-full py-3 pl-10 pr-20 bg-white border border-gray-200 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:shadow-md focus:ring-0 outline-none transition-all text-slate-800 placeholder:text-slate-400"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" />
               <button type="submit" className="absolute right-1.5 top-1/2 -translate-y-1/2 px-4 py-2 bg-slate-900 hover:bg-blue-600 text-white font-semibold text-xs rounded-md transition-colors z-10">
@@ -94,6 +95,8 @@ export default function HomePage() {
               </button>
             </form>
           </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/hero.jpg" alt="VNDocs - Đề thi, công cụ PDF và AI" className="hidden md:block w-72 lg:w-80 rounded-lg" />
         </div>
       </section>
 
