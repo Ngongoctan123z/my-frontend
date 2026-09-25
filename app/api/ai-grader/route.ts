@@ -52,7 +52,8 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
 
 export async function POST(req: NextRequest) {
   try {
-    const { action, type, prompt, essay } = await req.json()
+    const body = await req.json()
+    const { action, type, prompt, essay } = body
 
     const clientKey = req.headers.get('x-gemini-key')
     const apiKey = clientKey || process.env.GEMINI_API_KEY || ''
@@ -172,7 +173,7 @@ Be very strict. Write all feedback in Vietnamese.
     }
 
     if (action === 'generate_paraphrase_prompt') {
-      const { topic, level } = await req.json()
+      const { topic, level } = body
       if (!topic || !level) {
         return NextResponse.json({ error: 'Thiếu thông tin chủ đề hoặc trình độ.' }, { status: 400 })
       }
@@ -204,7 +205,7 @@ Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
     }
 
     if (action === 'grade_paraphrase') {
-      const { vietnameseText, contextText, userTranslation, level } = await req.json()
+      const { vietnameseText, contextText, userTranslation, level } = body
       if (!vietnameseText || !userTranslation) {
         return NextResponse.json({ error: 'Thiếu câu gốc hoặc câu dịch.' }, { status: 400 })
       }
@@ -250,7 +251,7 @@ Return ONLY valid JSON (no markdown, no backticks):
     }
 
     if (action === 'translate') {
-      const { textToTranslate, direction } = await req.json()
+      const { textToTranslate, direction } = body
       if (!textToTranslate) {
         return NextResponse.json({ error: 'Thiếu nội dung cần dịch.' }, { status: 400 })
       }
@@ -284,7 +285,7 @@ Analyze and provide the translation strictly in JSON format (no markdown):
     }
 
     if (action === 'grammar_check') {
-      const { textToCheck } = await req.json()
+      const { textToCheck } = body
       if (!textToCheck) {
         return NextResponse.json({ error: 'Thiếu nội dung cần soi lỗi.' }, { status: 400 })
       }
