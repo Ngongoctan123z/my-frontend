@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
-  }https://127.0.0.1:49825/static/artifacts/35724134-9315-464e-a536-27cd29d2ea7d/.user_uploaded/media_1790353096577.png?csrf=5333d1c8-3b5d-45bd-bbba-73634406a107
+  }
 }
 
 export default function LockToolPage() {
