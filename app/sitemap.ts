@@ -3,6 +3,8 @@ import { FRONTEND_URL } from '../src/utils/constants'
 import { getExams } from '../src/services/examService'
 import { examPath } from '../src/utils/slug'
 
+export const dynamic = 'force-dynamic'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [
     {

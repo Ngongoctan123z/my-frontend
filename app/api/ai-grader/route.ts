@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
+export const runtime = 'edge'
+
 // Danh sách model ưu tiên (những model mới nhất của Google), thử từ trên xuống
 const MODEL_CANDIDATES = [
   'gemini-2.5-pro',
