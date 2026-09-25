@@ -32,7 +32,7 @@ const portalCategories = [
     isNew: true
   },
   {
-    title: 'Công Cụ PDF',
+    title: 'Công Cụ File',
     description: 'Gộp, cắt trang, chuyển đổi, khóa PDF và máy tính Casio ảo.',
     icon: <PenTool className="w-5 h-5" />,
     href: '/tools',
@@ -53,19 +53,20 @@ export function HomeClient() {
           <div className="flex-1 text-center md:text-left">
             <Reveal animation="fade-up" duration={700}>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 leading-snug">
-                Việc gì cũng có <span className="text-blue-600">VNDocs</span> lo
+                Học cho vui, điểm tới lui<br />
+                <span className="text-blue-600">VNDocs không học thì đừng khóc</span>
               </h1>
             </Reveal>
             <Reveal animation="fade-up" delay={150} duration={600}>
               <p className="text-slate-500 text-sm mb-5">Đề thi, công cụ PDF, chấm Writing AI — tất cả miễn phí.</p>
             </Reveal>
-            
+
             <Reveal animation="fade-up" delay={300} duration={600}>
               <form action="/tai-lieu" method="GET" className="relative group max-w-md mx-auto md:mx-0">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="q"
-                  placeholder="Tìm đề thi, tài liệu..." 
+                  placeholder="Tìm đề thi, tài liệu..."
                   className="w-full py-3 pl-10 pr-20 bg-white border border-gray-200 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:shadow-md focus:ring-0 outline-none transition-all text-slate-800 placeholder:text-slate-400"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" />
@@ -79,10 +80,10 @@ export function HomeClient() {
           {/* Hero image with floating animation */}
           <Reveal animation="slide-right" delay={200} duration={800}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src="/hero.jpg" 
-              alt="VNDocs - Đề thi, công cụ PDF và AI" 
-              className="hidden md:block w-72 lg:w-80 rounded-lg hero-float" 
+            <img
+              src="/hero.jpg"
+              alt="VNDocs - Đề thi, công cụ PDF và AI"
+              className="hidden md:block w-72 lg:w-80 rounded-lg hero-float"
             />
           </Reveal>
         </div>
@@ -93,8 +94,8 @@ export function HomeClient() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StaggerReveal animation="zoom-in" stagger={120} baseDelay={100} duration={500}>
             {portalCategories.map((cat, idx) => (
-              <Link 
-                key={idx} 
+              <Link
+                key={idx}
                 href={cat.href}
                 className={`group relative flex flex-col p-4 md:p-5 rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-1 active:scale-[0.97] ${cat.borderHover}`}
               >
@@ -121,7 +122,7 @@ export function HomeClient() {
         <Reveal animation="fade-up" duration={700}>
           <div className="bg-slate-900 rounded-lg p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden cta-shimmer">
             <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full translate-x-1/4 -translate-y-1/4" />
-            
+
             <div className="z-10 space-y-3 flex-1 min-w-0">
               <Reveal animation="slide-left" delay={200} duration={600}>
                 <h2 className="text-lg md:text-xl font-bold text-white leading-snug">
