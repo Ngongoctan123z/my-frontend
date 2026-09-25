@@ -150,16 +150,22 @@ Be very strict. Write all feedback in Vietnamese.
         throw new Error('Thiếu thông tin chủ đề hoặc trình độ.')
       }
 
+      const randomSeed = Math.floor(Math.random() * 1000000);
       const systemPrompt = `
-You are an expert language teacher. 
-Generate ONE random Vietnamese sentence (and its short context) for a student to practice translating into English at CEFR level ${level}.
+You are an expert language teacher and highly creative writer. (Random Seed: ${randomSeed})
+Generate ONE completely NEW, UNIQUE, and HIGHLY CREATIVE Vietnamese sentence (and its short context) for a student to practice translating into English at CEFR level ${level}.
 Topic: ${topic}.
-The sentence should be natural in Vietnamese and appropriate for someone learning English at ${level} level.
+
+Critical Rules for Generation:
+1. AVOID standard, cliché, or repetitive examples. Be extremely diverse in your situations (e.g., dramatic, humorous, suspenseful, emotional, very specific daily life scenarios).
+2. The sentence MUST be highly natural in Vietnamese, using idioms, slang, or common expressions if appropriate for ${level} level.
+3. The vocabulary and grammar structure should specifically challenge a student at the ${level} level.
+4. The context MUST clearly explain who is speaking, to whom, and the exact mood/situation.
 
 Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
 {
-  "vietnameseText": "Một câu tiếng Việt tự nhiên liên quan đến chủ đề.",
-  "context": "Ngữ cảnh ngắn gọn (VD: Nói với bạn bè, Trong cuộc họp, ...)"
+  "vietnameseText": "Một câu tiếng Việt vô cùng tự nhiên, độc đáo và phong phú liên quan đến chủ đề.",
+  "context": "Ngữ cảnh cực kỳ cụ thể (VD: Một người vợ đang tức giận nói với chồng trong bếp, CEO đang phát biểu căng thẳng, Hai người bạn đang đùa giỡn ở quán cà phê, ...)"
 }
 `
       const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
