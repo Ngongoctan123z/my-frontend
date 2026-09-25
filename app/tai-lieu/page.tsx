@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Thư Viện Tài Liệu & Đề Thi | VNDocs',
     description: 'Kho tàng tài liệu, đề thi vào 10, THPT Quốc gia cập nhật liên tục.',
-    url: 'https://www.vndocs.net/tai-lieu',
+    url: 'https://vndocs.net/tai-lieu',
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',

@@ -9,13 +9,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
     description: 'Kho đề thi vào 10, đề thi THPT, luyện writing IELTS/TOEIC, công cụ gộp/xóa trang PDF và máy tính Casio hoàn toàn miễn phí.',
-    url: 'https://www.vndocs.net',
+    url: 'https://vndocs.net',
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
   },
   alternates: {
-    canonical: 'https://www.vndocs.net'
+    canonical: 'https://vndocs.net'
   }
 }
 
@@ -23,13 +23,13 @@ export default function HomePage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    url: 'https://www.vndocs.net',
+    url: 'https://vndocs.net',
     name: 'VNDocs',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://www.vndocs.net/tai-lieu?q={search_term_string}'
+        urlTemplate: 'https://vndocs.net/tai-lieu?q={search_term_string}'
       },
       'query-input': 'required name=search_term_string'
     }
@@ -45,28 +45,28 @@ export default function HomePage() {
         position: 1,
         name: 'Đề thi vào 10',
         description: 'Kho đề thi Toán, Văn, Anh vào lớp 10 chính thức và thi thử.',
-        url: 'https://www.vndocs.net/tai-lieu?examType=VAO_10'
+        url: 'https://vndocs.net/tai-lieu?examType=VAO_10'
       },
       {
         '@type': 'SiteNavigationElement',
         position: 2,
         name: 'Đề thi THPT Quốc Gia',
         description: 'Bộ đề ôn luyện thi Tốt nghiệp THPT và Đại học.',
-        url: 'https://www.vndocs.net/tai-lieu?examType=THPT'
+        url: 'https://vndocs.net/tai-lieu?examType=THPT'
       },
       {
         '@type': 'SiteNavigationElement',
         position: 3,
         name: 'Luyện Writing IELTS, TOEIC',
         description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS, TOEIC bằng AI.',
-        url: 'https://www.vndocs.net/ai-grader'
+        url: 'https://vndocs.net/ai-grader'
       },
       {
         '@type': 'SiteNavigationElement',
         position: 4,
         name: 'Công cụ gộp file, xóa trang, máy tính',
         description: 'Công cụ xử lý PDF miễn phí và máy tính Casio ảo online.',
-        url: 'https://www.vndocs.net/tools'
+        url: 'https://vndocs.net/tools'
       }
     ]
   }

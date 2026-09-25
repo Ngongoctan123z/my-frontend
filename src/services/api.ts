@@ -10,8 +10,12 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  // Default: cache GET requests for 60s on the server (ISR-style),
+  // mutations (POST/PUT/DELETE) bypass cache automatically via `init` override.
+  const isReadRequest = !init?.method || init.method === 'GET'
   const response = await fetch(`${API_BASE}${path}`, {
-    cache: 'no-store', // Disable Next.js aggressive caching which traps 404s
+    next: isReadRequest ? { revalidate: 60 } : undefined,
+    cache: isReadRequest ? undefined : 'no-store',
     ...init,
     headers: {
       Accept: 'application/json',

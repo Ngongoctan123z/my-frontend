@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
     description: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng miễn phí.',
-    url: 'https://www.vndocs.net/tools',
+    url: 'https://vndocs.net/tools',
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',

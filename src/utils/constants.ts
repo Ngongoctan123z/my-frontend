@@ -1,4 +1,4 @@
-﻿export const FRONTEND_URL = 'https://www.vndocs.net'
+export const FRONTEND_URL = 'https://vndocs.net'
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://p01--backend--4j4v4pb6yj96.code.run'
 export const API_BASE = `${BASE_URL}/api/v1`
 export const SAMPLE_PDF =

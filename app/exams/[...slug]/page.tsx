@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { Metadata } from 'next'
 import Script from 'next/script'
 import { notFound } from 'next/navigation'
@@ -10,7 +11,9 @@ type Props = {
   params: Promise<{ slug: string[] }>
 }
 
-async function fetchExamData(slug: string[]) {
+// Wrapped with React cache() to deduplicate the fetch between
+// generateMetadata() and ExamPage() within the same request cycle.
+const fetchExamData = cache(async (slug: string[]) => {
   if (slug.length === 1) {
     const id = Number(slug[0])
     if (!isNaN(id)) {
@@ -56,7 +59,7 @@ async function fetchExamData(slug: string[]) {
     } catch (err) {}
   }
   return null
-}
+})
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params

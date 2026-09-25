@@ -10,7 +10,7 @@ export function SearchBar() {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [open, setOpen] = useState(false)
-  const debounced = useDebounce(query, 200)
+  const debounced = useDebounce(query, 350)
   const router = useRouter()
   const boxRef = useRef<HTMLDivElement>(null)
 
