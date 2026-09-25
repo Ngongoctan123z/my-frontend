@@ -25,7 +25,7 @@ export function AiBanner() {
           <ChevronRight size={16} className="text-ink-muted/50" />
         </div>
 
-        <div className="flex overflow-x-auto no-scrollbar items-start gap-2 pt-1 relative z-10 pb-1">
+        <div className="flex flex-wrap items-start gap-2 pt-1 relative z-10 pb-1">
           {links.map((link) => {
             const isActive = pathname === link.href
             return (

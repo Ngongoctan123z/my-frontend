@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../components/ui/Button'
 import { useNotify } from '../context/NotificationContext'
 import { API_BASE } from '../utils/constants'
@@ -13,10 +13,17 @@ export function Admin() {
   const [activeTab, setActiveTab] = useState<'list' | 'upload'>('list')
   const [adminPassword, setAdminPassword] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(!!(typeof window !== 'undefined' ? localStorage.getItem.bind(localStorage) : () => null)('adminToken'))
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const [editingExam, setEditingExam] = useState<Exam | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const { notify } = useNotify()
+
+  useEffect(() => {
+    setIsMounted(true)
+    const token = localStorage.getItem('adminToken')
+    setIsAuthenticated(!!token)
+  }, [])
 
   const handleLogin = async () => {
     if (!adminPassword.trim()) {
@@ -61,8 +68,12 @@ export function Admin() {
   }
 
   const handleLogout = () => {
-    (typeof window !== 'undefined' ? localStorage.removeItem.bind(localStorage) : () => {})('adminToken')
+    localStorage.removeItem('adminToken')
     setIsAuthenticated(false)
+  }
+
+  if (!isMounted) {
+    return <div className="mx-auto max-w-sm mt-20 p-6 text-center">Đang tải...</div>
   }
 
   if (!isAuthenticated) {
