@@ -61,7 +61,7 @@ export function HomeClient() {
               <p className="text-slate-500 text-sm mb-5">
                 Đề thi, công cụ File, công cụ học tiếng Anh — tất cả miễn phí{' '}
                 <span className="text-blue-600 text-lg md:text-xl font-bold inline-flex items-center gap-1">
-                  is for you 💔
+                  is for you 🎁
                 </span>
               </p>
             </Reveal>
@@ -88,7 +88,7 @@ export function HomeClient() {
             <img
               src="/sad-horse.png"
               alt="Sad horse - Đừng khóc"
-              className="hidden md:block w-72 lg:w-80 rounded-lg hero-float"
+              className="hidden md:block w-24 lg:w-32 object-contain rounded-lg hero-float"
             />
           </Reveal>
         </div>
