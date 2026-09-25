@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronRight, PenTool, RefreshCw, Languages, SearchCode } from 'lucide-react'
+import { ChevronRight, PenTool, RefreshCw, Languages, SearchCode, Layers, Globe, FileText } from 'lucide-react'
 
 export function AiBanner() {
   const pathname = usePathname()
@@ -12,6 +12,10 @@ export function AiBanner() {
     { href: '/ai-grader/paraphrase', label: 'Diễn Đạt Lại Câu', icon: <RefreshCw size={14} /> },
     { href: '/ai-grader/translate', label: 'Dịch Chuyên Sâu', icon: <Languages size={14} /> },
     { href: '/ai-grader/grammar', label: 'Soi Lỗi Gắt', icon: <SearchCode size={14} /> },
+    { href: '/ai-grader/flashcard/ielts', label: 'Flashcard IELTS', icon: <Layers size={14} /> },
+    { href: '/ai-grader/flashcard/toeic', label: 'Flashcard TOEIC', icon: <Layers size={14} /> },
+    { href: '/ai-grader/ielts', label: 'Đề Thi IELTS', icon: <Globe size={14} /> },
+    { href: '/ai-grader/toeic', label: 'Đề Thi TOEIC', icon: <FileText size={14} /> },
   ]
 
   return (
