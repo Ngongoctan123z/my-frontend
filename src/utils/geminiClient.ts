@@ -14,11 +14,8 @@ const MODEL_CANDIDATES = [
 
 async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
-  let lastSignificantError: any = null
   
-  const maxRetries = 2; // Try the whole list twice if needed
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  while (true) {
     for (const modelName of MODEL_CANDIDATES) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName })
@@ -28,29 +25,20 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
       } catch (err: any) {
         const msg = (err.message || '').toLowerCase()
         
-        // Critical errors that shouldn't be retried
+        // Critical errors that CANNOT be fixed by retrying (like a completely wrong/expired API key)
         if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid')) {
           throw err
         }
         
-        // Record significant errors
-        if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('safety') || msg.includes('blocked') || msg.includes('503')) {
-          lastSignificantError = err
-        }
-
-        // If it's the absolute last attempt on the last model, throw
-        if (attempt === maxRetries - 1 && modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
-          throw lastSignificantError || err
-        }
-        
-        // Wait 500ms before trying the next model to avoid hammering the API
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // For any other error (404 model not found, 503 server overloaded, quota, rate limit, blocked, safety, etc.)
+        // We just silently ignore it and continue to the next model.
         continue
       }
     }
+    
+    // If we've tried all models and NONE worked, wait 1.5 seconds and start the whole list again from the top!
+    await new Promise(resolve => setTimeout(resolve, 1500));
   }
-  
-  throw new Error('MODEL_EXHAUSTED')
 }
 
 export async function callAiGraderClient(body: any, apiKey: string) {
