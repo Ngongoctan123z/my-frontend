@@ -58,7 +58,12 @@ export function HomeClient() {
               </h1>
             </Reveal>
             <Reveal animation="fade-up" delay={150} duration={600}>
-              <p className="text-slate-500 text-sm mb-5">Đề thi, công cụ PDF, chấm Writing AI — tất cả miễn phí.</p>
+              <p className="text-slate-500 text-sm mb-5">
+                Đề thi, công cụ File, công cụ học tiếng Anh — tất cả miễn phí{' '}
+                <span className="text-blue-600 text-lg md:text-xl font-bold inline-flex items-center gap-1">
+                  is for you lốp trưởng 💔
+                </span>
+              </p>
             </Reveal>
 
             <Reveal animation="fade-up" delay={300} duration={600}>
