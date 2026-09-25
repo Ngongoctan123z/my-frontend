@@ -42,7 +42,7 @@ const portalCategories = [
     title: 'Flashcard IELTS',
     description: 'Học từ vựng IELTS theo phương pháp lặp lại ngắt quãng (Spaced Repetition).',
     icon: <Layers className="w-5 h-5" />,
-    href: '/ai-grader/flashcard/ielts',
+    href: '/flashcard/ielts',
     color: 'text-purple-600',
     borderHover: 'hover:border-purple-400',
     isNew: true
@@ -51,7 +51,7 @@ const portalCategories = [
     title: 'Flashcard TOEIC',
     description: 'Ghi nhớ nhanh các chủ đề từ vựng TOEIC thường gặp với Anki flashcards.',
     icon: <Layers className="w-5 h-5" />,
-    href: '/ai-grader/flashcard/toeic',
+    href: '/flashcard/toeic',
     color: 'text-fuchsia-600',
     borderHover: 'hover:border-fuchsia-400',
     isNew: true
@@ -131,7 +131,7 @@ export function HomeClient() {
               <Link
                 key={idx}
                 href={cat.href}
-                prefetch={true}
+                prefetch={false}
                 className={`group relative flex flex-col h-full p-4 md:p-5 rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:shadow-lg hover:border-blue-400 active:bg-gray-50`}
               >
                 {cat.isNew && (
