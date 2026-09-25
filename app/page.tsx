@@ -76,10 +76,6 @@ export default function HomePage() {
       {/* Hero — gọn, không animation thừa */}
       <section className="relative w-full bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-10 md:py-14 text-center">
-          <p className="text-slate-500 text-sm md:text-base mb-3">
-            Đề thi chuẩn · Tiện ích PDF · Chấm Writing AI 24/7
-          </p>
-          
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6">
             Nền tảng học tập <span className="text-blue-600">VNDocs</span>
           </h1>
