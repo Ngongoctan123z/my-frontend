@@ -1,37 +1,20 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, Key, Eye, EyeOff } from 'lucide-react'
+import React, { useState } from 'react'
+import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { useAiKey } from '@/src/contexts/AiContext'
 
 type ExamType = 'IELTS_TASK_2' | 'TOEIC_ESSAY'
 
-const API_KEY_STORAGE = 'vndocs_gemini_key'
-
 export function AiGraderClient() {
   const [examType, setExamType] = useState<ExamType>('IELTS_TASK_2')
-  const [apiKey, setApiKey] = useState('')
-  const [showKey, setShowKey] = useState(false)
+  const { apiKey } = useAiKey()
   const [prompt, setPrompt] = useState('')
   const [essay, setEssay] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isGrading, setIsGrading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
-
-  // Load saved API key from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(API_KEY_STORAGE)
-    if (saved) setApiKey(saved)
-  }, [])
-
-  const saveApiKey = (key: string) => {
-    setApiKey(key)
-    if (key.trim()) {
-      localStorage.setItem(API_KEY_STORAGE, key.trim())
-    } else {
-      localStorage.removeItem(API_KEY_STORAGE)
-    }
-  }
 
   const callApi = async (body: object) => {
     const res = await fetch('/api/ai-grader', {
@@ -49,7 +32,7 @@ export function AiGraderClient() {
 
   const generatePrompt = async () => {
     if (!apiKey.trim()) {
-      setError('Vui lòng nhập API Key Gemini trước.')
+      setError('Vui lòng nhập API Key Gemini ở phía trên trước.')
       return
     }
 
@@ -70,7 +53,7 @@ export function AiGraderClient() {
 
   const gradeEssay = async () => {
     if (!apiKey.trim()) {
-      setError('Vui lòng nhập API Key Gemini trước.')
+      setError('Vui lòng nhập API Key Gemini ở phía trên trước.')
       return
     }
     if (!prompt.trim() || !essay.trim()) {
@@ -96,38 +79,7 @@ export function AiGraderClient() {
 
   return (
     <div className="space-y-6">
-      {/* API Key Input */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-          <Key className="w-4 h-4 text-blue-600" />
-          API Key Gemini
-          <a
-            href="https://aistudio.google.com/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 font-medium hover:underline ml-auto text-xs"
-          >
-            Lấy key miễn phí tại đây →
-          </a>
-        </label>
-        <div className="relative">
-          <input
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => saveApiKey(e.target.value)}
-            placeholder="Dán API Key Gemini của bạn vào đây..."
-            className="w-full py-2.5 pl-3 pr-10 rounded-lg border border-gray-300 bg-gray-50 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-        <p className="text-xs text-gray-400 mt-2">Key được lưu trên trình duyệt của bạn, không gửi lên server lưu trữ.</p>
-      </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Cột Left: Đề bài & Viết */}

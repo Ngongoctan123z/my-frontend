@@ -1,0 +1,20 @@
+import React from 'react'
+import { AiBanner } from '@/src/components/ai-grader/AiBanner'
+import { AiKeyInput } from '@/src/components/ai-grader/AiKeyInput'
+import { AiProvider } from '@/src/contexts/AiContext'
+
+export default function AiGraderLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <AiProvider>
+      <div className="py-6 md:py-10 px-4 sm:px-6 max-w-6xl mx-auto space-y-6">
+        <AiBanner />
+        <AiKeyInput />
+        {children}
+      </div>
+    </AiProvider>
+  )
+}
