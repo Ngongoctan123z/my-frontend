@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Danh sách model ưu tiên, thử từ trên xuống
+// Danh sách model ưu tiên (những model mới nhất của Google), thử từ trên xuống
 const MODEL_CANDIDATES = [
-  'gemini-1.5-flash',
+  'gemini-2.5-pro',
+  'gemini-2.5-flash',
+  'gemini-2.0-pro-exp-02-05',
+  'gemini-2.0-flash-thinking-exp-01-21',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite-preview-02-05',
+  'gemini-1.5-pro-latest',
   'gemini-1.5-pro',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b'
 ]
 
 async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
+  let lastSignificantError: any = null
   
   for (const modelName of MODEL_CANDIDATES) {
     try {
@@ -24,9 +34,14 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
         throw err
       }
       
-      // Các lỗi khác (Quota, Model Not Found, 500, Timeout...) -> Thử model tiếp theo
+      // Lưu lại các lỗi quan trọng (như Quota hoặc blocked) để hiển thị cho user nếu tất cả model đều xịt,
+      // thay vì hiển thị lỗi "404 Not found" của những model thử nghiệm cuối cùng.
+      if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('safety') || msg.includes('blocked')) {
+        lastSignificantError = err
+      }
+
       if (modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
-        throw err // Nếu đã thử đến model cuối cùng thì quăng lỗi ra ngoài
+        throw lastSignificantError || err
       }
       continue
     }
