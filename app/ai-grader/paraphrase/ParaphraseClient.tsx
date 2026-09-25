@@ -9,13 +9,18 @@ export type PracticeLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
 export type PracticePrompt = { vietnameseText: string, context: string }
 
 const HARDCODED_TOPICS: PracticeTopic[] = [
-  { id: 'family', name: 'Gia đình', description: 'Các tình huống giao tiếp trong gia đình' },
-  { id: 'education', name: 'Giáo dục & Học tập', description: 'Chủ đề trường lớp, thi cử' },
-  { id: 'shopping', name: 'Mua sắm', description: 'Giao tiếp khi đi siêu thị, mua đồ' },
-  { id: 'directions', name: 'Chỉ đường', description: 'Hỏi và chỉ đường trên phố' },
-  { id: 'work', name: 'Công sở', description: 'Giao tiếp chuyên nghiệp nơi làm việc' },
-  { id: 'factory', name: 'Dưới xưởng', description: 'Từ vựng và tình huống trong nhà máy, công xưởng' },
-  { id: 'travel', name: 'Du lịch', description: 'Sân bay, khách sạn, nhà hàng' }
+  { id: 'family', name: 'Gia đình', description: 'Các tình huống giao tiếp trong gia đình, họ hàng' },
+  { id: 'education', name: 'Giáo dục & Học tập', description: 'Trường lớp, bài tập, thi cử và phương pháp học' },
+  { id: 'shopping', name: 'Mua sắm & Dịch vụ', description: 'Đi siêu thị, mặc cả, trả giá, khiếu nại dịch vụ' },
+  { id: 'directions', name: 'Chỉ đường & Giao thông', description: 'Hỏi đường, đi phương tiện công cộng, kẹt xe' },
+  { id: 'work', name: 'Công sở & Họp hành', description: 'Giao tiếp chuyên nghiệp, báo cáo, làm việc nhóm' },
+  { id: 'factory', name: 'Nhà máy & Công xưởng', description: 'Từ vựng sản xuất, máy móc, an toàn lao động' },
+  { id: 'travel', name: 'Du lịch & Khách sạn', description: 'Đặt phòng, check-in sân bay, hỏi thông tin' },
+  { id: 'health', name: 'Sức khỏe & Y tế', description: 'Đi khám bệnh, miêu tả triệu chứng, mua thuốc' },
+  { id: 'technology', name: 'Công nghệ & Mạng xã hội', description: 'Thiết bị điện tử, phần mềm, xu hướng online' },
+  { id: 'entertainment', name: 'Sở thích & Giải trí', description: 'Bàn luận về phim ảnh, âm nhạc, thể thao' },
+  { id: 'interview', name: 'Phỏng vấn xin việc', description: 'Trả lời câu hỏi HR, đàm phán lương, kỹ năng' },
+  { id: 'dating', name: 'Tình yêu & Hẹn hò', description: 'Tán gẫu, bày tỏ tình cảm, các mối quan hệ' },
 ]
 
 export function ParaphraseClient() {

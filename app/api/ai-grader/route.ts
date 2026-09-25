@@ -9,22 +9,24 @@ const MODEL_CANDIDATES = [
   'gemini-1.5-pro',
 ]
 
-async function tryGenerateWithFallback(apiKey: string, prompt: string): Promise<string> {
+async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
   
   for (const modelName of MODEL_CANDIDATES) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName })
-      const result = await model.generateContent(prompt)
+      const config = isJson ? { responseMimeType: "application/json" } : {}
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: config
+      })
       const response = await result.response
       return response.text()
     } catch (err: any) {
       const msg = err.message || ''
-      // Nếu lỗi do model không tồn tại hoặc bị khai tử → thử model tiếp theo
       if (msg.includes('not found') || msg.includes('no longer available') || msg.includes('404') || msg.includes('is not available')) {
         continue
       }
-      // Lỗi khác (key sai, quota hết, ...) → throw ngay, không cần thử tiếp
       throw err
     }
   }
@@ -139,7 +141,7 @@ Be very strict. Write all feedback in Vietnamese.
         return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
       }
 
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt)
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
 
       try {
         const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
@@ -171,7 +173,7 @@ Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
   "context": "Ngữ cảnh ngắn gọn (VD: Nói với bạn bè, Trong cuộc họp, ...)"
 }
 `
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt)
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
 
       try {
         const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
@@ -217,7 +219,7 @@ Return ONLY valid JSON (no markdown, no backticks):
   ]
 }
 `
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt)
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
 
       try {
         const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
