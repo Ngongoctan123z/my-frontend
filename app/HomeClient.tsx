@@ -130,12 +130,13 @@ export function HomeClient() {
       {/* Categories — staggered card entrance */}
       <section className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <StaggerReveal animation="zoom-in" stagger={120} baseDelay={100} duration={500}>
+          <StaggerReveal animation="zoom-in" stagger={60} baseDelay={0} duration={300} className="h-full">
             {portalCategories.map((cat, idx) => (
               <Link
                 key={idx}
                 href={cat.href}
-                className={`group relative flex flex-col p-4 md:p-5 rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-1 active:scale-[0.97] ${cat.borderHover}`}
+                prefetch={true}
+                className={`group relative flex flex-col h-full p-4 md:p-5 rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:shadow-lg hover:border-blue-400 active:bg-gray-50`}
               >
                 {cat.isNew && (
                   <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold uppercase px-1.5 py-0.5 rounded badge-pulse">
