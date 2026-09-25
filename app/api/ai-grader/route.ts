@@ -59,6 +59,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (!apiKey.startsWith('AIza')) {
+      return NextResponse.json(
+        { error: 'API Key không hợp lệ. API Key của Google Gemini luôn bắt đầu bằng "AIza". Vui lòng kiểm tra lại.' },
+        { status: 400 }
+      )
+    }
+
     if (action === 'generate_prompt') {
       let systemPrompt = ''
       if (type === 'IELTS_TASK_2') {
