@@ -3,14 +3,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 
 
-// Danh sách model ưu tiên (những model mới nhất của Google), thử từ trên xuống
 const MODEL_CANDIDATES = [
   'gemini-2.5-pro',
-  'gemini-2.5-flash',
-  'gemini-2.0-pro-exp-02-05',
-  'gemini-2.0-flash-thinking-exp-01-21',
   'gemini-2.0-flash',
-  'gemini-2.0-flash-lite-preview-02-05'
+  'gemini-1.5-pro',
+  'gemini-1.5-flash',
 ]
 
 async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
@@ -361,7 +358,7 @@ Provide your feedback strictly in JSON format (no markdown):
     // Lỗi chung - trả raw error ra để debug
     console.error('[AI-Grader] Unhandled error:', error.message)
     return NextResponse.json(
-      { error: error.message || 'Đã xảy ra lỗi trong quá trình xử lý. Vui lòng thử lại sau.' },
+      { error: 'Hệ thống AI đang bận hoặc gặp sự cố kết nối. Vui lòng thử lại sau.' },
       { status: 500 }
     )
   }

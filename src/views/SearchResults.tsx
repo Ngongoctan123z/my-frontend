@@ -171,8 +171,6 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               Tốt nghiệp THPT
             </button>
 
-            <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
-
             {/* Subject Dropdown Trigger */}
             <div className="relative shrink-0" ref={subjectDropdownRef}>
               <button
@@ -249,8 +247,6 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 </div>
               )}
             </div>
-
-            <div className="mx-1 h-5 w-px bg-line/50 shrink-0"></div>
 
             <select
               value={year || ''}
