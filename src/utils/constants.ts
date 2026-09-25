@@ -1,5 +1,5 @@
 export const FRONTEND_URL = 'https://vndocs.net'
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://p01--backend--4j4v4pb6yj96.code.run'
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://exam-web-production.up.railway.app'
 export const API_BASE = `${BASE_URL}/api/v1`
 export const SAMPLE_PDF =
   'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf'
