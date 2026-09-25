@@ -1,11 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
-
-const PdfLockUnlock = dynamic(() => import('@/src/components/tools/PdfLockUnlock').then(mod => mod.PdfLockUnlock), {
-  ssr: false,
-  loading: () => <div className="p-12 text-center text-slate-500">Đang tải công cụ...</div>
-})
+import PdfLockUnlockWrapper from './PdfLockUnlockWrapper'
 
 export const metadata: Metadata = {
   title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
@@ -30,7 +25,7 @@ export default function LockToolPage() {
         </p>
       </div>
 
-      <PdfLockUnlock />
+      <PdfLockUnlockWrapper />
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
