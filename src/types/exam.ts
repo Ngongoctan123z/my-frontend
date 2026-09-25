@@ -1,4 +1,4 @@
-export type ExamType = 'VAO_10' | 'THPT'
+export type ExamType = 'VAO_10' | 'THPT' | 'IELTS' | 'TOEIC'
 
 export type Exam = {
   id: number

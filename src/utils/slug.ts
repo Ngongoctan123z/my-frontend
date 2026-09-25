@@ -11,14 +11,20 @@ export function slugify(value: string | null | undefined): string {
 }
 
 export function examTypeToPath(examType: string): string {
+  if (examType === 'IELTS') return 'ielts'
+  if (examType === 'TOEIC') return 'toeic'
   return examType === 'THPT' ? 'thpt' : 'vao-10'
 }
 
-export function pathToExamType(path: string): 'VAO_10' | 'THPT' {
+export function pathToExamType(path: string): import('../types/exam').ExamType {
+  if (path === 'ielts') return 'IELTS'
+  if (path === 'toeic') return 'TOEIC'
   return path === 'thpt' ? 'THPT' : 'VAO_10'
 }
 
 export function examTypeLabel(examType: string): string {
+  if (examType === 'IELTS') return 'IELTS'
+  if (examType === 'TOEIC') return 'TOEIC'
   return examType === 'THPT' ? 'THPT' : 'Vào 10'
 }
 
