@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import PdfRemoverWrapper from './PdfRemoverWrapper'
+import RemovePagesWrapper from './RemovePagesWrapper'
 
 export const metadata: Metadata = {
   title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
@@ -25,7 +25,7 @@ export default function RemovePagesToolPage() {
         </p>
       </div>
 
-      <PdfRemoverWrapper />
+      <RemovePagesWrapper />
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">

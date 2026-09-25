@@ -12,8 +12,8 @@ export function AiBanner() {
     { href: '/ai-grader/paraphrase', label: 'Diễn Đạt Lại Câu', icon: <RefreshCw size={14} /> },
     { href: '/ai-grader/translate', label: 'Dịch Chuyên Sâu', icon: <Languages size={14} /> },
     { href: '/ai-grader/grammar', label: 'Soi Lỗi Gắt', icon: <SearchCode size={14} /> },
-    { href: '/ai-grader/flashcard/ielts', label: 'Flashcard IELTS', icon: <Layers size={14} /> },
-    { href: '/ai-grader/flashcard/toeic', label: 'Flashcard TOEIC', icon: <Layers size={14} /> },
+    { href: '/flashcard/ielts', label: 'Flashcard IELTS', icon: <Layers size={14} /> },
+    { href: '/flashcard/toeic', label: 'Flashcard TOEIC', icon: <Layers size={14} /> },
     { href: '/ai-grader/ielts', label: 'Đề Thi IELTS', icon: <Globe size={14} /> },
     { href: '/ai-grader/toeic', label: 'Đề Thi TOEIC', icon: <FileText size={14} /> },
   ]

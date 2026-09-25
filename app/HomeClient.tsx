@@ -207,7 +207,7 @@ export function HomeClient() {
               <article className="prose prose-sm md:prose-base prose-slate max-w-none">
                 <h3 className="text-lg font-bold text-slate-800 mt-0 mb-2">Kho Tàng Đề Thi & Tài Liệu Khổng Lồ</h3>
                 <p className="m-0 text-justify leading-relaxed">
-                  Chúng tôi cung cấp hàng ngàn <Link href="/tai-lieu" className="font-semibold text-blue-600 no-underline hover:underline">đề thi vào lớp 10</Link>, <strong>đề thi THPT Quốc Gia</strong> chính thức và thi thử từ các trường chuyên trên cả nước. 
+                  Chúng tôi cung cấp hàng ngàn <Link href="/tai-lieu" className="font-semibold text-blue-600 no-underline hover:underline">đề thi vào lớp 10</Link>, <strong>đề thi THPT Quốc Gia</strong> chính thức và thi thử từ các trường chuyên trên cả nước.
                   Tất cả tài liệu đều được chọn lọc kỹ lưỡng, bám sát cấu trúc đề thi mới nhất của Bộ Giáo dục và Đào tạo, kèm theo đáp án chi tiết giúp học sinh dễ dàng tự học và đánh giá năng lực.
                 </p>
               </article>
@@ -223,7 +223,7 @@ export function HomeClient() {
               <article className="prose prose-sm md:prose-base prose-slate max-w-none">
                 <h3 className="text-lg font-bold text-slate-800 mt-0 mb-2">Tiên Phong Ứng Dụng Trí Tuệ Nhân Tạo (AI)</h3>
                 <p className="m-0 text-justify leading-relaxed">
-                  Tính năng <Link href="/ai-grader" className="font-semibold text-emerald-600 no-underline hover:underline">Chấm Writing AI</Link> đột phá giúp các sĩ tử ôn luyện <strong>IELTS</strong> và <strong>TOEIC</strong> nhận được những đánh giá, phân tích và sửa lỗi ngữ pháp một cách khắt khe, chính xác như một giám khảo bản xứ. 
+                  Tính năng <Link href="/ai-grader" className="font-semibold text-emerald-600 no-underline hover:underline">Chấm Writing AI</Link> đột phá giúp các sĩ tử ôn luyện <strong>IELTS</strong> và <strong>TOEIC</strong> nhận được những đánh giá, phân tích và sửa lỗi ngữ pháp một cách khắt khe, chính xác như một giám khảo bản xứ.
                   Bên cạnh đó, bạn có thể dễ dàng nạp từ vựng hiệu quả qua hệ thống <Link href="/flashcard/ielts" className="font-semibold text-emerald-600 no-underline hover:underline">Flashcard Spaced Repetition</Link> độc quyền được tích hợp sẵn.
                 </p>
               </article>
@@ -239,7 +239,7 @@ export function HomeClient() {
               <article className="prose prose-sm md:prose-base prose-slate max-w-none">
                 <h3 className="text-lg font-bold text-slate-800 mt-0 mb-2">Bộ Công Cụ Tiện Ích Đa Năng</h3>
                 <p className="m-0 text-justify leading-relaxed">
-                  Không chỉ dừng lại ở mảng giáo dục, nền tảng còn cung cấp bộ <Link href="/tools" className="font-semibold text-purple-600 no-underline hover:underline">Công cụ xử lý File PDF</Link> mạnh mẽ hoàn toàn miễn phí. 
+                  Không chỉ dừng lại ở mảng giáo dục, nền tảng còn cung cấp bộ <Link href="/tools" className="font-semibold text-purple-600 no-underline hover:underline">Công cụ xử lý File PDF</Link> mạnh mẽ hoàn toàn miễn phí.
                   Người dùng có thể gộp file, cắt trang, chuyển đổi định dạng hay khóa bảo mật PDF chỉ với vài thao tác cơ bản ngay trên trình duyệt mà không cần cài đặt phần mềm nặng nề.
                 </p>
               </article>

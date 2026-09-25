@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import PdfMergerWrapper from './PdfMergerWrapper'
+import MergeFilesWrapper from './MergeFilesWrapper'
 
 export const metadata: Metadata = {
   title: 'Gộp File PDF (Merge PDF) | VNDocs',
@@ -25,7 +25,7 @@ export default function MergeToolPage() {
         </p>
       </div>
 
-      <PdfMergerWrapper />
+      <MergeFilesWrapper />
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">

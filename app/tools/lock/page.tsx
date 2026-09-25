@@ -1,6 +1,6 @@
-﻿import { Metadata } from 'next'
+import { Metadata } from 'next'
 import Link from 'next/link'
-import { FileLocker } from '@/src/components/tools/FileLocker'
+import { PdfLockUnlock } from '@/src/components/tools/PdfLockUnlock'
 
 export const metadata: Metadata = {
   title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
@@ -25,7 +25,7 @@ export default function LockToolPage() {
         </p>
       </div>
 
-      <FileLocker />
+      <PdfLockUnlock />
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
