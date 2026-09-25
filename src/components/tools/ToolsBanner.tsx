@@ -9,12 +9,11 @@ export function ToolsBanner() {
 
   const links = [
     { href: '/tools', label: 'Tất cả công cụ', icon: null },
-
-    { href: '/tools/casio', label: 'Máy tính Casio', icon: <Calculator size={14} /> },
     { href: '/tools/convert', label: 'Chuyển đổi File', icon: <FileText size={14} /> },
     { href: '/tools/lock', label: 'Khóa File', icon: <Lock size={14} /> },
     { href: '/tools/remove-pages', label: 'Xóa Trang', icon: <Layers size={14} /> },
     { href: '/tools/merge-files', label: 'Gộp File', icon: <Layers size={14} /> },
+    { href: '/tools/casio', label: 'Máy tính Casio', icon: <Calculator size={14} /> },
   ]
 
   return (
@@ -26,7 +25,7 @@ export function ToolsBanner() {
         </div>
 
         {/* Main Quick Actions Row */}
-        <div className="flex overflow-x-auto no-scrollbar items-start gap-2 pt-1 relative z-10 pb-1">
+        <div className="flex flex-wrap items-start gap-2 pt-1 relative z-10 pb-1">
           {links.map((link) => {
             const isActive = pathname === link.href
             return (

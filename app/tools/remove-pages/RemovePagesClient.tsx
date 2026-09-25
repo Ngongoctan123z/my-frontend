@@ -90,12 +90,7 @@ export default function RemovePagesClient() {
 
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4">
-      <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight">Công cụ Xóa Trang</h1>
-        <p className="text-ink-muted max-w-2xl mx-auto">
-          Loại bỏ các trang không cần thiết khỏi tài liệu của bạn một cách nhanh chóng.
-        </p>
-      </div>
+
 
       <div className="flex items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line w-max mx-auto">
         <Settings2 className="w-5 h-5 text-ink-muted" />
