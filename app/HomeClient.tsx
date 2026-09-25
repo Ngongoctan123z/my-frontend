@@ -117,12 +117,7 @@ export function HomeClient() {
 
           {/* Hero image with floating animation */}
           <Reveal animation="slide-right" delay={200} duration={800}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/sad-horse.png"
-              alt="Sad horse - Đừng khóc"
-              className="hidden md:block w-24 lg:w-32 object-contain rounded-lg hero-float"
-            />
+            <div className="hidden md:block ai-loader hero-float ml-8 mr-4"></div>
           </Reveal>
         </div>
       </section>
