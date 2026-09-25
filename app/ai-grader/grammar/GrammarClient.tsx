@@ -26,16 +26,11 @@ export function GrammarClient() {
     setResult(null)
 
     try {
-      const res = await fetch('/api/ai-grader', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(apiKey.trim() ? { 'x-gemini-key': apiKey.trim() } : {})
-        },
-        body: JSON.stringify({ action: 'grammar_check', textToCheck: text })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Đã xảy ra lỗi.')
+      const { callAiGraderClient } = await import('@/src/utils/geminiClient')
+      const data = await callAiGraderClient(
+        { action: 'grammar_check', textToCheck: text },
+        apiKey.trim()
+      )
       setResult(data)
     } catch (err: any) {
       setError(err.message)

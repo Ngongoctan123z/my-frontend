@@ -27,16 +27,11 @@ export function TranslateClient() {
     setResult(null)
 
     try {
-      const res = await fetch('/api/ai-grader', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(apiKey.trim() ? { 'x-gemini-key': apiKey.trim() } : {})
-        },
-        body: JSON.stringify({ action: 'translate', textToTranslate: text, direction })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Đã xảy ra lỗi.')
+      const { callAiGraderClient } = await import('@/src/utils/geminiClient')
+      const data = await callAiGraderClient(
+        { action: 'translate', textToTranslate: text, direction },
+        apiKey.trim()
+      )
       setResult(data)
     } catch (err: any) {
       setError(err.message)

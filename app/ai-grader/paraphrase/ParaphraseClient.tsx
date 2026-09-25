@@ -53,20 +53,15 @@ export function ParaphraseClient() {
     
     try {
       const topicName = topics.find(t => t.id === selectedTopic)?.name || selectedTopic
-      const res = await fetch('/api/ai-grader', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-gemini-key': apiKey.trim()
-        },
-        body: JSON.stringify({
+      const { callAiGraderClient } = await import('@/src/utils/geminiClient')
+      const data = await callAiGraderClient(
+        {
           action: 'generate_paraphrase_prompt',
           topic: topicName,
           level: selectedLevel
-        })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Đã xảy ra lỗi.')
+        },
+        apiKey.trim()
+      )
       setCurrentPrompt(data)
     } catch (err: any) {
       setError(err.message)
@@ -90,22 +85,17 @@ export function ParaphraseClient() {
     setResult(null)
 
     try {
-      const res = await fetch('/api/ai-grader', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(apiKey.trim() ? { 'x-gemini-key': apiKey.trim() } : {})
-        },
-        body: JSON.stringify({
+      const { callAiGraderClient } = await import('@/src/utils/geminiClient')
+      const data = await callAiGraderClient(
+        {
           action: 'grade_paraphrase',
           level: selectedLevel,
           vietnameseText: currentPrompt.vietnameseText,
           contextText: currentPrompt.context,
-          userTranslation: userTranslation
-        })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Đã xảy ra lỗi.')
+          userTranslation
+        },
+        apiKey.trim()
+      )
       setResult(data)
     } catch (err: any) {
       setError(err.message)
@@ -295,3 +285,5 @@ export function ParaphraseClient() {
     </div>
   )
 }
+
+

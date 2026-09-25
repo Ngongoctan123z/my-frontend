@@ -17,17 +17,8 @@ export function AiGraderClient() {
   const [result, setResult] = useState<any>(null)
 
   const callApi = async (body: object) => {
-    const res = await fetch('/api/ai-grader', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey.trim() ? { 'x-gemini-key': apiKey.trim() } : {})
-      },
-      body: JSON.stringify(body)
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Đã xảy ra lỗi.')
-    return data
+    const { callAiGraderClient } = await import('@/src/utils/geminiClient')
+    return await callAiGraderClient(body, apiKey.trim())
   }
 
   const generatePrompt = async () => {
