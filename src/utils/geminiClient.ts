@@ -7,14 +7,15 @@ const MODEL_CANDIDATES = [
   'gemini-2.0-flash'
 ]
 
-async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
+async function tryGenerateWithFallback(apiKey: string, prompt: string | any[], isJson: boolean = false): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
   
   while (true) {
     for (const modelName of MODEL_CANDIDATES) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName })
-        const result = await model.generateContent(prompt)
+        const content = Array.isArray(prompt) ? prompt : [prompt]
+        const result = await model.generateContent(content)
         const response = await result.response
         return response.text()
       } catch (err: any) {
@@ -38,7 +39,7 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
 
 export async function callAiGraderClient(body: any, apiKey: string) {
   try {
-    const { action, type, prompt, essay, topic, level, vietnameseText, contextText, userTranslation, textToTranslate, direction, textToCheck } = body
+    const { action, type, prompt, essay, topic, level, vietnameseText, contextText, userTranslation, textToTranslate, direction, textToCheck, sourceLang, targetLang, style, imageBase64 } = body
 
     if (!apiKey) {
       throw new Error('Vui lòng nhập API Key Gemini để sử dụng tính năng này.')
@@ -218,30 +219,55 @@ Return ONLY valid JSON (no markdown, no backticks):
     }
 
     if (action === 'translate') {
-      if (!textToTranslate) {
-        throw new Error('Thiếu nội dung cần dịch.')
+      if (!textToTranslate && !imageBase64) {
+        throw new Error('Thiếu nội dung hoặc hình ảnh cần dịch.')
       }
 
-      const dirContext = direction === 'en-vi' ? 'English to Vietnamese' : 'Vietnamese to English'
-      
+      let styleInstruction = ''
+      if (style === 'document') {
+        styleInstruction = 'Phong cách dịch: Dịch TÀI LIỆU. Yêu cầu văn phong chính xác, học thuật, chuyên nghiệp, sát nghĩa và giữ nguyên form/bố cục của văn bản gốc.'
+      } else if (style === 'story') {
+        styleInstruction = 'Phong cách dịch: Dịch TRUYỆN/TIỂU THUYẾT. Yêu cầu văn phong bay bổng, mềm mại, giàu cảm xúc, đậm chất văn học và dễ chạm đến người đọc.'
+      } else if (style === 'casual') {
+        styleInstruction = 'Phong cách dịch: Dịch ĐỜI THƯỜNG / MẠNG XÃ HỘI. Yêu cầu văn phong tự nhiên, gần gũi, thoải mái. Có thể dùng ngôn ngữ mạng, tiếng lóng (slang), hoặc phong cách Gen Z sao cho dễ hiểu và "mặn mòi" nhất.'
+      } else {
+        styleInstruction = 'Phong cách dịch: Dịch CHUẨN. Tự nhiên và chính xác.'
+      }
+
       const systemPrompt = `
 You are a professional translator and linguist. 
-Translate the following text from ${dirContext}.
+Translate from ${sourceLang || 'English'} to ${targetLang || 'Tiếng Việt'}.
 
-TEXT TO TRANSLATE:
-"${textToTranslate}"
+${styleInstruction}
+
+${textToTranslate ? `TEXT TO TRANSLATE:\n"${textToTranslate}"\n` : `PLEASE TRANSLATE THE TEXT IN THE PROVIDED IMAGE.`}
 
 Analyze and provide the translation strictly in JSON format (no markdown):
 {
-  "translatedText": "The direct translation",
-  "nuances": "Explanation of cultural/linguistic nuances in Vietnamese",
+  "translatedText": "The direct translation based on the requested style",
+  "nuances": "Explanation of cultural/linguistic nuances (in Vietnamese)",
   "alternativeTranslations": ["Alternative 1", "Alternative 2"],
   "vocabulary": [
     { "word": "word", "meaning": "meaning", "example": "example usage" }
   ]
 }
 `
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
+      let promptParts: any[] = [systemPrompt]
+
+      if (imageBase64) {
+        const mimeTypeMatch = imageBase64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)
+        const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg'
+        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '')
+        
+        promptParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        })
+      }
+
+      const text = await tryGenerateWithFallback(apiKey, promptParts, true)
       try {
         const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
         return JSON.parse(cleanedText)
