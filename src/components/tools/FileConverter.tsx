@@ -14,16 +14,22 @@ interface ConversionOption {
   to: Format
   label: string
   supported: boolean
+  serverSide?: boolean
 }
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://exam-web-production.up.railway.app'
+
 const CONVERSION_OPTIONS: ConversionOption[] = [
+  // Server-side (LibreOffice) — thiết thực nhất, đặt lên đầu
+  { from: 'pdf', to: 'docx', label: 'PDF sang Word', supported: true, serverSide: true },
+  { from: 'docx', to: 'pdf', label: 'Word sang PDF', supported: true, serverSide: true },
+  { from: 'pdf', to: 'pptx', label: 'PDF sang PowerPoint', supported: true, serverSide: true },
+  { from: 'pptx', to: 'pdf', label: 'PowerPoint sang PDF', supported: true, serverSide: true },
+  // Client-side (pdf-lib / pdfjs) — xử lý trên trình duyệt
   { from: 'jpg', to: 'pdf', label: 'JPG sang PDF', supported: true },
   { from: 'png', to: 'pdf', label: 'PNG sang PDF', supported: true },
   { from: 'pdf', to: 'jpg', label: 'PDF sang JPG', supported: true },
   { from: 'pdf', to: 'png', label: 'PDF sang PNG', supported: true },
-  { from: 'pdf', to: 'docx', label: 'PDF sang Word', supported: false },
-  { from: 'docx', to: 'pdf', label: 'Word sang PDF', supported: false },
-  { from: 'pdf', to: 'pptx', label: 'PDF sang PowerPoint', supported: false },
 ]
 
 export function FileConverter() {
@@ -32,6 +38,7 @@ export function FileConverter() {
   
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [progress, setProgress] = useState<string>('')
   
   // Trạng thái kết quả
   const [resultUrls, setResultUrls] = useState<{url: string, name: string}[]>([])
@@ -41,7 +48,6 @@ export function FileConverter() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0]
-      // Basic validation
       if (selectedOption.from === 'pdf' && selected.type !== 'application/pdf') {
         setError('Vui lòng chọn file PDF.')
         return
@@ -50,12 +56,45 @@ export function FileConverter() {
         setError('Vui lòng chọn file hình ảnh.')
         return
       }
-      
+      if (selectedOption.from === 'docx' && !selected.name.toLowerCase().endsWith('.docx')) {
+        setError('Vui lòng chọn file Word (.docx).')
+        return
+      }
+      if (selectedOption.from === 'pptx' && !selected.name.toLowerCase().endsWith('.pptx')) {
+        setError('Vui lòng chọn file PowerPoint (.pptx).')
+        return
+      }
       setFile(selected)
       setError(null)
       setResultUrls([])
       e.target.value = ''
     }
+  }
+
+  const convertViaServer = async () => {
+    if (!file) return
+    setProgress('Đang tải file lên máy chủ...')
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('from', selectedOption.from)
+    formData.append('to', selectedOption.to)
+
+    const response = await fetch(`${BACKEND_URL}/api/v1/convert`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      throw new Error(errText || `Lỗi máy chủ (${response.status})`)
+    }
+
+    setProgress('Đang xử lý chuyển đổi...')
+    const blob = await response.blob()
+    const ext = selectedOption.to
+    const baseName = file.name.replace(/\.[^/.]+$/, '')
+    const outputName = `VNDocs-${baseName}.${ext}`
+    setResultUrls([{ url: URL.createObjectURL(blob), name: outputName }])
   }
 
   const convertImageToPdf = async () => {
@@ -92,8 +131,9 @@ export function FileConverter() {
     const ext = selectedOption.to === 'png' ? 'png' : 'jpg'
     
     for (let i = 1; i <= numPages; i++) {
+      setProgress(`Đang xử lý trang ${i}/${numPages}...`)
       const page = await pdf.getPage(i)
-      const viewport = page.getViewport({ scale: 2.0 }) // High quality
+      const viewport = page.getViewport({ scale: 2.0 })
       const canvas = document.createElement('canvas')
       const context = canvas.getContext('2d')
       if (!context) continue
@@ -118,14 +158,13 @@ export function FileConverter() {
     if (!file) return
     setIsProcessing(true)
     setError(null)
+    setProgress('')
     setResultUrls([])
     
     try {
-      if (!selectedOption.supported) {
-        throw new Error(`Định dạng ${selectedOption.label} hiện đang nâng cấp trên Server. Vui lòng quay lại sau!`)
-      }
-      
-      if (selectedOption.from === 'jpg' || selectedOption.from === 'png') {
+      if (selectedOption.serverSide) {
+        await convertViaServer()
+      } else if (selectedOption.from === 'jpg' || selectedOption.from === 'png') {
         await convertImageToPdf()
       } else if (selectedOption.from === 'pdf' && (selectedOption.to === 'jpg' || selectedOption.to === 'png')) {
         await convertPdfToImages()
@@ -136,6 +175,7 @@ export function FileConverter() {
       setError(err.message || 'Có lỗi xảy ra trong quá trình chuyển đổi.')
     } finally {
       setIsProcessing(false)
+      setProgress('')
     }
   }
 
@@ -143,6 +183,7 @@ export function FileConverter() {
     setFile(null)
     setResultUrls([])
     setError(null)
+    setProgress('')
   }
 
   return (
@@ -258,6 +299,12 @@ export function FileConverter() {
             {error && (
               <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 font-medium text-left text-sm">
                 <AlertCircle className="w-5 h-5 shrink-0" /> {error}
+              </div>
+            )}
+            
+            {progress && (
+              <div className="p-4 bg-blue-50 text-blue-600 rounded-xl flex items-center gap-3 font-medium text-left text-sm animate-pulse">
+                <Loader2 className="w-5 h-5 shrink-0 animate-spin" /> {progress}
               </div>
             )}
             
