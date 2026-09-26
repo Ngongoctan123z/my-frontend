@@ -17,16 +17,7 @@ interface ConversionOption {
   serverSide?: boolean
 }
 
-import { BASE_URL } from '../../utils/constants'
-
-const BACKEND_URL = 'https://p01--backend-2--4j4v4pb6yj96.code.run'
-
 const CONVERSION_OPTIONS: ConversionOption[] = [
-  // Server-side (LibreOffice) — thiết thực nhất, đặt lên đầu
-  { from: 'pdf', to: 'docx', label: 'PDF sang Word', supported: true, serverSide: true },
-  { from: 'docx', to: 'pdf', label: 'Word sang PDF', supported: true, serverSide: true },
-  { from: 'pdf', to: 'pptx', label: 'PDF sang PowerPoint', supported: true, serverSide: true },
-  { from: 'pptx', to: 'pdf', label: 'PowerPoint sang PDF', supported: true, serverSide: true },
   // Client-side (pdf-lib / pdfjs) — xử lý trên trình duyệt
   { from: 'jpg', to: 'pdf', label: 'JPG sang PDF', supported: true },
   { from: 'png', to: 'pdf', label: 'PNG sang PDF', supported: true },
@@ -74,49 +65,6 @@ export function FileConverter() {
     }
   }
 
-  const convertViaServer = async () => {
-    if (!file) return
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('from', selectedOption.from)
-    formData.append('to', selectedOption.to)
-
-    setSimulatedProgress(0)
-    setProgress('Đang tải lên và xử lý chuyển đổi...')
-    
-    // Giả lập thanh tiến trình chạy từ 0 đến 98%
-    const interval = setInterval(() => {
-      setSimulatedProgress(prev => {
-        if (prev >= 98) return 98
-        // Nhanh ở đoạn đầu, chậm dần ở đoạn sau
-        return prev + (prev < 40 ? 5 : prev < 70 ? 2 : 0.5)
-      })
-    }, 400)
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/v1/convert`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      clearInterval(interval)
-      setSimulatedProgress(100)
-
-      if (!response.ok) {
-        const errText = await response.text()
-        throw new Error(errText || `Lỗi máy chủ (${response.status})`)
-      }
-
-      setProgress('Đang tạo file tải xuống...')
-      const blob = await response.blob()
-      const ext = selectedOption.to
-      const baseName = file.name.replace(/\.[^/.]+$/, '')
-      const outputName = `VNDocs-${baseName}.${ext}`
-      setResultUrls([{ url: URL.createObjectURL(blob), name: outputName }])
-    } finally {
-      clearInterval(interval)
-    }
-  }
 
   const convertImageToPdf = async () => {
     if (!file) return
@@ -183,9 +131,7 @@ export function FileConverter() {
     setResultUrls([])
     
     try {
-      if (selectedOption.serverSide) {
-        await convertViaServer()
-      } else if (selectedOption.from === 'jpg' || selectedOption.from === 'png') {
+      if (selectedOption.from === 'jpg' || selectedOption.from === 'png') {
         await convertImageToPdf()
       } else if (selectedOption.from === 'pdf' && (selectedOption.to === 'jpg' || selectedOption.to === 'png')) {
         await convertPdfToImages()
