@@ -236,9 +236,9 @@ Câu dịch của học sinh: "${userTranslation}"
 
 Hãy chấm điểm (trên thang điểm 10) và nhận xét câu dịch của học sinh dựa trên các tiêu chí sau:
 1. Accuracy (Độ chính xác về ý nghĩa): Học sinh có truyền tải đúng và đủ ý của câu gốc không?
-2. Grammar & Vocabulary (Ngữ pháp & Từ vựng): Có sai sót ngữ pháp nào không? Có sử dụng từ vựng chính xác trong ngữ cảnh không?
+2. Grammar & Vocabulary (Ngữ pháp & Từ vựng): Có sai sót ngữ pháp nào không? Bắt lỗi nghiêm ngặt những từ dùng sai nghĩa, vô lý hoặc không hợp ngữ cảnh.
 3. Naturalness (Độ tự nhiên): Câu dịch có giống cách người bản xứ nói/viết không, hay bị dịch word-by-word?
-4. Sắc thái (Register/Tone): Có phù hợp với ngữ cảnh đã cho không? Trình độ từ vựng có tương xứng với mức ${level} không?
+4. Linh hoạt theo trình độ (${level}): Nếu học sinh ở trình độ thấp nhưng dùng đúng từ vựng/ngữ pháp của trình độ cao hơn, HÃY CỘNG ĐIỂM và dành lời khen. Tuyệt đối KHÔNG trừ điểm hoặc chê "từ vựng quá cao so với band của bạn". Chỉ trừ điểm nếu dùng từ cao cấp nhưng sai ngữ cảnh hoặc gượng ép.
 
 Return ONLY valid JSON (no markdown, no backticks):
 {
