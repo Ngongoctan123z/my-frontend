@@ -38,16 +38,7 @@ export default function ToolsIndexPage() {
           <p className="text-slate-500 text-sm leading-relaxed">Trình giả lập máy tính bỏ túi Casio Fx-580VN X trực tuyến giúp giải toán nhanh chóng, hiển thị trực quan.</p>
         </Link>
 
-        {/* Convert */}
-        <Link href="/tools/convert" className="group rounded-2xl border border-gray-200 bg-white p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-500 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-            </div>
-            <h2 className="text-lg font-bold text-slate-800 group-hover:text-amber-500 transition-colors">Chuyển đổi File</h2>
-          </div>
-          <p className="text-slate-500 text-sm leading-relaxed">Chuyển đổi linh hoạt giữa các định dạng PDF sang Word (Docx), Ảnh (JPG/PNG) và ngược lại hoàn toàn miễn phí.</p>
-        </Link>
+
 
         {/* Lock */}
         <Link href="/tools/lock" className="group rounded-2xl border border-gray-200 bg-white p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
