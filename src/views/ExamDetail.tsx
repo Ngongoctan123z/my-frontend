@@ -235,14 +235,14 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
         {exam.seoStructure ? (() => {
           const cleaned = exam.seoStructure
             .replace(/<\/?details[^>]*>/g, '')
-            .replace(/<\/?summary[^>]*>.*?<\/summary>/gs, '')
+            .replace(/<\/?summary[^>]*>[\s\S]*?<\/summary>/gi, '')
             .replace(/<strong[^>]*>(Câu\s+\w+[:.]?)<\/strong>/gi, '<span class="font-semibold">$1</span>')
 
           // Tách phần cấu trúc và phần nội dung đề (AI cũ nhét cả 2 vào seoStructure)
-          const contentDivMatch = cleaned.match(/<h4[^>]*>Nội dung đề thi.*?<\/div>\s*<\/div>/s)
-          const structurePart = contentDivMatch
-            ? cleaned.slice(0, cleaned.indexOf(contentDivMatch[0]))
-            : cleaned
+          const noContentIdx = cleaned.search(/<h4[^>]*>/i)
+          const h4Content = noContentIdx >= 0 ? cleaned.slice(noContentIdx) : ''
+          const isExamContent = h4Content.toLowerCase().includes('n\u1ed9i dung \u0111\u1ec1 thi')
+          const structurePart = (noContentIdx >= 0 && isExamContent) ? cleaned.slice(0, noContentIdx) : cleaned
 
           return (
             <details className="group rounded-lg border border-line bg-surface overflow-hidden">
