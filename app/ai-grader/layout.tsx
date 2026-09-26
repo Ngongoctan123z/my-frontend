@@ -9,9 +9,11 @@ export default function AiGraderLayout({
 }) {
   return (
     <AiProvider>
-      <div className="py-6 md:py-10 px-4 sm:px-6 max-w-6xl mx-auto space-y-6">
+      <div className="pb-6 md:pb-10 px-4 sm:px-6 max-w-6xl mx-auto space-y-6">
         <AiBanner />
-        {children}
+        <div className="pt-2">
+          {children}
+        </div>
       </div>
     </AiProvider>
   )

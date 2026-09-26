@@ -128,7 +128,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
   return (
     <div className="space-y-6">
       {/* Quick Filters Banner */}
-      <section className="sticky top-[73px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
+      <section className="sticky top-[76px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
         <div className="mx-auto max-w-5xl relative">
 
           {/* Scrolling Fade Hint */}
