@@ -41,6 +41,7 @@ export function FileConverter() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<string>('')
+  const [simulatedProgress, setSimulatedProgress] = useState<number>(0)
   
   // Trạng thái kết quả
   const [resultUrls, setResultUrls] = useState<{url: string, name: string}[]>([])
@@ -75,28 +76,46 @@ export function FileConverter() {
 
   const convertViaServer = async () => {
     if (!file) return
-    setProgress('Đang tải file lên máy chủ...')
     const formData = new FormData()
     formData.append('file', file)
     formData.append('from', selectedOption.from)
     formData.append('to', selectedOption.to)
 
-    const response = await fetch(`${BACKEND_URL}/api/v1/convert`, {
-      method: 'POST',
-      body: formData,
-    })
+    setSimulatedProgress(0)
+    setProgress('Đang tải lên và xử lý chuyển đổi...')
+    
+    // Giả lập thanh tiến trình chạy từ 0 đến 98%
+    const interval = setInterval(() => {
+      setSimulatedProgress(prev => {
+        if (prev >= 98) return 98
+        // Nhanh ở đoạn đầu, chậm dần ở đoạn sau
+        return prev + (prev < 40 ? 5 : prev < 70 ? 2 : 0.5)
+      })
+    }, 400)
 
-    if (!response.ok) {
-      const errText = await response.text()
-      throw new Error(errText || `Lỗi máy chủ (${response.status})`)
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/v1/convert`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      clearInterval(interval)
+      setSimulatedProgress(100)
+
+      if (!response.ok) {
+        const errText = await response.text()
+        throw new Error(errText || `Lỗi máy chủ (${response.status})`)
+      }
+
+      setProgress('Đang tạo file tải xuống...')
+      const blob = await response.blob()
+      const ext = selectedOption.to
+      const baseName = file.name.replace(/\.[^/.]+$/, '')
+      const outputName = `VNDocs-${baseName}.${ext}`
+      setResultUrls([{ url: URL.createObjectURL(blob), name: outputName }])
+    } finally {
+      clearInterval(interval)
     }
-
-    setProgress('Đang xử lý chuyển đổi...')
-    const blob = await response.blob()
-    const ext = selectedOption.to
-    const baseName = file.name.replace(/\.[^/.]+$/, '')
-    const outputName = `VNDocs-${baseName}.${ext}`
-    setResultUrls([{ url: URL.createObjectURL(blob), name: outputName }])
   }
 
   const convertImageToPdf = async () => {
@@ -186,6 +205,7 @@ export function FileConverter() {
     setResultUrls([])
     setError(null)
     setProgress('')
+    setSimulatedProgress(0)
   }
 
   return (
@@ -305,8 +325,30 @@ export function FileConverter() {
             )}
             
             {progress && (
-              <div className="p-4 bg-blue-50 text-blue-600 rounded-xl flex items-center gap-3 font-medium text-left text-sm animate-pulse">
-                <Loader2 className="w-5 h-5 shrink-0 animate-spin" /> {progress}
+              <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 text-left overflow-hidden relative">
+                <div className="flex items-center justify-between mb-3 relative z-10">
+                  <div className="flex items-center gap-3 text-blue-700 font-bold text-sm">
+                    <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
+                    {progress}
+                  </div>
+                  {simulatedProgress > 0 && selectedOption.serverSide && (
+                    <div className="text-blue-700 font-black text-lg">
+                      {Math.floor(simulatedProgress)}%
+                    </div>
+                  )}
+                </div>
+                
+                {simulatedProgress > 0 && selectedOption.serverSide && (
+                  <div className="h-2.5 w-full bg-blue-100/50 rounded-full overflow-hidden relative z-10">
+                    <div 
+                      className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${simulatedProgress}%` }}
+                    />
+                  </div>
+                )}
+                
+                {/* Decorative background element */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
               </div>
             )}
             
