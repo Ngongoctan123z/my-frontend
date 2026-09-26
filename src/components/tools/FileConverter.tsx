@@ -1,28 +1,33 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import { FileText, Image as ImageIcon, ArrowRight, Upload, Download, Loader2, AlertCircle, RefreshCw, File } from 'lucide-react'
-import { PDFDocument } from 'pdf-lib'
-import { pdfjs } from 'react-pdf'
+import { ImageIcon, ArrowRight, Upload, Download, Loader2, AlertCircle, RefreshCw, File } from 'lucide-react'
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
-
-type Format = 'pdf' | 'jpg' | 'png' | 'docx' | 'pptx' | 'xlsx'
+type Format = 'jpg' | 'png' | 'webp' | 'bmp' | 'gif'
 
 interface ConversionOption {
   from: Format
   to: Format
   label: string
   supported: boolean
-  serverSide?: boolean
 }
 
 const CONVERSION_OPTIONS: ConversionOption[] = [
-  // Client-side (pdf-lib / pdfjs) — xử lý trên trình duyệt
-  { from: 'jpg', to: 'pdf', label: 'JPG sang PDF', supported: true },
-  { from: 'png', to: 'pdf', label: 'PNG sang PDF', supported: true },
-  { from: 'pdf', to: 'jpg', label: 'PDF sang JPG', supported: true },
-  { from: 'pdf', to: 'png', label: 'PDF sang PNG', supported: true },
+  { from: 'jpg', to: 'png', label: 'JPG sang PNG', supported: true },
+  { from: 'png', to: 'jpg', label: 'PNG sang JPG', supported: true },
+  
+  { from: 'jpg', to: 'webp', label: 'JPG sang WEBP', supported: true },
+  { from: 'png', to: 'webp', label: 'PNG sang WEBP', supported: true },
+  
+  { from: 'webp', to: 'jpg', label: 'WEBP sang JPG', supported: true },
+  { from: 'webp', to: 'png', label: 'WEBP sang PNG', supported: true },
+  
+  { from: 'jpg', to: 'bmp', label: 'JPG sang BMP', supported: true },
+  { from: 'png', to: 'bmp', label: 'PNG sang BMP', supported: true },
+
+  { from: 'gif', to: 'jpg', label: 'GIF sang JPG', supported: true },
+  { from: 'gif', to: 'png', label: 'GIF sang PNG', supported: true },
+  { from: 'gif', to: 'webp', label: 'GIF sang WEBP', supported: true },
 ]
 
 export function FileConverter() {
@@ -31,10 +36,6 @@ export function FileConverter() {
   
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [progress, setProgress] = useState<string>('')
-  const [simulatedProgress, setSimulatedProgress] = useState<number>(0)
-  
-  // Trạng thái kết quả
   const [resultUrls, setResultUrls] = useState<{url: string, name: string}[]>([])
   
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -42,20 +43,8 @@ export function FileConverter() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0]
-      if (selectedOption.from === 'pdf' && selected.type !== 'application/pdf') {
-        setError('Vui lòng chọn file PDF.')
-        return
-      }
-      if ((selectedOption.from === 'jpg' || selectedOption.from === 'png') && !selected.type.startsWith('image/')) {
+      if (!selected.type.startsWith('image/')) {
         setError('Vui lòng chọn file hình ảnh.')
-        return
-      }
-      if (selectedOption.from === 'docx' && !selected.name.toLowerCase().endsWith('.docx')) {
-        setError('Vui lòng chọn file Word (.docx).')
-        return
-      }
-      if (selectedOption.from === 'pptx' && !selected.name.toLowerCase().endsWith('.pptx')) {
-        setError('Vui lòng chọn file PowerPoint (.pptx).')
         return
       }
       setFile(selected)
@@ -65,84 +54,67 @@ export function FileConverter() {
     }
   }
 
-
-  const convertImageToPdf = async () => {
+  const convertImageFormat = async () => {
     if (!file) return
-    const pdfDoc = await PDFDocument.create()
-    const imageBytes = await file.arrayBuffer()
-    let image
-    
-    if (file.type === 'image/jpeg' || file.type === 'image/jpg' || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg')) {
-      image = await pdfDoc.embedJpg(imageBytes)
-    } else if (file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')) {
-      image = await pdfDoc.embedPng(imageBytes)
-    } else {
-      throw new Error('Chỉ hỗ trợ ảnh JPG và PNG.')
-    }
-    
-    const page = pdfDoc.addPage([image.width, image.height])
-    page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height })
-    
-    const pdfBytes = await pdfDoc.save()
-    const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' })
-    setResultUrls([{ url: URL.createObjectURL(blob), name: `VNDocs-Converted-${file.name.split('.')[0]}.pdf` }])
-  }
 
-  const convertPdfToImages = async () => {
-    if (!file) return
-    const arrayBuffer = await file.arrayBuffer()
-    const loadingTask = pdfjs.getDocument({ data: arrayBuffer })
-    const pdf = await loadingTask.promise
-    const numPages = pdf.numPages
-    
-    const urls: {url: string, name: string}[] = []
-    const mimeType = selectedOption.to === 'png' ? 'image/png' : 'image/jpeg'
-    const ext = selectedOption.to === 'png' ? 'png' : 'jpg'
-    
-    for (let i = 1; i <= numPages; i++) {
-      setProgress(`Đang xử lý trang ${i}/${numPages}...`)
-      const page = await pdf.getPage(i)
-      const viewport = page.getViewport({ scale: 2.0 })
-      const canvas = document.createElement('canvas')
-      const context = canvas.getContext('2d')
-      if (!context) continue
-      
-      canvas.height = viewport.height
-      canvas.width = viewport.width
-      
-      await page.render({ canvasContext: context, viewport } as any).promise
-      
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mimeType, 0.9))
-      if (blob) {
-        urls.push({
-          url: URL.createObjectURL(blob),
-          name: `VNDocs-${file.name.split('.')[0]}-Page-${i}.${ext}`
-        })
+    return new Promise<void>((resolve, reject) => {
+      const img = new window.Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Không thể khởi tạo Canvas 2D'))
+          return
+        }
+
+        // Handle background color for transparent formats converting to JPG
+        if (selectedOption.to === 'jpg' || selectedOption.to === 'bmp') {
+          ctx.fillStyle = '#FFFFFF'
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+        }
+
+        ctx.drawImage(img, 0, 0)
+
+        let mimeType = 'image/jpeg'
+        let ext = 'jpg'
+        
+        switch (selectedOption.to) {
+          case 'png': mimeType = 'image/png'; ext = 'png'; break;
+          case 'webp': mimeType = 'image/webp'; ext = 'webp'; break;
+          case 'bmp': mimeType = 'image/bmp'; ext = 'bmp'; break;
+          case 'jpg': default: mimeType = 'image/jpeg'; ext = 'jpg'; break;
+        }
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            setResultUrls([{ url: URL.createObjectURL(blob), name: `VNDocs-Converted-${file.name.split('.')[0]}.${ext}` }])
+            resolve()
+          } else {
+            reject(new Error('Lỗi khi xuất ảnh. Hãy thử lại.'))
+          }
+        }, mimeType, 0.9)
       }
-    }
-    setResultUrls(urls)
+      
+      img.onerror = () => reject(new Error('File không hợp lệ hoặc bị hỏng'))
+      img.src = URL.createObjectURL(file)
+    })
   }
 
   const processFile = async () => {
     if (!file) return
     setIsProcessing(true)
     setError(null)
-    setProgress('')
     setResultUrls([])
     
     try {
-      if (selectedOption.from === 'jpg' || selectedOption.from === 'png') {
-        await convertImageToPdf()
-      } else if (selectedOption.from === 'pdf' && (selectedOption.to === 'jpg' || selectedOption.to === 'png')) {
-        await convertPdfToImages()
-      }
-      
+      await convertImageFormat()
     } catch (err: any) {
       console.error(err)
       setError(err.message || 'Có lỗi xảy ra trong quá trình chuyển đổi.')
     } finally {
       setIsProcessing(false)
-      setProgress('')
     }
   }
 
@@ -150,8 +122,6 @@ export function FileConverter() {
     setFile(null)
     setResultUrls([])
     setError(null)
-    setProgress('')
-    setSimulatedProgress(0)
   }
 
   return (
@@ -161,7 +131,7 @@ export function FileConverter() {
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
           <RefreshCw className="w-5 h-5 text-primary" /> Chọn loại chuyển đổi
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {CONVERSION_OPTIONS.map((opt, idx) => (
             <button
               key={idx}
@@ -173,12 +143,11 @@ export function FileConverter() {
               }`}
             >
               <div className="flex items-center gap-1.5">
-                {opt.from === 'pdf' ? <FileText className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
+                <ImageIcon className="w-4 h-4" />
                 <ArrowRight className="w-3 h-3 opacity-50" />
-                {opt.to === 'pdf' ? <FileText className="w-4 h-4" /> : <File className="w-4 h-4" />}
+                <ImageIcon className="w-4 h-4" />
               </div>
               <span>{opt.label}</span>
-              {!opt.supported && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider mt-1">Sắp ra mắt</span>}
             </button>
           ))}
         </div>
@@ -195,122 +164,98 @@ export function FileConverter() {
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleFileChange} 
-                accept={selectedOption.from === 'pdf' ? '.pdf' : '.jpg,.jpeg,.png'} 
+                accept="image/*"
                 className="hidden" 
               />
-              <Upload className="w-16 h-16 text-primary mb-4" />
-              <h3 className="text-xl font-bold text-ink mb-2">Tải file {selectedOption.from.toUpperCase()} lên đây</h3>
-              <p className="text-ink-muted">Hoặc kéo thả file vào khung này</p>
-            </div>
-            
-            {error && (
-              <div className="mt-6 p-4 bg-red-50 text-red-600 rounded-xl flex items-center justify-center gap-2 font-medium">
-                <AlertCircle className="w-5 h-5" /> {error}
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-primary">
+                <Upload className="w-8 h-8" />
               </div>
-            )}
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Tải ảnh lên</h3>
+              <p className="text-slate-500 mb-6 max-w-sm mx-auto">
+                Nhấn vào đây để chọn ảnh từ thiết bị của bạn. 
+                Hỗ trợ JPG, PNG, WEBP, BMP, GIF.
+              </p>
+              <button className="bg-primary text-white font-semibold py-2.5 px-6 rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
+                Chọn File
+              </button>
+            </div>
           </div>
         ) : resultUrls.length > 0 ? (
-          <div className="space-y-6">
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Download className="w-10 h-10" />
+          <div className="py-8">
+            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-            <h3 className="text-3xl font-extrabold text-emerald-700">Chuyển đổi thành công!</h3>
-            <p className="text-emerald-600 font-medium">Bạn có thể tải xuống kết quả ngay bây giờ.</p>
+            <h3 className="text-2xl font-bold text-slate-800 mb-2">Chuyển đổi hoàn tất!</h3>
+            <p className="text-slate-500 mb-8">Ảnh của bạn đã sẵn sàng để tải xuống.</p>
             
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 mt-6 max-h-[400px] overflow-y-auto custom-scrollbar">
-              {resultUrls.length === 1 ? (
+            <div className="flex flex-col gap-3 max-w-sm mx-auto">
+              {resultUrls.map((res, i) => (
                 <a 
-                  href={resultUrls[0].url} 
-                  download={resultUrls[0].name}
-                  className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-10 py-4 rounded-xl hover:bg-emerald-700 transition-all shadow-lg hover:scale-105"
+                  key={i}
+                  href={res.url} 
+                  download={res.name}
+                  className="flex items-center justify-center gap-2 bg-primary text-white font-bold py-3.5 px-6 rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 hover:-translate-y-0.5"
                 >
-                  <Download className="w-5 h-5" /> Tải Xuống File
+                  <Download className="w-5 h-5" /> Tải xuống ({res.name})
                 </a>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm font-bold text-emerald-800 mb-4 text-left">Đã tạo ra {resultUrls.length} file ảnh (Mỗi ảnh 1 trang PDF):</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {resultUrls.map((res, i) => (
-                      <a 
-                        key={i}
-                        href={res.url} 
-                        download={res.name}
-                        className="flex items-center justify-between p-3 bg-white border border-emerald-200 rounded-lg hover:border-emerald-500 hover:shadow-md transition-all group text-left"
-                      >
-                        <span className="font-medium text-ink text-sm truncate max-w-[200px]">{res.name}</span>
-                        <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                          <Download className="w-4 h-4" />
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="pt-6">
-              <button onClick={resetAll} className="text-primary font-bold hover:underline">Chuyển đổi file khác</button>
+              ))}
+              <button 
+                onClick={resetAll}
+                className="mt-2 text-primary font-semibold hover:underline"
+              >
+                Chuyển đổi ảnh khác
+              </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-6 max-w-md mx-auto">
-            <div className="bg-page p-6 rounded-xl border border-line flex items-center gap-4 text-left">
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
-                {selectedOption.from === 'pdf' ? <FileText className="w-6 h-6" /> : <ImageIcon className="w-6 h-6" />}
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-ink truncate">{file?.name}</p>
-                <p className="text-sm text-ink-muted">{(file!.size / 1024 / 1024).toFixed(2)} MB</p>
-              </div>
+          <div className="py-6 flex flex-col items-center">
+            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-blue-100">
+              <ImageIcon className="w-8 h-8" />
             </div>
-            
-            {error && (
-              <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 font-medium text-left text-sm">
-                <AlertCircle className="w-5 h-5 shrink-0" /> {error}
-              </div>
-            )}
-            
-            {progress && (
-              <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 text-left overflow-hidden relative">
-                <div className="flex items-center justify-between mb-3 relative z-10">
-                  <div className="flex items-center gap-3 text-blue-700 font-bold text-sm">
-                    <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
-                    {progress}
-                  </div>
-                  {simulatedProgress > 0 && selectedOption.serverSide && (
-                    <div className="text-blue-700 font-black text-lg">
-                      {Math.floor(simulatedProgress)}%
-                    </div>
-                  )}
+            <h3 className="text-lg font-bold text-slate-800 mb-1 max-w-sm truncate">{file?.name}</h3>
+            <p className="text-slate-500 text-sm mb-8">
+              {(file?.size! / 1024 / 1024).toFixed(2)} MB • Đang chuẩn bị chuyển đổi sang {selectedOption.to.toUpperCase()}
+            </p>
+
+            {error ? (
+              <div className="bg-red-50 text-red-600 p-4 rounded-xl flex flex-col items-center gap-3 w-full max-w-md mx-auto">
+                <div className="flex items-center gap-2 font-bold">
+                  <AlertCircle className="w-5 h-5" /> Đã xảy ra lỗi
                 </div>
-                
-                {simulatedProgress > 0 && selectedOption.serverSide && (
-                  <div className="h-2.5 w-full bg-blue-100/50 rounded-full overflow-hidden relative z-10">
-                    <div 
-                      className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out"
-                      style={{ width: `${simulatedProgress}%` }}
-                    />
-                  </div>
-                )}
-                
-                {/* Decorative background element */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+                <p className="text-sm">{error}</p>
+                <button 
+                  onClick={resetAll}
+                  className="mt-2 bg-red-100 text-red-700 px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-red-200 transition-colors"
+                >
+                  Thử lại
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button 
+                  onClick={resetAll}
+                  disabled={isProcessing}
+                  className="px-6 py-2.5 rounded-xl border border-line font-semibold text-ink-muted hover:bg-page transition-colors disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={processFile}
+                  disabled={isProcessing}
+                  className="px-8 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 shadow-sm transition-colors flex items-center gap-2 disabled:opacity-70 min-w-[140px] justify-center"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...
+                    </>
+                  ) : (
+                    'Chuyển đổi ngay'
+                  )}
+                </button>
               </div>
             )}
-            
-            <div className="flex gap-3">
-              <button onClick={resetAll} className="flex-1 py-3 px-4 bg-surface hover:bg-surface-hover border border-line text-ink-muted font-bold rounded-xl transition">
-                Hủy bỏ
-              </button>
-              <button 
-                onClick={processFile}
-                disabled={isProcessing}
-                className="flex-[2] py-3 px-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl transition flex justify-center items-center gap-2 disabled:opacity-50"
-              >
-                {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
-                Chuyển sang {selectedOption.to.toUpperCase()}
-              </button>
-            </div>
           </div>
         )}
       </div>

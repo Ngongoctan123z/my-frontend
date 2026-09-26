@@ -1,14 +1,14 @@
-﻿import { Metadata } from 'next'
+import { Metadata } from 'next'
 import Link from 'next/link'
 import FileConverterWrapper from './FileConverterWrapper'
 
 export const metadata: Metadata = {
-  title: 'Chuyển Đổi Định Dạng File PDF / Ảnh | VNDocs',
-  description: 'Tiện ích hỗ trợ chuyển đổi từ Hình ảnh sang PDF và xuất trang PDF thành Hình ảnh (JPG, PNG) miễn phí 100%.',
-  keywords: 'chuyển pdf sang ảnh, chuyển ảnh sang pdf, pdf to jpg, jpg to pdf, pdf converter',
+  title: 'Chuyển Đổi Định Dạng Hình Ảnh | VNDocs',
+  description: 'Tiện ích hỗ trợ chuyển đổi đa định dạng hình ảnh (JPG, PNG, WEBP, BMP, GIF) nhanh chóng và miễn phí 100%.',
+  keywords: 'chuyển đổi ảnh, jpg sang png, png sang jpg, webp sang jpg, bmp sang jpg, convert image',
   openGraph: {
-    title: 'Chuyển Đổi Định Dạng File PDF / Ảnh | VNDocs',
-    description: 'Tiện ích hỗ trợ chuyển đổi từ Hình ảnh sang PDF và xuất trang PDF thành Hình ảnh (JPG, PNG) miễn phí 100%.',
+    title: 'Chuyển Đổi Định Dạng Hình Ảnh | VNDocs',
+    description: 'Tiện ích hỗ trợ chuyển đổi đa định dạng hình ảnh (JPG, PNG, WEBP, BMP, GIF) nhanh chóng và miễn phí 100%.',
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
@@ -19,9 +19,9 @@ export default function ConvertToolPage() {
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Chuyển Đổi Định Dạng File</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Chuyển Đổi Hình Ảnh</h1>
         <p className="text-slate-500">
-          Tiện ích hỗ trợ chuyển đổi từ Hình ảnh sang PDF và xuất trang PDF thành Hình ảnh (JPG, PNG).
+          Tiện ích hỗ trợ chuyển đổi qua lại giữa các định dạng ảnh phổ biến (JPG, PNG, WEBP, BMP, GIF tĩnh).
         </p>
       </div>
 
