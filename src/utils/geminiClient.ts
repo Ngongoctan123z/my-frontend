@@ -59,7 +59,7 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
           throw err
         }
 
-        if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('safety') || msg.includes('blocked')) {
+        if (msg.includes('safety') || msg.includes('blocked')) {
           throw err
         }
 
@@ -69,6 +69,9 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
     }
   }
 
+  if (lastSignificantError) {
+    throw lastSignificantError
+  }
   throw new Error('MODEL_EXHAUSTED')
 }
 
