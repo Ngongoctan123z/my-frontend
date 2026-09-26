@@ -46,7 +46,7 @@ export function HomeClient() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
-  // Rotation logic for mobile 2x2 grid
+  // Rotation logic for mobile 2x2 grid (Absolute Positioning for smooth transition)
   const [rotationOffset, setRotationOffset] = useState(0)
   
   useEffect(() => {
@@ -57,74 +57,34 @@ export function HomeClient() {
     return () => clearInterval(mobileInterval)
   }, [])
 
-  const getMobileGrid = () => {
-    // Original A=0, B=1, C=2, D=3
-    const A = portalCategories[0]
-    const B = portalCategories[1]
-    const C = portalCategories[2]
-    const D = portalCategories[3]
-    
-    switch (rotationOffset) {
-      case 0: return [A, B, D, C] // TL:A, TR:B, BL:D, BR:C
-      case 1: return [D, A, C, B] // TL:D, TR:A, BL:C, BR:B
-      case 2: return [C, D, B, A] // TL:C, TR:D, BL:B, BR:A
-      case 3: return [B, C, A, D] // TL:B, TR:C, BL:A, BR:D
-      default: return [A, B, D, C]
-    }
-  }
+  // Absolute positioning classes for the 4 slots:
+  const posClasses = [
+    "top-0 left-0",                           // Slot 0 (TL)
+    "top-0 left-[calc(50%+6px)]",             // Slot 1 (TR)
+    "top-[calc(50%+6px)] left-[calc(50%+6px)]", // Slot 2 (BR)
+    "top-[calc(50%+6px)] left-0"              // Slot 3 (BL)
+  ]
 
-  // Infinite carousel logic for portal categories (Desktop)
-  useEffect(() => {
-    const carousel = document.getElementById('portal-carousel')
-    if (!carousel) return
-    
-    let isMoving = false
-    
-    const interval = setInterval(() => {
-      if (window.innerWidth < 768) return // Pause on mobile
-      if (isMoving) return
-      isMoving = true
-      
-      const firstChild = carousel.firstElementChild as HTMLElement
-      if (!firstChild) return
-      
-      // Determine gap based on screen size (md:gap-4 = 16px)
-      const gap = 16
-      const slideAmount = firstChild.offsetWidth + gap
-      
-      // Apply slide and fade out animations
-      carousel.style.transition = 'transform 600ms cubic-bezier(0.4, 0, 0.2, 1)'
-      carousel.style.transform = `translateX(-${slideAmount}px)`
-      
-      firstChild.style.transition = 'opacity 500ms ease, transform 500ms ease'
-      firstChild.style.opacity = '0'
-      firstChild.style.transform = 'scale(0.95)'
-      
-      // After animation completes, reset positions silently
-      setTimeout(() => {
-        carousel.style.transition = 'none'
-        carousel.style.transform = 'translateX(0)'
-        
-        firstChild.style.transition = 'none'
-        firstChild.style.opacity = '1'
-        firstChild.style.transform = 'scale(1)'
-        
-        // Move the DOM node to the end
-        carousel.appendChild(firstChild)
-        
-        // Force a browser reflow so transition="none" is applied before next loop
-        void carousel.offsetWidth
-        
-        isMoving = false
-      }, 600)
-      
-    }, 3000)
-    
-    return () => clearInterval(interval)
-  }, [])
+  const getPosClass = (itemIndex: number) => {
+    const basePos = [0, 1, 3, 2][itemIndex]
+    const currentPos = (basePos + rotationOffset) % 4
+    return posClasses[currentPos]
+  }
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(calc(-50% - 0.5rem)); }
+        }
+        .animate-marquee {
+          animation: marquee 15s linear infinite;
+        }
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}} />
       {/* Hero */}
       <section className="relative w-full bg-white border-b border-gray-100 overflow-hidden">
         <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 flex flex-col md:flex-row items-center gap-6 md:gap-10">
@@ -171,42 +131,42 @@ export function HomeClient() {
       <section className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12 overflow-hidden">
         <h2 className="sr-only">Các công cụ và tính năng chính</h2>
         
-        <div className="relative">
-          {/* Mobile Grid: 2x2 with clockwise order that rotates */}
-          <div className="grid grid-cols-2 gap-3 md:hidden">
-            {getMobileGrid().map((cat, idx) => (
-              <div 
-                key={`${cat.title}-mobile-grid`} 
-                className="transition-all duration-500 ease-in-out"
+        {/* Mobile Rotating 2x2 Grid */}
+        <div className="relative w-full aspect-[4/3] sm:aspect-[3/2] md:hidden">
+          {portalCategories.map((cat, idx) => (
+            <div 
+              key={`${cat.title}-mobile`} 
+              className={`absolute w-[calc(50%-6px)] h-[calc(50%-6px)] transition-all duration-700 ease-in-out ${getPosClass(idx)}`}
+            >
+              <Link
+                href={cat.href}
+                prefetch={false}
+                className="group relative flex flex-col h-full p-4 rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:shadow-lg hover:border-blue-400 active:bg-gray-50"
               >
-                <Link
-                  href={cat.href}
-                  prefetch={false}
-                  className="group relative flex flex-col h-full p-4 rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:shadow-lg hover:border-blue-400 active:bg-gray-50"
-                >
-                  {cat.isNew && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold uppercase px-1.5 py-0.5 rounded badge-pulse">
-                      Mới
-                    </span>
-                  )}
-                  <div className={`mb-2 ${cat.color} group-hover:scale-110 transition-transform duration-300`}>
-                    {cat.icon}
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors leading-tight">{cat.title}</h3>
-                  <p className="text-slate-500 text-xs leading-snug line-clamp-2">
-                    {cat.description}
-                  </p>
-                </Link>
-              </div>
-            ))}
-          </div>
+                {cat.isNew && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold uppercase px-1.5 py-0.5 rounded badge-pulse">
+                    Mới
+                  </span>
+                )}
+                <div className={`mb-2 ${cat.color} group-hover:scale-110 transition-transform duration-300`}>
+                  {cat.icon}
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors leading-tight">{cat.title}</h3>
+                <p className="text-slate-500 text-xs leading-snug line-clamp-2">
+                  {cat.description}
+                </p>
+              </Link>
+            </div>
+          ))}
+        </div>
 
-          {/* Desktop Carousel */}
-          <div className="hidden md:flex gap-4 transition-transform duration-500 ease-in-out" id="portal-carousel">
-            {[...portalCategories, ...portalCategories, ...portalCategories].map((cat, idx) => (
+        {/* Desktop CSS Marquee (Robust and jitter-free on resize) */}
+        <div className="hidden md:block relative w-full">
+          <div className="flex gap-4 animate-marquee w-max">
+            {[...portalCategories, ...portalCategories].map((cat, idx) => (
               <div 
-                key={`${cat.title}-${idx}`} 
-                className="shrink-0 w-[calc(25%-0.75rem)]"
+                key={`${cat.title}-desktop-${idx}`} 
+                className="shrink-0 w-[240px] lg:w-[260px]"
               >
                 <Link
                   href={cat.href}
