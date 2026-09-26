@@ -1,45 +1,44 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const MODEL_CANDIDATES = [
-  'gemini-3.0-flash',
-  'gemini-3.1-flash-lite',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash'
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
 ]
 
-async function tryGenerateWithFallback(apiKey: string, prompt: string | any[], isJson: boolean = false): Promise<string> {
+async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
-  
-  while (true) {
-    for (const modelName of MODEL_CANDIDATES) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName })
-        const content = Array.isArray(prompt) ? prompt : [prompt]
-        const result = await model.generateContent(content)
-        const response = await result.response
-        return response.text()
-      } catch (err: any) {
-        const msg = (err.message || '').toLowerCase()
-        
-        // Critical errors that CANNOT be fixed by retrying (like a completely wrong/expired API key)
-        if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid')) {
-          throw err
-        }
-        
-        // For any other error (404 model not found, 503 server overloaded, quota, rate limit, blocked, safety, etc.)
-        // We just silently ignore it and continue to the next model.
-        continue
+  let lastSignificantError: any = null
+
+  for (const modelName of MODEL_CANDIDATES) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName })
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      return response.text()
+    } catch (err: any) {
+      const msg = (err.message || '').toLowerCase()
+
+      if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid')) {
+        throw err
       }
+
+      if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('safety') || msg.includes('blocked')) {
+        lastSignificantError = err
+      }
+
+      if (modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
+        throw lastSignificantError || err
+      }
+      continue
     }
-    
-    // If we've tried all models and NONE worked, wait 1.5 seconds and start the whole list again from the top!
-    await new Promise(resolve => setTimeout(resolve, 1500));
   }
+
+  throw new Error('MODEL_EXHAUSTED')
 }
 
 export async function callAiGraderClient(body: any, apiKey: string) {
   try {
-    const { action, type, prompt, essay, topic, level, vietnameseText, contextText, userTranslation, textToTranslate, direction, textToCheck, sourceLang, targetLang, style, imageBase64 } = body
+    const { action, type, prompt, essay, topic, level, vietnameseText, contextText, userTranslation, textToTranslate, direction, textToCheck } = body
 
     if (!apiKey) {
       throw new Error('Vui lòng nhập API Key Gemini để sử dụng tính năng này.')
@@ -151,22 +150,16 @@ Be very strict. Write all feedback in Vietnamese.
         throw new Error('Thiếu thông tin chủ đề hoặc trình độ.')
       }
 
-      const randomSeed = Math.floor(Math.random() * 1000000);
       const systemPrompt = `
-You are an expert language teacher and highly creative writer. (Random Seed: ${randomSeed})
-Generate ONE completely NEW, UNIQUE, and HIGHLY CREATIVE Vietnamese sentence (and its short context) for a student to practice translating into English at CEFR level ${level}.
+You are an expert language teacher. 
+Generate ONE random Vietnamese sentence (and its short context) for a student to practice translating into English at CEFR level ${level}.
 Topic: ${topic}.
-
-Critical Rules for Generation:
-1. AVOID standard, cliché, or repetitive examples. Be extremely diverse in your situations (e.g., dramatic, humorous, suspenseful, emotional, very specific daily life scenarios).
-2. The sentence MUST be highly natural in Vietnamese, using idioms, slang, or common expressions if appropriate for ${level} level.
-3. The vocabulary and grammar structure should specifically challenge a student at the ${level} level.
-4. The context MUST clearly explain who is speaking, to whom, and the exact mood/situation.
+The sentence should be natural in Vietnamese and appropriate for someone learning English at ${level} level.
 
 Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
 {
-  "vietnameseText": "Một câu tiếng Việt vô cùng tự nhiên, độc đáo và phong phú liên quan đến chủ đề.",
-  "context": "Ngữ cảnh cực kỳ cụ thể (VD: Một người vợ đang tức giận nói với chồng trong bếp, CEO đang phát biểu căng thẳng, Hai người bạn đang đùa giỡn ở quán cà phê, ...)"
+  "vietnameseText": "Một câu tiếng Việt tự nhiên liên quan đến chủ đề.",
+  "context": "Ngữ cảnh ngắn gọn (VD: Nói với bạn bè, Trong cuộc họp, ...)"
 }
 `
       const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
@@ -219,55 +212,30 @@ Return ONLY valid JSON (no markdown, no backticks):
     }
 
     if (action === 'translate') {
-      if (!textToTranslate && !imageBase64) {
-        throw new Error('Thiếu nội dung hoặc hình ảnh cần dịch.')
+      if (!textToTranslate) {
+        throw new Error('Thiếu nội dung cần dịch.')
       }
 
-      let styleInstruction = ''
-      if (style === 'document') {
-        styleInstruction = 'Phong cách dịch: Dịch TÀI LIỆU. Yêu cầu văn phong chính xác, học thuật, chuyên nghiệp, sát nghĩa và giữ nguyên form/bố cục của văn bản gốc.'
-      } else if (style === 'story') {
-        styleInstruction = 'Phong cách dịch: Dịch TRUYỆN/TIỂU THUYẾT. Yêu cầu văn phong bay bổng, mềm mại, giàu cảm xúc, đậm chất văn học và dễ chạm đến người đọc.'
-      } else if (style === 'casual') {
-        styleInstruction = 'Phong cách dịch: Dịch ĐỜI THƯỜNG / MẠNG XÃ HỘI. Yêu cầu văn phong tự nhiên, gần gũi, thoải mái. Có thể dùng ngôn ngữ mạng, tiếng lóng (slang), hoặc phong cách Gen Z sao cho dễ hiểu và "mặn mòi" nhất.'
-      } else {
-        styleInstruction = 'Phong cách dịch: Dịch CHUẨN. Tự nhiên và chính xác.'
-      }
+      const dirContext = direction === 'en-vi' ? 'English to Vietnamese' : 'Vietnamese to English'
 
       const systemPrompt = `
 You are a professional translator and linguist. 
-Translate from ${sourceLang || 'English'} to ${targetLang || 'Tiếng Việt'}.
+Translate the following text from ${dirContext}.
 
-${styleInstruction}
-
-${textToTranslate ? `TEXT TO TRANSLATE:\n"${textToTranslate}"\n` : `PLEASE TRANSLATE THE TEXT IN THE PROVIDED IMAGE.`}
+TEXT TO TRANSLATE:
+"${textToTranslate}"
 
 Analyze and provide the translation strictly in JSON format (no markdown):
 {
-  "translatedText": "The direct translation based on the requested style",
-  "nuances": "Explanation of cultural/linguistic nuances (in Vietnamese)",
+  "translatedText": "The direct translation",
+  "nuances": "Explanation of cultural/linguistic nuances in Vietnamese",
   "alternativeTranslations": ["Alternative 1", "Alternative 2"],
   "vocabulary": [
     { "word": "word", "meaning": "meaning", "example": "example usage" }
   ]
 }
 `
-      let promptParts: any[] = [systemPrompt]
-
-      if (imageBase64) {
-        const mimeTypeMatch = imageBase64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)
-        const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg'
-        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '')
-        
-        promptParts.push({
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType
-          }
-        })
-      }
-
-      const text = await tryGenerateWithFallback(apiKey, promptParts, true)
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
       try {
         const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
         return JSON.parse(cleanedText)
@@ -324,7 +292,7 @@ Provide your feedback strictly in JSON format (no markdown):
     if (msg.includes('safety') || msg.includes('blocked') || msg.includes('harm')) {
       throw new Error('Nội dung bị từ chối do vi phạm chính sách an toàn của Google.')
     }
-    
+
     console.error('[AI-Grader Client] Unhandled error:', error.message)
     throw new Error(`Hệ thống AI đang bận hoặc gặp sự cố: ${error.message}`)
   }

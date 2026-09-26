@@ -4,16 +4,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 
 const MODEL_CANDIDATES = [
-  'gemini-3.0-flash',
-  'gemini-3.1-flash-lite',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash'
+  'gemini-3.8-flash',
+  'gemini-3.5-flash',
 ]
 
 async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey)
   let lastSignificantError: any = null
-  
+
   for (const modelName of MODEL_CANDIDATES) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName })
@@ -22,12 +20,12 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
       return response.text()
     } catch (err: any) {
       const msg = (err.message || '').toLowerCase()
-      
+
       // Nếu API Key sai hoàn toàn thì dừng luôn
       if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid')) {
         throw err
       }
-      
+
       // Lưu lại các lỗi quan trọng (như Quota hoặc blocked) để hiển thị cho user nếu tất cả model đều xịt,
       // thay vì hiển thị lỗi "404 Not found" của những model thử nghiệm cuối cùng.
       if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('safety') || msg.includes('blocked')) {
@@ -40,7 +38,7 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
       continue
     }
   }
-  
+
   throw new Error('MODEL_EXHAUSTED')
 }
 
@@ -174,22 +172,16 @@ Be very strict. Write all feedback in Vietnamese.
         return NextResponse.json({ error: 'Thiếu thông tin chủ đề hoặc trình độ.' }, { status: 400 })
       }
 
-      const randomSeed = Math.floor(Math.random() * 1000000);
       const systemPrompt = `
-You are an expert language teacher and highly creative writer. (Random Seed: ${randomSeed})
-Generate ONE completely NEW, UNIQUE, and HIGHLY CREATIVE Vietnamese sentence (and its short context) for a student to practice translating into English at CEFR level ${level}.
+You are an expert language teacher. 
+Generate ONE random Vietnamese sentence (and its short context) for a student to practice translating into English at CEFR level ${level}.
 Topic: ${topic}.
-
-Critical Rules for Generation:
-1. AVOID standard, cliché, or repetitive examples. Be extremely diverse in your situations (e.g., dramatic, humorous, suspenseful, emotional, very specific daily life scenarios).
-2. The sentence MUST be highly natural in Vietnamese, using idioms, slang, or common expressions if appropriate for ${level} level.
-3. The vocabulary and grammar structure should specifically challenge a student at the ${level} level.
-4. The context MUST clearly explain who is speaking, to whom, and the exact mood/situation.
+The sentence should be natural in Vietnamese and appropriate for someone learning English at ${level} level.
 
 Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
 {
-  "vietnameseText": "Một câu tiếng Việt vô cùng tự nhiên, độc đáo và phong phú liên quan đến chủ đề.",
-  "context": "Ngữ cảnh cực kỳ cụ thể (VD: Một người vợ đang tức giận nói với chồng trong bếp, CEO đang phát biểu căng thẳng, Hai người bạn đang đùa giỡn ở quán cà phê, ...)"
+  "vietnameseText": "Một câu tiếng Việt tự nhiên liên quan đến chủ đề.",
+  "context": "Ngữ cảnh ngắn gọn (VD: Nói với bạn bè, Trong cuộc họp, ...)"
 }
 `
       const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
@@ -259,7 +251,7 @@ Return ONLY valid JSON (no markdown, no backticks):
       }
 
       const dirContext = direction === 'en-vi' ? 'English to Vietnamese' : 'Vietnamese to English'
-      
+
       const systemPrompt = `
 You are a professional translator and linguist. 
 Translate the following text from ${dirContext}.
