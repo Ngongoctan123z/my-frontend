@@ -28,30 +28,28 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
   const genAI = new GoogleGenerativeAI(apiKey)
   let lastSignificantError: any = null
 
-  for (const modelName of MODEL_CANDIDATES) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName })
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      return response.text()
-    } catch (err: any) {
-      const msg = (err.message || '').toLowerCase()
+  const MAX_RETRIES = 2; // Lặp lại toàn bộ danh sách tối đa 2 vòng
+  for (let loop = 0; loop < MAX_RETRIES; loop++) {
+    for (const modelName of MODEL_CANDIDATES) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName })
+        const result = await model.generateContent(prompt)
+        const response = await result.response
+        return response.text()
+      } catch (err: any) {
+        const msg = (err.message || '').toLowerCase()
 
-      // Nếu API Key sai hoàn toàn thì dừng luôn
-      if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid')) {
-        throw err
-      }
+        // Các lỗi nghiêm trọng liên quan đến cấu hình/tiền bạc thì dừng luôn, không cần thử lại
+        if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid') ||
+            msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') ||
+            msg.includes('safety') || msg.includes('blocked')) {
+          throw err
+        }
 
-      // Lưu lại các lỗi quan trọng (như Quota hoặc blocked) để hiển thị cho user nếu tất cả model đều xịt,
-      // thay vì hiển thị lỗi "404 Not found" của những model thử nghiệm cuối cùng.
-      if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('safety') || msg.includes('blocked')) {
+        // Lỗi hệ thống tạm thời (timeout, 500, model sập) thì ghi nhận và cho phép thử model tiếp theo
         lastSignificantError = err
+        continue
       }
-
-      if (modelName === MODEL_CANDIDATES[MODEL_CANDIDATES.length - 1]) {
-        throw lastSignificantError || err
-      }
-      continue
     }
   }
 
@@ -386,10 +384,10 @@ Provide your feedback strictly in JSON format (no markdown):
       )
     }
 
-    // Lỗi chung - trả raw error ra để debug
+    // Lỗi chung - Không trả raw error (code) ra cho user thấy, chỉ log ở server
     console.error('[AI-Grader] Unhandled error:', error.message)
     return NextResponse.json(
-      { error: `Hệ thống AI đang bận hoặc gặp sự cố: ${error.message}` },
+      { error: 'Hệ thống máy chủ AI đang gặp sự cố tạm thời hoặc bảo trì. Vui lòng thử lại sau ít phút.' },
       { status: 500 }
     )
   }
