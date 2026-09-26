@@ -232,26 +232,32 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
       </div>
 
       <div className="mb-4">
-        {exam.seoStructure ? (
-          <details className="group rounded-lg border border-line bg-surface overflow-hidden">
-            <summary className="flex items-center justify-between px-3 py-2 cursor-pointer select-none text-sm font-semibold text-ink hover:bg-page transition-colors list-none">
-              <span>Cấu trúc đề thi</span>
-              <svg
-                className="w-4 h-4 text-ink-muted transition-transform duration-200 group-open:rotate-180"
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </summary>
-            <div className="px-3 pb-3 pt-2 text-sm text-ink border-t border-line">
-              <div dangerouslySetInnerHTML={{ __html: exam.seoStructure
-                .replace(/<\/?details[^>]*>/g, '')
-                .replace(/<\/?summary[^>]*>.*?<\/summary>/g, '')
-                .replace(/<strong[^>]*>(Câu\s+\w+[:.]?)<\/strong>/gi, '<span class="font-semibold">$1</span>')
-              }} />
-            </div>
-          </details>
-        ) : null}
+        {exam.seoStructure ? (() => {
+          const cleaned = exam.seoStructure
+            .replace(/<\/?details[^>]*>/g, '')
+            .replace(/<\/?summary[^>]*>.*?<\/summary>/gs, '')
+            .replace(/<strong[^>]*>(Câu\s+\w+[:.]?)<\/strong>/gi, '<span class="font-semibold">$1</span>')
+
+          // Tách phần cấu trúc và phần nội dung đề (AI cũ nhét cả 2 vào seoStructure)
+          const contentDivMatch = cleaned.match(/<h4[^>]*>Nội dung đề thi.*?<\/div>\s*<\/div>/s)
+          const structurePart = contentDivMatch
+            ? cleaned.slice(0, cleaned.indexOf(contentDivMatch[0]))
+            : cleaned
+
+          return (
+            <details className="group rounded-lg border border-line bg-surface overflow-hidden">
+              <summary className="flex items-center justify-between px-3 py-2 cursor-pointer select-none text-sm font-semibold text-ink hover:bg-page transition-colors list-none">
+                <span>Cấu trúc đề thi</span>
+                <svg className="w-4 h-4 text-ink-muted transition-transform duration-200 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
+              <div className="px-3 pb-3 pt-2 text-sm text-ink border-t border-line">
+                <div dangerouslySetInnerHTML={{ __html: structurePart }} />
+              </div>
+            </details>
+          )
+        })() : null}
       </div>
 
       <div ref={pdfRef} className="mb-6">
