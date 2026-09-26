@@ -4,8 +4,24 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 
 const MODEL_CANDIDATES = [
+  // Gemini 3.8 - mới nhất, GA
   'gemini-3.8-flash',
+
+  // Gemini 3.5 - GA, ổn định
   'gemini-3.5-flash',
+
+  // Gemini 3.1 - stable
+  'gemini-3.1-flash-lite',
+  'gemini-3.1-pro-preview',
+
+  // Gemini 3 - vẫn còn preview, docs mặc định dùng cái này
+  'gemini-3-flash-preview',
+
+  // Gemini 2.5 - stable, có free tier + free Google Search grounding
+  // ⚠️ SẼ BỊ TẮT 16/10/2026 - còn chưa tới 3 tuần nữa!
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-pro',
 ]
 
 async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
@@ -172,16 +188,22 @@ Be very strict. Write all feedback in Vietnamese.
         return NextResponse.json({ error: 'Thiếu thông tin chủ đề hoặc trình độ.' }, { status: 400 })
       }
 
+      const randomSeed = Math.floor(Math.random() * 9999999);
       const systemPrompt = `
-You are an expert language teacher. 
-Generate ONE random Vietnamese sentence (and its short context) for a student to practice translating into English at CEFR level ${level}.
-Topic: ${topic}.
-The sentence should be natural in Vietnamese and appropriate for someone learning English at ${level} level.
+Bạn là một chuyên gia ngôn ngữ học và giáo viên tiếng Anh xuất sắc. (Random Seed: ${randomSeed})
+Hãy tạo ra MỘT câu tiếng Việt duy nhất (kèm theo ngữ cảnh ngắn gọn) để học sinh luyện dịch sang tiếng Anh ở trình độ CEFR ${level}.
+Chủ đề: ${topic}.
+
+YÊU CẦU QUAN TRỌNG:
+1. Đa dạng hóa tình huống: Hãy tưởng tượng các tình huống vô cùng phong phú trong đời sống thực tế tại Việt Nam (công sở, trường học, gia đình, thời sự, khoa học...). Không lặp lại các lối mòn nhàm chán.
+2. Văn phong chuẩn Việt: Câu tiếng Việt phải hoàn toàn tự nhiên, đúng ngữ pháp và cách diễn đạt của người Việt Nam. KHÔNG dịch word-by-word từ tiếng Anh sang tiếng Việt. KHÔNG cố nhồi nhét từ lóng (slang) không cần thiết.
+3. Độ khó phù hợp: Từ vựng và cấu trúc ngữ pháp cần dịch sang tiếng Anh phải tương xứng với trình độ ${level}.
+4. Ngữ cảnh rõ ràng: Chỉ ra ai đang nói, với ai, hoặc diễn ra trong hoàn cảnh cụ thể nào để học sinh chọn từ vựng tiếng Anh cho đúng sắc thái (trang trọng hay thân mật).
 
 Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
 {
-  "vietnameseText": "Một câu tiếng Việt tự nhiên liên quan đến chủ đề.",
-  "context": "Ngữ cảnh ngắn gọn (VD: Nói với bạn bè, Trong cuộc họp, ...)"
+  "vietnameseText": "Câu tiếng Việt tự nhiên, đa dạng liên quan đến chủ đề.",
+  "context": "Ngữ cảnh cụ thể (Ví dụ: Trong một cuộc họp ban giám đốc bàn về doanh thu, Một thông báo của nhà trường, Hai đồng nghiệp đang bàn về dự án mới, ...)"
 }
 `
       const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
@@ -205,28 +227,29 @@ Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
       }
 
       const systemPrompt = `
-You are a very strict English teacher grading a student's translation/paraphrase from Vietnamese to English.
-Level target: CEFR ${level}.
-Vietnamese sentence to translate: "${vietnameseText}"
-Context: "${contextText}"
-Student's English sentence: "${userTranslation}"
+Bạn là một chuyên gia ngôn ngữ và giám khảo chấm thi tiếng Anh quốc tế cực kỳ chuyên nghiệp và chuẩn xác.
+Nhiệm vụ của bạn là đánh giá câu dịch của học sinh từ tiếng Việt sang tiếng Anh.
+Trình độ mục tiêu: CEFR ${level}.
+Câu tiếng Việt gốc: "${vietnameseText}"
+Ngữ cảnh: "${contextText}"
+Câu dịch của học sinh: "${userTranslation}"
 
-Evaluate the student's translation strictly based on:
-1. Accuracy (meaning preservation).
-2. Naturalness and flow (is it idiomatic?).
-3. Grammatical correctness.
-4. Appropriateness for the target CEFR level (${level}).
+Hãy chấm điểm (trên thang điểm 10) và nhận xét câu dịch của học sinh dựa trên các tiêu chí sau:
+1. Accuracy (Độ chính xác về ý nghĩa): Học sinh có truyền tải đúng và đủ ý của câu gốc không?
+2. Grammar & Vocabulary (Ngữ pháp & Từ vựng): Có sai sót ngữ pháp nào không? Có sử dụng từ vựng chính xác trong ngữ cảnh không?
+3. Naturalness (Độ tự nhiên): Câu dịch có giống cách người bản xứ nói/viết không, hay bị dịch word-by-word?
+4. Sắc thái (Register/Tone): Có phù hợp với ngữ cảnh đã cho không? Trình độ từ vựng có tương xứng với mức ${level} không?
 
 Return ONLY valid JSON (no markdown, no backticks):
 {
-  "score": 7.5, // out of 10
-  "feedback": "Strict feedback in Vietnamese analyzing grammar, vocabulary, and meaning.",
+  "score": 8.5,
+  "feedback": "Nhận xét chuyên sâu, phân tích rõ ràng và chuyên nghiệp bằng tiếng Việt. Chỉ ra điểm tốt và điểm cần cải thiện.",
   "corrections": [
-    { "original": "wrong part", "corrected": "better part", "explanation": "reason in Vietnamese" }
+    { "original": "cụm từ sai hoặc chưa hay của học sinh", "corrected": "cụm từ đúng", "explanation": "Giải thích chi tiết tại sao lại sửa như vậy" }
   ],
   "betterAlternatives": [
-    "Alternative way to say it naturally 1",
-    "Alternative way to say it naturally 2"
+    "Một câu gợi ý dịch hoàn toàn tự nhiên, chuẩn bản xứ (cách 1)",
+    "Một câu gợi ý dịch theo cấu trúc hoặc từ vựng cao cấp hơn phù hợp với trình độ ${level} (cách 2)"
   ]
 }
 `
