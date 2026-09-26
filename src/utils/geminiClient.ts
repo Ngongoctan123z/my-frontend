@@ -252,12 +252,17 @@ Return ONLY valid JSON (no markdown, no backticks):
 
       const systemPrompt = `Translate the following text.
 If it is in Vietnamese, translate it to English. If it is in English, translate it to Vietnamese.
-If the original text has spelling or grammatical errors, provide the corrected version in the original language.
+
+CRITICAL RULES FOR "correctedOriginalText":
+1. ONLY provide corrections if the original text is in ENGLISH and has MAJOR grammatical errors.
+2. DO NOT correct Vietnamese text. NEVER return corrections for Vietnamese.
+3. DO NOT correct minor English errors (like missing periods or lowercase first letters).
+4. If no major English errors are found, set "correctedOriginalText" to null.
 
 JSON only format:
 {
   "detectedLanguage": "Tiếng Việt" | "English",
-  "correctedOriginalText": "...", 
+  "correctedOriginalText": "..." | null, 
   "translatedText": "...",
   "vocabulary": [{"word": "...", "meaning": "..."}]
 }

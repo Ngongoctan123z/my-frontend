@@ -107,9 +107,9 @@ export function TranslateClient() {
                   <p className="text-lg text-white font-medium leading-relaxed">{result.translatedText}</p>
                 </div>
 
-                {result.correctedOriginalText && result.correctedOriginalText !== text.trim() && (
+                {result.correctedOriginalText && result.correctedOriginalText.toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '') !== text.toLowerCase().replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/g, '') && (
                   <div className="bg-rose-950/30 border border-rose-900/50 p-4 rounded-lg">
-                    <h4 className="font-bold text-rose-400 mb-1 text-sm">Phát hiện lỗi sai trong bản gốc:</h4>
+                    <h4 className="font-bold text-rose-400 mb-1 text-sm">Phát hiện lỗi ngữ pháp trong bản gốc:</h4>
                     <p className="text-sm text-slate-300 line-through opacity-70">{text}</p>
                     <p className="text-base text-rose-200 mt-1 font-medium">{result.correctedOriginalText}</p>
                   </div>
