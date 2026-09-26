@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 import { useAiKey } from '@/src/contexts/AiContext'
 
@@ -16,9 +16,34 @@ export function AiGraderClient() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
 
+  const promptQueue = useRef<string[]>([])
+  const isFetchingQueue = useRef(false)
+  const currentExamType = useRef<ExamType>('IELTS_TASK_2')
+
+  useEffect(() => {
+    promptQueue.current = []
+    isFetchingQueue.current = false
+    currentExamType.current = examType
+  }, [examType])
+
   const callApi = async (body: object) => {
     const { callAiGraderClient } = await import('@/src/utils/geminiClient')
     return await callAiGraderClient(body, apiKey.trim())
+  }
+
+  const fetchPromptsBatch = async (type: ExamType) => {
+    if (isFetchingQueue.current) return
+    isFetchingQueue.current = true
+    try {
+      const data = await callApi({ action: 'generate_prompt_batch', type })
+      if (currentExamType.current === type) {
+        promptQueue.current = [...promptQueue.current, ...data.prompts]
+      }
+    } catch (err) {
+      console.error("Background fetch failed:", err)
+    } finally {
+      isFetchingQueue.current = false
+    }
   }
 
   const generatePrompt = async () => {
@@ -27,18 +52,30 @@ export function AiGraderClient() {
       return
     }
 
-    setIsGenerating(true)
     setError(null)
     setResult(null)
     setEssay('')
 
-    try {
-      const data = await callApi({ action: 'generate_prompt', type: examType })
-      setPrompt(data.text)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
+    if (promptQueue.current.length === 0) {
+      setIsGenerating(true)
+      try {
+        const data = await callApi({ action: 'generate_prompt_batch', type: examType })
+        promptQueue.current = data.prompts
+      } catch (err: any) {
+        setError(err.message)
+        setIsGenerating(false)
+        return
+      }
       setIsGenerating(false)
+    }
+
+    const nextPrompt = promptQueue.current.shift()
+    if (nextPrompt) {
+      setPrompt(nextPrompt)
+    }
+
+    if (promptQueue.current.length <= 1 && !isFetchingQueue.current) {
+      fetchPromptsBatch(examType)
     }
   }
 

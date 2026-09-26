@@ -1,14 +1,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const MODEL_CANDIDATES = [
+  'gemini-3.8-pro',
   'gemini-3.8-flash',
+  'gemini-3.5-pro',
   'gemini-3.5-flash',
-  'gemini-3.1-flash-lite',
   'gemini-3.1-pro-preview',
+  'gemini-3.1-flash-lite',
+  'gemini-3-pro-preview',
   'gemini-3-flash-preview',
+  'gemini-2.5-pro',
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
-  'gemini-2.5-pro',
 ]
 
 async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
@@ -49,6 +52,26 @@ export async function callAiGraderClient(body: any, apiKey: string) {
 
     if (!apiKey) {
       throw new Error('Vui lòng nhập API Key Gemini để sử dụng tính năng này.')
+    }
+
+    if (action === 'generate_prompt_batch') {
+      let systemPrompt = ''
+      if (type === 'IELTS_TASK_2') {
+        systemPrompt = `You are an IELTS Academic exam writer. Generate 5 DIFFERENT random IELTS Writing Task 2 questions (choose randomly from: Discuss both views, To what extent do you agree, Problems and Solutions, or Advantages and Disadvantages). Return ONLY a valid JSON array of strings containing the questions, without markdown, without backticks. Example: ["question 1", "question 2", "question 3", "question 4", "question 5"]`
+      } else if (type === 'TOEIC_ESSAY') {
+        systemPrompt = `You are a TOEIC Writing exam writer. Generate 5 DIFFERENT random TOEIC Writing Question 8 (Opinion Essay) questions. Return ONLY a valid JSON array of strings containing the questions, without markdown, without backticks. Example: ["question 1", "question 2", "question 3", "question 4", "question 5"]`
+      } else {
+        throw new Error('Loại đề thi không hợp lệ.')
+      }
+      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
+      try {
+        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
+        const parsed = JSON.parse(cleanedText)
+        if (!Array.isArray(parsed)) throw new Error('Not an array')
+        return { prompts: parsed }
+      } catch {
+        throw new Error('Kết quả trả về không đúng định dạng. Vui lòng thử lại.')
+      }
     }
 
     if (action === 'generate_prompt') {
