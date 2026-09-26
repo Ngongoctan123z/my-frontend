@@ -1,37 +1,147 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
-
+import { Facebook, Youtube, BookOpen, Sparkles, Shield, Mail } from 'lucide-react'
 
 export function Footer() {
   return (
-    <footer className="mt-12 w-full border-t border-line/40 bg-surface/30 backdrop-blur-sm transition-colors duration-300">
-      <div className="mx-auto max-w-7xl px-6 py-6 md:px-10">
-        <div className="flex flex-col items-center justify-between gap-6 md:flex-row md:items-start">
+    <footer className="w-full bg-slate-50 border-t border-slate-200 mt-16 pt-16 pb-8 transition-colors duration-300">
+      <div className="mx-auto max-w-7xl px-4 md:px-8">
+        
+        {/* Main Footer Content */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 mb-12">
           
-          {/* Brand & Copyright */}
-          <div className="flex flex-col items-center text-center md:items-start md:text-left">
-            <h3 className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-lg font-extrabold text-transparent">
-              VNDocs
-            </h3>
-            <p className="mt-1 text-sm text-ink-muted/80">
-              © {new Date().getFullYear()} Nền tảng chia sẻ đề thi trực tuyến. Hành trang vững bước cho tương lai.
+          {/* Brand & Description (Span 2 cols on lg) */}
+          <div className="lg:col-span-2 flex flex-col items-start text-left">
+            <Link href="/" className="inline-block mb-4">
+              <h3 className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-3xl font-black text-transparent tracking-tight">
+                VNDocs.net
+              </h3>
+            </Link>
+            <p className="text-slate-500 text-sm leading-relaxed mb-6 max-w-sm">
+              Nền tảng giáo dục trực tuyến hàng đầu cung cấp kho đề thi miễn phí, tài liệu học tập chuẩn xác và bộ công cụ AI thông minh giúp tối ưu hóa việc học và làm việc của bạn.
             </p>
+            <div className="flex items-center gap-4">
+              <a href="#" className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-600 hover:shadow-md transition-all">
+                <Facebook className="w-4 h-4" />
+              </a>
+              <a href="#" className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-red-500 hover:border-red-500 hover:shadow-md transition-all">
+                <Youtube className="w-4 h-4" />
+              </a>
+              <a href="#" className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:border-slate-900 hover:shadow-md transition-all">
+                <Mail className="w-4 h-4" />
+              </a>
+            </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="flex gap-6 text-sm font-medium">
-            <Link href="/" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
-              Trang chủ
-            </Link>
-            <Link href="/search" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
-              Tìm kiếm
-            </Link>
-            <Link href="/favorites" className="text-ink-muted transition-colors hover:text-[var(--color-primary)]">
-              Yêu thích
-            </Link>
+          {/* Column 2: Tài liệu */}
+          <div>
+            <h4 className="font-bold text-slate-800 mb-5 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-blue-600" /> Học Tập
+            </h4>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <Link href="/tai-lieu" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Đề thi vào lớp 10
+                </Link>
+              </li>
+              <li>
+                <Link href="/tai-lieu" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Đề thi THPT Quốc Gia
+                </Link>
+              </li>
+              <li>
+                <Link href="/tai-lieu" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Đề thi Giữa kì & Cuối kì
+                </Link>
+              </li>
+              <li>
+                <Link href="/tai-lieu" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Tài liệu Tiếng Anh chuyên sâu
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: Tiện ích */}
+          <div>
+            <h4 className="font-bold text-slate-800 mb-5 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-500" /> Tiện Ích & AI
+            </h4>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <Link href="/ai-grader" className="text-slate-500 hover:text-emerald-600 hover:translate-x-1 inline-block transition-all">
+                  Chấm Writing AI (IELTS/TOEIC)
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools/merge-files" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Công cụ gộp file PDF
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools/remove-pages" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Công cụ xóa trang PDF
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools/lock" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Đặt mật khẩu PDF bảo mật
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools/casio" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Máy tính Casio Online
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 4: Hỗ trợ */}
+          <div>
+            <h4 className="font-bold text-slate-800 mb-5 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-purple-500" /> Hỗ Trợ
+            </h4>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <Link href="#" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Về chúng tôi
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Điều khoản sử dụng
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Chính sách bảo mật
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-slate-500 hover:text-blue-600 hover:translate-x-1 inline-block transition-all">
+                  Liên hệ hợp tác
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-slate-500 text-sm text-center md:text-left">
+            © {new Date().getFullYear()} <span className="font-semibold text-slate-700">VNDocs</span>. All rights reserved. Hành trang vững bước cho tương lai.
+          </p>
+          <div className="flex gap-4 text-sm font-medium">
+            <Link href="/" className="text-slate-400 transition-colors hover:text-blue-600">Trang chủ</Link>
+            <span className="text-slate-300">•</span>
+            <Link href="/search" className="text-slate-400 transition-colors hover:text-blue-600">Tìm kiếm</Link>
+            <span className="text-slate-300">•</span>
+            <Link href="/favorites" className="text-slate-400 transition-colors hover:text-blue-600">Yêu thích</Link>
           </div>
         </div>
+
       </div>
     </footer>
   )
