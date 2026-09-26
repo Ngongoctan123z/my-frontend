@@ -258,7 +258,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
                 </div>
               </details>
               {noContentIdx >= 0 && isExamContent && (
-                <div className="mt-6">
+                <div className="mt-6 prose prose-sm max-w-none overflow-x-auto overflow-y-hidden break-words w-full">
                   <div dangerouslySetInnerHTML={{ __html: h4Content }} />
                 </div>
               )}
