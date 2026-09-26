@@ -252,21 +252,12 @@ Return ONLY valid JSON (no markdown, no backticks):
 
       const dirContext = direction === 'en-vi' ? 'English to Vietnamese' : 'Vietnamese to English'
 
-      const systemPrompt = `
-You are a professional translator and linguist. 
-Translate the following text from ${dirContext}.
-
-TEXT TO TRANSLATE:
-"${textToTranslate}"
-
-Analyze and provide the translation strictly in JSON format (no markdown):
+      const systemPrompt = `Translate ${dirContext}. JSON only:
+Text: "${textToTranslate}"
+Format:
 {
-  "translatedText": "The direct translation",
-  "nuances": "Explanation of cultural/linguistic nuances in Vietnamese",
-  "alternativeTranslations": ["Alternative 1", "Alternative 2"],
-  "vocabulary": [
-    { "word": "word", "meaning": "meaning", "example": "example usage" }
-  ]
+  "translatedText": "...",
+  "vocabulary": [{"word": "...", "meaning": "..."}]
 }
 `
       const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)

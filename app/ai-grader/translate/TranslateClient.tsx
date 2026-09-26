@@ -44,7 +44,7 @@ export function TranslateClient() {
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-line p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800">Dịch thuật & Phân tích chuyên sâu</h2>
+          <h2 className="text-lg font-bold text-slate-800">Dịch Nhanh & Trích Xuất Từ Vựng</h2>
           <button
             onClick={() => setDirection(d => d === 'en-vi' ? 'vi-en' : 'en-vi')}
             className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 transition-colors"
@@ -93,7 +93,7 @@ export function TranslateClient() {
             {isTranslating && (
               <div className="h-[200px] flex flex-col items-center justify-center text-blue-400 space-y-4">
                 <Loader2 size={40} className="animate-spin" />
-                <p className="text-sm animate-pulse">Đang dịch và phân tích ngữ cảnh...</p>
+                <p className="text-sm animate-pulse">Đang dịch siêu tốc...</p>
               </div>
             )}
 
@@ -104,24 +104,6 @@ export function TranslateClient() {
                   <p className="text-lg text-white font-medium leading-relaxed">{result.translatedText}</p>
                 </div>
 
-                {result.nuances && (
-                  <div className="text-sm text-slate-300">
-                    <span className="font-bold text-amber-400">💡 Lưu ý ngữ cảnh: </span>
-                    {result.nuances}
-                  </div>
-                )}
-
-                {result.alternativeTranslations?.length > 0 && (
-                  <div className="space-y-2">
-                    <h5 className="font-bold text-sm text-slate-400">Cách dịch khác:</h5>
-                    <ul className="list-disc pl-5 text-sm text-slate-300 space-y-1">
-                      {result.alternativeTranslations.map((alt: string, i: number) => (
-                        <li key={i}>{alt}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
                 {result.vocabulary?.length > 0 && (
                   <div className="space-y-3">
                     <h5 className="font-bold text-sm text-blue-400">Từ vựng đáng chú ý:</h5>
@@ -129,7 +111,6 @@ export function TranslateClient() {
                       {result.vocabulary.map((v: any, i: number) => (
                         <div key={i} className="bg-slate-800/50 p-3 rounded border border-slate-700 text-sm">
                           <span className="font-bold text-rose-400">{v.word}</span>: <span className="text-slate-300">{v.meaning}</span>
-                          <div className="text-xs text-slate-400 italic mt-1">VD: {v.example}</div>
                         </div>
                       ))}
                     </div>

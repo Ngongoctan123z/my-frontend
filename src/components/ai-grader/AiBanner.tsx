@@ -14,7 +14,7 @@ export function AiBanner() {
   const links = [
     { href: '/ai-grader', label: 'Chấm Writing', icon: <PenTool size={14} /> },
     { href: '/ai-grader/paraphrase', label: 'Diễn Đạt Lại Câu', icon: <RefreshCw size={14} /> },
-    { href: '/ai-grader/translate', label: 'Dịch Chuyên Sâu', icon: <Languages size={14} /> },
+    { href: '/ai-grader/translate', label: 'Dịch Nhanh', icon: <Languages size={14} /> },
     { href: '/ai-grader/grammar', label: 'Soi Lỗi Gắt', icon: <SearchCode size={14} /> },
   ]
 
