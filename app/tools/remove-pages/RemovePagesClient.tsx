@@ -10,7 +10,7 @@ import 'react-pdf/dist/Page/TextLayer.css'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
-type FileFormat = 'pdf' | 'docx' | 'pptx'
+type FileFormat = 'pdf' | 'pptx'
 
 export default function RemovePagesClient() {
   const [format, setFormat] = useState<FileFormat>('pdf')
@@ -83,7 +83,6 @@ export default function RemovePagesClient() {
 
   const getFormatLabel = () => {
     if (format === 'pdf') return '.PDF'
-    if (format === 'docx') return '.DOCX'
     if (format === 'pptx') return '.PPTX'
     return ''
   }
@@ -101,7 +100,6 @@ export default function RemovePagesClient() {
           className="bg-page border border-line rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
         >
           <option value="pdf">Tài liệu PDF (.pdf)</option>
-          <option value="docx">Word (.docx)</option>
           <option value="pptx">PowerPoint (.pptx)</option>
         </select>
       </div>
@@ -120,7 +118,7 @@ export default function RemovePagesClient() {
           >
             <input 
               type="file" 
-              accept={format === 'pdf' ? '.pdf' : format === 'docx' ? '.docx' : '.pptx'}
+              accept={format === 'pdf' ? '.pdf' : '.pptx'}
               className="hidden" 
               ref={fileInputRef}
               onChange={handleSingleFileChange}
