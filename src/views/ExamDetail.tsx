@@ -137,7 +137,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
 
   const renderContent = (htmlContent: string, title: string) => {
     return (
-      <div className="prose max-w-none rounded-2xl border border-line bg-surface p-6 md:p-10">
+      <div className="prose prose-sm max-w-none rounded-xl border border-line bg-surface p-4 md:p-6 text-sm leading-relaxed">
         <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
       </div>
     )
@@ -211,33 +211,32 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
           { label: String(yearNumber) },
         ]}
       />
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold md:text-4xl">{title}</h1>
-          <p className="mt-2 text-ink-muted text-base">
+          <h1 className="text-xl font-bold md:text-2xl leading-tight">{title}</h1>
+          <p className="mt-1 text-ink-muted text-xs">
             Mã đề: <span className="font-mono text-[var(--color-primary)]">{exam.examCode}</span> · {formatNumber(exam.downloadCount)} lượt tải · {formatNumber(exam.viewCount)} lượt xem
           </p>
         </div>
-
       </div>
 
-      <div className="mb-8">
-        <h2 className="mb-4 text-2xl font-bold tracking-tight">Cấu trúc đề thi</h2>
+      <div className="mb-4">
+        <h2 className="mb-2 text-base font-semibold text-ink">Cấu trúc đề thi</h2>
         {exam.seoStructure ? (
-          <div className="p-4 rounded-xl border border-line bg-surface text-ink">
+          <div className="p-3 rounded-lg border border-line bg-surface text-ink text-sm">
             <div dangerouslySetInnerHTML={{ __html: exam.seoStructure
               .replace(/<\/?details[^>]*>/g, '')
               .replace(/<\/?summary[^>]*>.*?<\/summary>/g, '')
-              .replace(/<strong[^>]*>(Câu\s+\w+[:.]?)<\/strong>/gi, '<h3 class="text-lg font-bold mt-6 mb-2">$1</h3>') 
+              .replace(/<strong[^>]*>(Câu\s+\w+[:.]?)<\/strong>/gi, '<span class="font-semibold">$1</span>') 
             }} />
           </div>
         ) : (
-          <p className="text-ink-muted italic">Đang cập nhật cấu trúc đề thi...</p>
+          <p className="text-ink-muted italic text-sm">Đang cập nhật cấu trúc đề thi...</p>
         )}
       </div>
 
-      <div ref={pdfRef} className="mb-10">
-        <h2 className="mb-4 text-2xl font-bold tracking-tight">Đề thi dạng PDF</h2>
+      <div ref={pdfRef} className="mb-6">
+        <h2 className="mb-3 text-base font-semibold text-ink">Đề thi dạng PDF</h2>
         {exam.contentHtml ? renderContent(exam.contentHtml, "Đề thi") : renderFileViewer(exam.fileUrl, exam.title || exam.examCode)}
         {!exam.contentHtml && exam.plainText && (
           <div className="sr-only">
