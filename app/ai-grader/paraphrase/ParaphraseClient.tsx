@@ -106,9 +106,7 @@ export function ParaphraseClient() {
 
   // Load câu đầu tiên
   useEffect(() => {
-    if (topics.length > 0) {
-      fetchPrompt()
-    }
+    // �? tr?ng
   }, [topics]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
