@@ -26,10 +26,6 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
-  icons: {
-    icon: '/logo.jpg',
-    apple: '/logo.jpg',
-  },
   robots: {
     index: true,
     follow: true,
