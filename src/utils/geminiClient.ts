@@ -121,73 +121,48 @@ export async function callAiGraderClient(body: any, apiKey: string) {
       let systemPrompt = ''
 
       if (type === 'IELTS_TASK_2') {
-        systemPrompt = `
-You are a strict IELTS Writing Task 2 examiner. Grade the following essay.
-
-PROMPT:
-${prompt}
-
-ESSAY:
-${essay}
-
-Grade strictly using these 4 IELTS criteria:
-1. Task Response (TR)
-2. Coherence and Cohesion (CC)
-3. Lexical Resource (LR)
-4. Grammatical Range and Accuracy (GRA)
-
-Each criterion is scored from 0 to 9 in 0.5 increments. The overall band is the average rounded to nearest 0.5.
-
-Return ONLY valid JSON (no markdown, no backticks):
+        systemPrompt = `You are a ruthlessly strict IELTS examiner. Grade this Task 2 essay.
+Prompt: ${prompt}
+Essay: ${essay}
+Rule 1: Under 250 words -> max TR 5.0. Off-topic/memorized -> max TR 3.0.
+Rule 2: Poor paragraphing/linking -> max CC 5.0.
+Rule 3: Basic/repetitive vocab -> max LR 5.0.
+Rule 4: Frequent grammar errors impeding meaning -> max GRA 5.0.
+Grade strictly on 4 criteria (0-9). Output JSON only (all feedback in Vietnamese, concise & direct):
 {
-  "overallBand": 6.5,
+  "overallBand": 5.5,
   "criteria": {
-    "taskResponse": { "score": 6.5, "feedback": "..." },
-    "coherence": { "score": 6.0, "feedback": "..." },
-    "lexical": { "score": 7.0, "feedback": "..." },
-    "grammar": { "score": 6.5, "feedback": "..." }
+    "taskResponse": { "score": 5.0, "feedback": "..." },
+    "coherence": { "score": 5.5, "feedback": "..." },
+    "lexical": { "score": 6.0, "feedback": "..." },
+    "grammar": { "score": 5.0, "feedback": "..." }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese...",
+  "detailedFeedback": "Nhận xét tổng quan ngắn gọn, đi thẳng vào trọng tâm.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "reason in Vietnamese" }
+    { "original": "sai", "corrected": "đúng", "explanation": "lý do ngắn gọn" }
   ]
-}
-Be very strict. Identify grammar errors, vocabulary issues, and logical flaws clearly. Write all feedback in Vietnamese.
-`
+}`
       } else if (type === 'TOEIC_ESSAY') {
-        systemPrompt = `
-You are a strict TOEIC Writing examiner grading an Opinion Essay (Question 8).
-
-PROMPT:
-${prompt}
-
-ESSAY:
-${essay}
-
-Grade using these 4 criteria on a scale of 0-5:
-1. Grammar
-2. Vocabulary
-3. Organization
-4. Reasons & Examples
-
-Then convert to a TOEIC Writing score (0-200).
-
-Return ONLY valid JSON (no markdown, no backticks):
+        systemPrompt = `You are a ruthlessly strict TOEIC examiner grading an Opinion Essay.
+Prompt: ${prompt}
+Essay: ${essay}
+Rule 1: Under 300 words -> max overall 3/5.
+Rule 2: Severe grammar/vocab errors blocking meaning -> max 2/5.
+Rule 3: No clear opinion or missing reasons -> max 2/5.
+Grade strictly on 4 criteria (0-5 scale). Convert overall to TOEIC score (0-200). Output JSON only (all feedback in Vietnamese, concise & direct):
 {
-  "overallBand": "4/5 (150/200)",
+  "overallBand": "3/5 (120/200)",
   "criteria": {
-    "taskResponse": { "score": 4, "feedback": "Organization feedback..." },
-    "coherence": { "score": 4, "feedback": "Reasons & Examples feedback..." },
-    "lexical": { "score": 3, "feedback": "Vocabulary feedback..." },
-    "grammar": { "score": 4, "feedback": "Grammar feedback..." }
+    "taskResponse": { "score": 3, "feedback": "..." },
+    "coherence": { "score": 3, "feedback": "..." },
+    "lexical": { "score": 3, "feedback": "..." },
+    "grammar": { "score": 2, "feedback": "..." }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese...",
+  "detailedFeedback": "Nhận xét tổng quan ngắn gọn, đi thẳng vào trọng tâm.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "reason in Vietnamese" }
+    { "original": "sai", "corrected": "đúng", "explanation": "lý do ngắn gọn" }
   ]
-}
-Be very strict. Write all feedback in Vietnamese.
-`
+}`
       } else {
         throw new Error('Loại đề thi không hợp lệ.')
       }
