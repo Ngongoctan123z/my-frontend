@@ -90,7 +90,19 @@ export default function MergeFilesClient() {
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4">
 
 
-      {/* No format selector needed, PDF only */}
+      <div className="flex items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line w-max mx-auto">
+        <Settings2 className="w-5 h-5 text-ink-muted" />
+        <span className="text-sm font-medium">Định dạng file:</span>
+        <select 
+          value={format} 
+          onChange={(e) => { setFormat(e.target.value as FileFormat); setError(''); }}
+          className="bg-page border border-line rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
+        >
+          <option value="pdf">Tài liệu PDF (.pdf)</option>
+          <option value="docx">Word (.docx)</option>
+          <option value="pptx">PowerPoint (.pptx)</option>
+        </select>
+      </div>
 
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center font-medium flex items-center justify-center gap-2">
@@ -162,7 +174,7 @@ export default function MergeFilesClient() {
               <Download className="w-5 h-5" /> Tải xuống file Gộp ngay
             </a>
           </div>
-        ) : (
+        ) : format === 'pdf' ? (
           <div className="flex justify-center">
             <button 
               onClick={handleExecute}
@@ -172,6 +184,16 @@ export default function MergeFilesClient() {
               {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
               Tiến hành Gộp {multiFiles.length} file
             </button>
+          </div>
+        ) : (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center space-y-6">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+              <Settings2 className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-amber-800">Tính năng đang phát triển!</h3>
+              <p className="text-amber-700 mt-2">Tính năng xử lý file {format.toUpperCase()} sẽ sớm ra mắt trong thời gian tới. Vui lòng chuyển sang dùng PDF tạm thời nhé!</p>
+            </div>
           </div>
         )}
       </div>

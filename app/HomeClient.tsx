@@ -13,6 +13,7 @@ const portalCategories = [
     href: '/tai-lieu?examType=VAO_10',
     color: 'text-blue-600',
     borderHover: 'hover:border-blue-400',
+    isNew: false,
   },
   {
     title: 'Đề Thi THPT Quốc Gia',

@@ -158,7 +158,7 @@ export default function RemovePagesClient() {
                   <Download className="w-5 h-5" /> Tải xuống file ngay
                 </a>
               </div>
-            ) : format === 'pdf' && (
+            ) : format === 'pdf' ? (
               <div className="bg-surface p-6 rounded-2xl border border-line shadow-sm">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                   <div>
@@ -205,6 +205,16 @@ export default function RemovePagesClient() {
                       )
                     })}
                   </Document>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center space-y-6">
+                <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+                  <Settings2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-amber-800">Tính năng đang phát triển!</h3>
+                  <p className="text-amber-700 mt-2">Tính năng xử lý file {format.toUpperCase()} sẽ sớm ra mắt trong thời gian tới. Vui lòng chuyển sang dùng PDF tạm thời nhé!</p>
                 </div>
               </div>
             )}
