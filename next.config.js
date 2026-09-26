@@ -20,7 +20,7 @@ const nextConfig = {
     return [
       {
         source: '/backend-files/:path*',
-        destination: 'https://exam-web-production.up.railway.app/files/:path*'
+        destination: 'https://p01--backend--4j4v4pb6yj96.code.run/files/:path*'
       }
     ]
   }
