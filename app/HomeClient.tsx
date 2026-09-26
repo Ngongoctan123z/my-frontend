@@ -46,6 +46,55 @@ export function HomeClient() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
+  // Infinite carousel logic for portal categories
+  useEffect(() => {
+    const carousel = document.getElementById('portal-carousel')
+    if (!carousel) return
+    
+    let isMoving = false
+    
+    const interval = setInterval(() => {
+      if (isMoving) return
+      isMoving = true
+      
+      const firstChild = carousel.firstElementChild as HTMLElement
+      if (!firstChild) return
+      
+      // Determine gap based on screen size (md:gap-4 = 16px, gap-3 = 12px)
+      const gap = window.innerWidth >= 768 ? 16 : 12
+      const slideAmount = firstChild.offsetWidth + gap
+      
+      // Apply slide and fade out animations
+      carousel.style.transition = 'transform 600ms cubic-bezier(0.4, 0, 0.2, 1)'
+      carousel.style.transform = `translateX(-${slideAmount}px)`
+      
+      firstChild.style.transition = 'opacity 500ms ease, transform 500ms ease'
+      firstChild.style.opacity = '0'
+      firstChild.style.transform = 'scale(0.95)'
+      
+      // After animation completes, reset positions silently
+      setTimeout(() => {
+        carousel.style.transition = 'none'
+        carousel.style.transform = 'translateX(0)'
+        
+        firstChild.style.transition = 'none'
+        firstChild.style.opacity = '1'
+        firstChild.style.transform = 'scale(1)'
+        
+        // Move the DOM node to the end
+        carousel.appendChild(firstChild)
+        
+        // Force a browser reflow so transition="none" is applied before next loop
+        void carousel.offsetWidth
+        
+        isMoving = false
+      }, 600)
+      
+    }, 3000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <>
       {/* Hero */}
@@ -90,33 +139,38 @@ export function HomeClient() {
         </div>
       </section>
 
-      {/* Categories — staggered card entrance */}
-      <section className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
+      {/* Categories — Infinite Auto-Scrolling Carousel */}
+      <section className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12 overflow-hidden">
         <h2 className="sr-only">Các công cụ và tính năng chính</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <StaggerReveal animation="zoom-in" stagger={60} baseDelay={0} duration={300} className="h-full">
-            {portalCategories.map((cat, idx) => (
-              <Link
-                key={idx}
-                href={cat.href}
-                prefetch={false}
-                className={`group relative flex flex-col h-full p-4 md:p-5 rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:shadow-lg hover:border-blue-400 active:bg-gray-50`}
+        
+        <div className="relative">
+          <div className="flex gap-3 md:gap-4 transition-transform duration-500 ease-in-out" id="portal-carousel">
+            {[...portalCategories, ...portalCategories, ...portalCategories].map((cat, idx) => (
+              <div 
+                key={`${cat.title}-${idx}`} 
+                className="shrink-0 w-[calc(50%-0.375rem)] md:w-[calc(25%-0.75rem)]"
               >
-                {cat.isNew && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold uppercase px-1.5 py-0.5 rounded badge-pulse">
-                    Mới
-                  </span>
-                )}
-                <div className={`mb-2 ${cat.color} group-hover:scale-110 transition-transform duration-300`}>
-                  {cat.icon}
-                </div>
-                <h3 className="text-sm font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors leading-tight">{cat.title}</h3>
-                <p className="text-slate-500 text-xs leading-snug line-clamp-2 hidden md:block">
-                  {cat.description}
-                </p>
-              </Link>
+                <Link
+                  href={cat.href}
+                  prefetch={false}
+                  className="group relative flex flex-col h-full p-4 md:p-5 rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:shadow-lg hover:border-blue-400 active:bg-gray-50"
+                >
+                  {cat.isNew && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold uppercase px-1.5 py-0.5 rounded badge-pulse">
+                      Mới
+                    </span>
+                  )}
+                  <div className={`mb-2 ${cat.color} group-hover:scale-110 transition-transform duration-300`}>
+                    {cat.icon}
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors leading-tight">{cat.title}</h3>
+                  <p className="text-slate-500 text-xs leading-snug line-clamp-2 hidden md:block">
+                    {cat.description}
+                  </p>
+                </Link>
+              </div>
             ))}
-          </StaggerReveal>
+          </div>
         </div>
       </section>
 
