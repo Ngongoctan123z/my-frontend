@@ -60,16 +60,27 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
   }, [exam?.id])
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).MathJax) {
-      setTimeout(() => {
-        try {
-          ;(window as any).MathJax.typesetPromise()
-        } catch (err) {
-          console.error('MathJax error:', err)
-        }
-      }, 100)
+    if (typeof window === 'undefined') return
+
+    const tryTypeset = () => {
+      const mj = (window as any).MathJax
+      if (mj?.typesetPromise) {
+        try { mj.typesetPromise() } catch {}
+        return true
+      }
+      return false
     }
-  }, [exam?.seoStructure])
+
+    if (!tryTypeset()) {
+      // Poll every 300ms tối đa 15 lần (~4.5s) cho đến khi MathJax load xong
+      let attempts = 0
+      const interval = setInterval(() => {
+        if (tryTypeset() || ++attempts >= 15) clearInterval(interval)
+      }, 300)
+      return () => clearInterval(interval)
+    }
+  }, [exam?.seoStructure, exam?.contentHtml])
+
 
 
   const relatedExams = initialRelated

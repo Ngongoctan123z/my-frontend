@@ -220,16 +220,24 @@ export default async function ExamPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <Script
         id="mathjax-config"
-        strategy="beforeInteractive"
+        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             window.MathJax = {
               tex: {
                 inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
-                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
+                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+                packages: {'[+]': ['ams']},
+                tags: 'ams'
+              },
+              options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
               },
               startup: {
-                typeset: false
+                typeset: true,
+                ready() {
+                  MathJax.startup.defaultReady();
+                }
               }
             };
           `,
@@ -237,7 +245,7 @@ export default async function ExamPage({ params }: Props) {
       />
       <Script
         id="mathjax-script"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
       />
       <ExamDetail initialExam={exam} initialRelated={relatedExams} slug={slug} />
