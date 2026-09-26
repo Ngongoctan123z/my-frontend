@@ -22,7 +22,7 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
   for (let loop = 0; loop < MAX_RETRIES; loop++) {
     for (const modelName of MODEL_CANDIDATES) {
       try {
-        const model = genAI.getGenerativeModel({ 
+        const modelConfig: any = { 
           model: modelName,
           safetySettings: [
             {
@@ -42,7 +42,13 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
               threshold: HarmBlockThreshold.BLOCK_NONE,
             },
           ]
-        })
+        }
+        
+        if (isJson) {
+          modelConfig.generationConfig = { responseMimeType: 'application/json' }
+        }
+
+        const model = genAI.getGenerativeModel(modelConfig)
         const result = await model.generateContent(prompt)
         const response = await result.response
         return response.text()
