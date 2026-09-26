@@ -137,11 +137,18 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
           </div>
 
           {/* Main Quick Actions Row */}
-          <div className="flex flex-wrap items-start gap-2 pt-1 relative z-10">
+          <div className="flex items-center gap-2 pt-1 relative z-10 overflow-x-auto pb-2 -mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
+            <Link
+              href="/"
+              className="shrink-0 flex items-center gap-1.5 rounded-full border border-line bg-page px-3.5 py-1.5 text-[13px] font-semibold text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all snap-start"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+              Trang chủ
+            </Link>
             <button
               type="button"
               onClick={() => updateParam('examType', undefined)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${!examType
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all snap-start ${!examType
                   ? 'bg-[var(--color-primary)] text-white shadow-sm'
                   : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
                 }`}
