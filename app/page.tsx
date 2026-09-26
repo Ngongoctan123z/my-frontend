@@ -72,7 +72,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="w-full flex flex-col items-center min-h-screen bg-[#FAFAFA]">
+    <div suppressHydrationWarning className="w-full flex flex-col items-center min-h-screen bg-[#FAFAFA]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(sitelinksJsonLd) }} />
       <HomeClient />
