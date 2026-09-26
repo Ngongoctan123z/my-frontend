@@ -171,7 +171,7 @@ export function HomeClient() {
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Main Card 1: Kho Tài Liệu (Span 7) */}
-          <Reveal animation="fade-right" duration={600} delay={100} className="md:col-span-7">
+          <Reveal animation="slide-right" duration={600} delay={100} className="md:col-span-7">
             <div className="h-full bg-gradient-to-br from-blue-50/50 to-white p-8 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition-all">
               <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-6 shadow-blue-200 shadow-lg">
                 <BookOpen className="w-7 h-7" />
@@ -187,7 +187,7 @@ export function HomeClient() {
           </Reveal>
 
           {/* Side Card 2: AI Grader (Span 5) */}
-          <Reveal animation="fade-left" duration={600} delay={200} className="md:col-span-5">
+          <Reveal animation="slide-left" duration={600} delay={200} className="md:col-span-5">
             <div className="h-full bg-gradient-to-br from-emerald-50/50 to-white p-8 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition-all">
               <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mb-6 shadow-emerald-200 shadow-lg">
                 <Sparkles className="w-7 h-7" />
