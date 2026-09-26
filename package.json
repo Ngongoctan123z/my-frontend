@@ -24,10 +24,13 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^1.47.0",
     "next": "^15.1.7",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.3.289",
     "postcss": "^8.5.28",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.88.0",
+    "react-pdf": "^11.0.0",
     "tailwindcss": "^4.3.3",
     "zod": "^4.6.5"
   },
