@@ -19,9 +19,9 @@ export default function RemovePagesToolPage() {
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Cắt & Xóa Trang PDF</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Cắt & Xóa Trang</h1>
         <p className="text-slate-500">
-          Loại bỏ các trang không cần thiết khỏi tài liệu của bạn hoặc tách trang PDF một cách nhanh chóng.
+          Loại bỏ các trang không cần thiết khỏi tài liệu của bạn một cách nhanh chóng.
         </p>
       </div>
 

@@ -19,7 +19,7 @@ export default function MergeToolPage() {
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Gộp Nhiều File PDF</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Gộp Nhiều Tài Liệu</h1>
         <p className="text-slate-500">
           Ghép nhiều tài liệu hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả.
         </p>
