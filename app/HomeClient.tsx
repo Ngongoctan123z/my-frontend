@@ -201,7 +201,7 @@ export function HomeClient() {
             <div className="z-10 space-y-3 flex-1 min-w-0">
               <Reveal animation="slide-left" delay={200} duration={600}>
                 <h2 className="text-lg md:text-xl font-bold text-white leading-snug">
-                  Bạn ko biết luyện writing ở đâu <span className="text-emerald-400">Sử dụng công cụ của chúng tôi</span>
+                  Luyện writing ở đâu ? <span className="text-emerald-400"> Ở VNdocs.net</span>
                 </h2>
               </Reveal>
               <Reveal animation="fade-up" delay={400} duration={500}>
