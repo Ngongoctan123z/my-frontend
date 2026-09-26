@@ -46,7 +46,34 @@ export function HomeClient() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
-  // Infinite carousel logic for portal categories
+  // Rotation logic for mobile 2x2 grid
+  const [rotationOffset, setRotationOffset] = useState(0)
+  
+  useEffect(() => {
+    const mobileInterval = setInterval(() => {
+      if (window.innerWidth >= 768) return // Only on mobile
+      setRotationOffset((prev) => (prev + 1) % 4)
+    }, 3000)
+    return () => clearInterval(mobileInterval)
+  }, [])
+
+  const getMobileGrid = () => {
+    // Original A=0, B=1, C=2, D=3
+    const A = portalCategories[0]
+    const B = portalCategories[1]
+    const C = portalCategories[2]
+    const D = portalCategories[3]
+    
+    switch (rotationOffset) {
+      case 0: return [A, B, D, C] // TL:A, TR:B, BL:D, BR:C
+      case 1: return [D, A, C, B] // TL:D, TR:A, BL:C, BR:B
+      case 2: return [C, D, B, A] // TL:C, TR:D, BL:B, BR:A
+      case 3: return [B, C, A, D] // TL:B, TR:C, BL:A, BR:D
+      default: return [A, B, D, C]
+    }
+  }
+
+  // Infinite carousel logic for portal categories (Desktop)
   useEffect(() => {
     const carousel = document.getElementById('portal-carousel')
     if (!carousel) return
@@ -145,16 +172,12 @@ export function HomeClient() {
         <h2 className="sr-only">Các công cụ và tính năng chính</h2>
         
         <div className="relative">
-          {/* Mobile Grid: 2x2 with clockwise order */}
+          {/* Mobile Grid: 2x2 with clockwise order that rotates */}
           <div className="grid grid-cols-2 gap-3 md:hidden">
-            {portalCategories.map((cat, idx) => (
+            {getMobileGrid().map((cat, idx) => (
               <div 
-                key={`${cat.title}-mobile-${idx}`} 
-                className={
-                  idx === 2 ? "order-4" : 
-                  idx === 3 ? "order-3" : 
-                  ""
-                }
+                key={`${cat.title}-mobile-grid`} 
+                className="transition-all duration-500 ease-in-out"
               >
                 <Link
                   href={cat.href}
