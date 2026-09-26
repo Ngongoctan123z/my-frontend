@@ -90,19 +90,7 @@ export default function MergeFilesClient() {
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4">
 
 
-      <div className="flex items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line w-max mx-auto">
-        <Settings2 className="w-5 h-5 text-ink-muted" />
-        <span className="text-sm font-medium">Định dạng file:</span>
-        <select 
-          value={format} 
-          onChange={(e) => { setFormat(e.target.value as FileFormat); setError(''); }}
-          className="bg-page border border-line rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
-        >
-          <option value="pdf">Tài liệu PDF (.pdf)</option>
-          <option value="docx">Word (.docx)</option>
-          <option value="pptx">PowerPoint (.pptx)</option>
-        </select>
-      </div>
+      {/* No format selector needed, PDF only */}
 
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center font-medium flex items-center justify-center gap-2">
