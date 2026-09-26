@@ -40,14 +40,10 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning className={`scroll-smooth ${inter.variable} ${firaCode.variable}`}>
       <head>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200108977294233" crossOrigin="anonymous"></script>
       </head>
       <body suppressHydrationWarning className={inter.className}>
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200108977294233"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+
         <Providers>
           <AppLayout>{children}</AppLayout>
         </Providers>
