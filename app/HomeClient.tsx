@@ -22,40 +22,7 @@ const portalCategories = [
     color: 'text-indigo-600',
     borderHover: 'hover:border-indigo-400',
   },
-  {
-    title: 'Đề Thi IELTS',
-    description: 'Kho đề thi thực tế IELTS Academic & General kèm đáp án chi tiết.',
-    icon: <Globe className="w-5 h-5" />,
-    href: '/ai-grader/ielts',
-    color: 'text-cyan-600',
-    borderHover: 'hover:border-cyan-400',
-  },
-  {
-    title: 'Đề Thi TOEIC',
-    description: 'Đề thi TOEIC định dạng mới nhất (Reading & Listening).',
-    icon: <FileText className="w-5 h-5" />,
-    href: '/ai-grader/toeic',
-    color: 'text-teal-600',
-    borderHover: 'hover:border-teal-400',
-  },
-  {
-    title: 'Flashcard IELTS',
-    description: 'Học từ vựng IELTS theo phương pháp lặp lại ngắt quãng (Spaced Repetition).',
-    icon: <Layers className="w-5 h-5" />,
-    href: '/flashcard/ielts',
-    color: 'text-purple-600',
-    borderHover: 'hover:border-purple-400',
-    isNew: true
-  },
-  {
-    title: 'Flashcard TOEIC',
-    description: 'Ghi nhớ nhanh các chủ đề từ vựng TOEIC thường gặp với Anki flashcards.',
-    icon: <Layers className="w-5 h-5" />,
-    href: '/flashcard/toeic',
-    color: 'text-fuchsia-600',
-    borderHover: 'hover:border-fuchsia-400',
-    isNew: true
-  },
+
   {
     title: 'Chấm Writing AI',
     description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS & TOEIC.',
