@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai'
 
 const MODEL_CANDIDATES = [
   'gemini-3.8-pro',
@@ -22,7 +22,27 @@ async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: b
   for (let loop = 0; loop < MAX_RETRIES; loop++) {
     for (const modelName of MODEL_CANDIDATES) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName })
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          safetySettings: [
+            {
+              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+          ]
+        })
         const result = await model.generateContent(prompt)
         const response = await result.response
         return response.text()
