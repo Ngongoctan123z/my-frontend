@@ -7,7 +7,6 @@ import { Loader2, Send, CheckCircle2, AlertCircle, ArrowRightLeft } from 'lucide
 export function TranslateClient() {
   const { apiKey } = useAiKey()
   const [text, setText] = useState('')
-  const [direction, setDirection] = useState<'en-vi' | 'vi-en'>('en-vi')
   const [isTranslating, setIsTranslating] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +28,7 @@ export function TranslateClient() {
     try {
       const { callAiGraderClient } = await import('@/src/utils/geminiClient')
       const data = await callAiGraderClient(
-        { action: 'translate', textToTranslate: text, direction },
+        { action: 'translate', textToTranslate: text },
         apiKey.trim()
       )
       setResult(data)
@@ -45,13 +44,10 @@ export function TranslateClient() {
       <div className="bg-white rounded-xl border border-line p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-800">Dịch Nhanh & Trích Xuất Từ Vựng</h2>
-          <button
-            onClick={() => setDirection(d => d === 'en-vi' ? 'vi-en' : 'en-vi')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 font-semibold rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            {direction === 'en-vi' ? 'English → Tiếng Việt' : 'Tiếng Việt → English'}
-            <ArrowRightLeft size={16} />
-          </button>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 font-semibold rounded-lg text-sm border border-indigo-100">
+            <CheckCircle2 size={14} />
+            Tự động nhận diện ngôn ngữ
+          </div>
         </div>
 
         {error && (
@@ -100,9 +96,24 @@ export function TranslateClient() {
             {result && (
               <div className="space-y-6 animate-fade-up">
                 <div className="bg-slate-800 p-4 rounded-lg">
-                  <h4 className="font-bold text-emerald-400 mb-2">Bản dịch chính:</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-emerald-400">Bản dịch chính:</h4>
+                    {result.detectedLanguage && (
+                      <span className="text-xs px-2 py-1 bg-slate-700 text-slate-300 rounded">
+                        Đã dịch từ: {result.detectedLanguage}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-lg text-white font-medium leading-relaxed">{result.translatedText}</p>
                 </div>
+
+                {result.correctedOriginalText && result.correctedOriginalText !== text.trim() && (
+                  <div className="bg-rose-950/30 border border-rose-900/50 p-4 rounded-lg">
+                    <h4 className="font-bold text-rose-400 mb-1 text-sm">Phát hiện lỗi sai trong bản gốc:</h4>
+                    <p className="text-sm text-slate-300 line-through opacity-70">{text}</p>
+                    <p className="text-base text-rose-200 mt-1 font-medium">{result.correctedOriginalText}</p>
+                  </div>
+                )}
 
                 {result.vocabulary?.length > 0 && (
                   <div className="space-y-3">

@@ -250,15 +250,19 @@ Return ONLY valid JSON (no markdown, no backticks):
         throw new Error('Thiếu nội dung cần dịch.')
       }
 
-      const dirContext = direction === 'en-vi' ? 'English to Vietnamese' : 'Vietnamese to English'
+      const systemPrompt = `Translate the following text.
+If it is in Vietnamese, translate it to English. If it is in English, translate it to Vietnamese.
+If the original text has spelling or grammatical errors, provide the corrected version in the original language.
 
-      const systemPrompt = `Translate ${dirContext}. JSON only:
-Text: "${textToTranslate}"
-Format:
+JSON only format:
 {
+  "detectedLanguage": "Tiếng Việt" | "English",
+  "correctedOriginalText": "...", 
   "translatedText": "...",
   "vocabulary": [{"word": "...", "meaning": "..."}]
 }
+
+Text: "${textToTranslate}"
 `
       const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
       try {
