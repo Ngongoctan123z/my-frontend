@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight } from 'lucide-react'
 import { useAiKey } from '@/src/contexts/AiContext'
+import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
 
 type ExamType = 'IELTS_TASK_2' | 'TOEIC_ESSAY'
 
@@ -15,6 +16,18 @@ export function AiGraderClient() {
   const [isGrading, setIsGrading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
+
+  const [history, setHistory] = useState<GradedEssayHistory[]>([])
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+
+  const loadHistory = async () => {
+    const data = await getEssayHistory()
+    setHistory(data)
+  }
+
+  useEffect(() => {
+    loadHistory()
+  }, [])
 
   const promptQueue = useRef<string[]>([])
   const isFetchingQueue = useRef(false)
@@ -96,6 +109,15 @@ export function AiGraderClient() {
     try {
       const data = await callApi({ action: 'grade_essay', type: examType, prompt, essay })
       setResult(data)
+      
+      // Save to IndexedDB VIP history
+      await saveEssayHistory({
+        examType,
+        prompt,
+        essay,
+        result: data
+      })
+      loadHistory() // Refresh history list
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -113,9 +135,18 @@ export function AiGraderClient() {
         {/* Cột Left: Đề bài & Viết */}
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800">
-              <FileEdit className="w-5 h-5 text-blue-600" /> Thiết lập đề thi
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                <FileEdit className="w-5 h-5 text-blue-600" /> Thiết lập đề thi
+              </h2>
+              <button 
+                onClick={() => setShowHistoryModal(true)}
+                className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
+              >
+                <History className="w-4 h-4" />
+                Lịch sử ({history.length})
+              </button>
+            </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
               <button
@@ -266,6 +297,88 @@ export function AiGraderClient() {
           )}
         </div>
       </div>
+
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-slate-50/50">
+              <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                <History className="w-5 h-5 text-indigo-600" /> 
+                Lịch sử chấm bài (Lưu trữ ngoại tuyến an toàn)
+              </h3>
+              <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-700">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-5">
+              {history.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <Clock className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                  <p>Bạn chưa chấm bài nào.</p>
+                  <p className="text-sm mt-1">Dữ liệu sẽ được lưu tự động trên trình duyệt mà không cần tài khoản!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {history.map((item) => (
+                    <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-4 hover:border-indigo-300 transition-colors shadow-sm">
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="text-xs font-bold px-2 py-1 bg-blue-100 text-blue-700 rounded uppercase">
+                          {item.examType.replace('_', ' ')}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          {new Date(item.timestamp).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-700 font-medium line-clamp-2 mb-3 bg-slate-50 p-2 rounded border border-slate-100">
+                        <span className="font-bold text-slate-900">Đề bài:</span> {item.prompt}
+                      </p>
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                        <div className="font-bold text-indigo-600">
+                          Điểm số: <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setExamType(item.examType as ExamType)
+                            setPrompt(item.prompt)
+                            setEssay(item.essay)
+                            setResult(item.result)
+                            setShowHistoryModal(false)
+                          }}
+                          className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Xem chi tiết <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {history.length > 0 && (
+              <div className="p-4 border-t border-gray-100 bg-slate-50 flex justify-between items-center">
+                <p className="text-xs text-slate-500 max-w-[60%]">
+                  Dữ liệu được lưu trữ an toàn ngay trên trình duyệt (IndexedDB), đảm bảo quyền riêng tư 100%.
+                </p>
+                <button 
+                  onClick={async () => {
+                    if (confirm('Bạn có chắc muốn xoá toàn bộ lịch sử?')) {
+                      await clearEssayHistory()
+                      loadHistory()
+                    }
+                  }}
+                  className="text-sm font-semibold flex items-center gap-1.5 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Xóa tất cả
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
