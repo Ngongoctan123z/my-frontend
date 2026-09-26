@@ -154,66 +154,74 @@ export function HomeClient() {
         </Reveal>
       </section>
 
-      {/* SEO Content Section - Enhanced UI */}
-      <section className="w-full max-w-4xl mx-auto px-4 pb-12">
+      {/* Premium SEO Content Section */}
+      <section className="w-full max-w-5xl mx-auto px-4 pb-16">
         <Reveal animation="fade-up" duration={700}>
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-3">VNDocs - Nền tảng Đề Thi, Tài Liệu & Công Cụ Miễn Phí</h2>
-            <p className="text-slate-500 max-w-2xl mx-auto text-sm md:text-base">
-              Giải pháp toàn diện đồng hành cùng học sinh, sinh viên và giáo viên trên toàn quốc với phương châm <em>"Học cho vui, điểm tới lui"</em>.
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-sm font-semibold mb-4">
+              <Sparkles className="w-4 h-4" />
+              Nền tảng giáo dục số 1
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 tracking-tight">VNDocs - Nền Tảng Đề Thi & Tiện Ích Miễn Phí</h2>
+            <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-lg">
+              Giải pháp toàn diện hỗ trợ học tập và làm việc. Kho tài liệu phong phú kết hợp cùng trí tuệ nhân tạo (AI) và bộ công cụ văn phòng mạnh mẽ.
             </p>
           </div>
         </Reveal>
 
-        <StaggerReveal animation="fade-up" stagger={150} duration={600} className="space-y-6">
-          {/* Card 1: Kho Tài Liệu */}
-          <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-300">
-            <div className="flex flex-col md:flex-row gap-5 items-start">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <BookOpen className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Main Card 1: Kho Tài Liệu (Span 7) */}
+          <Reveal animation="fade-right" duration={600} delay={100} className="md:col-span-7">
+            <div className="h-full bg-gradient-to-br from-blue-50/50 to-white p-8 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-6 shadow-blue-200 shadow-lg">
+                <BookOpen className="w-7 h-7" />
               </div>
-              <article className="prose prose-sm md:prose-base prose-slate max-w-none">
-                <h3 className="text-lg font-bold text-slate-800 mt-0 mb-2">Kho Tàng Đề Thi & Tài Liệu Khổng Lồ</h3>
-                <p className="m-0 text-justify leading-relaxed">
-                  Chúng tôi cung cấp hàng ngàn <Link href="/tai-lieu" className="font-semibold text-blue-600 no-underline hover:underline">đề thi vào lớp 10</Link>, <strong>đề thi THPT Quốc Gia</strong> chính thức và thi thử từ các trường chuyên trên cả nước.
-                  Tất cả tài liệu đều được chọn lọc kỹ lưỡng, bám sát cấu trúc đề thi mới nhất của Bộ Giáo dục và Đào tạo, kèm theo đáp án chi tiết giúp học sinh dễ dàng tự học và đánh giá năng lực.
-                </p>
-              </article>
+              <h3 className="text-2xl font-bold text-slate-800 mb-4">Kho Tàng Đề Thi & Tài Liệu Khổng Lồ</h3>
+              <p className="text-slate-600 leading-relaxed text-justify mb-4">
+                VNDocs tự hào mang đến hàng ngàn <Link href="/tai-lieu" className="text-blue-600 font-semibold hover:underline">đề thi vào lớp 10</Link> và <strong>đề thi THPT Quốc Gia</strong> môn Toán, Ngữ Văn, Tiếng Anh. Toàn bộ tài liệu đều được thu thập từ các trường chuyên danh tiếng, có đáp án chi tiết và bám sát cấu trúc ra đề mới nhất của Bộ Giáo Dục.
+              </p>
+              <p className="text-slate-600 leading-relaxed text-justify">
+                Hệ thống tìm kiếm thông minh giúp học sinh và giáo viên dễ dàng tra cứu, ôn tập hiệu quả để đạt điểm số cao nhất trong các kỳ thi quan trọng.
+              </p>
             </div>
-          </div>
+          </Reveal>
 
-          {/* Card 2: Công nghệ AI */}
-          <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all duration-300">
-            <div className="flex flex-col md:flex-row gap-5 items-start">
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <Sparkles className="w-6 h-6" />
+          {/* Side Card 2: AI Grader (Span 5) */}
+          <Reveal animation="fade-left" duration={600} delay={200} className="md:col-span-5">
+            <div className="h-full bg-gradient-to-br from-emerald-50/50 to-white p-8 rounded-3xl border border-emerald-100 shadow-sm hover:shadow-md transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mb-6 shadow-emerald-200 shadow-lg">
+                <Sparkles className="w-7 h-7" />
               </div>
-              <article className="prose prose-sm md:prose-base prose-slate max-w-none">
-                <h3 className="text-lg font-bold text-slate-800 mt-0 mb-2">Tiên Phong Ứng Dụng Trí Tuệ Nhân Tạo (AI)</h3>
-                <p className="m-0 text-justify leading-relaxed">
-                  Tính năng <Link href="/ai-grader" className="font-semibold text-emerald-600 no-underline hover:underline">Chấm Writing AI</Link> đột phá giúp các sĩ tử ôn luyện <strong>IELTS</strong> và <strong>TOEIC</strong> nhận được những đánh giá, phân tích và sửa lỗi ngữ pháp một cách khắt khe, chính xác như một giám khảo bản xứ.
-                  Bên cạnh đó, bạn có thể dễ dàng nạp từ vựng hiệu quả qua hệ thống <Link href="/flashcard/ielts" className="font-semibold text-emerald-600 no-underline hover:underline">Flashcard Spaced Repetition</Link> độc quyền được tích hợp sẵn.
-                </p>
-              </article>
+              <h3 className="text-2xl font-bold text-slate-800 mb-4">Chấm Chữa Bài Tự Động Với AI</h3>
+              <p className="text-slate-600 leading-relaxed text-justify mb-4">
+                Công cụ <Link href="/ai-grader" className="text-emerald-600 font-semibold hover:underline">Chấm Writing AI</Link> và sửa lỗi ngữ pháp tiên tiến. Tối ưu hoá quá trình học ngoại ngữ thông qua các thuật toán đánh giá chuyên sâu.
+              </p>
+              <p className="text-slate-600 leading-relaxed text-justify">
+                Hệ thống tự động phát hiện lỗi sai, đưa ra gợi ý nâng cấp từ vựng và diễn đạt lại câu mượt mà như người bản xứ.
+              </p>
             </div>
-          </div>
+          </Reveal>
 
-          {/* Card 3: Công cụ PDF */}
-          <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-purple-200 transition-all duration-300">
-            <div className="flex flex-col md:flex-row gap-5 items-start">
-              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                <Layers className="w-6 h-6" />
+          {/* Full Width Card 3: PDF Tools (Span 12) */}
+          <Reveal animation="fade-up" duration={600} delay={300} className="md:col-span-12">
+            <div className="bg-gradient-to-r from-purple-50/50 via-white to-pink-50/50 p-8 md:p-10 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+              <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none translate-x-1/4 translate-y-1/4">
+                <Layers className="w-64 h-64" />
               </div>
-              <article className="prose prose-sm md:prose-base prose-slate max-w-none">
-                <h3 className="text-lg font-bold text-slate-800 mt-0 mb-2">Bộ Công Cụ Tiện Ích Đa Năng</h3>
-                <p className="m-0 text-justify leading-relaxed">
-                  Không chỉ dừng lại ở mảng giáo dục, nền tảng còn cung cấp bộ <Link href="/tools" className="font-semibold text-purple-600 no-underline hover:underline">Công cụ xử lý File PDF</Link> mạnh mẽ hoàn toàn miễn phí.
-                  Người dùng có thể gộp file, cắt trang, chuyển đổi định dạng hay khóa bảo mật PDF chỉ với vài thao tác cơ bản ngay trên trình duyệt mà không cần cài đặt phần mềm nặng nề.
-                </p>
-              </article>
+              <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+                <div className="shrink-0 w-16 h-16 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-purple-200 shadow-lg">
+                  <Layers className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-800 mb-3">Bộ Công Cụ Xử Lý File PDF Đa Năng</h3>
+                  <p className="text-slate-600 leading-relaxed text-justify max-w-4xl">
+                    Hỗ trợ đắc lực cho dân văn phòng và sinh viên với <Link href="/tools" className="text-purple-600 font-semibold hover:underline">bộ tiện ích PDF miễn phí</Link>. Không cần cài đặt phần mềm phức tạp, bạn có thể dễ dàng <strong>gộp file PDF</strong>, <strong>xóa trang PDF</strong>, <strong>khóa bảo mật</strong> tài liệu ngay trên trình duyệt web. Mọi thao tác đều đảm bảo quyền riêng tư và tốc độ xử lý tính bằng giây.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </StaggerReveal>
+          </Reveal>
+        </div>
       </section>
     </>
   )
