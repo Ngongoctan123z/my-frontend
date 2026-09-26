@@ -17,7 +17,7 @@ const portalCategories = [
   },
   {
     title: 'Đề Thi THPT Quốc Gia',
-    description: 'Bộ đề ôn luyện Tốt nghiệp và Đại học từ các trường chuyên.',
+    description: 'Bộ đề ôn luyện Tốt nghiệp và Đại học từ các năm trước',
     icon: <BookOpen className="w-5 h-5" />,
     href: '/tai-lieu?examType=THPT',
     color: 'text-indigo-600',
@@ -34,7 +34,7 @@ const portalCategories = [
   },
   {
     title: 'Công Cụ File',
-    description: 'Gộp, cắt trang, chuyển đổi, khóa PDF và máy tính Casio ảo.',
+    description: 'Gộp, cắt trang, chuyển đổi, khóa PDF và máy tính Casio ảo,chuyển định dạng ảnh',
     icon: <PenTool className="w-5 h-5" />,
     href: '/tools',
     color: 'text-orange-600',
@@ -99,7 +99,7 @@ export function HomeClient() {
               <p className="text-slate-500 text-sm mb-5">
                 Đề thi vào 10, THPT Quốc Gia, luyện Writing IELTS/TOEIC — tất cả miễn phí{' '}
                 <span className="text-blue-600 text-lg md:text-xl font-bold inline-flex items-center gap-1">
-                  is for you 🎁
+               
                 </span>
               </p>
             </Reveal>
@@ -109,7 +109,7 @@ export function HomeClient() {
                 <input
                   type="text"
                   name="q"
-                  placeholder="Tìm đề thi, tài liệu..."
+                  placeholder="Nhập thứ bạn muốn tìm ở đây"
                   className="w-full py-3 pl-10 pr-20 bg-white border border-gray-200 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:shadow-md focus:ring-0 outline-none transition-all text-slate-800 placeholder:text-slate-400"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" />
@@ -201,7 +201,7 @@ export function HomeClient() {
             <div className="z-10 space-y-3 flex-1 min-w-0">
               <Reveal animation="slide-left" delay={200} duration={600}>
                 <h2 className="text-lg md:text-xl font-bold text-white leading-snug">
-                  Sợ viết Tiếng Anh? <span className="text-emerald-400">Đã có giám khảo ảo 24/7.</span>
+                  Bạn ko biết luyện writing ở đâu <span className="text-emerald-400">Sử dụng công cụ của chúng tôi</span>
                 </h2>
               </Reveal>
               <Reveal animation="fade-up" delay={400} duration={500}>
@@ -218,7 +218,7 @@ export function HomeClient() {
             <Reveal animation="zoom-in" delay={500} duration={500}>
               <div className="z-10 shrink-0 w-full md:w-auto">
                 <Link href="/ai-grader" className="inline-flex items-center justify-center w-full md:w-auto px-6 py-2.5 bg-white text-slate-900 font-bold rounded-md text-sm transition-all hover:bg-blue-50 hover:scale-105 active:scale-95">
-                  Dùng thử <FileText className="w-4 h-4 ml-1.5" />
+                  Truy cập nhanh <FileText className="w-4 h-4 ml-1.5" />
                 </Link>
               </div>
             </Reveal>
