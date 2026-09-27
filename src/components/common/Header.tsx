@@ -25,6 +25,12 @@ export function Header() {
         <div className="min-w-0 flex-1">
           <SearchBar />
         </div>
+        <Link href="/tai-lieu-tong-hop"
+          className="inline-flex min-h-11 px-4 items-center justify-center gap-2 rounded-xl bg-white/10 border border-white/10 text-white font-semibold backdrop-blur-sm transition-all duration-300 hover:bg-white/20 hover:scale-105 hover:shadow-lg active:scale-95 hidden md:flex"
+          aria-label="Tài liệu tổng hợp"
+        >
+          <span>Tài liệu Free</span>
+        </Link>
         <Link href="/favorites"
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl bg-white/10 border border-white/10 text-white backdrop-blur-sm transition-all duration-300 hover:bg-white/20 hover:scale-105 hover:shadow-lg active:scale-95"
           aria-label="Đề yêu thích"

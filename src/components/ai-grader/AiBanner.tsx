@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronRight, PenTool, RefreshCw, Languages, SearchCode, Layers, Globe, FileText, Key, Eye, EyeOff } from 'lucide-react'
+import { ChevronRight, PenTool, Languages, Key, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { useAiKey } from '@/src/contexts/AiContext'
 
@@ -13,9 +13,7 @@ export function AiBanner() {
 
   const links = [
     { href: '/ai-grader', label: 'Chấm Writing', icon: <PenTool size={14} /> },
-    { href: '/ai-grader/paraphrase', label: 'Diễn Đạt Lại Câu', icon: <RefreshCw size={14} /> },
     { href: '/ai-grader/translate', label: 'Dịch Nhanh', icon: <Languages size={14} /> },
-    { href: '/ai-grader/grammar', label: 'Soi Lỗi Gắt', icon: <SearchCode size={14} /> },
   ]
 
   return (

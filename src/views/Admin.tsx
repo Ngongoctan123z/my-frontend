@@ -7,10 +7,11 @@ import { API_BASE } from '../utils/constants'
 import ExamListAdmin from '../components/admin/ExamListAdmin'
 import EditExamModal from '../components/admin/EditExamModal'
 import UploadExamForm from '../components/admin/UploadExamForm'
+import { DocumentAdminTab } from '../components/admin/DocumentAdminTab'
 import type { Exam } from '../types/exam'
 
 export function Admin() {
-  const [activeTab, setActiveTab] = useState<'list' | 'upload'>('list')
+  const [activeTab, setActiveTab] = useState<'list' | 'upload' | 'documents'>('list')
   const [adminPassword, setAdminPassword] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -120,6 +121,12 @@ export function Admin() {
         >
           Thêm đề thi
         </button>
+        <button
+          onClick={() => setActiveTab('documents')}
+          className={`font-medium pb-2 ${activeTab === 'documents' ? 'text-primary border-b-2 border-primary' : 'text-ink-muted'}`}
+        >
+          Tài liệu tổng hợp
+        </button>
       </div>
 
       {activeTab === 'list' && (
@@ -134,6 +141,10 @@ export function Admin() {
           setActiveTab('list')
           setRefreshTrigger(prev => prev + 1)
         }} />
+      )}
+
+      {activeTab === 'documents' && (
+        <DocumentAdminTab />
       )}
 
       {editingExam && (
