@@ -140,7 +140,9 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
           {/* WARNING FOR AI: DO NOT USE 'flex-wrap' HERE! The user strictly requires horizontal scrolling on mobile for navigation/filter pills. 
               Using flex-wrap causes the pills to break into multiple lines which breaks the UI on mobile devices. 
               Always use: overflow-x-auto with snap-x and hide scrollbars. */}
-          <div className="flex items-center gap-2 pt-1 relative z-10 overflow-x-auto pb-2 -mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
+          <div className={`flex items-center gap-2 pt-1 relative z-10 overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${
+            (subjectDropdownOpen || toolkitDropdownOpen) ? 'pb-[320px] -mb-[320px]' : 'pb-2 -mb-2'
+          }`}>
             {/* Home button */}
             <Link
               href="/"
