@@ -23,7 +23,6 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
   const iconColor = SUBJECT_ICON_COLOR[subjectSlug] ?? 'text-[var(--color-primary)]'
   const Icon = SUBJECT_ICONS[subjectSlug] ?? BookOpen
 
-  // Create a display date (dd/MM/yyyy)
   const displayDate = exam.createdAt
     ? new Date(exam.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : 'Đang cập nhật'
@@ -32,14 +31,14 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
 
   return (
     <article
-      className={`relative group flex items-start ${compact ? 'gap-3 py-3' : 'gap-4 py-5'} border-b border-line border-dashed last:border-b-0 transition-[background-color,border-color] duration-300 ease-out ${
-        highlight ? 'bg-[var(--color-primary)]/5 -mx-4 px-4' : ''
+      className={`group flex items-start ${compact ? 'gap-3 py-3' : 'gap-4 py-4'} border-b border-[var(--border-color)] last:border-b-0 transition-colors duration-200 ${
+        highlight ? 'bg-blue-50/50 dark:bg-blue-950/20 -mx-3 px-3 rounded-[6px]' : ''
       }`}
     >
       {/* Thumbnail */}
       <a
         href={path}
-        className={`shrink-0 block ${compact ? 'w-[70px] h-[99px]' : 'w-[90px] h-[127px] md:w-[130px] md:h-[184px]'} border border-line bg-white shadow-sm transition-all duration-300 ease-out group-hover:shadow-lg group-hover:-translate-y-1 relative overflow-hidden rounded-md cursor-pointer`}
+        className={`shrink-0 block ${compact ? 'w-[64px] h-[90px]' : 'w-[80px] h-[113px]'} border border-[var(--border-color)] bg-[var(--bg-primary)] transition-all duration-200 overflow-hidden rounded-[6px] cursor-pointer group-hover:border-[var(--border-color-hover)] group-hover:shadow-[var(--shadow-sm)]`}
         aria-label={`Xem chi tiết ${exam.title || exam.subject}`}
       >
         {exam.thumbnailUrl ? (
@@ -48,46 +47,44 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
             alt={exam.title || exam.subject}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover object-top transition-transform duration-400 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-page transition-transform duration-500 group-hover:scale-105">
-            <Icon size={32} className={`${iconColor} opacity-50`} />
+          <div className="w-full h-full flex items-center justify-center">
+            <Icon size={24} className={`${iconColor} opacity-40`} />
           </div>
         )}
       </a>
 
       {/* Body */}
-      <div className="flex-1 min-w-0 flex flex-col justify-start pt-1 md:pt-2">
+      <div className="flex-1 min-w-0 flex flex-col justify-start pt-0.5">
         {/* Badges */}
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          {/* Year Badge (Bold Blue as requested) */}
-          <span className="inline-flex items-center rounded-md bg-blue-100 px-2 py-0.5 text-[11px] uppercase tracking-wide font-bold text-blue-700 border border-blue-200">
-            Năm {exam.year}
+        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+          <span className="inline-flex items-center rounded-[4px] bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 text-[11px] font-[700] text-blue-600 dark:text-blue-400 tracking-wide">
+            {exam.year}
           </span>
-
-          {/* Official vs Mock Badge */}
           {exam.isOfficial ? (
-            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
-              Đề chính thức
+            <span className="inline-flex items-center rounded-[4px] bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 text-[11px] font-[500] text-emerald-700 dark:text-emerald-400">
+              Chính thức
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">
-              Đề thi thử
+            <span className="inline-flex items-center rounded-[4px] bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[11px] font-[500] text-amber-700 dark:text-amber-400">
+              Thi thử
             </span>
           )}
         </div>
-        <h3 className={`${compact ? 'text-[0.95rem] line-clamp-3' : 'text-[1.05rem] md:text-[1.2rem] line-clamp-3 md:line-clamp-none'} font-bold text-[#1a2b49] leading-snug mb-2 mt-1`}>
+
+        <h3 className={`${compact ? 'text-[13px] line-clamp-3' : 'text-[14px] line-clamp-3'} font-[600] text-[var(--text-primary)] leading-[1.4] mb-2`}>
           <a
             href={path}
-            className="hover:text-[var(--color-primary)] transition-colors duration-300 block cursor-pointer"
+            className="hover:text-[var(--color-primary)] transition-colors duration-200"
           >
             {exam.title || `Đề thi ${exam.subject} - ${exam.province} - ${exam.year}`}
           </a>
         </h3>
 
-        <div className="flex items-center gap-1.5 text-[0.875rem] text-[#888] font-medium transition-opacity duration-300 group-hover:opacity-80">
-          <Clock size={16} />
+        <div className="flex items-center gap-1 text-[12px] text-[var(--text-tertiary)]">
+          <Clock size={11} className="shrink-0" />
           <span>{displayDate}</span>
         </div>
       </div>

@@ -4,46 +4,76 @@
 
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-fira-code), "JetBrains Mono", ui-monospace, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --color-primary: #2563EB;
   --color-accent: #059669;
   --color-danger: #DC2626;
   --color-success: #10B981;
 }
 
+/* ─── Design Tokens ─────────────────────────────────────────────────── */
 :root {
-  --bg-primary: #F9FAFB; /* Slate-50 */
+  /* Background */
+  --bg-primary:   #F7F8FA;   /* Cool off-white — less harsh than #FFF */
   --bg-secondary: #FFFFFF;
-  --text-primary: #111827; /* Gray-900 (Blacker, crisper) */
-  --text-secondary: #4B5563; /* Gray-600 */
-  --color-primary: #2563EB;
-  --color-accent: #059669;
-  --color-danger: #DC2626;
-  --color-success: #10B981;
-  --border-color: #E5E7EB;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --bg-elevated:  #FFFFFF;   /* cards, modals */
+
+  /* Text — crisp, high contrast like Notion / Scribd */
+  --text-primary:   #0D0F12;  /* Near-black */
+  --text-secondary: #5A6374;  /* Muted gray */
+  --text-tertiary:  #9AA3AF;  /* Placeholder, captions */
+
+  /* Brand */
+  --color-primary:       #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-accent:        #059669;
+  --color-danger:        #DC2626;
+  --color-success:       #10B981;
+
+  /* Border — very subtle */
+  --border-color:        #E4E7EB;
+  --border-color-hover:  #C9CDD4;
+
+  /* Shadow — barely-there, editorial style */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.05);
+
+  /* Radius — geometric, not bubbly */
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
+  --radius-xl:  12px;
+  --radius-2xl: 16px;
 }
 
 [data-theme="dark"] {
-  --bg-primary: #0B1120; /* Sleeker dark mode */
-  --bg-secondary: #111827;
-  --text-primary: #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --color-primary: #3B82F6;
-  --color-accent: #34D399;
-  --color-danger: #EF4444;
-  --color-success: #34D399;
-  --border-color: #1F2937;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --bg-primary:   #0D1117;   /* GitHub-dark inspired */
+  --bg-secondary: #161B22;
+  --bg-elevated:  #1C2333;
+
+  --text-primary:   #E6EDF3;
+  --text-secondary: #8B949E;
+  --text-tertiary:  #5B6370;
+
+  --color-primary:       #3B82F6;
+  --color-primary-hover: #60A5FA;
+  --color-accent:        #34D399;
+  --color-danger:        #F87171;
+  --color-success:       #34D399;
+
+  --border-color:       #21262D;
+  --border-color-hover: #30363D;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
 }
 
-html,
-body,
-#root {
+/* ─── Base ───────────────────────────────────────────────────────────── */
+html, body, #root {
   min-height: 100%;
   overflow-x: hidden;
 }
@@ -51,103 +81,79 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition:
-    background-color 300ms ease,
-    color 300ms ease;
-  /* Bật tối ưu text rendering trên mobile */
-  text-rendering: optimizeSpeed;
+  transition: background-color 300ms ease, color 300ms ease;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@media (min-width: 1024px) {
-  body {
-    font-size: 15px;
-    line-height: 1.5;
-    text-rendering: optimizeLegibility;
-  }
+@media (min-width: 768px) {
+  body { font-size: 14px; }
 }
 
+/* ─── Utility Classes ────────────────────────────────────────────────── */
 @layer utilities {
-  .bg-page {
-    background-color: var(--bg-primary);
+  .bg-page    { background-color: var(--bg-primary); }
+  .bg-surface { background-color: var(--bg-secondary); }
+  .bg-elevated { background-color: var(--bg-elevated); }
+  .text-ink       { color: var(--text-primary); }
+  .text-ink-muted { color: var(--text-secondary); }
+  .text-ink-faint { color: var(--text-tertiary); }
+  .border-line    { border-color: var(--border-color); }
+  .shadow-card    { box-shadow: var(--shadow-sm); }
+  .shadow-card-hover { box-shadow: var(--shadow-md); }
+
+  /* Consistent card style — used across the whole app */
+  .card {
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    transition: box-shadow 200ms ease, border-color 200ms ease;
   }
-  .bg-surface {
-    background-color: var(--bg-secondary);
+  .card:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border-color-hover);
   }
-  .text-ink {
+
+  /* Standard button shapes — no giant pill radius */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: var(--radius-md);
+    padding: 0 14px;
+    height: 36px;
+    transition: all 150ms ease;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: #fff;
+  }
+  .btn-primary:hover { background-color: var(--color-primary-hover); }
+  .btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
     color: var(--text-primary);
   }
-  .text-ink-muted {
-    color: var(--text-secondary);
-  }
-  .border-line {
-    border-color: var(--border-color);
-  }
-  .shadow-card {
-    box-shadow: var(--shadow-md);
-  }
-  .shadow-card-hover {
-    box-shadow: var(--shadow-lg);
-  }
+  .btn-outline:hover { border-color: var(--border-color-hover); background-color: var(--bg-primary); }
 }
 
-.exam-card {
-  transition:
-    transform 150ms ease-out,
-    box-shadow 150ms ease-out,
-    border-color 150ms ease-out;
-}
-
-.exam-card:hover {
-  transform: scale(1.02);
-  box-shadow: var(--shadow-lg);
-}
-
-.btn-press:active {
-  transform: scale(0.98);
-}
-
-.fade-in {
-  animation: fadeIn 280ms ease-out both;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.pulse-blue {
-  animation: pulseBlue 1.2s ease-in-out infinite;
-}
-
-@keyframes pulseBlue {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 45%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 8px transparent;
-  }
-}
-
-/* Skeleton loading shimmer — dùng transform thay vì background-position để GPU accelerate */
+/* ─── Skeleton Loader ────────────────────────────────────────────────── */
 .skeleton {
   position: relative;
   overflow: hidden;
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
-
 .skeleton::after {
   content: '';
   position: absolute;
@@ -155,97 +161,58 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    color-mix(in srgb, var(--bg-secondary) 40%, var(--text-secondary)) 50%,
+    color-mix(in srgb, var(--bg-secondary) 40%, var(--text-tertiary)) 50%,
     transparent 100%
   );
   transform: translateX(-100%);
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
   will-change: transform;
 }
-
 @keyframes skeleton-shimmer {
-  0% { transform: translateX(-100%); }
+  0%   { transform: translateX(-100%); }
   100% { transform: translateX(200%); }
 }
 
-/* Toast notification slide-in */
+/* ─── Animations ─────────────────────────────────────────────────────── */
+.fade-in {
+  animation: fadeIn 250ms ease-out both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .toast-enter {
-  animation: toastSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: toastSlideIn 280ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-
 @keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(120%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(110%); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-/* Stats counter animation */
-.stat-card {
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-/* Subject card hover glow */
-.subject-card {
-  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
-}
-
-.subject-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
-}
-
-[data-theme="dark"] .subject-card:hover {
-  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
-}
-
-/* Year card */
-.year-card {
-  transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
-}
-
-.year-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-primary);
-}
-
-/* Hero image floating animation */
-.hero-float {
-  animation: heroFloat 4s ease-in-out infinite;
-  will-change: transform;
-}
-
-@keyframes heroFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-/* Badge pulse glow */
 .badge-pulse {
   animation: badgePulse 2s ease-in-out infinite;
   will-change: box-shadow;
 }
-
 @keyframes badgePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5); }
-  50% { box-shadow: 0 0 0 6px rgba(244, 63, 94, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); }
+  50%       { box-shadow: 0 0 0 5px rgba(244, 63, 94, 0); }
 }
 
-/* CTA banner shimmer sweep — dùng transform để GPU accelerate */
-.cta-shimmer {
-  position: relative;
+/* Only on larger screens — saves CPU on mobile */
+@media (min-width: 768px) {
+  .hero-float {
+    animation: heroFloat 4s ease-in-out infinite;
+    will-change: transform;
+  }
+}
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
 }
 
+/* CTA shimmer sweep */
+.cta-shimmer { position: relative; }
 .cta-shimmer::after {
   content: '';
   position: absolute;
@@ -253,37 +220,80 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.04) 40%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.04) 60%,
+    rgba(255,255,255,0.04) 40%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 60%,
     transparent 100%
   );
   transform: translateX(-100%);
-  animation: ctaShimmer 4s ease-in-out infinite;
+  animation: ctaShimmer 4.5s ease-in-out infinite;
   border-radius: inherit;
   pointer-events: none;
   will-change: transform;
 }
-
 @keyframes ctaShimmer {
-  0% { transform: translateX(-100%); }
+  0%   { transform: translateX(-100%); }
   100% { transform: translateX(200%); }
 }
 
-.perspective-1000 { perspective: 1000px; }
-.preserve-3d { transform-style: preserve-3d; }
-.backface-hidden { backface-visibility: hidden; }
-.rotate-y-180 { transform: rotateY(180deg); }
+.pulse-blue {
+  animation: pulseBlue 1.2s ease-in-out infinite;
+}
+@keyframes pulseBlue {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 40%, transparent); }
+  50%       { box-shadow: 0 0 0 7px transparent; }
+}
 
-/* Custom AI Loader Animation */
+/* Stat cards */
+.stat-card {
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Subject cards */
+.subject-card {
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+}
+.subject-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Year card */
+.year-card {
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
+}
+.year-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-primary);
+}
+
+/* Exam card — consistent with rest of design system */
+.exam-card {
+  transition: box-shadow 180ms ease-out, border-color 180ms ease-out;
+}
+.exam-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+/* 3D flashcard */
+.perspective-1000 { perspective: 1000px; }
+.preserve-3d      { transform-style: preserve-3d; }
+.backface-hidden  { backface-visibility: hidden; }
+.rotate-y-180     { transform: rotateY(180deg); }
+
+/* ─── Custom AI Loader ───────────────────────────────────────────────── */
 .ai-loader {
   width: 60px;
   aspect-ratio: 1;
   position: relative;
-  color: var(--color-primary); /* Uses the website theme color */
+  color: var(--color-primary);
 }
-.ai-loader::before,
-.ai-loader::after {
+.ai-loader::before, .ai-loader::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -293,38 +303,25 @@ body {
   background-repeat: no-repeat;
   animation: ai-loader-anim 2s infinite;
 }
-.ai-loader::after {
-  --s: -1;
-}
+.ai-loader::after { --s: -1; }
 @keyframes ai-loader-anim {
-    0%,
-    10%  {transform:translateY(calc(var(--s,1)*0));   background-position: 0 calc(var(--s,0)*-100%),calc(var(--s,0)*100%) 50%}
-    33%  {transform:translateY(calc(var(--s,1)*-20%));background-position: 0 calc(var(--s,0)*-100%),calc(var(--s,0)*100%) 50%}
-    66%  {transform:translateY(calc(var(--s,1)*-20%));background-position: 0 calc(var(--s,0)*-100%),calc(var(--s,0)*100% + 100%) 50%}
-    90%,
-    100%  {transform:translateY(calc(var(--s,1)*0));  background-position: 0 calc(var(--s,0)*-100%),calc(var(--s,0)*100% + 100%) 50%}
+  0%,10%  { transform:translateY(calc(var(--s,1)*0));   background-position:0 calc(var(--s,0)*-100%),calc(var(--s,0)*100%) 50% }
+  33%     { transform:translateY(calc(var(--s,1)*-20%));background-position:0 calc(var(--s,0)*-100%),calc(var(--s,0)*100%) 50% }
+  66%     { transform:translateY(calc(var(--s,1)*-20%));background-position:0 calc(var(--s,0)*-100%),calc(var(--s,0)*100% + 100%) 50% }
+  90%,100%{ transform:translateY(calc(var(--s,1)*0));   background-position:0 calc(var(--s,0)*-100%),calc(var(--s,0)*100% + 100%) 50% }
 }
 
-/* Tắt hero-float trên mobile — không cần thiết và tốn CPU */
-@media (max-width: 767px) {
-  .hero-float {
-    animation: none;
-  }
-}
-
-/* Tôn trọng cài đặt giảm chuyển động của hệ điều hành (tiết kiệm pin, accessibility) */
+/* ─── Accessibility ──────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-/* Footer: bật content-visibility — browser skip render khi ngoài viewport */
+/* Footer: skip render when off-screen */
 footer {
   content-visibility: auto;
-  contain-intrinsic-size: 0 400px;
+  contain-intrinsic-size: 0 380px;
 }

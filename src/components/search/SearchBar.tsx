@@ -45,33 +45,26 @@ export function SearchBar() {
 
   return (
     <div ref={boxRef} className="relative w-full">
-      <label className="sr-only" htmlFor="site-search">
-        Tìm đề thi
-      </label>
-      <div className="border-line bg-page flex min-h-11 items-center rounded-xl border px-3">
-        <Search size={18} className="text-ink-muted mr-2 shrink-0" />
+      <label className="sr-only" htmlFor="site-search">Tìm đề thi</label>
+      <div className="flex h-9 items-center rounded-[6px] border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 transition-all focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-blue-500/10">
+        <Search size={14} className="shrink-0 mr-2 text-[var(--text-tertiary)]" />
         <input
           id="site-search"
           value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setOpen(true)
-          }}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') submit()
-          }}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
           placeholder="Tìm: Toán Nam Định 2024"
-          className="h-11 w-full bg-transparent text-sm outline-none"
+          className="h-full w-full bg-transparent text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none"
         />
       </div>
       {open && suggestions.length > 0 ? (
-        <ul className="border-line bg-surface absolute top-full z-20 mt-2 w-full overflow-hidden rounded-xl border shadow-card">
+        <ul className="absolute top-full z-20 mt-1.5 w-full overflow-hidden rounded-[6px] border border-[var(--border-color)] bg-[var(--bg-elevated)] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
           {suggestions.map((item) => (
             <li key={item}>
               <button
                 type="button"
-                className="hover:bg-page w-full px-4 py-2.5 text-left text-sm"
+                className="w-full px-3 py-2 text-left text-[13px] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-primary)]"
                 onClick={() => submit(item)}
               >
                 {item}
