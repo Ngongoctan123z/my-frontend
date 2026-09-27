@@ -379,6 +379,30 @@ export function AiGraderClient() {
           </div>
         </div>
       )}
+
+      {/* SEO Content Section */}
+      <section className="mt-12 pt-8 border-t border-[var(--border-color)]">
+        <div className="prose prose-sm sm:prose-base max-w-none text-[var(--text-secondary)]">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4">Chấm Thi Writing IELTS & TOEIC Bằng Trí Tuệ Nhân Tạo (AI) Miễn Phí</h2>
+          <p className="mb-4 leading-relaxed">
+            Hệ thống <strong>Chấm thi Writing AI</strong> của VNDocs là công cụ tối ưu giúp học sinh, sinh viên luyện thi IELTS Task 2 và TOEIC Writing hiệu quả. Ứng dụng công nghệ Trí tuệ nhân tạo (AI) tiên tiến (thông qua API Key Gemini của bạn), công cụ mang đến khả năng phân tích ngôn ngữ tự nhiên sâu sắc, đánh giá bài viết chính xác theo chuẩn rubric quốc tế hoàn toàn miễn phí.
+          </p>
+          
+          <h3 className="text-lg font-bold text-[var(--text-primary)] mt-6 mb-3">Tính Năng Vượt Trội Của AI Grader Tại VNDocs</h3>
+          <ul className="list-disc pl-5 space-y-2 mb-4">
+            <li><strong>Chấm điểm theo tiêu chuẩn quốc tế:</strong> Phân tích và cho điểm chi tiết theo 4 tiêu chí cốt lõi của IELTS (Task Response, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy) và barem chuẩn của TOEIC Writing.</li>
+            <li><strong>Nhận xét tổng quan & chi tiết:</strong> AI không chỉ đưa ra điểm số mà còn cung cấp những lời khuyên hữu ích để cải thiện tư duy logic, cách lập luận và cấu trúc bài essay.</li>
+            <li><strong>Sửa lỗi ngữ pháp & từ vựng:</strong> Công cụ tự động phát hiện các lỗi sai (ngữ pháp, chính tả, cách dùng từ), giải thích lý do sai và đề xuất cách chữa lỗi chuẩn xác.</li>
+            <li><strong>Tạo đề thi tự động:</strong> Tính năng "Tạo đề ngẫu nhiên" mang đến nguồn chủ đề (prompts) luyện viết phong phú, bám sát xu hướng đề thi thật mới nhất.</li>
+            <li><strong>Lưu trữ an toàn, bảo mật 100%:</strong> Lịch sử làm bài và điểm số được lưu trữ ngoại tuyến bằng IndexedDB trực tiếp trên trình duyệt của bạn. Bạn không cần đăng ký tài khoản, và dữ liệu bài viết không bao giờ bị lưu trên máy chủ của chúng tôi.</li>
+          </ul>
+
+          <h3 className="text-lg font-bold text-[var(--text-primary)] mt-6 mb-3">Tối Ưu Quá Trình Tự Học Cùng VNDocs</h3>
+          <p className="leading-relaxed">
+            Thay vì tốn chi phí thuê người chấm bài hay phải chờ đợi kết quả nhiều ngày, công cụ <strong>AI Grader</strong> trả về bảng điểm và nhận xét chi tiết chỉ trong vài giây. Kết hợp cùng các tiện ích khác như <em>Tài liệu tổng hợp miễn phí</em> và <em>Công cụ PDF</em>, VNDocs tự hào là hệ sinh thái giáo dục đồng hành cùng bạn trên con đường chinh phục chứng chỉ ngoại ngữ.
+          </p>
+        </div>
+      </section>
     </div>
   )
 }

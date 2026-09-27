@@ -251,6 +251,28 @@ export function DocumentLibraryClient() {
           </button>
         </div>
       )}
+
+      {/* SEO Content Section */}
+      <section className="mt-12 pt-8 border-t border-[var(--border-color)]">
+        <div className="prose prose-sm sm:prose-base max-w-none text-[var(--text-secondary)]">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4">Kho Tài Liệu Học Tập & Luyện Thi Miễn Phí Tại VNDocs</h2>
+          <p className="mb-4 leading-relaxed">
+            Chào mừng bạn đến với kho <strong>Tài Liệu Tổng Hợp Miễn Phí</strong> của VNDocs. Tại đây, chúng tôi tuyển chọn và chia sẻ những nguồn tài liệu học tập, sách tham khảo, đề cương ôn tập chất lượng cao từ các thầy cô giáo và trung tâm uy tín trên toàn quốc. Mục tiêu của chúng tôi là mang cơ hội tiếp cận tri thức bình đẳng đến với mọi học sinh, sinh viên hoàn toàn miễn phí.
+          </p>
+          
+          <h3 className="text-lg font-bold text-[var(--text-primary)] mt-6 mb-3">Tài Liệu Đa Dạng Các Cấp Học & Môn Học</h3>
+          <ul className="list-disc pl-5 space-y-2 mb-4">
+            <li><strong>Luyện Thi IELTS & TOEIC:</strong> Cung cấp ebook, tài liệu hướng dẫn giải đề, tài liệu tăng band điểm các kỹ năng Reading, Listening, Speaking và Writing từ các chuyên gia.</li>
+            <li><strong>Tuyển sinh vào lớp 10 & THPT Quốc Gia:</strong> Kho tàng đề thi thử, tài liệu tóm tắt kiến thức trọng tâm các môn Toán, Văn, Anh, Lý, Hóa, Sinh, Sử, Địa đáp ứng sát nhất với định dạng đề thi của Bộ Giáo dục.</li>
+            <li><strong>Đại học & Chuyên ngành:</strong> Các tài liệu nghiên cứu, giáo trình đại cương hỗ trợ sinh viên trong quá trình học tập tại giảng đường đại học.</li>
+          </ul>
+
+          <h3 className="text-lg font-bold text-[var(--text-primary)] mt-6 mb-3">Tải Xuống Tốc Độ Cao & Trải Nghiệm Mượt Mà</h3>
+          <p className="leading-relaxed">
+            Hệ thống thư viện tài liệu được thiết kế tối ưu, cho phép bạn dễ dàng tìm kiếm theo môn học, cấp độ với tốc độ phản hồi tính bằng mili-giây. Bạn có thể <strong>tải về trực tiếp</strong> (Download) hoặc truy cập nguồn tài liệu gốc (Source) cực kỳ nhanh chóng mà không gặp phải quảng cáo chuyển hướng phiền toái. Kết hợp với kho <em>Đề thi trắc nghiệm trực tuyến</em> và <em>Công cụ AI Grader</em>, VNDocs là nền tảng tất-cả-trong-một (All-in-one) dành riêng cho hành trình tự học của bạn.
+          </p>
+        </div>
+      </section>
     </div>
   )
 }

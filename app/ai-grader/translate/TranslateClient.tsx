@@ -132,6 +132,29 @@ export function TranslateClient() {
           </div>
         </div>
       </div>
+
+      {/* SEO Content Section */}
+      <section className="mt-12 pt-8 border-t border-[var(--border-color)]">
+        <div className="prose prose-sm sm:prose-base max-w-none text-[var(--text-secondary)]">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4">Công Cụ Dịch Thuật & Phân Tích Ngôn Ngữ Bằng AI</h2>
+          <p className="mb-4 leading-relaxed">
+            Vượt xa các công cụ dịch thuật thông thường, hệ thống <strong>Dịch AI nhanh</strong> của VNDocs ứng dụng sức mạnh của Trí tuệ nhân tạo (Generative AI) để hiểu sâu sắc ngữ cảnh của đoạn văn. Không chỉ dịch sát nghĩa, mượt mà mà công cụ còn có khả năng tự động nhận diện ngôn ngữ, phát hiện lỗi sai trong bản gốc và trích xuất từ vựng quan trọng giúp bạn học ngoại ngữ hiệu quả hơn.
+          </p>
+          
+          <h3 className="text-lg font-bold text-[var(--text-primary)] mt-6 mb-3">Tính Năng Đặc Biệt Của Công Cụ Dịch Bằng AI</h3>
+          <ul className="list-disc pl-5 space-y-2 mb-4">
+            <li><strong>Dịch thuật ngữ cảnh sâu:</strong> Đảm bảo câu văn dịch ra tự nhiên, giữ đúng văn phong (formal, informal) và ngữ cảnh của văn bản gốc thay vì dịch word-by-word.</li>
+            <li><strong>Sửa lỗi bản gốc (Grammar Check):</strong> Tự động phát hiện và đề xuất sửa lỗi chính tả, ngữ pháp ngay trong văn bản nguồn trước khi dịch.</li>
+            <li><strong>Trích xuất từ vựng khó (Vocabulary Extraction):</strong> Tự động quét và liệt kê các từ vựng khó, thành ngữ (idioms) kèm theo giải nghĩa chi tiết để bạn dễ dàng ghi nhớ.</li>
+            <li><strong>Bảo mật riêng tư 100%:</strong> Xử lý tức thì thông qua API Key của bạn. Dữ liệu văn bản dịch không bao giờ bị lưu trữ trên máy chủ VNDocs.</li>
+          </ul>
+
+          <h3 className="text-lg font-bold text-[var(--text-primary)] mt-6 mb-3">Hỗ Trợ Tối Đa Việc Học Tập</h3>
+          <p className="leading-relaxed">
+            Công cụ này là người bạn đồng hành đắc lực khi bạn đọc hiểu tài liệu tiếng Anh học thuật, tra cứu đề thi hay luyện đọc hiểu TOEIC/IELTS. Tích hợp trực tiếp trên nền tảng VNDocs cùng hàng ngàn <em>tài liệu miễn phí</em>, công cụ dịch AI giúp tiết kiệm thời gian tra từ điển và nâng cao vốn từ vựng một cách tự nhiên.
+          </p>
+        </div>
+      </section>
     </div>
   )
 }
