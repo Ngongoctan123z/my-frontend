@@ -141,10 +141,18 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               Using flex-wrap causes the pills to break into multiple lines which breaks the UI on mobile devices. 
               Always use: overflow-x-auto with snap-x and hide scrollbars. */}
           <div className="flex items-center gap-2 pt-1 relative z-10 overflow-x-auto pb-2 -mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
+            {/* Home button */}
+            <Link
+              href="/"
+              className="shrink-0 flex items-center gap-1.5 rounded-full border border-line bg-page px-3.5 py-1.5 text-[14px] font-semibold text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all snap-start"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+              Trang chủ
+            </Link>
             <button
               type="button"
               onClick={() => updateParam('examType', undefined)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${!examType
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[14px] font-semibold transition-all ${!examType
                 ? 'bg-[var(--color-primary)] text-white shadow-sm'
                 : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
                 }`}
@@ -154,7 +162,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <button
               type="button"
               onClick={() => updateParam('examType', examType === 'VAO_10' ? undefined : 'VAO_10')}
-              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${examType === 'VAO_10'
+              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[14px] font-semibold transition-all ${examType === 'VAO_10'
                 ? 'bg-[var(--color-primary)] text-white shadow-sm'
                 : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
                 }`}
@@ -165,7 +173,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             <button
               type="button"
               onClick={() => updateParam('examType', examType === 'THPT' ? undefined : 'THPT')}
-              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${examType === 'THPT'
+              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[14px] font-semibold transition-all ${examType === 'THPT'
                 ? 'bg-[var(--color-primary)] text-white shadow-sm'
                 : 'bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border border-line'
                 }`}
@@ -179,7 +187,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               <button
                 type="button"
                 onClick={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
-                className={`flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all ${subject ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border'
+                className={`flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[14px] font-semibold transition-all ${subject ? 'bg-[var(--color-accent)] text-white shadow-sm' : 'border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border'
                   }`}
               >
                 Môn: {subject || 'Tất cả'}
@@ -208,13 +216,25 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 </div>
               )}
             </div>
+            </div>
 
-            {/* Toolkit Dropdown Trigger */}
+            <select
+              value={year || ''}
+              onChange={(e) => updateParam('year', e.target.value || undefined)}
+              className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[14px] font-semibold border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border outline-none transition-colors"
+            >
+              <option value="">Năm: Tất cả</option>
+              {YEARS.map((y) => (
+                <option key={y} value={String(y)}>Năm {y}</option>
+              ))}
+            </select>
+
+            {/* Toolkit Dropdown Trigger — moved to end */}
             <div className="relative shrink-0" ref={toolkitDropdownRef}>
               <button
                 type="button"
                 onClick={() => setToolkitDropdownOpen(!toolkitDropdownOpen)}
-                className="flex items-center gap-1.5 rounded-full border border-line bg-page px-3.5 py-1.5 text-[13px] font-semibold text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all group"
+                className="flex items-center gap-1.5 rounded-full border border-line bg-page px-3.5 py-1.5 text-[14px] font-semibold text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all group"
               >
                 <svg className="w-3.5 h-3.5 text-[var(--color-primary)] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Bộ công cụ
@@ -249,17 +269,6 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 </div>
               )}
             </div>
-
-            <select
-              value={year || ''}
-              onChange={(e) => updateParam('year', e.target.value || undefined)}
-              className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[13px] font-semibold border-line bg-page text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] border outline-none transition-colors"
-            >
-              <option value="">Năm: Tất cả</option>
-              {YEARS.map((y) => (
-                <option key={y} value={String(y)}>Năm {y}</option>
-              ))}
-            </select>
           </div>
         </div>
       </section>
