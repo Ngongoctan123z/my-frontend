@@ -216,7 +216,6 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                 </div>
               )}
             </div>
-            </div>
 
             <select
               value={year || ''}
