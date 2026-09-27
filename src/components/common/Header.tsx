@@ -13,7 +13,7 @@ export function Header() {
   const isHomePage = pathname === '/'
 
   const navLinks = [
-    { href: '/', label: 'Đề thi' },
+    { href: '/tai-lieu', label: 'Đề thi' },
     { href: '/tools', label: 'Công cụ' },
     { href: '/ai-grader', label: 'Luyện IELTS/TOEIC' },
   ]
