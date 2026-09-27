@@ -7,7 +7,7 @@ import { Layout as AppLayout } from '../src/components/common/Layout'
 
 const inter = Inter({
   subsets: ['latin', 'vietnamese'],
-  weight: ['400', '600', '700'], // bỏ '500' — giảm 1 font variant không cần thiết
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-inter',
   preload: true,
