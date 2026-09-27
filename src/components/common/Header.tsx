@@ -20,19 +20,19 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-[#0D1117] border-b border-[var(--border-color)] transition-colors duration-300">
-      <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 md:px-10 h-[60px]">
+      <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 md:px-10 h-[66px]">
 
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5 hover:opacity-80 transition-opacity">
           <Image
             src="/logo.jpg"
             alt="VNDocs Logo"
-            width={32}
-            height={32}
+            width={40}
+            height={40}
             priority
-            className="h-8 w-8 rounded-[6px] object-cover"
+            className="h-10 w-10 rounded-[6px] object-cover"
           />
-          <span className="hidden sm:inline text-[15px] font-[800] text-[var(--text-primary)] tracking-tight">VNDocs</span>
+          <span className="hidden sm:inline text-[18px] font-[900] text-[var(--text-primary)] tracking-tight">VNDocs</span>
         </Link>
 
         {/* Center: nav (home) or search (inner pages) */}
@@ -43,7 +43,7 @@ export function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-[13px] font-[600] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors tracking-wide uppercase"
+                  className="text-[13px] font-[700] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors tracking-wider uppercase"
                 >
                   {link.label}
                 </Link>
