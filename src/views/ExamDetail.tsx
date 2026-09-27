@@ -212,9 +212,11 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
   }
 
   return (
-    <div className="space-y-6 py-12 md:py-16">
-      <Breadcrumb
-        items={[
+    <div className="py-12 md:py-16 flex flex-col lg:flex-row gap-8 items-start">
+      {/* Main Content (3/4 width on desktop) */}
+      <div className="w-full lg:w-3/4 space-y-6">
+        <Breadcrumb
+          items={[
           { label: 'Trang chủ', to: '/' },
           { label: examTypeLabel(type), to: `/category/${examType}` },
           { label: subjectLabel, to: `/exams/${examType}/${subject}` },
@@ -350,15 +352,17 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
           </Button>
         </div>
       </Card>
+      </div>
 
-      {relatedExams && relatedExams.length > 0 ? (
-        <section className="mt-16">
-          <h2 className="mb-6 text-2xl font-bold tracking-tight">
-            Xem thêm đề {subjectLabel} tại {provinceLabel}
+      {/* Right Column - Related Exams (1/4 width on desktop) */}
+      {relatedExams && relatedExams.length > 0 && (
+        <div className="w-full lg:w-1/4 lg:sticky lg:top-[100px]">
+          <h2 className="mb-4 text-xl font-bold tracking-tight border-b border-line pb-3">
+            Đề xuất liên quan
           </h2>
           <ExamList exams={relatedExams} />
-        </section>
-      ) : null}
+        </div>
+      )}
 
     </div>
   )

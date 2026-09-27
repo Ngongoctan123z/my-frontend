@@ -17,6 +17,7 @@ export function DocxViewer({ src, title }: Props) {
           src={`https://docs.google.com/gview?url=${encodeURIComponent(src)}&embedded=true`}
           className="w-full h-full border-none"
           title={title}
+          loading="lazy"
         />
       </div>
     </div>

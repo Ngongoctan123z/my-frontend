@@ -220,7 +220,7 @@ export default async function ExamPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <Script
         id="mathjax-config"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         dangerouslySetInnerHTML={{
           __html: `
             window.MathJax = {
@@ -245,7 +245,7 @@ export default async function ExamPage({ params }: Props) {
       />
       <Script
         id="mathjax-script"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
       />
       <ExamDetail initialExam={exam} initialRelated={relatedExams} slug={slug} />

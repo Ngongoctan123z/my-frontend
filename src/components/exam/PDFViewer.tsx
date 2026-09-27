@@ -18,6 +18,7 @@ export function PDFViewer({ src, title }: Props) {
   const [zoom, setZoom] = useState(100)
   const [numPages, setNumPages] = useState<number>()
   const [pageNumber, setPageNumber] = useState(1)
+  const [isInView, setIsInView] = useState(false)
   
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState<number>()
@@ -40,6 +41,22 @@ export function PDFViewer({ src, title }: Props) {
       cancelAnimationFrame(rafId)
       observer.disconnect()
     }
+  }, [])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '500px' }
+    )
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+    return () => observer.disconnect()
   }, [])
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
@@ -72,34 +89,38 @@ export function PDFViewer({ src, title }: Props) {
           </a>
         </div>
       </div>
-      <div ref={containerRef} className="bg-page flex h-[70vh] flex-col items-center gap-4 overflow-auto py-4 px-2 md:px-4">
-        <Document
-          file={src}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={<div className="text-ink-muted">Đang tải PDF...</div>}
-          error={<div className="text-color-danger">Lỗi khi tải PDF</div>}
-        >
-          <div className="mb-4 shadow-md bg-white max-w-full overflow-hidden">
-            <Page
-              pageNumber={pageNumber}
-              scale={zoom / 100}
-              width={containerWidth ? Math.min(containerWidth - 16, 900) : undefined}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
-          </div>
-          {numPages && (
-            <div className="flex items-center gap-4 mt-2 mb-8 bg-surface px-4 py-2 rounded-full border border-line shadow-sm">
-              <Button variant="ghost" onClick={() => changePage(-1)} disabled={pageNumber <= 1}>
-                <ChevronLeft size={20} /> Trước
-              </Button>
-              <span className="text-sm font-medium">Trang {pageNumber} / {numPages}</span>
-              <Button variant="ghost" onClick={() => changePage(1)} disabled={pageNumber >= numPages}>
-                Sau <ChevronRight size={20} />
-              </Button>
+      <div ref={containerRef} className="bg-page flex h-[70vh] flex-col items-center gap-4 overflow-auto py-4 px-2 md:px-4 min-h-[400px]">
+        {isInView ? (
+          <Document
+            file={src}
+            onLoadSuccess={onDocumentLoadSuccess}
+            loading={<div className="text-ink-muted">Đang tải PDF...</div>}
+            error={<div className="text-color-danger">Lỗi khi tải PDF</div>}
+          >
+            <div className="mb-4 shadow-md bg-white max-w-full overflow-hidden">
+              <Page
+                pageNumber={pageNumber}
+                scale={zoom / 100}
+                width={containerWidth ? Math.min(containerWidth - 16, 900) : undefined}
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+              />
             </div>
-          )}
-        </Document>
+            {numPages && (
+              <div className="flex items-center gap-4 mt-2 mb-8 bg-surface px-4 py-2 rounded-full border border-line shadow-sm">
+                <Button variant="ghost" onClick={() => changePage(-1)} disabled={pageNumber <= 1}>
+                  <ChevronLeft size={20} /> Trước
+                </Button>
+                <span className="text-sm font-medium">Trang {pageNumber} / {numPages}</span>
+                <Button variant="ghost" onClick={() => changePage(1)} disabled={pageNumber >= numPages}>
+                  Sau <ChevronRight size={20} />
+                </Button>
+              </div>
+            )}
+          </Document>
+        ) : (
+          <div className="flex items-center justify-center h-full w-full text-ink-muted">Cuộn xuống để tải PDF...</div>
+        )}
       </div>
     </div>
   )
