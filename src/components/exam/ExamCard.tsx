@@ -32,7 +32,7 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
 
   return (
     <article
-      className={`relative group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 transition-all duration-300 ease-out ${
+      className={`relative group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 transition-[background-color,border-color] duration-300 ease-out ${
         highlight ? 'bg-[var(--color-primary)]/5 -mx-4 px-4' : ''
       }`}
     >

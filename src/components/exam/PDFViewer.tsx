@@ -23,15 +23,23 @@ export function PDFViewer({ src, title }: Props) {
   const [containerWidth, setContainerWidth] = useState<number>()
 
   useEffect(() => {
+    let rafId: number
     const observer = new ResizeObserver((entries) => {
-      if (entries[0]) {
-        setContainerWidth(entries[0].contentRect.width)
-      }
+      // debounce bằng rAF: chỉ update 1 lần mỗi frame, tránh setState mỗi pixel khi resize
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        if (entries[0]) {
+          setContainerWidth(entries[0].contentRect.width)
+        }
+      })
     })
     if (containerRef.current) {
       observer.observe(containerRef.current)
     }
-    return () => observer.disconnect()
+    return () => {
+      cancelAnimationFrame(rafId)
+      observer.disconnect()
+    }
   }, [])
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {

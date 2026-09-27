@@ -50,8 +50,9 @@ export function HomeClient() {
   const [rotationOffset, setRotationOffset] = useState(0)
   
   useEffect(() => {
+    const mobileQuery = window.matchMedia('(max-width: 767px)')
     const mobileInterval = setInterval(() => {
-      if (window.innerWidth >= 768) return // Only on mobile
+      if (!mobileQuery.matches) return // dùng matchMedia thay window.innerWidth để tránh forced layout
       setRotationOffset((prev) => (prev + 1) % 4)
     }, 3000)
     return () => clearInterval(mobileInterval)

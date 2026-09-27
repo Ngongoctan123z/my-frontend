@@ -80,7 +80,7 @@ export function Reveal({
   return (
     <div
       ref={ref}
-      className={`transition-all ease-out ${isVisible ? styles.to : styles.from} ${className}`}
+      className={`transition-[opacity,transform] ease-out ${isVisible ? styles.to : styles.from} ${className}`}
       style={{
         transitionDuration: `${duration}ms`,
         transitionDelay: `${delay}ms`,
