@@ -18,7 +18,7 @@ const SUBJECT_ICON_COLOR: Record<string, string> = {
   'tieng-anh': 'text-violet-500',
 }
 
-export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: boolean }) {
+export function ExamCard({ exam, highlight = false, compact = false }: { exam: Exam; highlight?: boolean; compact?: boolean }) {
   const subjectSlug = slugify(exam.subject)
   const iconColor = SUBJECT_ICON_COLOR[subjectSlug] ?? 'text-[var(--color-primary)]'
   const Icon = SUBJECT_ICONS[subjectSlug] ?? BookOpen
@@ -32,14 +32,14 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
 
   return (
     <article
-      className={`relative group flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0 transition-[background-color,border-color] duration-300 ease-out ${
+      className={`relative group flex items-start ${compact ? 'gap-3 py-3' : 'gap-4 py-5'} border-b border-line border-dashed last:border-b-0 transition-[background-color,border-color] duration-300 ease-out ${
         highlight ? 'bg-[var(--color-primary)]/5 -mx-4 px-4' : ''
       }`}
     >
       {/* Thumbnail */}
       <a
         href={path}
-        className="shrink-0 block w-[90px] h-[127px] md:w-[130px] md:h-[184px] border border-line bg-white shadow-sm transition-all duration-300 ease-out group-hover:shadow-lg group-hover:-translate-y-1 relative overflow-hidden rounded-md cursor-pointer"
+        className={`shrink-0 block ${compact ? 'w-[70px] h-[99px]' : 'w-[90px] h-[127px] md:w-[130px] md:h-[184px]'} border border-line bg-white shadow-sm transition-all duration-300 ease-out group-hover:shadow-lg group-hover:-translate-y-1 relative overflow-hidden rounded-md cursor-pointer`}
         aria-label={`Xem chi tiết ${exam.title || exam.subject}`}
       >
         {exam.thumbnailUrl ? (
@@ -77,8 +77,7 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
             </span>
           )}
         </div>
-
-        <h3 className="text-[1.05rem] md:text-[1.2rem] font-bold text-[#1a2b49] leading-snug mb-3 mt-1 line-clamp-3 md:line-clamp-none">
+        <h3 className={`${compact ? 'text-[0.95rem] line-clamp-3' : 'text-[1.05rem] md:text-[1.2rem] line-clamp-3 md:line-clamp-none'} font-bold text-[#1a2b49] leading-snug mb-2 mt-1`}>
           <a
             href={path}
             className="hover:text-[var(--color-primary)] transition-colors duration-300 block cursor-pointer"

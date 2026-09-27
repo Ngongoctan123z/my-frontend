@@ -1,10 +1,10 @@
 import type { Exam } from '../../types/exam'
 import { ExamCard } from './ExamCard'
 
-function SkeletonCard() {
+function SkeletonCard({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="flex items-start gap-4 py-5 border-b border-line border-dashed last:border-b-0">
-      <div className="skeleton shrink-0 w-[90px] h-[127px] md:w-[130px] md:h-[184px] rounded bg-surface" />
+    <div className={`flex items-start ${compact ? 'gap-3 py-3' : 'gap-4 py-5'} border-b border-line border-dashed last:border-b-0`}>
+      <div className={`skeleton shrink-0 ${compact ? 'w-[70px] h-[99px]' : 'w-[90px] h-[127px] md:w-[130px] md:h-[184px]'} rounded bg-surface`} />
       <div className="flex-1 space-y-3 pt-1 md:pt-2 w-full">
         <div className="skeleton h-5 md:h-6 w-full rounded" />
         <div className="skeleton h-5 md:h-6 w-3/4 rounded" />
@@ -19,17 +19,19 @@ export function ExamList({
   highlightQuery,
   isLoading = false,
   skeletonCount = 6,
+  compact = false,
 }: {
   exams: Exam[]
   highlightQuery?: string
   isLoading?: boolean
   skeletonCount?: number
+  compact?: boolean
 }) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-3">
         {Array.from({ length: skeletonCount }, (_, i) => (
-          <SkeletonCard key={i} />
+          <SkeletonCard key={i} compact={compact} />
         ))}
       </div>
     )
@@ -51,6 +53,7 @@ export function ExamList({
         <div key={exam.id} className="fade-in" style={{ animationDelay: `${index * 50}ms` }}>
           <ExamCard
             exam={exam}
+            compact={compact}
             highlight={Boolean(
               highlightQuery &&
                 `${exam.subject} ${exam.province}`.toLowerCase().includes(highlightQuery.toLowerCase()),

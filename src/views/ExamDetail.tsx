@@ -360,7 +360,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
           <h2 className="mb-4 text-xl font-bold tracking-tight border-b border-line pb-3">
             Đề xuất liên quan
           </h2>
-          <ExamList exams={relatedExams} />
+          <ExamList exams={relatedExams} compact={true} />
         </div>
       )}
 
