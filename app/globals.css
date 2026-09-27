@@ -58,11 +58,15 @@ body {
   transition:
     background-color 300ms ease,
     color 300ms ease;
+  /* Bật tối ưu text rendering trên mobile */
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
 }
 
 @media (min-width: 1024px) {
   body {
     font-size: 18px;
+    text-rendering: optimizeLegibility;
   }
 }
 
@@ -300,3 +304,26 @@ body {
     100%  {transform:translateY(calc(var(--s,1)*0));  background-position: 0 calc(var(--s,0)*-100%),calc(var(--s,0)*100% + 100%) 50%}
 }
 
+/* Tắt hero-float trên mobile — không cần thiết và tốn CPU */
+@media (max-width: 767px) {
+  .hero-float {
+    animation: none;
+  }
+}
+
+/* Tôn trọng cài đặt giảm chuyển động của hệ điều hành (tiết kiệm pin, accessibility) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Footer: bật content-visibility — browser skip render khi ngoài viewport */
+footer {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 400px;
+}

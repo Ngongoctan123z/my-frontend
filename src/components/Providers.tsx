@@ -8,7 +8,14 @@ import { useState } from 'react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: { queries: { staleTime: 5 * 60_000, retry: 0 } },
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60_000,  // dữ liệu được coi là fresh trong 5 phút
+        gcTime: 10 * 60_000,    // xóa cache khỏi bộ nhớ sau 10 phút khi không dùng
+        retry: 0,               // không retry — tránh gọn thêm request trên mạng yếu
+        refetchOnWindowFocus: false, // không refetch khi user switch tab
+      },
+    },
   }))
 
   return (

@@ -46,6 +46,8 @@ export function ExamCard({ exam, highlight = false }: { exam: Exam; highlight?: 
           <img
             src={exam.thumbnailUrl.startsWith('http') ? exam.thumbnailUrl : `${BASE_URL}${exam.thumbnailUrl}`}
             alt={exam.title || exam.subject}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
