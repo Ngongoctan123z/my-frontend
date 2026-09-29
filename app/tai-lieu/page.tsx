@@ -6,12 +6,12 @@ import { getExams } from '@/src/services/examService'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Thư Viện Tài Liệu & Đề Thi | VNDocs',
-  description: 'Kho tàng tài liệu, đề thi vào 10, THPT Quốc gia cập nhật liên tục. Trọn bộ sách giáo khoa và tài liệu chuyên sâu.',
-  keywords: 'tài liệu học tập, đề thi toán, đề thi văn, đề thi tiếng anh, thi vào 10, thi thpt quốc gia',
+  title: 'Thư Viện Đề Thi & Tài Liệu Miễn Phí (PDF) | VNDocs',
+  description: 'Tải miễn phí hàng ngàn tài liệu luyện thi, đề thi vào 10, đề thi THPT Quốc gia (Toán, Văn, Anh), PDF ôn thi IELTS, TOEIC cập nhật mới nhất có đáp án.',
+  keywords: 'tài liệu miễn phí, đề thi thử, đề thi thpt quốc gia, đề thi vào 10, tài liệu pdf miễn phí, đề thi tiếng anh, đề thi toán, đáp án đề thi',
   openGraph: {
-    title: 'Thư Viện Tài Liệu & Đề Thi | VNDocs',
-    description: 'Kho tàng tài liệu, đề thi vào 10, THPT Quốc gia cập nhật liên tục.',
+    title: 'Thư Viện Đề Thi & Tài Liệu Miễn Phí (PDF) | VNDocs',
+    description: 'Tải miễn phí tài liệu luyện thi, đề thi vào 10, THPT Quốc gia, PDF ôn thi IELTS/TOEIC mới nhất có đáp án chi tiết.',
     url: 'https://vndocs.net/tai-lieu',
     siteName: 'VNDocs',
     locale: 'vi_VN',

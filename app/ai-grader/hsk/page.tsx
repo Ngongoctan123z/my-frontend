@@ -2,8 +2,13 @@ import { Metadata } from 'next'
 import { HskGraderClient } from './HskGraderClient'
 
 export const metadata: Metadata = {
-  title: 'Chấm Thi Writing HSK AI | VNDocs',
-  description: 'Tính năng luyện viết và chấm điểm HSK bằng AI với kết quả chuẩn xác.',
+  title: 'Chấm Điểm Writing HSK Bằng AI & Luyện Viết Tiếng Trung | VNDocs',
+  description: 'Trợ lý AI chấm điểm bài viết HSK (cấp 4, 5, 6) nhanh chóng, chính xác. Kiểm tra ngữ pháp, lỗi dùng từ, thứ tự nét chữ Hán và đưa ra nhận xét chuyên sâu giúp cải thiện kỹ năng Viết tiếng Trung.',
+  keywords: 'chấm điểm writing hsk ai, luyện viết hsk, kiểm tra ngữ pháp tiếng trung, sửa lỗi bài viết hsk, viết đoạn văn hsk 5, tự học tiếng trung',
+  openGraph: {
+    title: 'Chấm Điểm Writing HSK Bằng AI & Luyện Viết Tiếng Trung',
+    description: 'Trợ lý AI chấm điểm bài viết HSK nhanh chóng, chính xác. Kiểm tra ngữ pháp, lỗi dùng từ và nhận xét chuyên sâu.',
+  }
 }
 
 export default function HskPage() {

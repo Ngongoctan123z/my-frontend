@@ -2,8 +2,13 @@ import { Metadata } from 'next'
 import { TopikGraderClient } from './TopikGraderClient'
 
 export const metadata: Metadata = {
-  title: 'Chấm Thi Writing TOPIK II AI | VNDocs',
-  description: 'Tính năng luyện viết và chấm điểm TOPIK bằng AI với kết quả chuẩn xác.',
+  title: 'Chấm Điểm Writing TOPIK Bằng AI & Luyện Viết TOPIK II | VNDocs',
+  description: 'Trải nghiệm phần mềm chấm bài viết TOPIK (câu 51-54) bằng AI. Chấm điểm chi tiết, sửa lỗi ngữ pháp tiếng Hàn, gợi ý từ vựng cao cấp, dự đoán điểm số TOPIK chính xác.',
+  keywords: 'chấm điểm writing topik ai, luyện viết topik, luyện viết topik câu 53 54, chấm bài topik bằng ai, luyện thi topik tiếng hàn, đề thi topik 2',
+  openGraph: {
+    title: 'Chấm Điểm Writing TOPIK Bằng AI & Luyện Viết TOPIK II',
+    description: 'Trải nghiệm phần mềm chấm bài viết TOPIK (câu 51-54) bằng AI. Chấm điểm chi tiết, sửa lỗi tiếng Hàn, dự đoán điểm số.',
+  }
 }
 
 export default function TopikPage() {
