@@ -145,15 +145,6 @@ async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: bool
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Authenticate user
-    const session = await auth()
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: 'Bạn cần đăng nhập để sử dụng tính năng này.' },
-        { status: 401 }
-      )
-    }
-
     const body = await req.json()
     const { action, type, prompt, essay } = body
 
@@ -169,35 +160,11 @@ export async function POST(req: NextRequest) {
           .limit(3)
         
         if (randomPrompts.length === 0) {
-          // Fallback to AI generation if DB is empty
-          let genPrompt = ''
-          if (type === 'IELTS_TASK_2') {
-            genPrompt = 'Generate a random, academic IELTS Writing Task 2 essay prompt. Provide ONLY the prompt text, no intro, no outro.'
-          } else if (type === 'IELTS_TASK_1') {
-            genPrompt = 'Generate a random IELTS Writing Task 1 prompt about a chart or graph. Describe the data since you cannot show an image. Provide ONLY the prompt text.'
-          } else if (type === 'TOEIC_RESPOND') {
-            genPrompt = 'Generate a random TOEIC Writing Question 6-7 email response prompt. Provide ONLY the email and the instructions.'
-          } else if (type === 'TOEIC_ESSAY') {
-            genPrompt = 'Generate a random TOEIC Writing Question 8 Opinion Essay prompt. Provide ONLY the prompt text.'
-          } else if (type === 'HSK_5') {
-            genPrompt = 'Generate a random HSK 5 writing part 2 prompt. Provide 5 Chinese words that the user must use in an 80-word paragraph. Provide ONLY the 5 words separated by commas.'
-          } else if (type === 'HSK_6') {
-            genPrompt = 'Generate a random HSK 6 writing prompt (a 1000-word article to be summarized). Provide ONLY the article text.'
-          } else if (type === 'TOPIK_51_52') {
-            genPrompt = 'Generate a random TOPIK II writing question 51 or 52 prompt (fill in the blank). Provide a short Korean passage with a blank (e.g. ㉠) and the question context. Provide ONLY the text.'
-          } else if (type === 'TOPIK_53') {
-            genPrompt = 'Generate a random TOPIK II writing question 53 prompt (describe a graph/data). Provide the tabular/textual data and the question instruction. Provide ONLY the text.'
-          } else if (type === 'TOPIK_54') {
-            genPrompt = 'Generate a random TOPIK II writing question 54 prompt (opinion essay). Provide the topic and 3 sub-questions. Provide ONLY the prompt text.'
-          } else {
-             return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
-          }
-          
-          const text = await tryGenerateWithFallbackWrapped(genPrompt, false)
-          return NextResponse.json({ 
-            text: text.trim(), 
-            prompts: [{ content: text.trim(), imageUrl: null }]
-          })
+          // Trả về lỗi nếu chưa có đề thi thay vì tự tạo
+          return NextResponse.json(
+            { error: 'Chưa có đề thi nào trong kho dữ liệu cho phần này.' },
+            { status: 404 }
+          )
         }
 
         // Return array of objects containing content and imageUrl
@@ -212,6 +179,15 @@ export async function POST(req: NextRequest) {
       } catch (e: any) {
         return NextResponse.json({ error: 'Lỗi khi lấy đề thi: ' + e.message }, { status: 500 })
       }
+    }
+
+    // 1. Authenticate user for Grading
+    const session = await auth()
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: 'Bạn cần đăng nhập để chấm bài thi.' },
+        { status: 401 }
+      )
     }
 
     // Rate Limit Check

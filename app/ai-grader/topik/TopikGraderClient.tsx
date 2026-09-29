@@ -207,10 +207,7 @@ export function TopikGraderClient() {
               <div className="flex items-center justify-between">
                 <label className="font-medium text-slate-700 text-sm">Nội dung đề bài:</label>
                 <button
-                  onClick={() => {
-                    if (!session) return signIn('google')
-                    generatePrompt()
-                  }}
+                  onClick={generatePrompt}
                   disabled={isGenerating || isGrading}
                   className="text-sm text-emerald-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-50"
                 >
