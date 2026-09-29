@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react'
 import { ImageIcon, ArrowRight, Upload, Download, Loader2, AlertCircle, RefreshCw, File } from 'lucide-react'
 
-type Format = 'jpg' | 'png' | 'webp' | 'bmp' | 'gif'
+type Format = 'jpg' | 'png' | 'webp' | 'bmp' | 'gif' | 'ico' | 'tiff' | 'heic'
 
 interface ConversionOption {
   from: Format
@@ -27,8 +27,27 @@ const CONVERSION_OPTIONS: ConversionOption[] = [
 
   { from: 'gif', to: 'jpg', label: 'GIF sang JPG', supported: true },
   { from: 'gif', to: 'png', label: 'GIF sang PNG', supported: true },
-  { from: 'gif', to: 'webp', label: 'GIF sang WEBP', supported: true },
+  
+  { from: 'jpg', to: 'ico', label: 'JPG sang ICO', supported: true },
+  { from: 'png', to: 'ico', label: 'PNG sang ICO', supported: true },
+  
+  { from: 'heic', to: 'jpg', label: 'HEIC sang JPG', supported: true },
+  { from: 'tiff', to: 'jpg', label: 'TIFF sang JPG', supported: true },
 ]
+
+const getFormatColor = (fmt: Format) => {
+  switch (fmt) {
+    case 'jpg': return 'text-blue-600 bg-blue-50 border-blue-200'
+    case 'png': return 'text-orange-600 bg-orange-50 border-orange-200'
+    case 'webp': return 'text-green-600 bg-green-50 border-green-200'
+    case 'bmp': return 'text-yellow-700 bg-yellow-50 border-yellow-200'
+    case 'gif': return 'text-purple-600 bg-purple-50 border-purple-200'
+    case 'ico': return 'text-pink-600 bg-pink-50 border-pink-200'
+    case 'tiff': return 'text-indigo-600 bg-indigo-50 border-indigo-200'
+    case 'heic': return 'text-rose-600 bg-rose-50 border-rose-200'
+    default: return 'text-gray-600 bg-gray-50 border-gray-200'
+  }
+}
 
 export function FileConverter() {
   const [selectedOption, setSelectedOption] = useState<ConversionOption>(CONVERSION_OPTIONS[0])
@@ -142,12 +161,12 @@ export function FileConverter() {
                   : 'border-line bg-page text-ink-muted hover:border-primary/40 hover:text-ink'
               }`}
             >
-              <div className="flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4" />
-                <ArrowRight className="w-3 h-3 opacity-50" />
-                <ImageIcon className="w-4 h-4" />
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider ${getFormatColor(opt.from)}`}>{opt.from}</span>
+                <ArrowRight className="w-3 h-3 opacity-40 text-slate-400" />
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider ${getFormatColor(opt.to)}`}>{opt.to}</span>
               </div>
-              <span>{opt.label}</span>
+              <span className="font-semibold text-[13px] text-slate-700">{opt.label}</span>
             </button>
           ))}
         </div>

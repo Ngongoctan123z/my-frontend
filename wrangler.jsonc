@@ -9,5 +9,24 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "vndocs.net",
+      "zone_name": "vndocs.net",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.vndocs.net",
+      "zone_name": "vndocs.net",
+      "custom_domain": true
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "exam-web-db",
+      "database_id": "a9e9ce4c-ade4-4b5b-986e-88db9e36b60d"
+    }
+  ]
 }

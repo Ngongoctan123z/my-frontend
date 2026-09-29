@@ -1,90 +1,200 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Groq from 'groq-sdk'
+import { auth } from '@/auth'
+import { getDb } from '@/src/db'
+import { systemConfigs, prompts as promptsTable, apiUsages } from '@/src/db/schema'
+import { eq, sql } from 'drizzle-orm'
 
+async function checkAndIncrementRateLimit(userId: string): Promise<boolean> {
+  const db = await getDb()
+  const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD local
+  
+  const usages = await db.select().from(apiUsages).where(sql`userId = ${userId} AND date = ${today}`)
+  const usage = usages[0]
 
-
-const MODEL_CANDIDATES = [
-  // Gemini 3.8 - mới nhất, GA
-  'gemini-3.8-flash',
-
-  // Gemini 3.5 - GA, ổn định
-  'gemini-3.5-flash',
-
-  // Gemini 3.1 - stable
-  'gemini-3.1-flash-lite',
-  'gemini-3.1-pro-preview',
-
-  // Gemini 3 - vẫn còn preview, docs mặc định dùng cái này
-  'gemini-3-flash-preview',
-
-  // Gemini 2.5 - stable, có free tier + free Google Search grounding
-  // ⚠️ SẼ BỊ TẮT 16/10/2026 - còn chưa tới 3 tuần nữa!
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.5-pro',
-]
-
-async function tryGenerateWithFallback(apiKey: string, prompt: string, isJson: boolean = false): Promise<string> {
-  const genAI = new GoogleGenerativeAI(apiKey)
-  let lastSignificantError: any = null
-
-  const MAX_RETRIES = 2; // Lặp lại toàn bộ danh sách tối đa 2 vòng
-  for (let loop = 0; loop < MAX_RETRIES; loop++) {
-    for (const modelName of MODEL_CANDIDATES) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName })
-        const result = await model.generateContent(prompt)
-        const response = await result.response
-        return response.text()
-      } catch (err: any) {
-        const msg = (err.message || '').toLowerCase()
-
-        // Các lỗi nghiêm trọng liên quan đến cấu hình/tiền bạc thì dừng luôn, không cần thử lại
-        if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid') ||
-            msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') ||
-            msg.includes('safety') || msg.includes('blocked')) {
-          throw err
-        }
-
-        // Lỗi hệ thống tạm thời (timeout, 500, model sập) thì ghi nhận và cho phép thử model tiếp theo
-        lastSignificantError = err
-        continue
-      }
-    }
+  if (!usage) {
+    await db.insert(apiUsages).values({ userId, date: today, count: 1 })
+    return true
   }
 
-  throw new Error('MODEL_EXHAUSTED')
+  if (usage.count >= 20) {
+    return false
+  }
+
+  await db.update(apiUsages).set({ count: usage.count + 1 }).where(sql`userId = ${userId} AND date = ${today}`)
+  return true
+}
+
+async function incrementGlobalCounter(usedKey?: string) {
+  try {
+    const db = await getDb()
+    const configs = await db.select().from(systemConfigs)
+    
+    const totalConfig = configs.find(c => c.key === 'TOTAL_API_REQUESTS')
+    if (totalConfig) {
+      await db.update(systemConfigs).set({ value: (parseInt(totalConfig.value) + 1).toString() }).where(eq(systemConfigs.key, 'TOTAL_API_REQUESTS'))
+    } else {
+      await db.insert(systemConfigs).values({ key: 'TOTAL_API_REQUESTS', value: '1' })
+    }
+
+    if (usedKey) {
+      const keyUsageKey = `KEY_USAGE_${usedKey}`
+      const keyConfig = configs.find(c => c.key === keyUsageKey)
+      if (keyConfig) {
+        await db.update(systemConfigs).set({ value: (parseInt(keyConfig.value) + 1).toString() }).where(eq(systemConfigs.key, keyUsageKey))
+      } else {
+        await db.insert(systemConfigs).values({ key: keyUsageKey, value: '1' })
+      }
+    }
+  } catch (e) {}
+}
+
+const FALLBACK_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it'
+]
+
+async function getGroqConfigFromDb(): Promise<{ apiKeys: string[], models: string[] }> {
+  let apiKeys = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean) : []
+  let models = FALLBACK_MODELS
+
+  try {
+    const db = await getDb()
+    const configs = await db.select().from(systemConfigs)
+    const configMap = configs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
+    
+    if (configMap['GROQ_API_KEY']) {
+      apiKeys = configMap['GROQ_API_KEY'].split(',').map((k: string) => k.trim()).filter(Boolean)
+    }
+
+    if (configMap['ACTIVE_GROQ_MODEL']) {
+      const chosenModels = configMap['ACTIVE_GROQ_MODEL'].split(',').map((m: string) => m.trim()).filter(Boolean)
+      if (chosenModels.length > 0) {
+        models = [...chosenModels, ...FALLBACK_MODELS.filter(m => !chosenModels.includes(m))]
+      }
+    }
+  } catch (e) {
+    console.error("DB config read error:", e)
+  }
+  
+  return { apiKeys, models }
+}
+
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = false): Promise<{ text: string, usedKey: string }> {
+  const { apiKeys, models: modelsToTry } = await getGroqConfigFromDb()
+  
+  if (!apiKeys || apiKeys.length === 0) {
+    throw new Error('GROQ_API_KEY_MISSING')
+  }
+
+  while (true) {
+    const shuffledKeys = [...apiKeys].sort(() => 0.5 - Math.random())
+
+    for (const apiKey of shuffledKeys) {
+      const groq = new Groq({ apiKey, maxRetries: 0, timeout: 15000 })
+      let hitRateLimit = false
+
+      for (const modelName of modelsToTry) {
+        try {
+          const response = await groq.chat.completions.create({
+            messages: [{ role: 'system', content: systemPrompt }],
+            model: modelName,
+            temperature: 0.2,
+            response_format: isJson ? { type: 'json_object' } : { type: 'text' },
+          })
+          return { text: response.choices[0]?.message?.content || '', usedKey: apiKey }
+        } catch (err: any) {
+          const msg = (err.message || '').toLowerCase()
+
+          if (msg.includes('safety') || msg.includes('blocked')) {
+            throw err // Lỗi vi phạm chính sách nội dung thì dừng lại
+          }
+
+          if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('429')) {
+            hitRateLimit = true
+            break // Chuyển sang key khác
+          }
+
+          if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid') || msg.includes('authentication')) {
+             hitRateLimit = true 
+             break // Chuyển sang key khác
+          }
+
+          // Lỗi 500, Timeout... thử model tiếp theo
+          continue
+        }
+      }
+    }
+
+    // Nếu chạy hết toàn bộ Key và Model mà vẫn xịt (hết Rate Limit chung), 
+    // đợi 2 giây rồi xoay vòng lại từ đầu không báo lỗi
+    await delay(2000)
+  }
+}
+
+// Wrapper to increment global counter
+async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: boolean = false): Promise<string> {
+  const result = await tryGenerateWithFallback(systemPrompt, isJson)
+  await incrementGlobalCounter(result.usedKey)
+  return result.text
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { action, type, prompt, essay } = body
-
-    const clientKey = req.headers.get('x-gemini-key')
-    const apiKey = clientKey || process.env.GEMINI_API_KEY || ''
-
-    if (!apiKey) {
+    // 1. Authenticate user
+    const session = await auth()
+    if (!session || !session.user) {
       return NextResponse.json(
-        { error: 'Vui lòng nhập API Key Gemini để sử dụng tính năng này.' },
-        { status: 400 }
+        { error: 'Bạn cần đăng nhập để sử dụng tính năng này.' },
+        { status: 401 }
       )
     }
 
+    const body = await req.json()
+    const { action, type, prompt, essay } = body
 
+    // Handle prompt batch generation from Database instead of AI
+    if (action === 'generate_prompt_batch' || action === 'generate_prompt') {
+      try {
+        const db = await getDb()
+        // SQLite RANDOM() order by
+        const randomPrompts = await db.select()
+          .from(promptsTable)
+          .where(eq(promptsTable.type, type))
+          .orderBy(sql`RANDOM()`)
+          .limit(3)
+        
+        if (randomPrompts.length === 0) {
+          return NextResponse.json({ 
+            error: 'Kho đề trống. Vui lòng liên hệ Admin để thêm đề vào kho.' 
+          }, { status: 404 })
+        }
 
-    if (action === 'generate_prompt') {
-      let systemPrompt = ''
-      if (type === 'IELTS_TASK_2') {
-        systemPrompt = `You are an IELTS Academic exam writer. Generate 1 random IELTS Writing Task 2 question (choose randomly from: Discuss both views, To what extent do you agree, Problems and Solutions, or Advantages and Disadvantages). Only return the English question text, nothing else.`
-      } else if (type === 'TOEIC_ESSAY') {
-        systemPrompt = `You are a TOEIC Writing exam writer. Generate 1 random TOEIC Writing Question 8 (Opinion Essay) question. Only return the English question text, nothing else.`
-      } else {
-        return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
+        // Return array of objects containing content and imageUrl
+        const promptObjects = randomPrompts.map(p => ({
+          content: p.content,
+          imageUrl: p.imageUrl
+        }))
+        return NextResponse.json({ 
+          text: promptObjects[0].content, // for legacy single prompt
+          prompts: promptObjects  // for new batch prompt
+        })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'Lỗi khi lấy đề thi: ' + e.message }, { status: 500 })
       }
+    }
 
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt)
-      return NextResponse.json({ text })
+    // Rate Limit Check
+    const isAllowed = await checkAndIncrementRateLimit(session.user.email || session.user.id!)
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: 'Bạn đã đạt giới hạn 20 lần sử dụng AI trong ngày hôm nay. Vui lòng quay lại vào ngày mai!' },
+        { status: 429 }
+      )
     }
 
     if (action === 'grade_essay') {
@@ -94,17 +204,26 @@ export async function POST(req: NextRequest) {
 
       let systemPrompt = ''
 
-      if (type === 'IELTS_TASK_2') {
-        systemPrompt = `
-You are a strict IELTS Writing Task 2 examiner. Grade the following essay.
+      let basePrompt = `
+You are a highly qualified and objective IELTS examiner.
+You must grade the essay against the official IELTS marking criteria.
+CRITICAL RULES:
+1. NO CHITCHAT. NO CONVERSATIONAL TEXT. NO GREETINGS.
+2. DO NOT output ANY text outside of the JSON object.
+3. Use fair and moderate international standard IELTS grading. Be constructive and objective. Do not be overly punishing for minor errors.
+4. Output MUST be a valid JSON object matching the exact schema below.
+5. Do NOT hesitate to award high bands (8.0, 8.5, or 9.0) if the essay is exceptionally well-written, demonstrates advanced vocabulary, and has negligible errors. Do not artificially cap the score at 7.0 or 7.5.
+`
 
+      if (type === 'IELTS_TASK_2') {
+        systemPrompt = basePrompt + `
 PROMPT:
 ${prompt}
 
 ESSAY:
 ${essay}
 
-Grade strictly using these 4 IELTS criteria:
+Grade objectively using these 4 IELTS criteria:
 1. Task Response (TR)
 2. Coherence and Cohesion (CC)
 3. Lexical Resource (LR)
@@ -112,61 +231,119 @@ Grade strictly using these 4 IELTS criteria:
 
 Each criterion is scored from 0 to 9 in 0.5 increments. The overall band is the average rounded to nearest 0.5.
 
-Return ONLY valid JSON (no markdown, no backticks):
+JSON Schema:
 {
   "overallBand": 6.5,
   "criteria": {
-    "taskResponse": { "score": 6.5, "feedback": "..." },
-    "coherence": { "score": 6.0, "feedback": "..." },
-    "lexical": { "score": 7.0, "feedback": "..." },
-    "grammar": { "score": 6.5, "feedback": "..." }
+    "taskResponse": { "score": 6.5, "feedback": "Concise and direct feedback." },
+    "coherenceCohesion": { "score": 6.0, "feedback": "Concise and direct feedback." },
+    "lexicalResource": { "score": 7.0, "feedback": "Concise and direct feedback." },
+    "grammaticalRange": { "score": 6.5, "feedback": "Concise and direct feedback." }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese...",
+  "detailedFeedback": "Overall analysis in Vietnamese. Constructive and direct.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "reason in Vietnamese" }
+    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
   ]
 }
-Be very strict. Identify grammar errors, vocabulary issues, and logical flaws clearly. Write all feedback in Vietnamese.
+Write all feedback in Vietnamese.
 `
-      } else if (type === 'TOEIC_ESSAY') {
-        systemPrompt = `
-You are a strict TOEIC Writing examiner grading an Opinion Essay (Question 8).
-
+      } else if (type === 'IELTS_TASK_1') {
+        systemPrompt = basePrompt + `
 PROMPT:
 ${prompt}
 
 ESSAY:
 ${essay}
 
-Grade using these 4 criteria on a scale of 0-5:
-1. Grammar
-2. Vocabulary
-3. Organization
-4. Reasons & Examples
+Grade objectively using these 4 IELTS criteria:
+1. Task Achievement (TA)
+2. Coherence and Cohesion (CC)
+3. Lexical Resource (LR)
+4. Grammatical Range and Accuracy (GRA)
 
-Then convert to a TOEIC Writing score (0-200).
+Each criterion is scored from 0 to 9 in 0.5 increments. The overall band is the average rounded to nearest 0.5.
 
-Return ONLY valid JSON (no markdown, no backticks):
+JSON Schema:
 {
-  "overallBand": "4/5 (150/200)",
+  "overallBand": 6.5,
   "criteria": {
-    "taskResponse": { "score": 4, "feedback": "Organization feedback..." },
-    "coherence": { "score": 4, "feedback": "Reasons & Examples feedback..." },
-    "lexical": { "score": 3, "feedback": "Vocabulary feedback..." },
-    "grammar": { "score": 4, "feedback": "Grammar feedback..." }
+    "taskResponse": { "score": 6.5, "feedback": "Concise and direct feedback." },
+    "coherenceCohesion": { "score": 6.0, "feedback": "Concise and direct feedback." },
+    "lexicalResource": { "score": 7.0, "feedback": "Concise and direct feedback." },
+    "grammaticalRange": { "score": 6.5, "feedback": "Concise and direct feedback." }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese...",
+  "detailedFeedback": "Overall analysis in Vietnamese. Constructive and direct.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "reason in Vietnamese" }
+    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
   ]
 }
-Be very strict. Write all feedback in Vietnamese.
+Write all feedback in Vietnamese.
+`
+      } else if (type === 'TOEIC_RESPOND') {
+        systemPrompt = basePrompt.replace('IELTS', 'TOEIC Writing') + `
+PROMPT:
+${prompt}
+
+ESSAY:
+${essay}
+
+Grade objectively using TOEIC Writing Question 6-7 (Respond to a written request) criteria:
+1. Quality and variety of your sentences (Grammar & Vocabulary)
+2. Organization and cohesion
+3. Whether you answered all parts of the request
+
+Score from 0 to 5.
+
+JSON Schema:
+{
+  "overallBand": 4.0,
+  "criteria": {
+    "grammarAndVocabulary": { "score": 4, "feedback": "Concise feedback" },
+    "organization": { "score": 4, "feedback": "Concise feedback" },
+    "taskFulfillment": { "score": 4, "feedback": "Concise feedback" }
+  },
+  "detailedFeedback": "Overall analysis in Vietnamese.",
+  "corrections": [
+    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+  ]
+}
+Write all feedback in Vietnamese.
+`
+      } else if (type === 'TOEIC_ESSAY') {
+        systemPrompt = basePrompt.replace('IELTS', 'TOEIC Writing') + `
+PROMPT:
+${prompt}
+
+ESSAY:
+${essay}
+
+Grade objectively using TOEIC Writing Question 8 (Opinion Essay) criteria:
+1. Reasons, examples, and details
+2. Organization and cohesion
+3. Grammar and vocabulary
+
+Score from 0 to 5.
+
+JSON Schema:
+{
+  "overallBand": 4.0,
+  "criteria": {
+    "reasonsAndExamples": { "score": 4, "feedback": "Concise feedback" },
+    "organization": { "score": 4, "feedback": "Concise feedback" },
+    "grammarAndVocabulary": { "score": 4, "feedback": "Concise feedback" }
+  },
+  "detailedFeedback": "Overall analysis in Vietnamese.",
+  "corrections": [
+    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+  ]
+}
+Write all feedback in Vietnamese.
 `
       } else {
         return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
       }
 
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
+      const text = await tryGenerateWithFallbackWrapped(systemPrompt, true)
 
       try {
         const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
@@ -174,220 +351,38 @@ Be very strict. Write all feedback in Vietnamese.
         return NextResponse.json(parsed)
       } catch {
         return NextResponse.json(
-          { error: 'Kết quả trả về không đúng định dạng. Vui lòng thử lại.' },
+          { error: 'Kết quả trả về không đúng định dạng JSON. Vui lòng thử lại.' },
           { status: 500 }
         )
       }
     }
 
-    if (action === 'generate_paraphrase_prompt') {
-      const { topic, level } = body
-      if (!topic || !level) {
-        return NextResponse.json({ error: 'Thiếu thông tin chủ đề hoặc trình độ.' }, { status: 400 })
-      }
 
-      const randomSeed = Math.floor(Math.random() * 9999999);
-      const systemPrompt = `
-Bạn là một chuyên gia ngôn ngữ học và giáo viên tiếng Anh xuất sắc. (Random Seed: ${randomSeed})
-Hãy tạo ra MỘT câu tiếng Việt duy nhất (kèm theo ngữ cảnh ngắn gọn) để học sinh luyện dịch sang tiếng Anh ở trình độ CEFR ${level}.
-Chủ đề: ${topic}.
-
-YÊU CẦU QUAN TRỌNG:
-1. Đa dạng hóa tình huống: Hãy tưởng tượng các tình huống vô cùng phong phú trong đời sống thực tế tại Việt Nam (công sở, trường học, gia đình, thời sự, khoa học...). Không lặp lại các lối mòn nhàm chán.
-2. Văn phong chuẩn Việt: Câu tiếng Việt phải hoàn toàn tự nhiên, đúng ngữ pháp và cách diễn đạt của người Việt Nam. KHÔNG dịch word-by-word từ tiếng Anh sang tiếng Việt. KHÔNG cố nhồi nhét từ lóng (slang) không cần thiết.
-3. Độ khó phù hợp: Từ vựng và cấu trúc ngữ pháp cần dịch sang tiếng Anh phải tương xứng với trình độ ${level}.
-4. Ngữ cảnh rõ ràng: Chỉ ra ai đang nói, với ai, hoặc diễn ra trong hoàn cảnh cụ thể nào để học sinh chọn từ vựng tiếng Anh cho đúng sắc thái (trang trọng hay thân mật).
-
-Return ONLY valid JSON (no markdown, no backticks, no markdown formatting):
-{
-  "vietnameseText": "Câu tiếng Việt tự nhiên, đa dạng liên quan đến chủ đề.",
-  "context": "Ngữ cảnh cụ thể (Ví dụ: Trong một cuộc họp ban giám đốc bàn về doanh thu, Một thông báo của nhà trường, Hai đồng nghiệp đang bàn về dự án mới, ...)"
-}
-`
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
-
-      try {
-        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
-        const parsed = JSON.parse(cleanedText)
-        return NextResponse.json(parsed)
-      } catch {
-        return NextResponse.json(
-          { error: 'Kết quả trả về không đúng định dạng. Vui lòng thử lại.' },
-          { status: 500 }
-        )
-      }
-    }
-
-    if (action === 'grade_paraphrase') {
-      const { vietnameseText, contextText, userTranslation, level } = body
-      if (!vietnameseText || !userTranslation) {
-        return NextResponse.json({ error: 'Thiếu câu gốc hoặc câu dịch.' }, { status: 400 })
-      }
-
-      const systemPrompt = `
-Bạn là một chuyên gia ngôn ngữ và giám khảo chấm thi tiếng Anh quốc tế cực kỳ chuyên nghiệp và chuẩn xác.
-Nhiệm vụ của bạn là đánh giá câu dịch của học sinh từ tiếng Việt sang tiếng Anh.
-Trình độ mục tiêu: CEFR ${level}.
-Câu tiếng Việt gốc: "${vietnameseText}"
-Ngữ cảnh: "${contextText}"
-Câu dịch của học sinh: "${userTranslation}"
-
-Hãy chấm điểm (trên thang điểm 10) và nhận xét câu dịch của học sinh dựa trên các tiêu chí sau:
-1. Accuracy (Độ chính xác về ý nghĩa): Học sinh có truyền tải đúng và đủ ý của câu gốc không?
-2. Grammar & Vocabulary (Ngữ pháp & Từ vựng): Có sai sót ngữ pháp nào không? Bắt lỗi nghiêm ngặt những từ dùng sai nghĩa, vô lý hoặc không hợp ngữ cảnh.
-3. Naturalness (Độ tự nhiên): Câu dịch có giống cách người bản xứ nói/viết không, hay bị dịch word-by-word?
-4. Linh hoạt theo trình độ (${level}): Nếu học sinh ở trình độ thấp nhưng dùng đúng từ vựng/ngữ pháp của trình độ cao hơn, HÃY CỘNG ĐIỂM và dành lời khen. Tuyệt đối KHÔNG trừ điểm hoặc chê "từ vựng quá cao so với band của bạn". Chỉ trừ điểm nếu dùng từ cao cấp nhưng sai ngữ cảnh hoặc gượng ép.
-
-Return ONLY valid JSON (no markdown, no backticks):
-{
-  "score": 8.5,
-  "feedback": "Nhận xét chuyên sâu, phân tích rõ ràng và chuyên nghiệp bằng tiếng Việt. Chỉ ra điểm tốt và điểm cần cải thiện.",
-  "corrections": [
-    { "original": "cụm từ sai hoặc chưa hay của học sinh", "corrected": "cụm từ đúng", "explanation": "Giải thích chi tiết tại sao lại sửa như vậy" }
-  ],
-  "betterAlternatives": [
-    "Một câu gợi ý dịch hoàn toàn tự nhiên, chuẩn bản xứ (cách 1)",
-    "Một câu gợi ý dịch theo cấu trúc hoặc từ vựng cao cấp hơn phù hợp với trình độ ${level} (cách 2)"
-  ]
-}
-`
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
-
-      try {
-        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
-        const parsed = JSON.parse(cleanedText)
-        return NextResponse.json(parsed)
-      } catch {
-        return NextResponse.json(
-          { error: 'Kết quả trả về không đúng định dạng. Vui lòng thử lại.' },
-          { status: 500 }
-        )
-      }
-    }
-
-    if (action === 'translate') {
-      const { textToTranslate, direction } = body
-      if (!textToTranslate) {
-        return NextResponse.json({ error: 'Thiếu nội dung cần dịch.' }, { status: 400 })
-      }
-
-      const dirContext = direction === 'en-vi' ? 'English to Vietnamese' : 'Vietnamese to English'
-
-      const systemPrompt = `
-You are a professional translator and linguist. 
-Translate the following text from ${dirContext}.
-
-TEXT TO TRANSLATE:
-"${textToTranslate}"
-
-Analyze and provide the translation strictly in JSON format (no markdown):
-{
-  "translatedText": "The direct translation",
-  "nuances": "Explanation of cultural/linguistic nuances in Vietnamese",
-  "alternativeTranslations": ["Alternative 1", "Alternative 2"],
-  "vocabulary": [
-    { "word": "word", "meaning": "meaning", "example": "example usage" }
-  ]
-}
-`
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
-      try {
-        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
-        return NextResponse.json(JSON.parse(cleanedText))
-      } catch {
-        return NextResponse.json({ error: 'Lỗi định dạng trả về.' }, { status: 500 })
-      }
-    }
-
-    if (action === 'grammar_check') {
-      const { textToCheck } = body
-      if (!textToCheck) {
-        return NextResponse.json({ error: 'Thiếu nội dung cần soi lỗi.' }, { status: 400 })
-      }
-
-      const systemPrompt = `
-You are an extremely strict English grammar nazi and writing coach.
-Analyze the following English text for ANY grammar, vocabulary, or stylistic errors. Be very harsh.
-
-TEXT TO CHECK:
-"${textToCheck}"
-
-Provide your feedback strictly in JSON format (no markdown):
-{
-  "overallComment": "Harsh overall feedback in Vietnamese",
-  "errorsFound": 5,
-  "corrections": [
-    { "original": "wrong part", "corrected": "fixed part", "explanation": "Detailed harsh explanation in Vietnamese", "type": "Grammar/Vocabulary/Style" }
-  ],
-  "rewrittenText": "The completely rewritten, perfect version of the text"
-}
-`
-      const text = await tryGenerateWithFallback(apiKey, systemPrompt, true)
-      try {
-        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
-        return NextResponse.json(JSON.parse(cleanedText))
-      } catch {
-        return NextResponse.json({ error: 'Lỗi định dạng trả về.' }, { status: 500 })
-      }
-    }
 
     return NextResponse.json({ error: 'Yêu cầu không hợp lệ.' }, { status: 400 })
 
   } catch (error: any) {
     const msg = (error.message || '').toLowerCase()
 
-    // API Key không hợp lệ / sai loại xác thực
-    if (
-      msg.includes('api_key_invalid') ||
-      msg.includes('api key not valid') ||
-      msg.includes('permission_denied') ||
-      msg.includes('unauthorized') ||
-      msg.includes('access_token_type_unsupported') ||
-      msg.includes('invalid authentication') ||
-      msg.includes('401')
-    ) {
-      return NextResponse.json(
-        { error: 'API Key không hợp lệ hoặc sai loại. Vui lòng vào Google AI Studio để lấy đúng API Key (không phải OAuth token).' },
-        { status: 401 }
-      )
+    if (msg.includes('groq_api_key_missing')) {
+      return NextResponse.json({ error: 'Chưa cấu hình GROQ_API_KEY trên hệ thống.' }, { status: 500 })
     }
 
-    // Hết quota
-    if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted')) {
-      return NextResponse.json(
-        { error: 'API Key đã hết lượt sử dụng miễn phí. Vui lòng đợi hoặc dùng key khác.' },
-        { status: 429 }
-      )
+    if (msg.includes('api_key_invalid') || msg.includes('unauthorized') || msg.includes('401')) {
+      return NextResponse.json({ error: 'API Key hệ thống bị từ chối.' }, { status: 500 })
     }
 
-    // Tất cả model đều không khả dụng
+    if (msg.includes('quota') || msg.includes('rate limit')) {
+      return NextResponse.json({ error: 'Hệ thống AI đang quá tải lượt gọi (Rate Limit). Vui lòng thử lại sau.' }, { status: 429 })
+    }
+
     if (msg.includes('model_exhausted')) {
-      return NextResponse.json(
-        { error: 'Tất cả phiên bản xử lý đều đang bảo trì. Vui lòng thử lại sau.' },
-        { status: 503 }
-      )
+      return NextResponse.json({ error: 'Tất cả model AI đều đang bận. Vui lòng thử lại.' }, { status: 503 })
     }
 
-    // Nội dung bị chặn bởi safety filter
-    if (msg.includes('safety') || msg.includes('blocked') || msg.includes('harm')) {
-      return NextResponse.json(
-        { error: 'Nội dung bài viết bị từ chối do vi phạm chính sách an toàn.' },
-        { status: 400 }
-      )
-    }
-
-    // Timeout
-    if (msg.includes('timeout') || msg.includes('deadline')) {
-      return NextResponse.json(
-        { error: 'Hệ thống xử lý quá lâu. Vui lòng thử lại.' },
-        { status: 504 }
-      )
-    }
-
-    // Lỗi chung - Không trả raw error (code) ra cho user thấy, chỉ log ở server
     console.error('[AI-Grader] Unhandled error:', error.message)
     return NextResponse.json(
-      { error: 'Hệ thống máy chủ AI đang gặp sự cố tạm thời hoặc bảo trì. Vui lòng thử lại sau ít phút.' },
+      { error: 'Hệ thống máy chủ AI đang gặp sự cố. Vui lòng thử lại sau ít phút.' },
       { status: 500 }
     )
   }

@@ -19,9 +19,9 @@ export default function CasioToolPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Máy Tính Casio Fx-580VN X</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Máy Tính Khoa Học & Đồ Thị (Nâng Cao)</h1>
         <p className="text-slate-500">
-          Phiên bản giả lập máy tính bỏ túi trực tuyến hỗ trợ tính toán nhanh chóng.
+          Phiên bản máy tính khoa học và đồ thị đầy đủ, hỗ trợ giải quyết các bài toán và công thức phức tạp nhất.
         </p>
       </div>
 
@@ -29,21 +29,47 @@ export default function CasioToolPage() {
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
-        <article className="prose prose-sm md:prose-base prose-slate max-w-none text-justify">
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Sử dụng Máy tính giả lập Casio Online - Tiện lợi & Nhanh chóng</h2>
-          
-          <p className="mb-4">
-            Ứng dụng <strong>máy tính giả lập Casio Fx-580VN X trực tuyến</strong> là giải pháp hoàn hảo cho các bạn học sinh, sinh viên khi không có sẵn máy tính cầm tay vật lý. Bạn có thể thực hiện mọi phép tính từ cơ bản đến nâng cao như giải phương trình, hệ phương trình, ma trận, số phức, hay tích phân ngay trên trình duyệt điện thoại hoặc máy tính một cách chính xác tuyệt đối.
-          </p>
-          
-          <p className="mb-4">
-            Bên cạnh công cụ máy tính Casio hữu ích này, <strong>VNDocs</strong> còn tự hào mang đến cho bạn hệ sinh thái giáo dục toàn diện. Bạn đang chuẩn bị cho các kỳ thi quan trọng? Hãy khám phá ngay <Link href="/tai-lieu" className="text-blue-600 font-semibold no-underline hover:underline">Kho Đề thi vào 10 và THPT Quốc Gia</Link> với hàng ngàn đề thi có đáp án chi tiết.
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn Sử Dụng Máy Tính Casio Online</h2>
+          <p className="mb-6 text-slate-600 text-center leading-relaxed">
+            Ứng dụng <strong>máy tính giả lập Casio trực tuyến</strong> là giải pháp hoàn hảo cho học sinh, sinh viên khi không mang theo máy tính vật lý. Hỗ trợ giải toán thần tốc ngay trên trình duyệt điện thoại hoặc máy tính.
           </p>
 
-          <p className="mb-4">
-            Đặc biệt, nếu bạn đang ôn luyện chứng chỉ tiếng Anh, đừng bỏ lỡ tính năng <Link href="/ai-grader" className="text-blue-600 font-semibold no-underline hover:underline">Chấm bài Writing IELTS & TOEIC bằng AI</Link> siêu việt của chúng tôi. Hệ thống sẽ phân tích từng câu chữ, soi lỗi ngữ pháp và đưa ra những gợi ý đắt giá giúp bạn cải thiện band điểm nhanh chóng. Đừng quên kết hợp học từ vựng bằng <Link href="/flashcard/ielts" className="text-blue-600 font-semibold no-underline hover:underline">Flashcard IELTS thông minh</Link> để nâng cao vốn từ của mình nhé!
-          </p>
-        </article>
+          <div className="space-y-4">
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                1. Tính Năng Của Máy Tính Giả Lập
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p className="mb-2">Giao diện và phím bấm được thiết kế mô phỏng 100% tỷ lệ thực của máy Casio fx-580VN X, cho phép bạn thực hiện mọi phép toán từ cơ bản đến phức tạp:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>Tính toán cơ bản:</strong> Cộng, trừ, nhân, chia, phân số, số thập phân tuần hoàn.</li>
+                  <li><strong>Giải phương trình:</strong> Bậc 2, bậc 3, bậc 4, hệ phương trình 2-4 ẩn, bất phương trình.</li>
+                  <li><strong>Toán cao cấp:</strong> Ma trận (Matrix), Véc-tơ, Số phức (Complex), Tích phân, Đạo hàm, Xác suất thống kê.</li>
+                </ul>
+              </div>
+            </details>
+
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                2. Ưu Điểm So Với App Cài Đặt
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>Không cần cài đặt:</strong> Bạn không phải tốn dung lượng tải các phần mềm giả lập nặng nề trên PC hay App Store/CH Play. Chỉ cần mở web VNDocs là có thể bấm máy tính được ngay.</li>
+                  <li><strong>Miễn phí & Không quảng cáo rác:</strong> Giao diện sạch sẽ, tập trung hoàn toàn vào việc tính toán, không bị quảng cáo video che mất màn hình lúc đang thi hoặc làm bài tập.</li>
+                  <li><strong>Tương thích đa nền tảng:</strong> Chạy mượt mà trên iPad, iPhone, điện thoại Android hay Macbook, Windows.</li>
+                </ul>
+              </div>
+            </details>
+          </div>
+        </div>
       </section>
     </div>
   )

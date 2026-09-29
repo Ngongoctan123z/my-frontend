@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '../context/ThemeContext'
 import { UserProvider } from '../context/UserContext'
 import { NotificationProvider } from '../context/NotificationContext'
+import { SessionProvider } from 'next-auth/react'
 import { useState } from 'react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -21,11 +22,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <UserProvider>
-          <NotificationProvider>
-            {children}
-          </NotificationProvider>
-        </UserProvider>
+        <SessionProvider>
+          <UserProvider>
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
+          </UserProvider>
+        </SessionProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )

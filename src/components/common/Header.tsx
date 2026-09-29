@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation'
 
 import { SearchBar } from '../search/SearchBar'
 import { ThemeToggle } from './ThemeToggle'
+import { AuthButton } from '../auth/AuthButton'
 
 export function Header() {
   const pathname = usePathname()
@@ -72,7 +73,7 @@ export function Header() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="relative" ref={supportRef}>
+          <div className="relative hidden sm:block" ref={supportRef}>
             <button
               onClick={() => setSupportOpen(!supportOpen)}
               className="inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all"
@@ -92,12 +93,17 @@ export function Header() {
           </div>
           <Link
             href="/favorites"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all"
+            className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all"
             aria-label="Đề yêu thích"
           >
             <Star size={16} />
           </Link>
-          <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all" />
+          <div className="hidden sm:block">
+            <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all" />
+          </div>
+          <div className="ml-0 sm:ml-2 sm:pl-2 sm:border-l border-[var(--border-color)]">
+            <AuthButton />
+          </div>
         </div>
       </div>
     </header>

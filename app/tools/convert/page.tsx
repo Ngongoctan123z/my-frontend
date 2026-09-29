@@ -29,21 +29,46 @@ export default function ConvertToolPage() {
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
-        <article className="prose prose-sm md:prose-base prose-slate max-w-none text-justify">
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Công Cụ Chuyển Đổi PDF Trực Tuyến Tốt Nhất</h2>
-          
-          <p className="mb-4">
-            Với công cụ <strong>chuyển đổi định dạng PDF</strong> trực tuyến của VNDocs, bạn có thể dễ dàng biến các hình ảnh (JPG, PNG) thành một tập tin PDF duy nhất để thuận tiện cho việc in ấn hoặc nộp bài tập. Đồng thời, công cụ cũng hỗ trợ xuất ngược các trang từ file PDF thành hình ảnh chất lượng cao một cách nhanh chóng và an toàn tuyệt đối. Mọi thao tác xử lý đều diễn ra ngay trên trình duyệt của bạn, không tải file lên máy chủ.
-          </p>
-          
-          <p className="mb-4">
-            Bên cạnh các tính năng chuyển đổi file cơ bản, bạn có thể tham khảo thêm hệ sinh thái giáo dục của chúng tôi. Nếu bạn đang trong quá trình học tập, <strong>VNDocs</strong> mang đến <Link href="/tai-lieu" className="text-blue-600 font-semibold no-underline hover:underline">Kho Tài Liệu & Đề Thi</Link> khổng lồ phục vụ ôn thi vào lớp 10 và kỳ thi THPT Quốc Gia môn Toán, Văn, Anh.
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn Chuyển Đổi Định Dạng Hình Ảnh Nhanh Chóng</h2>
+          <p className="mb-6 text-slate-600 text-center leading-relaxed">
+            Với công cụ <strong>Chuyển đổi hình ảnh</strong> trực tuyến của VNDocs, bạn có thể dễ dàng chuyển đổi qua lại giữa các định dạng ảnh phổ biến (JPG, PNG, WEBP) chỉ với một cú click chuột mà không làm giảm chất lượng.
           </p>
 
-          <p className="mb-4">
-            Bạn cũng có thể trải nghiệm công nghệ AI tiên tiến qua tính năng <Link href="/ai-grader" className="text-blue-600 font-semibold no-underline hover:underline">Chấm Writing AI IELTS & TOEIC</Link> miễn phí. Hệ thống sẽ phân tích bài viết của bạn, sửa lỗi ngữ pháp chi tiết và đề xuất cách cải thiện bài làm một cách sát sao nhất. Và để việc ghi nhớ từ vựng tiếng Anh không còn là nỗi ám ảnh, hãy sử dụng <Link href="/flashcard/toeic" className="text-blue-600 font-semibold no-underline hover:underline">Bộ Flashcard TOEIC & IELTS</Link> được xây dựng dựa trên nguyên lý lặp lại ngắt quãng (Spaced Repetition) độc quyền.
-          </p>
-        </article>
+          <div className="space-y-4">
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                1. Tại Sao Cần Chuyển Đổi Định Dạng Ảnh?
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>WEBP sang JPG/PNG:</strong> Rất nhiều ảnh tải từ web hiện nay có định dạng WEBP siêu nhẹ, nhưng lại không thể mở được trên một số phần mềm cũ như Photoshop hoặc Word. Chuyển đổi sang JPG sẽ giúp bạn dễ dàng chỉnh sửa.</li>
+                  <li><strong>PNG sang JPG:</strong> Nếu bạn có một bức ảnh PNG sắc nét nhưng dung lượng quá lớn (vài chục MB), việc chuyển sang JPG sẽ giúp giảm thiểu 90% dung lượng mà không nhận ra sự khác biệt bằng mắt thường. Cực kỳ hữu ích khi cần upload ảnh lên làm hồ sơ, nộp CV.</li>
+                </ul>
+              </div>
+            </details>
+
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                2. Ưu Điểm Tuyệt Đối Của Công Cụ VNDocs
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p className="mb-2">Khác với các web nước ngoài đầy rẫy quảng cáo popup, VNDocs mang lại trải nghiệm hoàn toàn khác biệt:</p>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li><strong>Hoàn toàn Offline:</strong> Công nghệ xử lý trình duyệt cho phép chuyển đổi ảnh ngay trên máy của bạn. Nghĩa là ảnh của bạn KHÔNG bị tải lên bất kỳ máy chủ nào. An toàn tuyệt đối với ảnh cá nhân, CCCD hay giấy tờ tuỳ thân.</li>
+                  <li><strong>Chuyển đổi hàng loạt (Batch Convert):</strong> Cho phép bạn kéo thả cả chục tấm hình cùng lúc và nhấn nút chuyển đổi. Rất tiết kiệm thời gian.</li>
+                  <li><strong>Tốc độ ánh sáng:</strong> Vì không cần tải ảnh lên mạng nên quá trình convert diễn ra ngay lập tức, tốn chưa tới 1 giây cho mỗi ảnh.</li>
+                </ol>
+              </div>
+            </details>
+          </div>
+        </div>
       </section>
     </div>
   )

@@ -113,7 +113,7 @@ export default function RemovePagesClient() {
       <div className="space-y-6">
         {!singleFile ? (
           <div 
-            className="border-2 border-dashed border-primary/30 bg-primary/5 rounded-2xl p-16 text-center cursor-pointer hover:bg-primary/10 transition-colors"
+            className="border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors rounded-3xl p-10 sm:p-16 text-center cursor-pointer flex flex-col items-center justify-center shadow-sm"
             onClick={() => fileInputRef.current?.click()}
           >
             <input 
@@ -123,9 +123,11 @@ export default function RemovePagesClient() {
               ref={fileInputRef}
               onChange={handleSingleFileChange}
             />
-            <UploadCloud className="w-16 h-16 text-primary mx-auto mb-4" />
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-primary">
+              <UploadCloud className="w-8 h-8" />
+            </div>
             <h3 className="text-xl font-bold mb-2">Tải file {getFormatLabel()} lên đây</h3>
-            <p className="text-ink-muted">Hỗ trợ xóa các trang không cần thiết</p>
+            <p className="text-ink-muted text-sm sm:text-base">Nhấn vào đây để tải tài liệu lên và xóa các trang không cần thiết</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -185,24 +187,24 @@ export default function RemovePagesClient() {
                   </button>
                 </div>
                 
-                <div className="h-[600px] overflow-y-auto pr-2 custom-scrollbar border border-line/50 rounded-xl p-4 bg-page">
+                <div className="h-[600px] overflow-y-auto pr-2 custom-scrollbar border border-line/50 rounded-2xl p-4 bg-page/50">
                   <Document
                     file={singleFile}
                     onLoadSuccess={onDocumentLoadSuccess}
                     loading={<div className="flex justify-center py-20 text-ink-muted"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Đang đọc file PDF...</div>}
-                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 justify-items-center"
                   >
                     {Array.from({ length: numPages }, (_, index) => {
                       const isDeleted = pagesToDelete.has(index)
                       return (
                         <div 
                           key={`page_${index}`} 
-                          className={`relative cursor-pointer group rounded-lg overflow-hidden border-2 transition-all shadow-sm ${
-                            isDeleted ? 'border-red-500 shadow-md ring-4 ring-red-500/20 opacity-80' : 'border-line hover:border-primary'
+                          className={`relative cursor-pointer group rounded-xl overflow-hidden border-2 transition-all shadow-sm w-full max-w-[160px] flex justify-center ${
+                            isDeleted ? 'border-red-500 shadow-md ring-4 ring-red-500/20 opacity-80' : 'border-line hover:border-primary/50 hover:shadow-md'
                           }`}
                           onClick={() => toggleDeletePage(index)}
                         >
-                          <Page pageNumber={index + 1} width={200} renderTextLayer={false} renderAnnotationLayer={false} className="w-full flex justify-center bg-white" />
+                          <Page pageNumber={index + 1} width={150} renderTextLayer={false} renderAnnotationLayer={false} className="w-full flex justify-center bg-white" />
                           {isDeleted && (
                             <div className="absolute inset-0 bg-red-500/10 flex items-center justify-center">
                               <Trash2 className="w-10 h-10 text-red-500 drop-shadow-md" />

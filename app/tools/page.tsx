@@ -3,8 +3,8 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
-  description: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng, và máy tính Casio ảo miễn phí 100%.',
-  keywords: 'gộp pdf, cắt pdf, khóa pdf, chuyển pdf sang ảnh, máy tính casio online',
+  description: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng, và máy tính khoa học ảo miễn phí 100%.',
+  keywords: 'gộp pdf, cắt pdf, khóa pdf, chuyển pdf sang ảnh, máy tính khoa học online, máy tính đồ thị',
   openGraph: {
     title: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
     description: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng miễn phí.',
@@ -33,9 +33,9 @@ export default function ToolsIndexPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-[background-color,color,transform] duration-300">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
             </div>
-            <h2 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">Máy tính Casio</h2>
+            <h2 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">Máy tính Khoa học (Đầy đủ)</h2>
           </div>
-          <p className="text-slate-500 text-sm leading-relaxed">Trình giả lập máy tính bỏ túi Casio Fx-580VN X trực tuyến giúp giải toán nhanh chóng, hiển thị trực quan.</p>
+          <p className="text-slate-500 text-sm leading-relaxed">Trình giả lập máy tính khoa học và đồ thị siêu mạnh mẽ, giúp giải quyết các công thức Toán học phức tạp nhất.</p>
         </Link>
 
         {/* Convert */}
@@ -44,7 +44,7 @@ export default function ToolsIndexPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-500 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-[background-color,color,transform] duration-300">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
             </div>
-            <h2 className="text-lg font-bold text-slate-800 group-hover:text-amber-500 transition-colors">Chuyển đổi File</h2>
+            <h2 className="text-lg font-bold text-slate-800 group-hover:text-amber-500 transition-colors">Chuyển đổi định dạng ảnh</h2>
           </div>
           <p className="text-slate-500 text-sm leading-relaxed">Chuyển đổi linh hoạt giữa các định dạng PDF sang Word (Docx), Ảnh (JPG/PNG) và ngược lại hoàn toàn miễn phí.</p>
         </Link>
@@ -104,10 +104,10 @@ export default function ToolsIndexPage() {
             <li><strong>Khóa và Bảo mật PDF (Protect PDF):</strong> Mã hóa file bằng mật khẩu chống sao chép và in ấn, hoặc mở khóa các tài liệu bị giới hạn (yêu cầu mật khẩu gốc).</li>
           </ul>
 
-          <h3 className="text-lg font-bold text-slate-800 mt-6 mb-3">Máy Tính Bỏ Túi Giả Lập Trực Tuyến</h3>
+          <h3 className="text-lg font-bold text-slate-800 mt-6 mb-3">Máy Tính Khoa Học Trực Tuyến Đầy Đủ</h3>
           <p>
-            Đặc biệt dành cho các bạn học sinh, sinh viên, hệ thống tích hợp sẵn <strong>trình giả lập Máy tính bỏ túi điện tử (Casio Fx-580VN X)</strong>. 
-            Sở hữu giao diện quen thuộc, hỗ trợ đầy đủ các hàm lượng giác, giải phương trình, hệ phương trình, ma trận, thống kê... giúp bạn có thể học tập và tính toán mọi lúc mọi nơi ngay trên trình duyệt mà không cần phải cài đặt thêm phần mềm phức tạp nào.
+            Đặc biệt dành cho các bạn học sinh, sinh viên, hệ thống tích hợp sẵn <strong>trình giả lập Máy tính khoa học & Đồ thị</strong> siêu mạnh mẽ. 
+            Hỗ trợ đầy đủ các hàm lượng giác, giải phương trình, hệ phương trình, ma trận, thống kê... giúp bạn có thể học tập và tính toán mọi lúc mọi nơi ngay trên trình duyệt mà không cần phải cài đặt thêm phần mềm phức tạp nào.
           </p>
         </article>
       </section>

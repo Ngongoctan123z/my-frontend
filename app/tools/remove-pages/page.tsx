@@ -29,21 +29,43 @@ export default function RemovePagesToolPage() {
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
-        <article className="prose prose-sm md:prose-base prose-slate max-w-none text-justify">
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Loại Bỏ Trang PDF Dư Thừa Đơn Giản Nhất</h2>
-          
-          <p className="mb-4">
-            Đôi khi một file PDF dài cả trăm trang nhưng bạn chỉ cần lưu lại một vài trang quan trọng? Tính năng <strong>Xóa trang PDF (Remove PDF Pages)</strong> ra đời để giải quyết vấn đề đó. Giao diện công cụ được thiết kế trực quan, hiển thị bản xem trước thu nhỏ của từng trang (Thumbnail), giúp bạn dễ dàng nhấp chọn những trang muốn giữ lại hoặc xóa đi. 
-          </p>
-          
-          <p className="mb-4">
-            Điều tuyệt vời nhất là ứng dụng hoạt động 100% trên thiết bị của bạn. Tài liệu của bạn <strong>không bao giờ bị tải lên mạng internet</strong>, vì vậy bạn hoàn toàn yên tâm khi cắt tách các hợp đồng hoặc tài liệu bí mật.
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn Cắt Tách & Xóa Trang PDF Chuyên Nghiệp</h2>
+          <p className="mb-6 text-slate-600 text-center leading-relaxed">
+            Đôi khi một file PDF dài cả trăm trang nhưng bạn chỉ cần lưu lại một vài trang quan trọng? Tính năng <strong>Xóa trang PDF (Remove PDF Pages)</strong> ra đời để giúp bạn tối ưu hóa tài liệu nhanh chóng.
           </p>
 
-          <p className="mb-4">
-            Đồng thời, nếu bạn là một học sinh đang trong giai đoạn nước rút, đừng quên truy cập ngay <Link href="/tai-lieu" className="text-blue-600 font-semibold no-underline hover:underline">Hệ thống Đề thi Miễn phí</Link> của VNDocs với vô vàn đề thi thử Đại học và vào lớp 10 được cập nhật mới nhất mỗi ngày. Đặc biệt, công cụ <Link href="/ai-grader" className="text-blue-600 font-semibold no-underline hover:underline">Chấm Writing IELTS & TOEIC</Link> siêu việt của chúng tôi sẽ là trợ thủ đắc lực giúp bạn chinh phục đỉnh cao điểm số. Hãy kết hợp cùng <Link href="/flashcard/toeic" className="text-blue-600 font-semibold no-underline hover:underline">Bộ Flashcard Học Từ Vựng TOEIC</Link> để đạt kết quả hoàn hảo nhé!
-          </p>
-        </article>
+          <div className="space-y-4">
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                1. Trực Quan Và Dễ Dàng Sử Dụng
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p className="mb-2">Giao diện công cụ được thiết kế cực kỳ trực quan, hiển thị bản xem trước thu nhỏ (Thumbnail) của từng trang PDF. Việc này giúp bạn:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Dễ dàng nhận diện nội dung từng trang mà không cần mở file lên đọc lại.</li>
+                  <li>Click chọn vào trang muốn xóa (trang sẽ mờ đi) hoặc nhấp lại để bỏ chọn.</li>
+                  <li>Loại bỏ hoàn toàn các trang bìa, mục lục thừa, hoặc các trang giấy trắng lỗi.</li>
+                </ul>
+              </div>
+            </details>
+
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                2. Bảo Mật Dữ Liệu Riêng Tư (Offline Mode)
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p>Khác với các trang web cắt PDF trực tuyến khác yêu cầu upload file lên máy chủ (có rủi ro rò rỉ tài liệu), VNDocs ứng dụng công nghệ WebAssembly xử lý 100% tại thiết bị của bạn. Tài liệu của bạn <strong>không bao giờ chạm vào máy chủ của chúng tôi</strong>, đảm bảo an toàn tuyệt đối cho các hợp đồng, báo cáo tài chính hay đề thi bảo mật.</p>
+              </div>
+            </details>
+          </div>
+        </div>
       </section>
     </div>
   )

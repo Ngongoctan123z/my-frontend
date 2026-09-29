@@ -12,6 +12,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "^1.11.3",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.9.1",
     "@pdfsmaller/pdf-decrypt": "^1.0.1",
@@ -21,9 +22,12 @@
     "autoprefixer": "^10.6.1",
     "axios": "^1.20.0",
     "docx-preview": "^0.4.0",
+    "drizzle-orm": "^0.45.3",
+    "groq-sdk": "^1.6.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.47.0",
     "next": "^15.1.7",
+    "next-auth": "^5.0.0-beta.32",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
     "postcss": "^8.5.28",
@@ -41,6 +45,7 @@
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "drizzle-kit": "^0.31.11",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "wrangler": "^4.140.0"

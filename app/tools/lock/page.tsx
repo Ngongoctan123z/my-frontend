@@ -29,21 +29,48 @@ export default function LockToolPage() {
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
-        <article className="prose prose-sm md:prose-base prose-slate max-w-none text-justify">
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Bảo Mật Tài Liệu PDF Tuyệt Đối Với VNDocs</h2>
-
-          <p className="mb-4">
-            An toàn thông tin là yếu tố quan trọng hàng đầu trong học tập và công việc. Công cụ <strong>Khóa File PDF (Protect PDF)</strong> của chúng tôi giúp bạn mã hóa các tài liệu nhạy cảm bằng một lớp mật khẩu bảo vệ vững chắc, ngăn chặn những người không có quyền truy cập, sao chép hoặc in ấn tài liệu. Tất cả đều được mã hóa theo chuẩn bảo mật cao cấp (AES 128/256-bit).
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn Mã Hóa & Gỡ Mật Khẩu PDF</h2>
+          <p className="mb-6 text-slate-600 text-center leading-relaxed">
+            An toàn thông tin là yếu tố quan trọng hàng đầu trong học tập và công việc. Công cụ <strong>Khóa & Mở khóa File PDF</strong> của VNDocs giúp bạn bảo mật các tài liệu nhạy cảm bằng một lớp mật khẩu vững chắc.
           </p>
 
-          <p className="mb-4">
-            Bên cạnh đó, nếu bạn có một file PDF chính chủ nhưng bị giới hạn một số quyền (như không cho in), tính năng <strong>Mở khóa PDF (Unlock PDF)</strong> sẽ giúp bạn loại bỏ mọi rào cản đó (Yêu cầu phải có mật khẩu gốc của file). Mọi thao tác đều xử lý 100% trên thiết bị của bạn, bảo mật quyền riêng tư tuyệt đối.
-          </p>
+          <div className="space-y-4">
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                1. Tính Năng Khóa File (Protect PDF)
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p className="mb-2">Khi bạn gửi một bảng báo giá, hợp đồng hay một bài luận quan trọng cho người khác qua mạng, việc mã hóa PDF là vô cùng cần thiết:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>Chống sao chép & In ấn:</strong> Bằng cách cài đặt mật khẩu, bạn có thể ngăn chặn bất kỳ ai in tài liệu hoặc copy nội dung văn bản bên trong nếu không có sự cho phép.</li>
+                  <li><strong>Mã hóa AES cao cấp:</strong> Hệ thống sử dụng chuẩn mã hóa tiên tiến nhất hiện nay, đảm bảo không một phần mềm phá khóa nào có thể mở được file nếu không biết mật khẩu gốc.</li>
+                  <li><strong>Cách dùng:</strong> Kéo thả file PDF vào ô tải lên ➔ Nhập mật khẩu bạn muốn cài đặt ➔ Nhấn Khóa PDF.</li>
+                </ul>
+              </div>
+            </details>
 
-          <p className="mb-4">
-            Và đừng quên, <strong>VNDocs</strong> còn là kho tàng giáo dục miễn phí với <Link href="/tai-lieu" className="text-blue-600 font-semibold no-underline hover:underline">Hàng ngàn bộ Đề Thi</Link> chất lượng cho học sinh lớp 9 và 12 ôn thi. Để cải thiện toàn diện trình độ tiếng Anh, hãy thử sức ngay với tính năng <Link href="/ai-grader" className="text-blue-600 font-semibold no-underline hover:underline">Chấm Writing IELTS & TOEIC 1-1 với AI</Link> hoặc tăng tốc độ học từ vựng cùng <Link href="/flashcard/ielts" className="text-blue-600 font-semibold no-underline hover:underline">Bộ Flashcard IELTS</Link> độc quyền của chúng tôi!
-          </p>
-        </article>
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                2. Tính Năng Mở Khóa (Unlock PDF)
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p className="mb-2">Tính năng này dùng để loại bỏ vĩnh viễn mật khẩu của một file PDF mà bạn đã biết trước mật khẩu gốc, giúp những lần mở sau tiện lợi hơn:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>Gỡ bỏ ràng buộc:</strong> Khôi phục lại các quyền in ấn, chỉnh sửa và sao chép văn bản đã bị khóa trước đó.</li>
+                  <li><strong>Không lưu trữ:</strong> Khác với nhiều website khác sẽ tải file của bạn lên server của họ, VNDocs chạy 100% bằng sức mạnh trình duyệt (Offline Mode). Không có gì bị tải lên mạng, bảo vệ 100% dữ liệu riêng tư của bạn.</li>
+                  <li><strong>Cách dùng:</strong> Kéo thả file PDF đã bị khóa vào ➔ Hệ thống sẽ hỏi mật khẩu hiện tại ➔ Nhập mật khẩu và nhấn Mở Khóa. File tải về sẽ hoàn toàn "sạch bóng" mật khẩu.</li>
+                </ul>
+              </div>
+            </details>
+          </div>
+        </div>
       </section>
     </div>
   )

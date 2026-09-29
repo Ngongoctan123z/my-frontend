@@ -29,21 +29,47 @@ export default function MergeToolPage() {
 
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
-        <article className="prose prose-sm md:prose-base prose-slate max-w-none text-justify">
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Ghép Nối PDF Tiện Lợi Bằng Kéo Thả</h2>
-          
-          <p className="mb-4">
-            Tính năng <strong>Gộp File PDF (Merge PDF)</strong> của VNDocs là giải pháp tối ưu khi bạn cần tổng hợp nhiều giấy tờ, báo cáo hay biểu mẫu rời rạc thành một văn bản thống nhất. Công cụ của chúng tôi không chỉ hỗ trợ gộp các file PDF với nhau mà còn cho phép chèn thêm các file Hình ảnh (JPG, PNG) trực tiếp vào quá trình gộp. 
-          </p>
-          
-          <p className="mb-4">
-            Giao diện được thiết kế hiện đại, hỗ trợ tính năng <strong>Kéo và Thả (Drag & Drop)</strong> mạnh mẽ. Bạn chỉ cần thả các file vào trình duyệt, bấm giữ và kéo để thay đổi thứ tự trang trước khi xuất bản. Tất cả xử lý đều chạy độc lập trên máy của bạn, cam kết 100% không lưu trữ dữ liệu lên đám mây, an toàn tuyệt đối.
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn Cách Gộp File PDF Siêu Nhanh</h2>
+          <p className="mb-6 text-slate-600 text-center leading-relaxed">
+            Tính năng <strong>Gộp File PDF (Merge PDF)</strong> của VNDocs là giải pháp tối ưu khi bạn cần tổng hợp nhiều giấy tờ, báo cáo hay biểu mẫu rời rạc thành một văn bản thống nhất.
           </p>
 
-          <p className="mb-4">
-            Bên cạnh các tính năng văn phòng hữu ích, <strong>VNDocs</strong> còn là nền tảng học tập đỉnh cao. Chúng tôi cung cấp <Link href="/tai-lieu" className="text-blue-600 font-semibold no-underline hover:underline">Hàng nghìn Đề Thi Tốt Nghiệp THPT & Tuyển Sinh Lớp 10</Link> cập nhật thường xuyên. Ngoài ra, tính năng <Link href="/ai-grader" className="text-blue-600 font-semibold no-underline hover:underline">Giám Khảo AI Chấm Điểm Writing IELTS / TOEIC</Link> sẽ là bí quyết giúp bạn nâng cao kỹ năng viết tiếng Anh vượt trội, kết hợp cùng hệ thống <Link href="/flashcard/ielts" className="text-blue-600 font-semibold no-underline hover:underline">Flashcard Lặp Lại Ngắt Quãng</Link> để củng cố từ vựng lâu dài.
-          </p>
-        </article>
+          <div className="space-y-4">
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                1. Tính Năng Vượt Trội
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>Hỗ trợ trộn Hình Ảnh & PDF:</strong> Công cụ của chúng tôi không chỉ gộp các file PDF với nhau mà còn cho phép chèn thêm các file Hình ảnh (JPG, PNG) trực tiếp vào quá trình gộp để tạo thành 1 file PDF duy nhất.</li>
+                  <li><strong>Kéo và Thả (Drag & Drop) thông minh:</strong> Bạn chỉ cần thả các file vào trình duyệt, bấm giữ và kéo thả (Drag) các file để thay đổi thứ tự trang trước khi xuất bản một cách cực kỳ trực quan.</li>
+                  <li><strong>Bảo mật tuyệt đối 100%:</strong> Tất cả xử lý (đọc, gộp, xuất file) đều chạy hoàn toàn độc lập trên trình duyệt máy tính của bạn bằng công nghệ WebAssembly. Cam kết không có bất kỳ file nào của bạn bị upload lên máy chủ.</li>
+                </ul>
+              </div>
+            </details>
+
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                2. Hướng Dẫn Sử Dụng
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>Bấm nút <strong>"Chọn File"</strong> hoặc kéo thả các file PDF/Hình ảnh vào khu vực quy định.</li>
+                  <li>Chờ hệ thống tải file (diễn ra cực nhanh vì không tốn thời gian upload lên mạng).</li>
+                  <li>Di chuyển chuột để sắp xếp lại thứ tự các file nếu cần thiết.</li>
+                  <li>Bấm nút <strong>"Gộp File Ngay"</strong> và hệ thống sẽ tự động tải file PDF hoàn chỉnh về máy của bạn.</li>
+                </ol>
+              </div>
+            </details>
+          </div>
+        </div>
       </section>
     </div>
   )

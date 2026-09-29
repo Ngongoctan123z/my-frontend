@@ -4,16 +4,14 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronRight, PenTool, Languages, Key, Eye, EyeOff, BookOpen } from 'lucide-react'
 import { useState } from 'react'
-import { useAiKey } from '@/src/contexts/AiContext'
 
 export function AiBanner() {
   const pathname = usePathname()
-  const { apiKey, setApiKey } = useAiKey()
   const [showKey, setShowKey] = useState(false)
 
   const links = [
-    { href: '/ai-grader', label: 'Chấm Writing', icon: <PenTool size={14} /> },
-    { href: '/ai-grader/translate', label: 'Dịch Nhanh', icon: <Languages size={14} /> },
+    { href: '/ai-grader', label: 'Luyện Writing IELTS', icon: <PenTool size={14} /> },
+    { href: '/ai-grader/toeic', label: 'Luyện Writing TOEIC', icon: <PenTool size={14} /> },
     { href: '/ai-grader/tai-lieu-tong-hop', label: 'Tài liệu Free', icon: <BookOpen size={14} /> },
   ]
 
@@ -56,37 +54,6 @@ export function AiBanner() {
         </div>
       </section>
 
-      {/* API Key Row — Non-sticky, part of content, stacks on mobile */}
-      <div className="mx-auto max-w-5xl mb-6 flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-surface rounded-2xl border border-line shadow-sm">
-        <div className="flex items-center gap-3">
-          <Key className="w-4 h-4 text-[var(--color-primary)] shrink-0" />
-          <span className="text-[13px] font-semibold text-ink shrink-0">API Key Gemini</span>
-          <a
-            href="https://aistudio.google.com/app/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[12px] text-[var(--color-primary)] hover:underline shrink-0"
-          >
-            Lấy key miễn phí →
-          </a>
-        </div>
-        <div className="relative flex-1 w-full sm:ml-auto">
-          <input
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Dán API Key vào đây..."
-            className="w-full h-9 px-3 pr-8 rounded-xl border border-line bg-page text-[13px] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-shadow"
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors"
-          >
-            {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
     </>
   )
 }
