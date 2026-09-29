@@ -267,7 +267,7 @@ export function AiGraderClient() {
                 value={essayTask1}
                 onChange={(e) => setEssayTask1(e.target.value)}
                 placeholder="Viết bài làm Task 1 của bạn vào đây (Tiếng Anh)..."
-                className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none text-sm leading-relaxed"
+                className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-y text-sm leading-relaxed min-h-[300px]"
               />
             ) : (
               <div className="flex-1 flex flex-col gap-4">
@@ -277,7 +277,7 @@ export function AiGraderClient() {
                     value={essayTask2.intro}
                     onChange={(e) => setEssayTask2({ ...essayTask2, intro: e.target.value })}
                     placeholder="Paraphrase the prompt & state your thesis..."
-                    className="w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-none h-24"
+                    className="w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-y min-h-[120px]"
                   />
                 </div>
                 <div className="flex-1 flex flex-col">
@@ -286,7 +286,7 @@ export function AiGraderClient() {
                     value={essayTask2.body}
                     onChange={(e) => setEssayTask2({ ...essayTask2, body: e.target.value })}
                     placeholder="Develop your arguments with examples..."
-                    className="flex-1 w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-none min-h-[150px]"
+                    className="flex-1 w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-y min-h-[250px]"
                   />
                 </div>
                 <div>
@@ -295,7 +295,7 @@ export function AiGraderClient() {
                     value={essayTask2.conclusion}
                     onChange={(e) => setEssayTask2({ ...essayTask2, conclusion: e.target.value })}
                     placeholder="Summarize your main points..."
-                    className="w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-none h-20"
+                    className="w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-y min-h-[120px]"
                   />
                 </div>
               </div>
