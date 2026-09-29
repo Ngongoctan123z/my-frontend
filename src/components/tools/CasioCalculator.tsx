@@ -9,6 +9,7 @@ export function CasioCalculator() {
   const [result, setResult] = useState('')
   const [isShift, setIsShift] = useState(false)
   const [isAlpha, setIsAlpha] = useState(false)
+  const [model, setModel] = useState<'580' | '570'>('580')
 
   // Map display chars to mathjs valid format
   const handleCalculate = (expr: string) => {
@@ -106,15 +107,36 @@ export function CasioCalculator() {
   ]
 
   return (
-    <div className="flex justify-center items-center py-4 sm:py-10 w-full bg-slate-100 rounded-3xl mt-8 overflow-hidden">
+    <div className="flex flex-col justify-center items-center py-4 sm:py-10 w-full bg-slate-100 rounded-3xl mt-8 overflow-hidden">
+      
+      {/* Model Selector */}
+      <div className="flex gap-2 mb-8 bg-white p-1.5 rounded-xl shadow-sm border border-gray-200">
+        <button 
+          onClick={() => setModel('580')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${model === '580' ? 'bg-gray-800 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+        >
+          fx-580VN X
+        </button>
+        <button 
+          onClick={() => setModel('570')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${model === '570' ? 'bg-gray-400 text-gray-900' : 'text-gray-500 hover:bg-gray-100'}`}
+        >
+          fx-570VN PLUS
+        </button>
+      </div>
+
       {/* Casing */}
-      <div className="w-[380px] max-w-[95vw] scale-[0.9] sm:scale-100 origin-top sm:origin-center bg-gradient-to-b from-gray-800 to-gray-900 rounded-[2.5rem] p-4 sm:p-5 shadow-2xl border-4 border-gray-700 relative overflow-hidden shrink-0" style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255,255,255,0.1)' }}>
+      <div className={`w-[380px] max-w-[95vw] scale-[0.9] sm:scale-100 origin-top sm:origin-center rounded-[2.5rem] p-4 sm:p-5 shadow-2xl border-4 relative overflow-hidden shrink-0 ${model === '580' ? 'bg-gradient-to-b from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-b from-gray-300 to-gray-400 border-gray-400'}`} style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255,255,255,0.1)' }}>
         
         {/* Brand Name */}
         <div className="flex justify-between items-end mb-4 px-2">
-          <div className="text-white font-bold tracking-widest text-lg italic">CASIO</div>
-          <div className="text-gray-400 text-[10px] font-semibold text-right">
-            fx-580VN X <br/> <span className="text-blue-400">CLASSWIZ</span>
+          <div className={`${model === '580' ? 'text-white' : 'text-gray-800'} font-bold tracking-widest text-lg italic`}>CASIO</div>
+          <div className={`${model === '580' ? 'text-gray-400' : 'text-gray-600'} text-[10px] font-semibold text-right uppercase`}>
+            {model === '580' ? (
+              <>fx-580VN X <br/> <span className="text-blue-400">CLASSWIZ</span></>
+            ) : (
+              <>fx-570VN PLUS <br/> <span className="text-blue-600">NATURAL-V.P.A.M.</span></>
+            )}
           </div>
         </div>
 

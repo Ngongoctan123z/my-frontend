@@ -19,9 +19,9 @@ export default function CasioToolPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Máy Tính Khoa Học & Đồ Thị (Nâng Cao)</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Giả lập Máy tính Casio Online</h1>
         <p className="text-slate-500">
-          Phiên bản máy tính khoa học và đồ thị đầy đủ, hỗ trợ giải quyết các bài toán và công thức phức tạp nhất.
+          Phiên bản giả lập máy tính Casio fx-580VN X, fx-570VN Plus đầy đủ chức năng, hỗ trợ giải quyết các bài toán và công thức phức tạp nhất.
         </p>
       </div>
 
