@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
 import { useDebounce } from '../../hooks/useDebounce'
 import { getSuggestions } from '../../services/searchService'
+import { getSmartRoute } from '../../utils/searchRouting'
 
 export function SearchBar() {
   const [query, setQuery] = useState('')
@@ -40,7 +41,7 @@ export function SearchBar() {
     const next = value.trim()
     if (!next) return
     setOpen(false)
-    router.push(`/tai-lieu?q=${encodeURIComponent(next)}`)
+    router.push(getSmartRoute(next))
   }
 
   return (

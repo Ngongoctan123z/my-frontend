@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Search, BookOpen, PenTool, GraduationCap, FileText, Check, ChevronRight, Sparkles, Layers, Globe } from 'lucide-react'
 import { Reveal, StaggerReveal } from '@/src/components/ui/Reveal'
+import { getSmartRoute } from '@/src/utils/searchRouting'
 
 const portalCategories = [
   {
@@ -44,6 +46,9 @@ const portalCategories = [
 
 export function HomeClient() {
   const [mounted, setMounted] = useState(false)
+  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState('')
+
   useEffect(() => setMounted(true), [])
 
   // Rotation logic for mobile 2x2 grid (Absolute Positioning for smooth transition)
@@ -106,10 +111,20 @@ export function HomeClient() {
             </Reveal>
 
             <Reveal animation="fade-up" delay={300} duration={600}>
-              <form action="/tai-lieu" method="GET" className="relative group max-w-md mx-auto md:mx-0">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (searchQuery.trim()) {
+                    router.push(getSmartRoute(searchQuery))
+                  }
+                }}
+                className="relative group max-w-md mx-auto md:mx-0"
+              >
                 <input
                   type="text"
                   name="q"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Nhập thứ bạn muốn tìm ở đây"
                   className="w-full py-3 pl-10 pr-20 bg-white border border-gray-200 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:shadow-md focus:ring-0 outline-none transition-all text-slate-800 placeholder:text-slate-400"
                 />
