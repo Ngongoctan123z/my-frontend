@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Star, Info } from 'lucide-react'
+import { Star, Info, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -15,6 +15,7 @@ export function Header() {
   const isHomePage = pathname === '/'
 
   const [supportOpen, setSupportOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const supportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -61,7 +62,16 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-[#0D1117] border-b border-[var(--border-color)] transition-colors duration-300">
-      <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 md:px-10 h-[66px]">
+      <div className="mx-auto flex max-w-7xl items-center gap-4 sm:gap-6 px-4 md:px-10 h-[66px]">
+
+        {/* Hamburger Menu (Visible on all screens) */}
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors"
+          aria-label="Menu"
+        >
+          <Menu size={24} />
+        </button>
 
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5 hover:opacity-80 transition-opacity">
@@ -71,7 +81,7 @@ export function Header() {
             width={40}
             height={40}
             priority
-            className="h-10 w-10 rounded-[6px] object-cover"
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-[6px] object-cover"
           />
           <span className="hidden sm:inline text-[18px] font-[900] text-[var(--text-primary)] tracking-tight">VNDocs</span>
         </Link>
@@ -148,6 +158,74 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {/* Sidebar Drawer */}
+      {mobileMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="fixed top-0 left-0 bottom-0 z-[110] w-[300px] max-w-[85vw] bg-white dark:bg-[#0D1117] border-r border-[var(--border-color)] shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-[var(--border-color)]">
+              <Link href="/" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+                <Image src="/logo.jpg" alt="VNDocs" width={36} height={36} className="rounded-md" />
+                <span className="text-xl font-[900] tracking-tight text-[var(--text-primary)]">VNDocs</span>
+              </Link>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 -mr-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--bg-secondary)] transition-colors"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto py-5 px-4 space-y-8">
+              {navLinks.map((section) => (
+                <div key={section.href}>
+                  <h3 className="mb-3 px-2 text-[11px] font-bold uppercase tracking-widest text-[var(--color-primary)]">
+                    {section.label}
+                  </h3>
+                  <div className="space-y-1">
+                    {section.dropdown?.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="block px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              <div className="pt-6 border-t border-[var(--border-color)]">
+                <h3 className="mb-3 px-2 text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                  Cài đặt & Hỗ trợ
+                </h3>
+                <div className="space-y-1">
+                  <Link href="/favorites" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    <Star size={18} /> Đề yêu thích
+                  </Link>
+                  <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    <Info size={18} /> Về chúng tôi
+                  </Link>
+                  <div className="px-3 py-2.5 flex items-center gap-3 text-[15px] font-semibold text-[var(--text-secondary)]">
+                    Chế độ nền tối
+                    <div className="ml-auto">
+                      <ThemeToggle className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent hover:text-[var(--text-primary)] transition-all" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </header>
   )
 }
