@@ -169,9 +169,25 @@ export async function POST(req: NextRequest) {
           .limit(3)
         
         if (randomPrompts.length === 0) {
+          // Fallback to AI generation if DB is empty
+          let genPrompt = ''
+          if (type === 'IELTS_TASK_2') {
+            genPrompt = 'Generate a random, academic IELTS Writing Task 2 essay prompt. Provide ONLY the prompt text, no intro, no outro.'
+          } else if (type === 'IELTS_TASK_1') {
+            genPrompt = 'Generate a random IELTS Writing Task 1 prompt about a chart or graph. Describe the data since you cannot show an image. Provide ONLY the prompt text.'
+          } else if (type === 'TOEIC_RESPOND') {
+            genPrompt = 'Generate a random TOEIC Writing Question 6-7 email response prompt. Provide ONLY the email and the instructions.'
+          } else if (type === 'TOEIC_ESSAY') {
+            genPrompt = 'Generate a random TOEIC Writing Question 8 Opinion Essay prompt. Provide ONLY the prompt text.'
+          } else {
+             return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
+          }
+          
+          const text = await tryGenerateWithFallbackWrapped(genPrompt, false)
           return NextResponse.json({ 
-            error: 'Kho đề trống. Vui lòng liên hệ Admin để thêm đề vào kho.' 
-          }, { status: 404 })
+            text: text.trim(), 
+            prompts: [{ content: text.trim(), imageUrl: null }]
+          })
         }
 
         // Return array of objects containing content and imageUrl

@@ -218,18 +218,6 @@ export function AiGraderClient() {
               <a href="/ai-grader/toeic" className="px-4 py-2 rounded text-sm font-semibold transition-all border bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100">
                 Luyện TOEIC Writing
               </a>
-              <button disabled title="Sắp ra mắt" className="px-4 py-2 rounded text-sm font-semibold transition-all border bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed">
-                Luyện TOPIK (Tiếng Hàn)
-              </button>
-              <button disabled title="Sắp ra mắt" className="px-4 py-2 rounded text-sm font-semibold transition-all border bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed">
-                Luyện HSK (Tiếng Trung)
-              </button>
-              <button disabled title="Sắp ra mắt" className="px-4 py-2 rounded text-sm font-semibold transition-all border bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed">
-                Nghiên cứu cấu trúc đề thi
-              </button>
-              <button disabled title="Sắp ra mắt" className="px-4 py-2 rounded text-sm font-semibold transition-all border bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed">
-                Luyện viết đoạn văn
-              </button>
             </div>
 
             <div className="space-y-3">
