@@ -12,6 +12,8 @@ export function AiBanner() {
   const links = [
     { href: '/ai-grader', label: 'Luyện Writing IELTS', icon: <PenTool size={14} /> },
     { href: '/ai-grader/toeic', label: 'Luyện Writing TOEIC', icon: <PenTool size={14} /> },
+    { href: '/ai-grader/topik', label: 'Luyện Writing TOPIK', icon: <PenTool size={14} /> },
+    { href: '/ai-grader/hsk', label: 'Luyện Writing HSK', icon: <PenTool size={14} /> },
     { href: '/ai-grader/tai-lieu-tong-hop', label: 'Tài liệu Free', icon: <BookOpen size={14} /> },
   ]
 
