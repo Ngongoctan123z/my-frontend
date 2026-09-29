@@ -32,8 +32,8 @@ export function Header() {
       href: '/tai-lieu', 
       label: 'Đề thi',
       dropdown: [
-        { href: '/tai-lieu/vao-10', label: 'Đề thi vào 10' },
-        { href: '/tai-lieu/thpt', label: 'Đề thi THPT' },
+        { href: '/tai-lieu?examType=VAO_10', label: 'Đề thi vào 10' },
+        { href: '/tai-lieu?examType=THPT', label: 'Đề thi THPT' },
       ]
     },
     { 
