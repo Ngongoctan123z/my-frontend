@@ -27,8 +27,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
     adapter: adapter,
     providers: [
       Google({
-        clientId: envObj.AUTH_GOOGLE_ID || 'dummy',
-        clientSecret: envObj.AUTH_GOOGLE_SECRET || 'dummy',
+        clientId: envObj.AUTH_GOOGLE_ID as string,
+        clientSecret: envObj.AUTH_GOOGLE_SECRET as string,
       }),
       Credentials({
         name: "Email và Mật khẩu",
@@ -58,7 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
         }
       })
     ],
-    secret: envObj.AUTH_SECRET || 'VNDOCS_SECRET_KEY_123456789_DEFAULT',
+    secret: envObj.AUTH_SECRET as string,
     session: {
       strategy: "jwt",
     },
