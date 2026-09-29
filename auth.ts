@@ -23,22 +23,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
 
   const providers: any[] = []
 
-  if (envObj.AUTH_GOOGLE_ID || process.env.AUTH_GOOGLE_ID) {
-    providers.push(
-      Google({
-        clientId: (envObj.AUTH_GOOGLE_ID || process.env.AUTH_GOOGLE_ID) as string,
-        clientSecret: (envObj.AUTH_GOOGLE_SECRET || process.env.AUTH_GOOGLE_SECRET) as string,
-      })
-    )
-  } else {
-    // Fallback to avoid crashing with 0 providers, though login will fail with 401
-    providers.push(
-      Google({
-        clientId: 'dummy',
-        clientSecret: 'dummy',
-      })
-    )
-  }
+  providers.push(
+    Google({
+      clientId: envObj.AUTH_GOOGLE_ID || process.env.AUTH_GOOGLE_ID || '828707291275-fnvthfbo2muk10b82lu4kt4uhiohi9d2.apps.googleusercontent.com',
+      clientSecret: envObj.AUTH_GOOGLE_SECRET || process.env.AUTH_GOOGLE_SECRET || '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',
+    })
+  )
 
   return {
     trustHost: true,
