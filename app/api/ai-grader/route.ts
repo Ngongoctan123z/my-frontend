@@ -17,7 +17,7 @@ async function checkAndIncrementRateLimit(userId: string): Promise<boolean> {
     return true
   }
 
-  if (usage.count >= 20) {
+  if (usage.count >= 15) {
     return false
   }
 
@@ -46,7 +46,9 @@ async function incrementGlobalCounter(usedKey?: string) {
         await db.insert(systemConfigs).values({ key: keyUsageKey, value: '1' })
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 const FALLBACK_MODELS = [
@@ -96,7 +98,6 @@ async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = f
 
     for (const apiKey of shuffledKeys) {
       const groq = new Groq({ apiKey, maxRetries: 0, timeout: 15000 })
-      let hitRateLimit = false
 
       for (const modelName of modelsToTry) {
         try {
@@ -120,7 +121,6 @@ async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = f
           }
 
           if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid') || msg.includes('authentication')) {
-             hitRateLimit = true 
              break // Chuyển sang key khác
           }
 
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
     const isAllowed = await checkAndIncrementRateLimit(session.user.email || session.user.id!)
     if (!isAllowed) {
       return NextResponse.json(
-        { error: 'Bạn đã đạt giới hạn 20 lần sử dụng AI trong ngày hôm nay. Vui lòng quay lại vào ngày mai!' },
+        { error: 'Bạn đã đạt giới hạn 15 lần sử dụng AI trong ngày hôm nay. Vui lòng quay lại vào ngày mai!' },
         { status: 429 }
       )
     }
@@ -207,14 +207,13 @@ export async function POST(req: NextRequest) {
       let systemPrompt = ''
 
       let basePrompt = `
-You are a highly qualified and objective IELTS examiner.
-You must grade the essay against the official IELTS marking criteria.
+You are an expert, objective examiner. Your sole task is to grade the user's writing based on the official criteria for the given exam.
 CRITICAL RULES:
-1. NO CHITCHAT. NO CONVERSATIONAL TEXT. NO GREETINGS.
-2. DO NOT output ANY text outside of the JSON object.
-3. Use fair and moderate international standard IELTS grading. Be constructive and objective. Do not be overly punishing for minor errors.
-4. Output MUST be a valid JSON object matching the exact schema below.
-5. Do NOT hesitate to award high bands (8.0, 8.5, or 9.0) if the essay is exceptionally well-written, demonstrates advanced vocabulary, and has negligible errors. Do not artificially cap the score at 7.0 or 7.5.
+1. NO CHITCHAT. NO CONVERSATIONAL TEXT. NO GREETINGS. 
+2. DO NOT include phrases like "Here is the result", "Sure", "I will evaluate". DO NOT output ANY text outside of the JSON object.
+3. Use fair and accurate international standard grading. Be highly constructive, brief, and objective. 
+4. Output MUST be a valid JSON object matching the exact schema below, strictly using Vietnamese language for the 'feedback', 'detailedFeedback', and 'explanation' fields.
+5. Provide precise, actionable feedback. Avoid vague or lengthy explanations. Keep the feedback concise.
 `
 
       if (type === 'IELTS_TASK_2') {
@@ -447,5 +446,26 @@ Write all feedback in Vietnamese.
       { error: 'Hệ thống máy chủ AI đang gặp sự cố. Vui lòng thử lại sau ít phút.' },
       { status: 500 }
     )
+  }
+}
+
+export async function GET(_req: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session || !session.user) {
+      return NextResponse.json({ count: 0, limit: 15 })
+    }
+
+    const userId = session.user.email || session.user.id!
+    const db = await getDb()
+    const today = new Date().toLocaleDateString('en-CA')
+
+    const usages = await db.select().from(apiUsages).where(sql`userId = ${userId} AND date = ${today}`)
+    const count = usages[0]?.count || 0
+
+    return NextResponse.json({ count, limit: 15 })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ count: 0, limit: 15 })
   }
 }

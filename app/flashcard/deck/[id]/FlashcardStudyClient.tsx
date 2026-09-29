@@ -15,6 +15,9 @@ export function FlashcardStudyClient({ deckId }: { deckId: number }) {
     getStudySession(deckId).then(data => {
       setCards(data)
       setLoading(false)
+    }).catch(err => {
+      console.error(err)
+      setLoading(false)
     })
   }, [deckId])
 

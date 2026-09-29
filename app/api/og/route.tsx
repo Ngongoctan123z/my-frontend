@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { getExamByPath, getExamById } from '../../../src/services/examService'
+import { getExamById } from '../../../src/services/examService'
 import { examTypeLabel, pathToExamType, slugify } from '../../../src/utils/slug'
 import { SUBJECTS, PROVINCES } from '../../../src/utils/constants'
 import { NextRequest } from 'next/server'
@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
       title = `Đề thi ${subject} ${type} ${province} ${year}`
     }
   } catch (e) {
+    console.error(e)
     // Ignore errors and use default
   }
 

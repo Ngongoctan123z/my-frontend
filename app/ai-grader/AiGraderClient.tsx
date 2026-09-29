@@ -21,6 +21,15 @@ export function AiGraderClient() {
   const [isGrading, setIsGrading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
+  const [usageCount, setUsageCount] = useState(0)
+  const [usageLimit, setUsageLimit] = useState(15)
+
+  useEffect(() => {
+    fetch('/api/ai-grader').then(r => r.json()).then(data => {
+      setUsageCount(data.count || 0)
+      setUsageLimit(data.limit || 15)
+    }).catch(() => {})
+  }, [session])
 
   const [history, setHistory] = useState<GradedEssayHistory[]>([])
   const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -50,7 +59,7 @@ export function AiGraderClient() {
 
   const loadHistory = async () => {
     const data = await getEssayHistory()
-    setHistory(data)
+    setHistory(data.filter(h => h.examType.startsWith('IELTS')))
   }
 
   useEffect(() => {
@@ -154,6 +163,7 @@ export function AiGraderClient() {
     try {
       const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: finalEssay })
       setResult(data)
+      setUsageCount(prev => prev + 1)
       
       await saveEssayHistory({
         examType,
@@ -302,6 +312,11 @@ export function AiGraderClient() {
               {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               {isGrading ? 'Đang chấm điểm...' : (session ? 'Nộp bài & Chấm điểm' : 'Đăng nhập để Chấm điểm')}
             </button>
+            {session && (
+              <p className="text-center text-xs text-slate-500 mt-2">
+                Lượt chấm hôm nay: <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
+              </p>
+            )}
           </div>
         </div>
 

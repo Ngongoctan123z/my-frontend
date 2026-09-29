@@ -221,12 +221,18 @@ export function HomeClient() {
                 </h2>
               </Reveal>
               <Reveal animation="fade-up" delay={400} duration={500}>
-                <ul className="space-y-1.5">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 mt-3">
                   <li className="flex items-center text-slate-300 gap-2 text-xs">
-                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Sửa chi tiết từng lỗi sai cấu trúc
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 3 ngôn ngữ: Anh, Trung, Hàn
                   </li>
                   <li className="flex items-center text-slate-300 gap-2 text-xs">
-                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Chấm điểm 4 tiêu chí (TR, CC, LR, GRA)
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Sửa lỗi chi tiết ngữ pháp, từ vựng
+                  </li>
+                  <li className="flex items-center text-slate-300 gap-2 text-xs">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> 4 chứng chỉ: IELTS, TOEIC, HSK, TOPIK
+                  </li>
+                  <li className="flex items-center text-slate-300 gap-2 text-xs">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Chấm sát barem thi thực tế
                   </li>
                 </ul>
               </Reveal>

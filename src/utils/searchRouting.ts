@@ -3,16 +3,16 @@ export function getSmartRoute(query: string): string {
   if (!lowerQ) return '/tai-lieu'
 
   // --- AI Grader / IELTS / TOEIC / HSK / TOPIK ---
-  if (lowerQ.includes('ielts') || lowerQ.includes('writing ielts') || lowerQ.includes('chấm ielts') || lowerQ.includes('chấm điểm ielts') || lowerQ.includes('chữa ielts')) {
+  if (lowerQ.includes('ielts') || lowerQ.includes('ietls') || lowerQ.includes('ietsl') || lowerQ.includes('writing ielts') || lowerQ.includes('chấm ielts') || lowerQ.includes('chấm điểm ielts') || lowerQ.includes('chữa ielts')) {
     return '/ai-grader'
   }
-  if (lowerQ.includes('toeic') || lowerQ.includes('chấm toeic') || lowerQ.includes('chữa toeic') || lowerQ.includes('writing toeic') || lowerQ.includes('toeic writing')) {
+  if (lowerQ.includes('toeic') || lowerQ.includes('toiec') || lowerQ.includes('chấm toeic') || lowerQ.includes('chữa toeic') || lowerQ.includes('writing toeic') || lowerQ.includes('toeic writing')) {
     return '/ai-grader/toeic'
   }
   if (lowerQ.includes('hsk') || lowerQ.includes('tiếng trung') || lowerQ.includes('tieng trung') || lowerQ.includes('chấm hsk') || lowerQ.includes('writing hsk')) {
     return '/ai-grader/hsk'
   }
-  if (lowerQ.includes('topik') || lowerQ.includes('tiếng hàn') || lowerQ.includes('tieng han') || lowerQ.includes('chấm topik') || lowerQ.includes('writing topik')) {
+  if (lowerQ.includes('topik') || lowerQ.includes('tôpik') || lowerQ.includes('tiếng hàn') || lowerQ.includes('tieng han') || lowerQ.includes('chấm topik') || lowerQ.includes('writing topik')) {
     return '/ai-grader/topik'
   }
   if (lowerQ.includes('chấm điểm') || lowerQ.includes('chấm writing') || lowerQ.includes('ai grader') || lowerQ.includes('ai chấm') || lowerQ.includes('sửa bài') || lowerQ.includes('chữa bài') || lowerQ.includes('chữa lỗi') || lowerQ.includes('viết đoạn văn') || lowerQ.includes('viết bài') || lowerQ.includes('ngữ pháp')) {

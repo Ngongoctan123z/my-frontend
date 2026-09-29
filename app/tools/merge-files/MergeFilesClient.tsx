@@ -90,9 +90,9 @@ export default function MergeFilesClient() {
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4">
 
 
-      <div className="flex items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line w-max mx-auto">
-        <Settings2 className="w-5 h-5 text-ink-muted" />
-        <span className="text-sm font-medium">Định dạng file:</span>
+      <div className="flex flex-wrap items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line max-w-full sm:w-max mx-auto">
+        <Settings2 className="w-5 h-5 text-ink-muted shrink-0" />
+        <span className="text-sm font-medium shrink-0">Định dạng file:</span>
         <select 
           value={format} 
           onChange={(e) => { setFormat(e.target.value as FileFormat); setError(''); }}
@@ -140,8 +140,8 @@ export default function MergeFilesClient() {
                 <div key={index} className="flex items-center justify-between p-3 bg-page border border-line rounded-lg shadow-sm">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="p-2 bg-primary/10 text-primary rounded text-xs font-bold w-8 text-center">{index + 1}</div>
-                    <p className="font-medium truncate max-w-[150px] sm:max-w-xs">{f.name}</p>
-                    <span className="text-xs text-ink-muted whitespace-nowrap">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                    <p className="font-medium truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs">{f.name}</p>
+                    <span className="text-[10px] sm:text-xs text-ink-muted whitespace-nowrap">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => moveFile(index, 'up')} disabled={index === 0} className="p-1.5 text-ink-muted hover:bg-surface rounded disabled:opacity-30"><ArrowUp className="w-4 h-4"/></button>
