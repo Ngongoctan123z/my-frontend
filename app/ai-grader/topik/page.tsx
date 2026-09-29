@@ -1,23 +1,25 @@
 import { Metadata } from 'next'
+import { TopikGraderClient } from './TopikGraderClient'
 
 export const metadata: Metadata = {
-  title: 'Chấm Thi Writing TOPIK AI | VNDocs',
-  description: 'Tính năng luyện viết và chấm điểm TOPIK bằng AI đang được phát triển.',
+  title: 'Chấm Thi Writing TOPIK II AI | VNDocs',
+  description: 'Tính năng luyện viết và chấm điểm TOPIK bằng AI với kết quả chuẩn xác.',
 }
 
 export default function TopikPage() {
   return (
-    <div className="max-w-4xl mx-auto py-20 text-center">
-      <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-        <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+    <div className="min-h-screen bg-slate-50/50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
+            Chấm Điểm Writing <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">TOPIK AI</span>
+          </h1>
+          <p className="text-lg text-slate-600 leading-relaxed">
+            Luyện tập Viết TOPIK II (Câu 51-54) chuẩn form với đánh giá tự động và sửa lỗi chi tiết từng câu tiếng Hàn từ Trí Tuệ Nhân Tạo.
+          </p>
+        </div>
+        <TopikGraderClient />
       </div>
-      <h1 className="text-3xl font-extrabold text-slate-800 mb-4">Luyện Writing TOPIK (Tiếng Hàn)</h1>
-      <p className="text-slate-500 text-lg mb-8 max-w-xl mx-auto">
-        Tính năng chấm chữa bài viết TOPIK bằng Trí Tuệ Nhân Tạo đang được đội ngũ VNDocs phát triển và sẽ sớm ra mắt trong thời gian tới. Mong bạn quay lại sau nhé!
-      </p>
-      <a href="/ai-grader" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors">
-        Quay lại Luyện IELTS
-      </a>
     </div>
   )
 }

@@ -20,19 +20,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
   }
 
   const dbBinding = envObj.DB;
-  if (!dbBinding) {
-    throw new Error("Missing DB binding for NextAuth");
-  }
-
-  const db = drizzle(dbBinding, { schema });
+  const adapter = dbBinding ? DrizzleAdapter(drizzle(dbBinding, { schema })) : undefined;
 
   return {
     trustHost: true,
-    adapter: DrizzleAdapter(db),
+    adapter: adapter,
     providers: [
       Google({
-        clientId: envObj.AUTH_GOOGLE_ID,
-        clientSecret: envObj.AUTH_GOOGLE_SECRET,
+        clientId: envObj.AUTH_GOOGLE_ID || 'dummy',
+        clientSecret: envObj.AUTH_GOOGLE_SECRET || 'dummy',
       }),
       Credentials({
         name: "Email và Mật khẩu",
@@ -43,6 +39,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
         async authorize(credentials) {
           if (!credentials?.email || !credentials?.password) return null
           
+          if (!dbBinding) {
+            console.error("Missing DB binding, cannot authorize")
+            return null
+          }
+
+          const db = drizzle(dbBinding, { schema })
           const userRecords = await db.select().from(schema.users).where(eq(schema.users.email, credentials.email as string))
           if (userRecords.length === 0) return null
 
@@ -56,7 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
         }
       })
     ],
-    secret: envObj.AUTH_SECRET,
+    secret: envObj.AUTH_SECRET || 'VNDOCS_SECRET_KEY_123456789_DEFAULT',
     session: {
       strategy: "jwt",
     },

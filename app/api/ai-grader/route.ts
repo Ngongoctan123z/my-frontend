@@ -179,6 +179,16 @@ export async function POST(req: NextRequest) {
             genPrompt = 'Generate a random TOEIC Writing Question 6-7 email response prompt. Provide ONLY the email and the instructions.'
           } else if (type === 'TOEIC_ESSAY') {
             genPrompt = 'Generate a random TOEIC Writing Question 8 Opinion Essay prompt. Provide ONLY the prompt text.'
+          } else if (type === 'HSK_5') {
+            genPrompt = 'Generate a random HSK 5 writing part 2 prompt. Provide 5 Chinese words that the user must use in an 80-word paragraph. Provide ONLY the 5 words separated by commas.'
+          } else if (type === 'HSK_6') {
+            genPrompt = 'Generate a random HSK 6 writing prompt (a 1000-word article to be summarized). Provide ONLY the article text.'
+          } else if (type === 'TOPIK_51_52') {
+            genPrompt = 'Generate a random TOPIK II writing question 51 or 52 prompt (fill in the blank). Provide a short Korean passage with a blank (e.g. ㉠) and the question context. Provide ONLY the text.'
+          } else if (type === 'TOPIK_53') {
+            genPrompt = 'Generate a random TOPIK II writing question 53 prompt (describe a graph/data). Provide the tabular/textual data and the question instruction. Provide ONLY the text.'
+          } else if (type === 'TOPIK_54') {
+            genPrompt = 'Generate a random TOPIK II writing question 54 prompt (opinion essay). Provide the topic and 3 sub-questions. Provide ONLY the prompt text.'
           } else {
              return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
           }
@@ -347,6 +357,66 @@ JSON Schema:
     "reasonsAndExamples": { "score": 4, "feedback": "Concise feedback" },
     "organization": { "score": 4, "feedback": "Concise feedback" },
     "grammarAndVocabulary": { "score": 4, "feedback": "Concise feedback" }
+  },
+  "detailedFeedback": "Overall analysis in Vietnamese.",
+  "corrections": [
+    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+  ]
+}
+Write all feedback in Vietnamese.
+`
+      } else if (type === 'HSK_5' || type === 'HSK_6') {
+        systemPrompt = basePrompt.replace('IELTS', 'HSK Writing').replace('English', 'Chinese') + `
+PROMPT:
+${prompt}
+
+ESSAY (written in Chinese):
+${essay}
+
+Grade objectively based on HSK Writing criteria:
+1. Grammar and syntax accuracy
+2. Vocabulary range and correctness
+3. Coherence and task fulfillment (for HSK 5: used all words or described picture / for HSK 6: summarized accurately with title, no personal opinions)
+
+Score from 0 to 100.
+
+JSON Schema:
+{
+  "overallBand": 85,
+  "criteria": {
+    "grammar": { "score": 85, "feedback": "Concise feedback" },
+    "vocabulary": { "score": 85, "feedback": "Concise feedback" },
+    "taskFulfillment": { "score": 85, "feedback": "Concise feedback" }
+  },
+  "detailedFeedback": "Overall analysis in Vietnamese.",
+  "corrections": [
+    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+  ]
+}
+Write all feedback in Vietnamese.
+`
+      } else if (type === 'TOPIK_51_52' || type === 'TOPIK_53' || type === 'TOPIK_54') {
+        systemPrompt = basePrompt.replace('IELTS', 'TOPIK II Writing').replace('English', 'Korean') + `
+PROMPT:
+${prompt}
+
+ESSAY (written in Korean):
+${essay}
+
+Grade objectively based on TOPIK II Writing criteria:
+1. Grammar and vocabulary (Grammar and expression accuracy)
+2. Task completion (Content and task fulfillment)
+3. Organization (Coherence and structure)
+
+Score from 0 to 100.
+
+JSON Schema:
+{
+  "overallBand": 75,
+  "criteria": {
+    "grammarAndVocabulary": { "score": 75, "feedback": "Concise feedback" },
+    "taskCompletion": { "score": 75, "feedback": "Concise feedback" },
+    "organization": { "score": 75, "feedback": "Concise feedback" }
   },
   "detailedFeedback": "Overall analysis in Vietnamese.",
   "corrections": [

@@ -215,9 +215,6 @@ export function ToeicGraderClient() {
               >
                 TOEIC Writing Q8 (Opinion Essay)
               </button>
-              <a href="/ai-grader" className="px-4 py-2 rounded text-sm font-semibold transition-all border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100">
-                ← Quay lại Luyện IELTS Writing
-              </a>
             </div>
 
             <div className="space-y-3">

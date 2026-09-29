@@ -215,9 +215,6 @@ export function AiGraderClient() {
               >
                 IELTS Writing Task 2
               </button>
-              <a href="/ai-grader/toeic" className="px-4 py-2 rounded text-sm font-semibold transition-all border bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100">
-                Luyện TOEIC Writing
-              </a>
             </div>
 
             <div className="space-y-3">
