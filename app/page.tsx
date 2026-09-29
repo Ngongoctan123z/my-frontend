@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   keywords: 'đề thi vào 10, đề thi thpt,công cụ học tiếng Anh ,công cụ gộp file, xóa trang pdf, máy tính casio online',
   openGraph: {
     title: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
-    description: 'Kho đề thi vào 10, đề thi THPT, luyện writing IELTS/TOEIC, công cụ gộp/xóa trang PDF và máy tính Casio hoàn toàn miễn phí.',
+    description: 'Kho đề thi vào 10, đề thi THPT, luyện writing IELTS/TOEIC/HSK/TOPIK, công cụ gộp/xóa trang PDF và máy tính Casio hoàn toàn miễn phí.',
     url: 'https://vndocs.net',
     siteName: 'VNDocs',
     locale: 'vi_VN',
@@ -58,7 +58,7 @@ export default function HomePage() {
         '@type': 'SiteNavigationElement',
         position: 3,
         name: 'Luyện Writing IELTS, TOEIC',
-        description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS, TOEIC bằng AI.',
+        description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS, TOEIC, HSK, TOPIK bằng AI.',
         url: 'https://vndocs.net/ai-grader'
       },
       {

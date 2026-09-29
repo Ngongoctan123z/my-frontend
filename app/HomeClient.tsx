@@ -26,7 +26,7 @@ const portalCategories = [
 
   {
     title: 'Chấm Writing AI',
-    description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS & TOEIC.',
+    description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS, TOEIC, HSK & TOPIK.',
     icon: <Sparkles className="w-5 h-5" />,
     href: '/ai-grader',
     color: 'text-emerald-600',
@@ -98,7 +98,7 @@ export function HomeClient() {
             </Reveal>
             <Reveal animation="fade-up" delay={150} duration={600}>
               <p className="text-slate-500 text-sm mb-5">
-                Đề thi vào 10, THPT Quốc Gia, luyện Writing IELTS/TOEIC — tất cả miễn phí{' '}
+                Đề thi vào 10, THPT Quốc Gia, luyện Writing IELTS, TOEIC, HSK & TOPIK — tất cả miễn phí{' '}
                 <span className="text-blue-600 text-lg md:text-xl font-bold inline-flex items-center gap-1">
                
                 </span>
@@ -263,7 +263,7 @@ export function HomeClient() {
                 <h3 className="text-lg font-bold text-[var(--text-primary)]">AI Chấm Điểm Writing</h3>
               </div>
               <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                Tự động đánh giá 4 tiêu chí khắt khe (TR, CC, LR, GRA) bằng mô hình ngôn ngữ lớn. <Link href="/ai-grader" className="text-[var(--text-primary)] font-semibold hover:underline">Phân tích lỗi sai</Link> và đề xuất từ vựng cao cấp, giúp bứt phá điểm số IELTS & TOEIC.
+                Tự động đánh giá khắt khe theo tiêu chuẩn bằng mô hình ngôn ngữ lớn. <Link href="/ai-grader" className="text-[var(--text-primary)] font-semibold hover:underline">Phân tích lỗi sai</Link> và đề xuất từ vựng cao cấp, giúp bứt phá điểm số IELTS, TOEIC, HSK & TOPIK.
               </p>
             </div>
           </Reveal>
