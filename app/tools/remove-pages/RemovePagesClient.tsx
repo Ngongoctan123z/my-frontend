@@ -91,9 +91,9 @@ export default function RemovePagesClient() {
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4">
 
 
-      <div className="flex items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line w-max mx-auto">
-        <Settings2 className="w-5 h-5 text-ink-muted" />
-        <span className="text-sm font-medium">Định dạng file:</span>
+      <div className="flex flex-wrap items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line max-w-full sm:w-max mx-auto">
+        <Settings2 className="w-5 h-5 text-ink-muted shrink-0" />
+        <span className="text-sm font-medium shrink-0">Định dạng file:</span>
         <select 
           value={format} 
           onChange={(e) => { setFormat(e.target.value as FileFormat); setError(''); }}
