@@ -116,7 +116,6 @@ async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = f
           }
 
           if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('429')) {
-            hitRateLimit = true
             break // Chuyển sang key khác
           }
 
