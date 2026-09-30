@@ -4,7 +4,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 export async function GET() {
   let ctxError = '';
   let envKeys: string[] = [];
-  let processEnvKeys = Object.keys(process.env);
+  const processEnvKeys = Object.keys(process.env);
   let dbExists = false;
   let authGoogleId = '';
   let authSecret = '';

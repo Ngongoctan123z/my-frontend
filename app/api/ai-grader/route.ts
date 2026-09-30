@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
 
       let systemPrompt = ''
 
-      let basePrompt = `
+      const basePrompt = `
 You are an expert, objective examiner. Your sole task is to grade the user's writing based on the official criteria for the given exam.
 CRITICAL RULES:
 1. NO CHITCHAT. NO CONVERSATIONAL TEXT. NO GREETINGS. 

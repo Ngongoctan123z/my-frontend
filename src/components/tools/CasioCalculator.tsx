@@ -15,7 +15,7 @@ export function CasioCalculator() {
   const handleCalculate = (expr: string) => {
     try {
       if (!expr) return ''
-      let parsedExpr = expr
+      const parsedExpr = expr
         .replace(/×/g, '*')
         .replace(/÷/g, '/')
         .replace(/π/g, 'pi')
