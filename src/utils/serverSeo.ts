@@ -59,3 +59,18 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
     },
   }
 }
+
+export async function getCustomRouteSeo(path: string) {
+  try {
+    const db = await getDb()
+    if (db) {
+      const configs = await db.select().from(systemConfigs)
+      const configMap = configs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
+      const routeKey = `SEO_ROUTE_${path}`
+      if (configMap[routeKey]) {
+        return JSON.parse(configMap[routeKey])
+      }
+    }
+  } catch (e) {}
+  return null;
+}

@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { notFound } from 'next/navigation'
 import { ExamDetail } from '../../../src/views/ExamDetail'
 import { examTypeLabel, pathToExamType, slugify, examPath } from '../../../src/utils/slug'
+import { getCustomRouteSeo } from '../../../src/utils/serverSeo'
 import { SUBJECTS, PROVINCES, FRONTEND_URL } from '../../../src/utils/constants'
 import { getExamById, getExamByPath, getExams, getRelatedExams } from '../../../src/services/examService'
 
@@ -86,26 +87,41 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
   }
   
-  const canonical = `${FRONTEND_URL}${examPath(exam as any)}`
+  const pathName = examPath(exam as any)
+  const canonical = `${FRONTEND_URL}${pathName}`
+
+  let finalTitle = title
+  let finalDesc = desc
+  let finalKeywords = ''
+  let ogImage = `${FRONTEND_URL}/api/og?slug=${slug.join('/')}`
+
+  const customSeo = await getCustomRouteSeo(pathName)
+  if (customSeo) {
+    if (customSeo.title) finalTitle = customSeo.title
+    if (customSeo.description) finalDesc = customSeo.description
+    if (customSeo.keywords) finalKeywords = customSeo.keywords
+    if (customSeo.ogImage) ogImage = customSeo.ogImage
+  }
 
   return { 
-    title, 
-    description: desc, 
+    title: finalTitle, 
+    description: finalDesc, 
+    keywords: finalKeywords,
     alternates: { canonical },
     robots: { index: true, follow: true },
     openGraph: { 
       type: 'article', 
       locale: 'vi_VN', 
       siteName: 'VNDocs',
-      title, 
-      description: desc, 
+      title: finalTitle, 
+      description: finalDesc, 
       url: canonical,
       images: [
         {
-          url: `${FRONTEND_URL}/api/og?slug=${slug.join('/')}`,
+          url: ogImage,
           width: 1200,
           height: 630,
-          alt: title,
+          alt: finalTitle,
         }
       ],
       publishedTime: exam.createdAt,

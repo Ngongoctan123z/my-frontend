@@ -49,6 +49,9 @@ const SEO_ROUTES = [
 export function SeoTab() {
   const [activeRoute, setActiveRoute] = useState('GLOBAL')
   
+  // Custom paths created by user
+  const [customRoutes, setCustomRoutes] = useState<string[]>([])
+  
   // Lưu state cho toàn bộ routes
   const [configs, setConfigs] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
@@ -68,24 +71,35 @@ export function SeoTab() {
           }
         }
         
-        // Parse route-specific configs
-        SEO_ROUTES.filter(r => r.path !== 'GLOBAL').forEach(r => {
-          const routeKey = `SEO_ROUTE_${r.path}`
-          if (data[routeKey]) {
+        const extractedCustomRoutes: string[] = []
+
+        // Parse ALL route configs
+        Object.keys(data).forEach(key => {
+          if (key.startsWith('SEO_ROUTE_')) {
+            const path = key.replace('SEO_ROUTE_', '')
             try {
-              const parsed = JSON.parse(data[routeKey])
-              loadedConfigs[r.path] = {
+              const parsed = JSON.parse(data[key])
+              loadedConfigs[path] = {
                 SEO_TITLE: parsed.title || '',
                 SEO_DESCRIPTION: parsed.description || '',
                 SEO_KEYWORDS: parsed.keywords || '',
                 SEO_OG_IMAGE: parsed.ogImage || ''
               }
+              if (!SEO_ROUTES.some(r => r.path === path)) {
+                extractedCustomRoutes.push(path)
+              }
             } catch(e) {}
-          } else {
+          }
+        })
+        
+        // Ensure static routes exist in loadedConfigs
+        SEO_ROUTES.filter(r => r.path !== 'GLOBAL').forEach(r => {
+          if (!loadedConfigs[r.path]) {
             loadedConfigs[r.path] = { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_KEYWORDS: '', SEO_OG_IMAGE: '' }
           }
         })
         
+        setCustomRoutes(extractedCustomRoutes)
         setConfigs(loadedConfigs)
         setLoading(false)
       })
@@ -100,6 +114,24 @@ export function SeoTab() {
       }
     })
   }
+  
+  const handleAddCustomRoute = () => {
+    const path = prompt('Nhập đường dẫn chi tiết bạn muốn cấu hình SEO (VD: /exams/de-thi-toan-10-ha-noi-2023)')
+    if (!path || !path.startsWith('/')) {
+      alert('Đường dẫn phải bắt đầu bằng dấu /')
+      return
+    }
+    if (SEO_ROUTES.some(r => r.path === path) || customRoutes.includes(path)) {
+      alert('Đường dẫn này đã tồn tại trong danh sách!')
+      return
+    }
+    setCustomRoutes([...customRoutes, path])
+    setConfigs({
+      ...configs,
+      [path]: { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_KEYWORDS: '', SEO_OG_IMAGE: '' }
+    })
+    setActiveRoute(path)
+  }
 
   const saveConfig = async () => {
     setSaving(true)
@@ -112,17 +144,19 @@ export function SeoTab() {
       SEO_OG_IMAGE: configs.GLOBAL.SEO_OG_IMAGE,
     }
 
-    SEO_ROUTES.filter(r => r.path !== 'GLOBAL').forEach(r => {
-      const rConf = configs[r.path]
-      if (rConf.SEO_TITLE || rConf.SEO_DESCRIPTION || rConf.SEO_KEYWORDS || rConf.SEO_OG_IMAGE) {
-        payload[`SEO_ROUTE_${r.path}`] = JSON.stringify({
+    const allPaths = [...SEO_ROUTES.map(r => r.path).filter(p => p !== 'GLOBAL'), ...customRoutes]
+
+    allPaths.forEach(path => {
+      const rConf = configs[path]
+      if (rConf && (rConf.SEO_TITLE || rConf.SEO_DESCRIPTION || rConf.SEO_KEYWORDS || rConf.SEO_OG_IMAGE)) {
+        payload[`SEO_ROUTE_${path}`] = JSON.stringify({
           title: rConf.SEO_TITLE,
           description: rConf.SEO_DESCRIPTION,
           keywords: rConf.SEO_KEYWORDS,
           ogImage: rConf.SEO_OG_IMAGE
         })
       } else {
-        payload[`SEO_ROUTE_${r.path}`] = '' // Xóa nếu rỗng
+        payload[`SEO_ROUTE_${path}`] = '' // Xóa nếu rỗng
       }
     })
 
@@ -148,7 +182,7 @@ export function SeoTab() {
         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Map size={18} className="text-emerald-600" /> Chọn Trang SEO
         </h3>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 mb-6">
           {SEO_ROUTES.map(route => (
             <button
               key={route.path}
@@ -159,7 +193,32 @@ export function SeoTab() {
               {route.name}
             </button>
           ))}
+          
+          {customRoutes.length > 0 && (
+            <>
+              <div className="h-px bg-gray-200 my-2"></div>
+              <p className="text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Đường dẫn tùy chỉnh</p>
+              {customRoutes.map(path => (
+                <button
+                  key={path}
+                  onClick={() => setActiveRoute(path)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all truncate ${activeRoute === path ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'}`}
+                  title={path}
+                >
+                  <FileText size={16} className="flex-shrink-0" />
+                  <span className="truncate">{path}</span>
+                </button>
+              ))}
+            </>
+          )}
         </div>
+        
+        <button 
+          onClick={handleAddCustomRoute}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold text-sm rounded-lg border border-dashed border-gray-300 transition-colors"
+        >
+          + Thêm link tùy chỉnh
+        </button>
       </div>
 
       {/* Vùng chỉnh sửa */}
