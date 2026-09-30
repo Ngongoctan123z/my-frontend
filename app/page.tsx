@@ -2,21 +2,14 @@ import React from 'react'
 import { Metadata } from 'next'
 import { HomeClient } from './HomeClient'
 
-export const metadata: Metadata = {
-  title: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
-  description: 'Nền tảng học tập trực tuyến cung cấp kho đề thi vào 10, đề thi THPT, luyện writing IELTS, TOEIC, cùng bộ công cụ xử lý file (gộp, xóa trang PDF, máy tính Casio) hoàn toàn miễn phí.',
-  keywords: 'đề thi vào 10, đề thi thpt,công cụ học tiếng Anh ,công cụ gộp file, xóa trang pdf, máy tính casio online',
-  openGraph: {
-    title: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
-    description: 'Kho đề thi vào 10, đề thi THPT, luyện writing IELTS/TOEIC/HSK/TOPIK, công cụ gộp/xóa trang PDF và máy tính Casio hoàn toàn miễn phí.',
-    url: 'https://vndocs.net',
-    siteName: 'VNDocs',
-    locale: 'vi_VN',
-    type: 'website',
-  },
-  alternates: {
-    canonical: 'https://vndocs.net'
-  }
+import { getRouteMetadata } from '@/src/utils/seo'
+
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/',
+    'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
+    'Nền tảng học tập trực tuyến cung cấp kho đề thi vào 10, đề thi THPT, luyện writing IELTS, TOEIC, cùng bộ công cụ xử lý file (gộp, xóa trang PDF, máy tính Casio) hoàn toàn miễn phí.'
+  )
 }
 
 export default function HomePage() {

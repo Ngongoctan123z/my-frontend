@@ -1,18 +1,14 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 
-export const metadata: Metadata = {
-  title: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
-  description: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng, và máy tính khoa học ảo miễn phí 100%.',
-  keywords: 'gộp pdf, cắt pdf, khóa pdf, chuyển pdf sang ảnh, máy tính khoa học online, máy tính đồ thị',
-  openGraph: {
-    title: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
-    description: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng miễn phí.',
-    url: 'https://vndocs.net/tools',
-    siteName: 'VNDocs',
-    locale: 'vi_VN',
-    type: 'website',
-  }
+import { getRouteMetadata } from '@/src/utils/seo'
+
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/tools',
+    'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
+    'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng, và máy tính khoa học ảo miễn phí 100%.'
+  )
 }
 
 export default function ToolsIndexPage() {
