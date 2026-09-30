@@ -7,6 +7,7 @@ import { Users, Settings, FileText } from 'lucide-react'
 import { UsersTab } from '@/src/components/admin/UsersTab'
 import { ModelsTab } from '@/src/components/admin/ModelsTab'
 import { PromptsTab } from '@/src/components/admin/PromptsTab'
+import { SeoTab } from '@/src/components/admin/SeoTab'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('users')
@@ -37,12 +38,20 @@ export default function AdminPage() {
           <FileText size={18} />
           Kho Đề Writing
         </button>
+        <button
+          onClick={() => setActiveTab('seo')}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'seo' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          <FileText size={18} />
+          Cấu hình SEO
+        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm min-h-[500px]">
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'models' && <ModelsTab />}
         {activeTab === 'prompts' && <PromptsTab />}
+        {activeTab === 'seo' && <SeoTab />}
       </div>
     </div>
   )

@@ -61,29 +61,19 @@ export async function POST(req: NextRequest) {
     const { action, payload } = body
 
     if (action === 'save_configs') {
-      const { ACTIVE_GROQ_MODEL, GROQ_API_KEY } = payload
-      
-      if (ACTIVE_GROQ_MODEL) {
-        await db.insert(systemConfigs).values({
-          key: 'ACTIVE_GROQ_MODEL',
-          value: ACTIVE_GROQ_MODEL
-        }).onConflictDoUpdate({
-          target: systemConfigs.key,
-          set: { value: ACTIVE_GROQ_MODEL }
-        })
-      }
-      
-      if (GROQ_API_KEY !== undefined) {
-        if (GROQ_API_KEY === '') {
-          await db.delete(systemConfigs).where(eq(systemConfigs.key, 'GROQ_API_KEY'))
-        } else {
-          await db.insert(systemConfigs).values({
-            key: 'GROQ_API_KEY',
-            value: GROQ_API_KEY
-          }).onConflictDoUpdate({
-            target: systemConfigs.key,
-            set: { value: GROQ_API_KEY }
-          })
+      for (const [k, v] of Object.entries(payload)) {
+        if (v !== undefined && typeof v === 'string') {
+          if (v === '') {
+            await db.delete(systemConfigs).where(eq(systemConfigs.key, k))
+          } else {
+            await db.insert(systemConfigs).values({
+              key: k,
+              value: v
+            }).onConflictDoUpdate({
+              target: systemConfigs.key,
+              set: { value: v }
+            })
+          }
         }
       }
       return NextResponse.json({ success: true })
