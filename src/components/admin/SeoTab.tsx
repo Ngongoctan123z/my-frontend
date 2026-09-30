@@ -2,12 +2,48 @@ import React, { useEffect, useState } from 'react'
 import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map } from 'lucide-react'
 
 const SEO_ROUTES = [
-  { path: 'GLOBAL', name: 'SEO Toàn Trang (Mặc định)', icon: Globe },
-  { path: '/', name: 'Trang Chủ', icon: LayoutTemplate },
-  { path: '/tai-lieu', name: 'Trang Tài Liệu & Đề Thi', icon: FileText },
-  { path: '/ai-grader', name: 'Trang Chấm Điểm AI', icon: PenTool },
-  { path: '/flashcard', name: 'Trang Học Flashcard', icon: Layers },
-  { path: '/tools', name: 'Trang Tiện Ích PDF & Casio', icon: Layers },
+  { 
+    path: 'GLOBAL', 
+    name: 'SEO Toàn Trang (Mặc định)', 
+    icon: Globe,
+    defaultTitle: 'VNDocs - Kho tài liệu miễn phí',
+    defaultDesc: 'Mô tả ngắn gọn về trang web...'
+  },
+  { 
+    path: '/', 
+    name: 'Trang Chủ', 
+    icon: LayoutTemplate,
+    defaultTitle: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
+    defaultDesc: 'Nền tảng học tập trực tuyến cung cấp kho đề thi vào 10, đề thi THPT, luyện writing IELTS, TOEIC, cùng bộ công cụ xử lý file hoàn toàn miễn phí.'
+  },
+  { 
+    path: '/tai-lieu', 
+    name: 'Trang Tài Liệu & Đề Thi', 
+    icon: FileText,
+    defaultTitle: 'Thư Viện Đề Thi & Tài Liệu Miễn Phí (PDF) | VNDocs',
+    defaultDesc: 'Tải miễn phí hàng ngàn tài liệu luyện thi, đề thi vào 10, đề thi THPT Quốc gia (Toán, Văn, Anh), PDF ôn thi IELTS, TOEIC cập nhật mới nhất có đáp án.'
+  },
+  { 
+    path: '/ai-grader', 
+    name: 'Trang Chấm Điểm AI', 
+    icon: PenTool,
+    defaultTitle: 'Luyện Writing IELTS Bằng AI & Chấm Điểm Chuẩn Band | VNDocs',
+    defaultDesc: 'Trải nghiệm hệ thống luyện Writing IELTS bằng AI miễn phí tốt nhất. Chấm điểm chi tiết 4 tiêu chí (TR, CC, LR, GRA), sửa lỗi ngữ pháp, từ vựng và gợi ý nâng band điểm tự động.'
+  },
+  { 
+    path: '/flashcard', 
+    name: 'Trang Học Flashcard', 
+    icon: Layers,
+    defaultTitle: 'Học Từ Vựng Flashcard Thông Minh | VNDocs',
+    defaultDesc: 'Bộ flashcard học từ vựng IELTS, TOEIC, tiếng Anh giao tiếp với thuật toán lặp lại ngắt quãng (Spaced Repetition).'
+  },
+  { 
+    path: '/tools', 
+    name: 'Trang Tiện Ích PDF & Casio', 
+    icon: Layers,
+    defaultTitle: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
+    defaultDesc: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng, và máy tính khoa học ảo miễn phí 100%.'
+  },
 ]
 
 export function SeoTab() {
@@ -152,7 +188,9 @@ export function SeoTab() {
               name="SEO_TITLE"
               value={currentConf.SEO_TITLE || ''}
               onChange={handleChange}
-              placeholder={activeRoute === 'GLOBAL' ? 'VNDocs - Kho tài liệu miễn phí' : `Để trống sẽ lấy theo SEO Toàn Trang`}
+              placeholder={activeRoute === 'GLOBAL' 
+                ? 'VNDocs - Kho tài liệu miễn phí' 
+                : (SEO_ROUTES.find(r => r.path === activeRoute)?.defaultTitle || 'Để trống sẽ lấy theo SEO Toàn Trang')}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-800 text-sm"
             />
           </div>
@@ -164,7 +202,9 @@ export function SeoTab() {
               value={currentConf.SEO_DESCRIPTION || ''}
               onChange={handleChange}
               rows={3}
-              placeholder={activeRoute === 'GLOBAL' ? 'Mô tả ngắn gọn về trang web...' : `Để trống sẽ lấy theo SEO Toàn Trang`}
+              placeholder={activeRoute === 'GLOBAL' 
+                ? 'Mô tả ngắn gọn về trang web...' 
+                : (SEO_ROUTES.find(r => r.path === activeRoute)?.defaultDesc || 'Để trống sẽ lấy theo SEO Toàn Trang')}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-800 text-sm"
             />
           </div>

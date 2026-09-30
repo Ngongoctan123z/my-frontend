@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 
-import { getRouteMetadata } from '@/src/utils/seo'
+import { getRouteMetadata } from '@/src/utils/serverSeo'
 
 export async function generateMetadata() {
   return getRouteMetadata(

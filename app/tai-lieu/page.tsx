@@ -5,7 +5,7 @@ import { getExams } from '@/src/services/examService'
 
 import { Metadata } from 'next'
 
-import { getRouteMetadata } from '@/src/utils/seo'
+import { getRouteMetadata } from '@/src/utils/serverSeo'
 
 export async function generateMetadata() {
   return getRouteMetadata(
