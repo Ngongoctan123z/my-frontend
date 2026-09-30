@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map } from 'lucide-react'
+import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map, X } from 'lucide-react'
 
 const SEO_ROUTES = [
   { 
@@ -57,6 +57,10 @@ export function SeoTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalPathInput, setModalPathInput] = useState('')
 
   useEffect(() => {
     fetch('/api/admin?type=configs')
@@ -115,22 +119,30 @@ export function SeoTab() {
     })
   }
   
-  const handleAddCustomRoute = () => {
-    const path = prompt('Nhập đường dẫn chi tiết bạn muốn cấu hình SEO (VD: /exams/de-thi-toan-10-ha-noi-2023)')
-    if (!path || !path.startsWith('/')) {
-      alert('Đường dẫn phải bắt đầu bằng dấu /')
-      return
+  const openAddCustomRouteModal = () => {
+    setModalPathInput('')
+    setIsModalOpen(true)
+  }
+
+  const handleConfirmCustomRoute = () => {
+    let path = modalPathInput.trim()
+    if (!path) return
+    if (!path.startsWith('/')) {
+      path = '/' + path
     }
+    
     if (SEO_ROUTES.some(r => r.path === path) || customRoutes.includes(path)) {
       alert('Đường dẫn này đã tồn tại trong danh sách!')
       return
     }
+    
     setCustomRoutes([...customRoutes, path])
     setConfigs({
       ...configs,
       [path]: { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_KEYWORDS: '', SEO_OG_IMAGE: '' }
     })
     setActiveRoute(path)
+    setIsModalOpen(false)
   }
 
   const saveConfig = async () => {
@@ -214,7 +226,7 @@ export function SeoTab() {
         </div>
         
         <button 
-          onClick={handleAddCustomRoute}
+          onClick={openAddCustomRouteModal}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold text-sm rounded-lg border border-dashed border-gray-300 transition-colors"
         >
           + Thêm link tùy chỉnh
@@ -331,6 +343,58 @@ export function SeoTab() {
           </div>
         </div>
       </div>
+      
+      {/* Thêm Modal Tùy Chỉnh Link */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">Thêm Đường Dẫn Tùy Chỉnh</h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 bg-white hover:bg-gray-100 p-1 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Nhập đường link bạn muốn cấu hình SEO:
+              </label>
+              <input 
+                type="text"
+                autoFocus
+                placeholder="VD: /exams/de-thi-toan-10-ha-noi-2023"
+                value={modalPathInput}
+                onChange={(e) => setModalPathInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleConfirmCustomRoute()}
+                className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all text-slate-800 font-medium"
+              />
+              <p className="text-xs text-gray-500 mt-3 flex gap-2">
+                <span className="text-amber-500 font-bold">Lưu ý:</span> 
+                Chỉ nhập phần đuôi sau tên miền. Ví dụ nếu link là 
+                https://vndocs.net/bai-viet-1 thì bạn chỉ nhập /bai-viet-1
+              </p>
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleConfirmCustomRoute}
+                className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shadow-lg shadow-emerald-600/20"
+              >
+                Thêm Đường Dẫn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
