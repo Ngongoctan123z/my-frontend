@@ -74,7 +74,7 @@ export function ProvinceList() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, index) => (
-            <Link href={`/exams/${examType}/${subject}/${slugify(item.province)}`}>
+            <Link href={`/exams/${examType}/${subject}/${slugify(item.province)}`} prefetch={false}>
               <Card className="exam-card fade-in" style={{ animationDelay: `${index * 40}ms` }}>
                 <h2 className="text-xl font-semibold">{item.province}</h2>
                 <p className="text-ink-muted mt-2 text-sm">{item.yearCount} năm đề</p>

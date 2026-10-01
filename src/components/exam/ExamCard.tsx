@@ -1,6 +1,7 @@
 'use client'
 
 import { BookOpen, Clock, Star } from 'lucide-react'
+import Link from 'next/link'
 
 import type { Exam } from '../../types/exam'
 import { examPath, slugify } from '../../utils/slug'
@@ -36,8 +37,9 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
       }`}
     >
       {/* Thumbnail */}
-      <a
+      <Link
         href={path}
+        prefetch={false}
         className={`shrink-0 block ${compact ? 'w-[80px] h-[113px]' : 'w-[100px] h-[141px]'} border border-[var(--border-color)] bg-[var(--bg-primary)] transition-all duration-200 overflow-hidden rounded-[6px] cursor-pointer group-hover:border-[var(--border-color-hover)] group-hover:shadow-[var(--shadow-sm)]`}
         aria-label={`Xem chi tiết ${exam.title || exam.subject}`}
       >
@@ -54,7 +56,7 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
             <Icon size={24} className={`${iconColor} opacity-40`} />
           </div>
         )}
-      </a>
+      </Link>
 
       {/* Body */}
       <div className="flex-1 min-w-0 flex flex-col justify-start pt-0.5">
@@ -75,12 +77,13 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
         </div>
 
         <h3 className={`${compact ? 'text-[13px] line-clamp-3' : 'text-[14px] line-clamp-3'} font-[600] text-[var(--text-primary)] leading-[1.4] mb-2`}>
-          <a
+          <Link
             href={path}
+            prefetch={false}
             className="hover:text-[var(--color-primary)] transition-colors duration-200"
           >
             {exam.title || `Đề thi ${exam.subject} - ${exam.province} - ${exam.year}`}
-          </a>
+          </Link>
         </h3>
 
         <div className="flex items-center gap-1 text-[12px] text-[var(--text-tertiary)]">
