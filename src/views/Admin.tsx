@@ -12,7 +12,7 @@ import { AiConfigAdminTab } from '../components/admin/AiConfigAdminTab'
 import type { Exam } from '../types/exam'
 
 export function Admin() {
-  const [activeTab, setActiveTab] = useState<'list' | 'upload' | 'documents'>('list')
+  const [activeTab, setActiveTab] = useState<'list' | 'upload' | 'documents' | 'ai'>('list')
   const [adminPassword, setAdminPassword] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
