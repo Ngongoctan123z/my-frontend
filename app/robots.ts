@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/quan-tri-he-thong-123/', '/api/'],
+      disallow: ['/quan-tri-he-thong-123/'],
     },
     sitemap: `${FRONTEND_URL}/sitemap.xml`,
   }
