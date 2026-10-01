@@ -13,7 +13,7 @@ export function Footer() {
 
           {/* Brand col */}
           <div className="lg:col-span-2 flex flex-col items-start">
-            <Link href="/" className="inline-block mb-3">
+            <Link prefetch={false} href="/" className="inline-block mb-3">
               <span className="text-[22px] font-[900] text-[var(--text-primary)] tracking-tight">VNDocs.net</span>
             </Link>
             <p className="text-[var(--text-secondary)] text-[13px] leading-relaxed mb-6 max-w-xs">
@@ -62,7 +62,7 @@ export function Footer() {
                 { href: '/ai-grader/tai-lieu-tong-hop', label: 'Tài liệu miễn phí' },
               ].map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
+                  <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
                     {l.label}
                   </Link>
                 </li>
@@ -82,7 +82,7 @@ export function Footer() {
                 { href: '/tools/casio', label: 'Máy tính Casio online' },
               ].map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
+                  <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
                     {l.label}
                   </Link>
                 </li>
@@ -101,7 +101,7 @@ export function Footer() {
                 { href: '#', label: 'Liên hệ hợp tác' },
               ].map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
+                  <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
                     {l.label}
                   </Link>
                 </li>
@@ -121,7 +121,7 @@ export function Footer() {
               { href: '/tai-lieu', label: 'Tài liệu' },
               { href: '/favorites', label: 'Yêu thích' },
             ].map((l) => (
-              <Link key={l.href} href={l.href} className="text-[var(--text-tertiary)] hover:text-[var(--color-primary)] transition-colors">
+              <Link key={l.href} prefetch={false} href={l.href} className="text-[var(--text-tertiary)] hover:text-[var(--color-primary)] transition-colors">
                 {l.label}
               </Link>
             ))}

@@ -152,8 +152,7 @@ export default function ExamListAdmin({
                 </td>
                 <td className="border border-line p-3">
                   <div className="flex gap-2 justify-center">
-                    <Link
-                      href={`/exams/${exam.id}`}
+                    <Link prefetch={false} href={`/exams/${exam.id}`}
                       target="_blank"
                       className="text-emerald-600 hover:text-emerald-700 p-1 rounded"
                       title="Xem đề thi"

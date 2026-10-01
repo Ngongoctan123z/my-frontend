@@ -75,7 +75,7 @@ export function YearList() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           {examList.map((exam, index) => (
-            <Link href={`/exams/${examType}/${subject}/${province}/${exam.year}`}
+            <Link prefetch={false} href={`/exams/${examType}/${subject}/${province}/${exam.year}`}
               prefetch={false}
               className="year-card bg-surface border-line fade-in group flex flex-col gap-4 rounded-2xl border p-5"
               style={{ animationDelay: `${index * 60}ms` }}

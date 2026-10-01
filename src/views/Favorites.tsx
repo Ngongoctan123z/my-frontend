@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { Heart, Search } from 'lucide-react'
 import Link from 'next/link'
@@ -46,7 +46,7 @@ export function Favorites() {
               Nhấn biểu tượng ⭐ trên thẻ đề thi để thêm vào danh sách yêu thích của bạn.
             </p>
           </div>
-          <Link href="/search"
+          <Link prefetch={false} href="/search"
             className="btn-press inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             <Search size={16} />

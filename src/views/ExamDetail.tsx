@@ -133,10 +133,10 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
           Đề thi môn {subjectLabel} tỉnh {provinceLabel} năm {yearNumber} chưa có hoặc đang cập nhật.
         </p>
         <div className="flex flex-wrap justify-center gap-3 pt-3">
-          <Link href="/" className="btn-press bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-medium inline-block">
+          <Link prefetch={false} href="/" className="btn-press bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-medium inline-block">
             Về trang chủ tìm kiếm
           </Link>
-          <Link href={`/`} className="btn-press border border-line px-5 py-2.5 rounded-xl font-medium inline-block hover:bg-page">
+          <Link prefetch={false} href={`/`} className="btn-press border border-line px-5 py-2.5 rounded-xl font-medium inline-block hover:bg-page">
             Xem tất cả đề thi
           </Link>
         </div>

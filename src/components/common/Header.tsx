@@ -74,7 +74,7 @@ export function Header() {
         </button>
 
         {/* Logo */}
-        <Link href="/" className="flex shrink-0 items-center gap-2.5 hover:opacity-80 transition-opacity">
+        <Link prefetch={false} href="/" className="flex shrink-0 items-center gap-2.5 hover:opacity-80 transition-opacity">
           <Image
             src="/logo.jpg"
             alt="VNDocs Logo"
@@ -92,8 +92,7 @@ export function Header() {
             <nav className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
                 <div key={link.href} className="relative group">
-                  <Link
-                    href={link.href}
+                  <Link prefetch={false} href={link.href}
                     className="flex items-center gap-1 text-[15px] font-[800] text-[var(--text-primary)] group-hover:text-[var(--color-primary)] transition-colors tracking-wide uppercase py-2"
                   >
                     {link.label}
@@ -102,9 +101,7 @@ export function Header() {
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white dark:bg-[#161B22] border border-[var(--border-color)] rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
                       <div className="py-2">
                         {link.dropdown.map((subItem) => (
-                          <Link
-                            key={subItem.href}
-                            href={subItem.href}
+                          <Link prefetch={false} href={subItem.href}
                             className="block px-5 py-2.5 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
                           >
                             {subItem.label}
@@ -136,15 +133,14 @@ export function Header() {
             {supportOpen && (
               <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#161B22] border border-[var(--border-color)] rounded-[8px] shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-2">
                 <div className="px-4 py-1.5 text-[11px] font-[700] text-[var(--text-muted)] uppercase tracking-wider">Hỗ trợ</div>
-                <Link href="/about" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">Về chúng tôi</Link>
-                <Link href="/terms" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">Điều khoản sử dụng</Link>
-                <Link href="/privacy" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">Chính sách bảo mật</Link>
-                <Link href="/contact" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">Liên hệ hợp tác</Link>
+                <Link prefetch={false} href="/about" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">Về chúng tôi</Link>
+                <Link prefetch={false} href="/terms" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">Điều khoản sử dụng</Link>
+                <Link prefetch={false} href="/privacy" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">Chính sách bảo mật</Link>
+                <Link prefetch={false} href="/contact" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">Liên hệ hợp tác</Link>
               </div>
             )}
           </div>
-          <Link
-            href="/favorites"
+          <Link prefetch={false} href="/favorites"
             className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all"
             aria-label="Đề yêu thích"
           >
@@ -170,7 +166,7 @@ export function Header() {
           {/* Drawer */}
           <div className="fixed top-0 left-0 bottom-0 z-[110] w-[300px] max-w-[85vw] bg-white dark:bg-[#0D1117] border-r border-[var(--border-color)] shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-color)]">
-              <Link href="/" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+              <Link prefetch={false} href="/" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
                 <Image src="/logo.jpg" alt="VNDocs" width={36} height={36} className="rounded-md" />
                 <span className="text-xl font-[900] tracking-tight text-[var(--text-primary)]">VNDocs</span>
               </Link>
@@ -190,9 +186,7 @@ export function Header() {
                   </h3>
                   <div className="space-y-1">
                     {section.dropdown?.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
+                      <Link prefetch={false} href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className="block px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
                       >
@@ -208,10 +202,10 @@ export function Header() {
                   Cài đặt & Hỗ trợ
                 </h3>
                 <div className="space-y-1">
-                  <Link href="/favorites" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                  <Link prefetch={false} href="/favorites" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Star size={18} /> Đề yêu thích
                   </Link>
-                  <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                  <Link prefetch={false} href="/about" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Info size={18} /> Về chúng tôi
                   </Link>
                   <div className="px-3 py-2.5 flex items-center gap-3 text-[15px] font-semibold text-[var(--text-secondary)]">

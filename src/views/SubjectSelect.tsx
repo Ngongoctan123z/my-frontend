@@ -55,7 +55,7 @@ export function SubjectSelect() {
           const cfg = SUBJECT_CONFIG[subject]
           const Icon = cfg?.icon ?? BookOpen
           return (
-            <Link href={`/exams/${examType}/${slugify(subject)}`}
+            <Link prefetch={false} href={`/exams/${examType}/${slugify(subject)}`}
               className="subject-card group relative overflow-hidden rounded-2xl"
             >
               {/* Gradient top band */}
