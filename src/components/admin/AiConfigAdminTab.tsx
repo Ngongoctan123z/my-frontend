@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { apiFetch } from '@/src/utils/api'
+import { apiFetch } from '@/src/services/api'
 import { Loader2, Sparkles, CheckCircle2, XCircle } from 'lucide-react'
 
 const AVAILABLE_MODELS = [
