@@ -37,6 +37,8 @@ export async function generateMetadata(): Promise<Metadata> {
     console.error("Lỗi khi lấy SEO từ D1:", e)
   }
 
+  const finalOgImage = ogImage || `https://vndocs.net/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description || '')}`
+
   return {
     metadataBase: new URL('https://vndocs.net'),
     title: title,
@@ -47,9 +49,15 @@ export async function generateMetadata(): Promise<Metadata> {
       description: description,
       url: 'https://vndocs.net',
       siteName: 'VNDocs',
-      images: ogImage ? [{ url: ogImage, width: 1200, height: 630, alt: title }] : [],
+      images: [{ url: finalOgImage, width: 1200, height: 630, alt: title }],
       locale: 'vi_VN',
       type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: title,
+      description: description,
+      images: [finalOgImage],
     },
     alternates: {
       canonical: '/',
