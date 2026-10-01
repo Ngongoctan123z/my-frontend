@@ -27,6 +27,7 @@ export function DocumentAdminTab() {
     if (activeTab === 'list') {
       fetchDocuments()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
   const handleDelete = async (id: number) => {

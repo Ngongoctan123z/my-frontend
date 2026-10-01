@@ -37,8 +37,7 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
       }`}
     >
       {/* Thumbnail */}
-      <Link prefetch={false} href={path}
-        prefetch={false}
+        <Link prefetch={false} href={path}
         className={`shrink-0 block ${compact ? 'w-[80px] h-[113px]' : 'w-[100px] h-[141px]'} border border-[var(--border-color)] bg-[var(--bg-primary)] transition-all duration-200 overflow-hidden rounded-[6px] cursor-pointer group-hover:border-[var(--border-color-hover)] group-hover:shadow-[var(--shadow-sm)]`}
         aria-label={`Xem chi tiết ${exam.title || exam.subject}`}
       >
@@ -77,7 +76,6 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
 
         <h3 className={`${compact ? 'text-[13px] line-clamp-3' : 'text-[14px] line-clamp-3'} font-[600] text-[var(--text-primary)] leading-[1.4] mb-2`}>
           <Link prefetch={false} href={path}
-            prefetch={false}
             className="hover:text-[var(--color-primary)] transition-colors duration-200"
           >
             {exam.title || `Đề thi ${exam.subject} - ${exam.province} - ${exam.year}`}

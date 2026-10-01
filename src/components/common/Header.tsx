@@ -101,7 +101,7 @@ export function Header() {
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white dark:bg-[#161B22] border border-[var(--border-color)] rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
                       <div className="py-2">
                         {link.dropdown.map((subItem) => (
-                          <Link prefetch={false} href={subItem.href}
+                          <Link key={subItem.href} prefetch={false} href={subItem.href}
                             className="block px-5 py-2.5 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
                           >
                             {subItem.label}
@@ -186,7 +186,7 @@ export function Header() {
                   </h3>
                   <div className="space-y-1">
                     {section.dropdown?.map((item) => (
-                      <Link prefetch={false} href={item.href}
+                      <Link key={item.href} prefetch={false} href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className="block px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
                       >

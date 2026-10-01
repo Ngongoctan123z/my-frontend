@@ -37,7 +37,7 @@ export function AiBanner() {
             {links.map((link) => {
               const isActive = pathname === link.href
               return (
-                <Link prefetch={false} href={link.href}
+                <Link key={link.href} prefetch={false} href={link.href}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-all snap-start ${
                     isActive
                       ? 'bg-[var(--color-primary)] text-white shadow-sm'
