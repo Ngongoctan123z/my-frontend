@@ -8,6 +8,7 @@ import ExamListAdmin from '../components/admin/ExamListAdmin'
 import EditExamModal from '../components/admin/EditExamModal'
 import UploadExamForm from '../components/admin/UploadExamForm'
 import { DocumentAdminTab } from '../components/admin/DocumentAdminTab'
+import { AiConfigAdminTab } from '../components/admin/AiConfigAdminTab'
 import type { Exam } from '../types/exam'
 
 export function Admin() {
@@ -127,6 +128,12 @@ export function Admin() {
         >
           Tài liệu tổng hợp
         </button>
+        <button
+          onClick={() => setActiveTab('ai')}
+          className={`font-medium pb-2 ${activeTab === 'ai' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-ink-muted'}`}
+        >
+          ✨ Thiết lập AI
+        </button>
       </div>
 
       {activeTab === 'list' && (
@@ -145,6 +152,10 @@ export function Admin() {
 
       {activeTab === 'documents' && (
         <DocumentAdminTab />
+      )}
+
+      {activeTab === 'ai' && (
+        <AiConfigAdminTab />
       )}
 
       {editingExam && (
