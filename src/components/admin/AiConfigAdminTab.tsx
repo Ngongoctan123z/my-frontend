@@ -22,7 +22,7 @@ export function AiConfigAdminTab() {
     setResult(null)
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-      const response = await apiFetch(`/admin/ai/test`, {
+      const data = await apiFetch<any>(`/admin/ai/test`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -31,12 +31,6 @@ export function AiConfigAdminTab() {
         body: JSON.stringify({ model })
       })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Lỗi HTTP ${response.status}`)
-      }
-
-      const data = await response.json()
       setResult({ type: 'success', message: 'Test thành công! Model đang hoạt động rất tốt.', data: data.result })
     } catch (err: any) {
       setResult({ type: 'error', message: err.message || 'Có lỗi xảy ra khi gọi AI' })
