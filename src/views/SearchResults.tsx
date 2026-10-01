@@ -46,7 +46,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       province: province || undefined,
       year: year ? Number(year) : undefined,
       page,
-      limit: 12,
+      limit: 30,
       sort,
     }),
     [q, examType, subject, province, year, page, sort],
@@ -59,7 +59,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
   })
 
   const totalCount = results.data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(totalCount / 12))
+  const totalPages = Math.max(1, Math.ceil(totalCount / 30))
 
   const updateParam = (key: string, value: string | undefined) => {
     const nextParams = new URLSearchParams((searchParams?.toString() || ''))

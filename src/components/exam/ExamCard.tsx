@@ -38,7 +38,7 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
       {/* Thumbnail */}
       <a
         href={path}
-        className={`shrink-0 block ${compact ? 'w-[64px] h-[90px]' : 'w-[80px] h-[113px]'} border border-[var(--border-color)] bg-[var(--bg-primary)] transition-all duration-200 overflow-hidden rounded-[6px] cursor-pointer group-hover:border-[var(--border-color-hover)] group-hover:shadow-[var(--shadow-sm)]`}
+        className={`shrink-0 block ${compact ? 'w-[80px] h-[113px]' : 'w-[100px] h-[141px]'} border border-[var(--border-color)] bg-[var(--bg-primary)] transition-all duration-200 overflow-hidden rounded-[6px] cursor-pointer group-hover:border-[var(--border-color-hover)] group-hover:shadow-[var(--shadow-sm)]`}
         aria-label={`Xem chi tiết ${exam.title || exam.subject}`}
       >
         {exam.thumbnailUrl ? (
