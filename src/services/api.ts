@@ -14,7 +14,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   // mutations (POST/PUT/DELETE) bypass cache automatically via `init` override.
   const isReadRequest = !init?.method || init.method === 'GET'
   const separator = path.includes('?') ? '&' : '?'
-  const finalPath = isReadRequest ? `${path}${separator}_cb=2` : path
+  const finalPath = isReadRequest ? `${path}${separator}_cb=3` : path
   const response = await fetch(`${API_BASE}${finalPath}`, {
     next: isReadRequest ? { revalidate: 60 } : undefined,
     cache: isReadRequest ? undefined : 'no-store',
