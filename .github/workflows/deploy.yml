@@ -29,4 +29,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npm run pages:build
-          npm run deploy
+          npx wrangler deploy
