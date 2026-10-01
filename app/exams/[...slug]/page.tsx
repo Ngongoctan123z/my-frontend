@@ -56,7 +56,7 @@ const fetchExamData = cache(async (slug: string[]) => {
           slugify(e.province) === province &&
           e.year === fallbackYear,
       )
-      if (match) return match
+      if (match) return await getExamById(match.id)
     } catch (err) {}
   }
   return null
