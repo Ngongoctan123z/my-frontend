@@ -69,7 +69,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       nextParams.delete(key)
     }
     setPage(0)
-    router.push(`${pathname}?${nextParams.toString()}`)
+    window.history.pushState(null, '', `${pathname}?${nextParams.toString()}`)
   }
 
   const applyFilters = (next: {
@@ -96,12 +96,12 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
     else nextParams.delete('sort')
 
     setPage(0)
-    router.push(`${pathname}?${nextParams.toString()}`)
+    window.history.pushState(null, '', `${pathname}?${nextParams.toString()}`)
   }
 
   const handleResetFilters = () => {
     setPage(0)
-    router.push(pathname || '/')
+    window.history.pushState(null, '', pathname || '/')
   }
 
   const hasActiveFilters = Boolean(q || examType || subject || province || year || sort !== 'recent')

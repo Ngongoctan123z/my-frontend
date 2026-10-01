@@ -3,8 +3,12 @@ import * as schema from './schema';
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
+let cachedDb: ReturnType<typeof drizzle> | null = null;
+
 // Helper to get D1 database instance
 export async function getDb() {
+  if (cachedDb) return cachedDb;
+
   let dbBinding = process.env.DB as any;
   
   if (!dbBinding) {
@@ -19,5 +23,7 @@ export async function getDb() {
   if (!dbBinding) {
     throw new Error('Database binding "DB" not found');
   }
-  return drizzle(dbBinding, { schema });
+  
+  cachedDb = drizzle(dbBinding, { schema });
+  return cachedDb;
 }
