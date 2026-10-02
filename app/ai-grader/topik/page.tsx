@@ -1,28 +1,75 @@
 import { Metadata } from 'next'
+import Script from 'next/script'
 import { TopikGraderClient } from './TopikGraderClient'
+import { getRouteMetadata } from '@/src/utils/serverSeo'
+import { FRONTEND_URL } from '@/src/utils/constants'
 
-export const metadata: Metadata = {
-  title: 'Chấm Điểm Writing TOPIK Bằng AI & Luyện Viết TOPIK II | VNDocs',
-  description: 'Trải nghiệm phần mềm chấm bài viết TOPIK (câu 51-54) bằng AI. Chấm điểm chi tiết, sửa lỗi ngữ pháp tiếng Hàn, gợi ý từ vựng cao cấp, dự đoán điểm số TOPIK chính xác.',
-  keywords: 'chấm điểm writing topik ai, luyện viết topik, luyện viết topik câu 53 54, chấm bài topik bằng ai, luyện thi topik tiếng hàn, đề thi topik 2',
-  openGraph: {
-    title: 'Chấm Điểm Writing TOPIK Bằng AI & Luyện Viết TOPIK II',
-    description: 'Trải nghiệm phần mềm chấm bài viết TOPIK (câu 51-54) bằng AI. Chấm điểm chi tiết, sửa lỗi tiếng Hàn, dự đoán điểm số.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/ai-grader/topik',
+    'Chấm Điểm Viết TOPIK II (Câu 51-54) Bằng AI Miễn Phí | VNDocs',
+    'Luyện thi 쓰기 TOPIK II (câu 51, 52, 53, 54) hiệu quả với AI. Chấm điểm tự động, sửa lỗi ngữ pháp tiếng Hàn, gợi ý biểu hiện cao cấp và cấu trúc bài luận chuẩn TOPIK.'
+  )
 }
 
 export default function TopikPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Công cụ Chấm điểm TOPIK Writing bằng AI',
+    operatingSystem: 'Web',
+    applicationCategory: 'EducationalApplication',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'VND',
+    },
+    description: 'Luyện thi 쓰기 TOPIK II (câu 51, 52, 53, 54) hiệu quả với AI. Chấm điểm tự động, sửa lỗi ngữ pháp tiếng Hàn, gợi ý biểu hiện cao cấp và cấu trúc bài luận chuẩn TOPIK.',
+    url: `${FRONTEND_URL}/ai-grader/topik`
+  }
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Trang chủ',
+        item: FRONTEND_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'AI Chấm điểm',
+        item: `${FRONTEND_URL}/ai-grader`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: 'TOPIK Writing',
+        item: `${FRONTEND_URL}/ai-grader/topik`,
+      }
+    ]
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50/50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
-            Chấm Điểm Writing <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">TOPIK AI</span>
-          </h1>
-          <p className="text-lg text-slate-600 leading-relaxed">
-            Luyện tập Viết TOPIK II (Câu 51-54) chuẩn form với đánh giá tự động và sửa lỗi chi tiết từng câu tiếng Hàn từ Trí Tuệ Nhân Tạo.
-          </p>
-        </div>
+    <div className="py-8">
+      <Script
+        id="software-jsonld-TopikGraderClient"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
+      <Script
+        id="breadcrumb-jsonld-TopikGraderClient"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
+      />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <h1 className="text-3xl font-black text-slate-800 mb-2">Luyện Viết TOPIK II 쓰기 Bằng AI</h1>
+        <p className="text-slate-600 font-medium">Chấm chữa chi tiết các câu 51, 52, 53, 54 trong đề thi TOPIK II. AI sẽ sửa lỗi ngữ pháp, chính tả tiếng Hàn và gợi ý các biểu hiện ngữ pháp cao cấp giúp bạn ăn trọn điểm phần Viết.</p>
+      </div>
+      <div className="px-4 sm:px-6 lg:px-8">
         <TopikGraderClient />
       </div>
     </div>
