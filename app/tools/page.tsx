@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 
 import { getRouteMetadata } from '@/src/utils/serverSeo'
+import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata() {
   return getRouteMetadata(
@@ -12,10 +13,46 @@ export async function generateMetadata() {
 }
 
 export default function ToolsIndexPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
+    applicationCategory: 'EducationalApplication',
+    operatingSystem: 'Web',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'VND',
+    },
+    description: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng, và máy tính khoa học ảo miễn phí 100%.',
+    url: `${FRONTEND_URL}/tools`,
+  }
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Trang chủ',
+        item: FRONTEND_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Công cụ',
+        item: `${FRONTEND_URL}/tools`,
+      }
+    ]
+  }
+
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-12">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }} />
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight">Bộ công cụ tiện ích</h1>
+        <h1 className="text-4xl font-extrabold tracking-tight">Bộ công cụ PDF & Tiện ích học tập online miễn phí</h1>
         <p className="text-ink-muted text-lg">
           Trợ thủ đắc lực cho việc học tập và xử lý tài liệu của bạn. Hoàn toàn miễn phí.
         </p>

@@ -33,9 +33,15 @@ export async function GET(
     const headers = new Headers(response.headers)
     headers.set('X-Robots-Tag', 'noindex') // SPEC P1-4: X-Robots-Tag: noindex
     
+    // Add aggressive cache for images since filenames are UUIDs
+    const contentType = headers.get('content-type')
+    if (contentType && contentType.startsWith('image/')) {
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+    }
+    
     // If we have the slug, we can use it for the downloaded file name instead of the backend's UUID
     const contentDisposition = headers.get('content-disposition')
-    if (contentDisposition && slug) {
+    if (contentDisposition && slug && !targetUrl.includes('seo-')) {
       const ext = urlParam ? urlParam.split('.').pop() : 'pdf'
       headers.set('content-disposition', `attachment; filename="${slug}.${ext}"`)
     }

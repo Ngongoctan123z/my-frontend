@@ -75,7 +75,7 @@ export function Footer() {
             <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">Tiện Ích & AI</h4>
             <ul className="space-y-2.5">
               {[
-                { href: '/ai-grader', label: 'Chấm Writing IELTS/TOEIC' },
+                { href: '/ai-grader/ielts', label: 'Chấm Writing IELTS/TOEIC' },
                 { href: '/tools/merge-files', label: 'Gộp file PDF' },
                 { href: '/tools/remove-pages', label: 'Xóa trang PDF' },
                 { href: '/tools/lock', label: 'Đặt mật khẩu PDF' },
@@ -95,10 +95,10 @@ export function Footer() {
             <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">Hỗ Trợ</h4>
             <ul className="space-y-2.5">
               {[
-                { href: '#', label: 'Về chúng tôi' },
-                { href: '#', label: 'Điều khoản sử dụng' },
-                { href: '#', label: 'Chính sách bảo mật' },
-                { href: '#', label: 'Liên hệ hợp tác' },
+                { href: '/ve-chung-toi', label: 'Về chúng tôi' },
+                { href: '/dieu-khoan', label: 'Điều khoản sử dụng' },
+                { href: '/chinh-sach-bao-mat', label: 'Chính sách bảo mật' },
+                { href: '/lien-he', label: 'Liên hệ hợp tác' },
               ].map((l) => (
                 <li key={l.href}>
                   <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">

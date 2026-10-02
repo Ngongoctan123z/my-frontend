@@ -5,7 +5,6 @@ import { systemConfigs } from '@/src/db/schema'
 export async function getRouteMetadata(path: string, fallbackTitle: string, fallbackDesc: string): Promise<Metadata> {
   let title = fallbackTitle;
   let description = fallbackDesc;
-  let keywords = 'đề thi, tài liệu, pdf, ielts, toeic';
   let ogImage = '';
   
   try {
@@ -17,7 +16,6 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       
       title = configMap.SEO_TITLE || title;
       description = configMap.SEO_DESCRIPTION || description;
-      keywords = configMap.SEO_KEYWORDS || keywords;
       ogImage = configMap.SEO_OG_IMAGE || ogImage;
 
       // 2. Ghi đè bằng cấu hình riêng của từng trang (nếu có)
@@ -27,7 +25,6 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
           const routeSeo = JSON.parse(configMap[routeKey])
           if (routeSeo.title) title = routeSeo.title
           if (routeSeo.description) description = routeSeo.description
-          if (routeSeo.keywords) keywords = routeSeo.keywords
           if (routeSeo.ogImage) ogImage = routeSeo.ogImage
         } catch(e) {}
       }
@@ -42,7 +39,6 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
     metadataBase: new URL('https://vndocs.net'),
     title: title,
     description: description,
-    keywords: keywords,
     openGraph: {
       title: title,
       description: description,
@@ -59,7 +55,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       images: [finalOgImage],
     },
     alternates: {
-      canonical: path === '/' ? '/' : path,
+      canonical: `https://vndocs.net${path}`,
     },
     robots: {
       index: true,

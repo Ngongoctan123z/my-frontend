@@ -1,9 +1,15 @@
 import React from 'react'
 import { Metadata } from 'next'
+import { getRouteMetadata } from '@/src/utils/serverSeo'
 
-export const metadata: Metadata = {
-  title: 'Điều khoản sử dụng | VNDocs',
-  description: 'Các điều khoản và điều kiện khi sử dụng dịch vụ tại VNDocs.'
+
+
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/terms',
+    'Điều khoản sử dụng | VNDocs',
+    'Các điều khoản và điều kiện khi sử dụng dịch vụ tại VNDocs.'
+  )
 }
 
 export default function TermsPage() {

@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { auth } from '@/auth';
+
+const rootAdmins = ['ngongoctan282005@gmail.com']
 
 export async function GET() {
+  // Guard: only admins can access this endpoint
+  const session = await auth()
+  if (!session?.user?.email || !rootAdmins.includes(session.user.email)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   let ctxError = '';
   let envKeys: string[] = [];
   const processEnvKeys = Object.keys(process.env);

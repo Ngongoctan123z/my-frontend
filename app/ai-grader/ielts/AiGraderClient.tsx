@@ -58,13 +58,15 @@ export function AiGraderClient() {
   }, [essayTask1, essayTask2, prompt, examType])
 
   const loadHistory = async () => {
-    const data = await getEssayHistory()
+    if (!session?.user?.email) return
+    const data = await getEssayHistory(session.user.email)
     setHistory(data.filter(h => h.examType.startsWith('IELTS')))
   }
 
   useEffect(() => {
-    loadHistory()
-  }, [])
+    if (session?.user?.email) loadHistory()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email])
 
   const promptQueue = useRef<PromptObject[]>([])
   const isFetchingQueue = useRef(false)
@@ -85,7 +87,7 @@ export function AiGraderClient() {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || 'Đã có lỗi xảy ra.');
+      throw new Error(data.error || 'ÄÃ£ cÃ³ lá»—i xáº£y ra.');
     }
     return data;
   }
@@ -134,9 +136,24 @@ export function AiGraderClient() {
     }
   }
 
+  const wordCount = examType === 'IELTS_TASK_1' 
+    ? (essayTask1.trim() ? essayTask1.trim().split(/\s+/).length : 0)
+    : (
+        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/\s+/).length : 0) +
+        (essayTask2.body.trim() ? essayTask2.body.trim().split(/\s+/).length : 0) +
+        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/\s+/).length : 0)
+      )
+
+  const minWords = examType === 'IELTS_TASK_1' ? 150 : 250
+
   const gradeEssay = async () => {
+    if (wordCount < minWords) {
+      setError(`Bài viết của bạn chưa đủ ${minWords} từ (mức tối thiểu cho ${examType === 'IELTS_TASK_1' ? 'Task 1' : 'Task 2'}). Vui lòng viết thêm để hệ thống chấm điểm chính xác.`)
+      return
+    }
+
     if (!prompt?.content.trim()) {
-      setError('Vui lòng tạo đề trước khi chấm.')
+      setError('Vui lÃ²ng táº¡o Ä‘á» trÆ°á»›c khi cháº¥m.')
       return
     }
 
@@ -144,13 +161,13 @@ export function AiGraderClient() {
     if (examType === 'IELTS_TASK_1') {
       finalEssay = essayTask1.trim()
       if (!finalEssay) {
-        setError('Vui lòng viết bài trước khi nộp.')
+        setError('Vui lÃ²ng viáº¿t bÃ i trÆ°á»›c khi ná»™p.')
         return
       }
     } else {
       const { intro, body, conclusion } = essayTask2
       if (!intro.trim() || !body.trim() || !conclusion.trim()) {
-        setError('Vui lòng điền đầy đủ cả 3 phần: Mở bài, Thân bài và Kết bài.')
+        setError('Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ cáº£ 3 pháº§n: Má»Ÿ bÃ i, ThÃ¢n bÃ i vÃ  Káº¿t bÃ i.')
         return
       }
       finalEssay = `[INTRODUCTION]\n${intro}\n\n[BODY]\n${body}\n\n[CONCLUSION]\n${conclusion}`
@@ -166,12 +183,13 @@ export function AiGraderClient() {
       setUsageCount(prev => prev + 1)
       
       await saveEssayHistory({
+        email: session.user.email,
         examType,
         prompt: prompt.content,
         essay: finalEssay,
         result: data
       })
-      loadHistory()
+      if (session?.user?.email) loadHistory()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -179,15 +197,6 @@ export function AiGraderClient() {
     }
   }
 
-  const wordCount = examType === 'IELTS_TASK_1' 
-    ? (essayTask1.trim() ? essayTask1.trim().split(/\s+/).length : 0)
-    : (
-        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/\s+/).length : 0) +
-        (essayTask2.body.trim() ? essayTask2.body.trim().split(/\s+/).length : 0) +
-        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/\s+/).length : 0)
-      )
-
-  const minWords = examType === 'IELTS_TASK_1' ? 150 : 250
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -197,14 +206,14 @@ export function AiGraderClient() {
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                <FileEdit className="w-5 h-5 text-blue-600" /> Thiết lập đề thi
+                <FileEdit className="w-5 h-5 text-blue-600" /> Thiáº¿t láº­p Ä‘á» thi
               </h2>
               <button 
                 onClick={() => setShowHistoryModal(true)}
                 className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
               >
                 <History className="w-4 h-4" />
-                Lịch sử ({history.length})
+                Lá»‹ch sá»­ ({history.length})
               </button>
             </div>
 
@@ -229,19 +238,19 @@ export function AiGraderClient() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="font-medium text-slate-700 text-sm">Nội dung đề bài:</label>
+                <label className="font-medium text-slate-700 text-sm">Ná»™i dung Ä‘á» bÃ i:</label>
                 <button
                   onClick={generatePrompt}
                   disabled={isGenerating || isGrading}
                   className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-50"
                 >
                   {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  Bốc đề ngẫu nhiên
+                  Bá»‘c Ä‘á» ngáº«u nhiÃªn
                 </button>
               </div>
               
               <div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
-                {prompt ? prompt.content : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu..."}
+                {prompt ? prompt.content : "Báº¥m 'Bá»‘c Ä‘á» ngáº«u nhiÃªn' Ä‘á»ƒ báº¯t Ä‘áº§u..."}
               </div>
 
               {prompt?.imageUrl && (
@@ -255,10 +264,10 @@ export function AiGraderClient() {
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col min-h-[480px]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                Bài làm của bạn
+                BÃ i lÃ m cá»§a báº¡n
               </h2>
               <div className={`text-xs font-semibold px-2 py-1 rounded ${wordCount >= minWords ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                {wordCount} / {minWords} từ
+                {wordCount} / {minWords} tá»«
               </div>
             </div>
 
@@ -266,13 +275,13 @@ export function AiGraderClient() {
               <textarea
                 value={essayTask1}
                 onChange={(e) => setEssayTask1(e.target.value)}
-                placeholder="Viết bài làm Task 1 của bạn vào đây (Tiếng Anh)..."
+                placeholder="Viáº¿t bÃ i lÃ m Task 1 cá»§a báº¡n vÃ o Ä‘Ã¢y (Tiáº¿ng Anh)..."
                 className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-y text-sm leading-relaxed min-h-[300px]"
               />
             ) : (
               <div className="flex-1 flex flex-col gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Mở bài (Introduction)</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Má»Ÿ bÃ i (Introduction)</label>
                   <textarea
                     value={essayTask2.intro}
                     onChange={(e) => setEssayTask2({ ...essayTask2, intro: e.target.value })}
@@ -281,7 +290,7 @@ export function AiGraderClient() {
                   />
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Thân bài (Body Paragraphs)</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ThÃ¢n bÃ i (Body Paragraphs)</label>
                   <textarea
                     value={essayTask2.body}
                     onChange={(e) => setEssayTask2({ ...essayTask2, body: e.target.value })}
@@ -290,7 +299,7 @@ export function AiGraderClient() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Kết bài (Conclusion)</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Káº¿t bÃ i (Conclusion)</label>
                   <textarea
                     value={essayTask2.conclusion}
                     onChange={(e) => setEssayTask2({ ...essayTask2, conclusion: e.target.value })}
@@ -310,11 +319,11 @@ export function AiGraderClient() {
               className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isGrading ? 'Đang chấm điểm...' : (session ? 'Nộp bài & Chấm điểm' : 'Đăng nhập để Chấm điểm')}
+              {isGrading ? 'Äang cháº¥m Ä‘iá»ƒm...' : (session ? 'Ná»™p bÃ i & Cháº¥m Ä‘iá»ƒm' : 'ÄÄƒng nháº­p Ä‘á»ƒ Cháº¥m Ä‘iá»ƒm')}
             </button>
             {session && (
               <p className="text-center text-xs text-slate-500 mt-2">
-                Lượt chấm hôm nay: <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
+                LÆ°á»£t cháº¥m hÃ´m nay: <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
               </p>
             )}
           </div>
@@ -332,16 +341,16 @@ export function AiGraderClient() {
           {!result && !isGrading && !error && (
             <div className="h-full min-h-[500px] border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center p-8 text-center bg-gray-50">
               <FileEdit className="w-12 h-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-bold text-slate-700 mb-2">Chưa có kết quả</h3>
-              <p className="text-gray-500 text-sm max-w-sm">Hoàn thành bài viết và nộp bài để nhận đánh giá chi tiết theo chuẩn tiêu chí IELTS.</p>
+              <h3 className="text-lg font-bold text-slate-700 mb-2">ChÆ°a cÃ³ káº¿t quáº£</h3>
+              <p className="text-gray-500 text-sm max-w-sm">HoÃ n thÃ nh bÃ i viáº¿t vÃ  ná»™p bÃ i Ä‘á»ƒ nháº­n Ä‘Ã¡nh giÃ¡ chi tiáº¿t theo chuáº©n tiÃªu chÃ­ IELTS.</p>
             </div>
           )}
 
           {isGrading && (
             <div className="h-full min-h-[500px] border border-gray-200 rounded-xl flex flex-col items-center justify-center p-8 text-center bg-white shadow-sm">
               <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Hệ thống đang xử lý...</h3>
-              <p className="text-gray-500 text-sm">AI đang chấm bài của bạn, vui lòng đợi trong giây lát.</p>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Há»‡ thá»‘ng Ä‘ang xá»­ lÃ½...</h3>
+              <p className="text-gray-500 text-sm">AI Ä‘ang cháº¥m bÃ i cá»§a báº¡n, vui lÃ²ng Ä‘á»£i trong giÃ¢y lÃ¡t.</p>
             </div>
           )}
 
@@ -354,7 +363,7 @@ export function AiGraderClient() {
 
               <div className="p-5 md:p-6 space-y-6">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Điểm Thành Phần</h3>
+                  <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Äiá»ƒm ThÃ nh Pháº§n</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {Object.entries(result.criteria).map(([key, data]: [string, any]) => (
                       <div key={key} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -371,7 +380,7 @@ export function AiGraderClient() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Nhận Xét Tổng Quan</h3>
+                  <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Nháº­n XÃ©t Tá»•ng Quan</h3>
                   <div className="bg-blue-50/50 p-4 rounded-lg">
                     <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{result.detailedFeedback}</p>
                   </div>
@@ -379,7 +388,7 @@ export function AiGraderClient() {
 
                 {result.corrections && result.corrections.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Sửa Lỗi Chi Tiết</h3>
+                    <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Sá»­a Lá»—i Chi Tiáº¿t</h3>
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                       {result.corrections.map((corr: any, idx: number) => (
                         <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-blue-200 transition-colors">
@@ -392,7 +401,7 @@ export function AiGraderClient() {
                             <p className="text-emerald-700 font-medium">{corr.corrected}</p>
                           </div>
                           <div className="text-xs bg-slate-50 p-2.5 rounded border border-slate-100 text-slate-600">
-                            <strong>Lý do:</strong> {corr.explanation}
+                            <strong>LÃ½ do:</strong> {corr.explanation}
                           </div>
                         </div>
                       ))}
@@ -411,7 +420,7 @@ export function AiGraderClient() {
             <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-slate-50/50">
               <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                 <History className="w-5 h-5 text-indigo-600" /> 
-                Lịch sử chấm bài (Lưu trữ ngoại tuyến an toàn)
+                Lá»‹ch sá»­ cháº¥m bÃ i (LÆ°u trá»¯ ngoáº¡i tuyáº¿n an toÃ n)
               </h3>
               <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-700">
                 <XCircle className="w-6 h-6" />
@@ -422,8 +431,8 @@ export function AiGraderClient() {
               {history.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                   <Clock className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                  <p>Bạn chưa chấm bài nào.</p>
-                  <p className="text-sm mt-1">Dữ liệu sẽ được lưu tự động trên trình duyệt mà không cần tài khoản!</p>
+                  <p>Báº¡n chÆ°a cháº¥m bÃ i nÃ o.</p>
+                  <p className="text-sm mt-1">Dá»¯ liá»‡u sáº½ Ä‘Æ°á»£c lÆ°u tá»± Ä‘á»™ng trÃªn trÃ¬nh duyá»‡t mÃ  khÃ´ng cáº§n tÃ i khoáº£n!</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -438,11 +447,11 @@ export function AiGraderClient() {
                         </span>
                       </div>
                       <p className="text-sm text-slate-700 font-medium line-clamp-2 mb-3 bg-slate-50 p-2 rounded border border-slate-100">
-                        <span className="font-bold text-slate-900">Đề bài:</span> {item.prompt}
+                        <span className="font-bold text-slate-900">Äá» bÃ i:</span> {item.prompt}
                       </p>
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                         <div className="font-bold text-indigo-600">
-                          Điểm số: <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
+                          Äiá»ƒm sá»‘: <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
                         </div>
                         <button 
                           onClick={() => {
@@ -463,7 +472,7 @@ export function AiGraderClient() {
                           }}
                           className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
                         >
-                          Xem chi tiết <ArrowRight className="w-4 h-4" />
+                          Xem chi tiáº¿t <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -475,19 +484,19 @@ export function AiGraderClient() {
             {history.length > 0 && (
               <div className="p-4 border-t border-gray-100 bg-slate-50 flex justify-between items-center">
                 <p className="text-xs text-slate-500 max-w-[60%]">
-                  Dữ liệu được lưu trữ an toàn ngay trên trình duyệt (IndexedDB), đảm bảo quyền riêng tư 100%.
+                  Dá»¯ liá»‡u Ä‘Æ°á»£c lÆ°u trá»¯ an toÃ n ngay trÃªn trÃ¬nh duyá»‡t (IndexedDB), Ä‘áº£m báº£o quyá»n riÃªng tÆ° 100%.
                 </p>
                 <button 
                   onClick={async () => {
-                    if (confirm('Bạn có chắc muốn xoá toàn bộ lịch sử?')) {
-                      await clearEssayHistory()
+                    if (confirm('Báº¡n cÃ³ cháº¯c muá»‘n xoÃ¡ toÃ n bá»™ lá»‹ch sá»­?')) {
+                      await clearEssayHistory(session?.user?.email || 'anonymous')
                       loadHistory()
                     }
                   }}
                   className="text-sm font-semibold flex items-center gap-1.5 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Xóa tất cả
+                  XÃ³a táº¥t cáº£
                 </button>
               </div>
             )}
@@ -498,60 +507,60 @@ export function AiGraderClient() {
       {/* SEO Content Section */}
       <section className="mt-12 pt-8 border-t border-gray-200">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn & Tiêu Chí Chấm Điểm IELTS Writing Bằng AI</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">HÆ°á»›ng Dáº«n & TiÃªu ChÃ­ Cháº¥m Äiá»ƒm IELTS Writing Báº±ng AI</h2>
           <p className="mb-6 text-slate-600 text-center leading-relaxed">
-            Hệ thống <strong>Chấm thi IELTS Writing AI</strong> của VNDocs là công cụ miễn phí giúp bạn luyện tập và cải thiện kỹ năng viết chuẩn quốc tế. Sử dụng mô hình Trí Tuệ Nhân Tạo hiện đại, công cụ tự động phân tích và đưa ra điểm số mô phỏng chính xác kỳ thi thật.
+            Há»‡ thá»‘ng <strong>Cháº¥m thi IELTS Writing AI</strong> cá»§a VNDocs lÃ  cÃ´ng cá»¥ miá»…n phÃ­ giÃºp báº¡n luyá»‡n táº­p vÃ  cáº£i thiá»‡n ká»¹ nÄƒng viáº¿t chuáº©n quá»‘c táº¿. Sá»­ dá»¥ng mÃ´ hÃ¬nh TrÃ­ Tuá»‡ NhÃ¢n Táº¡o hiá»‡n Ä‘áº¡i, cÃ´ng cá»¥ tá»± Ä‘á»™ng phÃ¢n tÃ­ch vÃ  Ä‘Æ°a ra Ä‘iá»ƒm sá»‘ mÃ´ phá»ng chÃ­nh xÃ¡c ká»³ thi tháº­t.
           </p>
           
           <div className="space-y-4">
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+            <details open className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
               <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                1. 4 Tiêu Chí Chấm Điểm (IELTS Grading Criteria)
+                1. 4 TiÃªu ChÃ­ Cháº¥m Äiá»ƒm (IELTS Grading Criteria)
                 <span className="transition group-open:rotate-180">
                   <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
                 </span>
               </summary>
               <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
-                <p className="mb-3">Bài viết của bạn được AI đánh giá cực kỳ khắt khe dựa trên 4 tiêu chí chính thức của IDP và Hội đồng Anh (British Council):</p>
+                <p className="mb-3">BÃ i viáº¿t cá»§a báº¡n Ä‘Æ°á»£c AI Ä‘Ã¡nh giÃ¡ cá»±c ká»³ kháº¯t khe dá»±a trÃªn 4 tiÃªu chÃ­ chÃ­nh thá»©c cá»§a IDP vÃ  Há»™i Ä‘á»“ng Anh (British Council):</p>
                 <ul className="list-disc pl-5 space-y-3">
-                  <li><strong>Task Response (TR) - Đáp ứng yêu cầu đề bài:</strong> AI sẽ kiểm tra xem bạn đã trả lời đầy đủ các vế của câu hỏi chưa? Lập luận có rõ ràng, nhất quán và có ví dụ chứng minh cụ thể không. Nếu viết lạc đề (off-topic), điểm TR sẽ rất thấp.</li>
-                  <li><strong>Coherence and Cohesion (CC) - Tính mạch lạc và liên kết:</strong> Đánh giá cách bạn sắp xếp các đoạn văn (Mở bài, Thân bài, Kết bài). Bạn có sử dụng đa dạng và chính xác các từ nối (Linking words) như <em>Furthermore, Nevertheless, On the other hand</em> hay không.</li>
-                  <li><strong>Lexical Resource (LR) - Vốn từ vựng:</strong> Kiểm tra mức độ đa dạng từ vựng. Trí tuệ nhân tạo có khả năng phát hiện bạn đang dùng từ vựng cơ bản hay nâng cao (Less common vocabulary), việc sử dụng các cụm từ (Collocations) có chuẩn tự nhiên (Native-like) hay không.</li>
-                  <li><strong>Grammatical Range and Accuracy (GRA) - Sự đa dạng và chính xác ngữ pháp:</strong> Bài viết phải có sự kết hợp nhuần nhuyễn giữa câu đơn, câu ghép và câu phức. AI sẽ rà soát từng lỗi chính tả, sai thì (Tense), mạo từ (a/an/the) và đưa ra gợi ý sửa lỗi hoàn hảo nhất.</li>
+                  <li><strong>Task Response (TR) - ÄÃ¡p á»©ng yÃªu cáº§u Ä‘á» bÃ i:</strong> AI sáº½ kiá»ƒm tra xem báº¡n Ä‘Ã£ tráº£ lá»i Ä‘áº§y Ä‘á»§ cÃ¡c váº¿ cá»§a cÃ¢u há»i chÆ°a? Láº­p luáº­n cÃ³ rÃµ rÃ ng, nháº¥t quÃ¡n vÃ  cÃ³ vÃ­ dá»¥ chá»©ng minh cá»¥ thá»ƒ khÃ´ng. Náº¿u viáº¿t láº¡c Ä‘á» (off-topic), Ä‘iá»ƒm TR sáº½ ráº¥t tháº¥p.</li>
+                  <li><strong>Coherence and Cohesion (CC) - TÃ­nh máº¡ch láº¡c vÃ  liÃªn káº¿t:</strong> ÄÃ¡nh giÃ¡ cÃ¡ch báº¡n sáº¯p xáº¿p cÃ¡c Ä‘oáº¡n vÄƒn (Má»Ÿ bÃ i, ThÃ¢n bÃ i, Káº¿t bÃ i). Báº¡n cÃ³ sá»­ dá»¥ng Ä‘a dáº¡ng vÃ  chÃ­nh xÃ¡c cÃ¡c tá»« ná»‘i (Linking words) nhÆ° <em>Furthermore, Nevertheless, On the other hand</em> hay khÃ´ng.</li>
+                  <li><strong>Lexical Resource (LR) - Vá»‘n tá»« vá»±ng:</strong> Kiá»ƒm tra má»©c Ä‘á»™ Ä‘a dáº¡ng tá»« vá»±ng. TrÃ­ tuá»‡ nhÃ¢n táº¡o cÃ³ kháº£ nÄƒng phÃ¡t hiá»‡n báº¡n Ä‘ang dÃ¹ng tá»« vá»±ng cÆ¡ báº£n hay nÃ¢ng cao (Less common vocabulary), viá»‡c sá»­ dá»¥ng cÃ¡c cá»¥m tá»« (Collocations) cÃ³ chuáº©n tá»± nhiÃªn (Native-like) hay khÃ´ng.</li>
+                  <li><strong>Grammatical Range and Accuracy (GRA) - Sá»± Ä‘a dáº¡ng vÃ  chÃ­nh xÃ¡c ngá»¯ phÃ¡p:</strong> BÃ i viáº¿t pháº£i cÃ³ sá»± káº¿t há»£p nhuáº§n nhuyá»…n giá»¯a cÃ¢u Ä‘Æ¡n, cÃ¢u ghÃ©p vÃ  cÃ¢u phá»©c. AI sáº½ rÃ  soÃ¡t tá»«ng lá»—i chÃ­nh táº£, sai thÃ¬ (Tense), máº¡o tá»« (a/an/the) vÃ  Ä‘Æ°a ra gá»£i Ã½ sá»­a lá»—i hoÃ n háº£o nháº¥t.</li>
                 </ul>
               </div>
             </details>
 
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+            <details open className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
               <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                2. Mẹo Đạt Band 7.0+ Cho IELTS Task 2
+                2. Máº¹o Äáº¡t Band 7.0+ Cho IELTS Task 2
                 <span className="transition group-open:rotate-180">
                   <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
                 </span>
               </summary>
               <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
-                <p className="mb-3">Để đạt điểm cao trong bài thi IELTS Writing Task 2, bạn cần áp dụng chiến lược rõ ràng thay vì chỉ nhồi nhét từ khó:</p>
+                <p className="mb-3">Äá»ƒ Ä‘áº¡t Ä‘iá»ƒm cao trong bÃ i thi IELTS Writing Task 2, báº¡n cáº§n Ã¡p dá»¥ng chiáº¿n lÆ°á»£c rÃµ rÃ ng thay vÃ¬ chá»‰ nhá»“i nhÃ©t tá»« khÃ³:</p>
                 <ol className="list-decimal pl-5 space-y-2">
-                  <li><strong>Lập dàn ý (Outline):</strong> Dành ít nhất 3-5 phút đầu tiên để gạch đầu dòng ý tưởng cho Thân bài 1 và Thân bài 2. Điều này giúp bài không bị cụt ý hay thiếu logic giữa chừng.</li>
-                  <li><strong>Công thức P.I.E cho Thân Bài:</strong> Mỗi đoạn thân bài nên tuân theo cấu trúc: <strong>P</strong>oint (Luận điểm chính) - <strong>I</strong>llustration (Giải thích/Ví dụ) - <strong>E</strong>ffect (Hậu quả/Kết quả).</li>
-                  <li><strong>Tránh sử dụng từ ngữ tuyệt đối:</strong> Hãy dùng các từ chỉ mức độ (Hedging words) như <em>tend to, likely, often, majority</em> thay vì <em>always, all, everyone</em> để lập luận chặt chẽ và học thuật hơn.</li>
-                  <li><strong>Luyện tập thường xuyên với AI Grader:</strong> Dùng công cụ VNDocs để liên tục chấm lỗi sai. Quan sát các phần từ vựng màu đỏ bị gạch đi và học thuộc cách diễn đạt màu xanh để tự cải thiện.</li>
+                  <li><strong>Láº­p dÃ n Ã½ (Outline):</strong> DÃ nh Ã­t nháº¥t 3-5 phÃºt Ä‘áº§u tiÃªn Ä‘á»ƒ gáº¡ch Ä‘áº§u dÃ²ng Ã½ tÆ°á»Ÿng cho ThÃ¢n bÃ i 1 vÃ  ThÃ¢n bÃ i 2. Äiá»u nÃ y giÃºp bÃ i khÃ´ng bá»‹ cá»¥t Ã½ hay thiáº¿u logic giá»¯a chá»«ng.</li>
+                  <li><strong>CÃ´ng thá»©c P.I.E cho ThÃ¢n BÃ i:</strong> Má»—i Ä‘oáº¡n thÃ¢n bÃ i nÃªn tuÃ¢n theo cáº¥u trÃºc: <strong>P</strong>oint (Luáº­n Ä‘iá»ƒm chÃ­nh) - <strong>I</strong>llustration (Giáº£i thÃ­ch/VÃ­ dá»¥) - <strong>E</strong>ffect (Háº­u quáº£/Káº¿t quáº£).</li>
+                  <li><strong>TrÃ¡nh sá»­ dá»¥ng tá»« ngá»¯ tuyá»‡t Ä‘á»‘i:</strong> HÃ£y dÃ¹ng cÃ¡c tá»« chá»‰ má»©c Ä‘á»™ (Hedging words) nhÆ° <em>tend to, likely, often, majority</em> thay vÃ¬ <em>always, all, everyone</em> Ä‘á»ƒ láº­p luáº­n cháº·t cháº½ vÃ  há»c thuáº­t hÆ¡n.</li>
+                  <li><strong>Luyá»‡n táº­p thÆ°á»ng xuyÃªn vá»›i AI Grader:</strong> DÃ¹ng cÃ´ng cá»¥ VNDocs Ä‘á»ƒ liÃªn tá»¥c cháº¥m lá»—i sai. Quan sÃ¡t cÃ¡c pháº§n tá»« vá»±ng mÃ u Ä‘á» bá»‹ gáº¡ch Ä‘i vÃ  há»c thuá»™c cÃ¡ch diá»…n Ä‘áº¡t mÃ u xanh Ä‘á»ƒ tá»± cáº£i thiá»‡n.</li>
                 </ol>
               </div>
             </details>
 
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+            <details open className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
               <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                3. Cách Sử Dụng Công Cụ Chấm Bài AI
+                3. CÃ¡ch Sá»­ Dá»¥ng CÃ´ng Cá»¥ Cháº¥m BÃ i AI
                 <span className="transition group-open:rotate-180">
                   <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
                 </span>
               </summary>
               <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
                 <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>Bước 1:</strong> Bấm nút "Bốc đề ngẫu nhiên" để hệ thống chọn một đề IELTS từ kho dữ liệu thi thật. Hoặc bạn có thể tự copy một đề bên ngoài và dán vào.</li>
-                  <li><strong>Bước 2:</strong> Viết bài vào các ô tương ứng. Hệ thống chia sẵn Mở bài, Thân bài, Kết bài để rèn luyện thói quen tách đoạn. Nhìn đồng hồ bộ đếm từ (Word count) để đảm bảo tối thiểu 250 từ.</li>
-                  <li><strong>Bước 3:</strong> Bấm "Nộp bài & Chấm điểm". Hệ thống AI của chúng tôi sẽ phân tích trong 10-15 giây và trả ra bảng điểm Overall cùng các góp ý siêu chi tiết. Dữ liệu của bạn sẽ được lưu tự động lên trình duyệt để xem lại.</li>
+                  <li><strong>BÆ°á»›c 1:</strong> Báº¥m nÃºt "Bá»‘c Ä‘á» ngáº«u nhiÃªn" Ä‘á»ƒ há»‡ thá»‘ng chá»n má»™t Ä‘á» IELTS tá»« kho dá»¯ liá»‡u thi tháº­t. Hoáº·c báº¡n cÃ³ thá»ƒ tá»± copy má»™t Ä‘á» bÃªn ngoÃ i vÃ  dÃ¡n vÃ o.</li>
+                  <li><strong>BÆ°á»›c 2:</strong> Viáº¿t bÃ i vÃ o cÃ¡c Ã´ tÆ°Æ¡ng á»©ng. Há»‡ thá»‘ng chia sáºµn Má»Ÿ bÃ i, ThÃ¢n bÃ i, Káº¿t bÃ i Ä‘á»ƒ rÃ¨n luyá»‡n thÃ³i quen tÃ¡ch Ä‘oáº¡n. NhÃ¬n Ä‘á»“ng há»“ bá»™ Ä‘áº¿m tá»« (Word count) Ä‘á»ƒ Ä‘áº£m báº£o tá»‘i thiá»ƒu 250 tá»«.</li>
+                  <li><strong>BÆ°á»›c 3:</strong> Báº¥m "Ná»™p bÃ i & Cháº¥m Ä‘iá»ƒm". Há»‡ thá»‘ng AI cá»§a chÃºng tÃ´i sáº½ phÃ¢n tÃ­ch trong 10-15 giÃ¢y vÃ  tráº£ ra báº£ng Ä‘iá»ƒm Overall cÃ¹ng cÃ¡c gÃ³p Ã½ siÃªu chi tiáº¿t. Dá»¯ liá»‡u cá»§a báº¡n sáº½ Ä‘Æ°á»£c lÆ°u tá»± Ä‘á»™ng lÃªn trÃ¬nh duyá»‡t Ä‘á»ƒ xem láº¡i.</li>
                 </ul>
               </div>
             </details>

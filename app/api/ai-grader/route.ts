@@ -93,7 +93,9 @@ async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = f
     throw new Error('GROQ_API_KEY_MISSING')
   }
 
-  while (true) {
+  let retryCount = 0
+  const MAX_RETRIES = 3
+  while (retryCount < MAX_RETRIES) {
     const shuffledKeys = [...apiKeys].sort(() => 0.5 - Math.random())
 
     for (const apiKey of shuffledKeys) {
@@ -129,10 +131,11 @@ async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = f
       }
     }
 
-    // Nếu chạy hết toàn bộ Key và Model mà vẫn xịt (hết Rate Limit chung), 
-    // đợi 2 giây rồi xoay vòng lại từ đầu không báo lỗi
+    // Đợi 2 giây rồi thử lại
     await delay(2000)
+    retryCount++
   }
+  throw new Error('model_exhausted')
 }
 
 // Wrapper to increment global counter
@@ -189,8 +192,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Rate Limit Check
-    const isAllowed = await checkAndIncrementRateLimit(session.user.email || session.user.id!)
+    const userId = session.user.email
+    if (!userId) {
+      return NextResponse.json({ error: 'Không thể xác thực tài khoản.' }, { status: 401 })
+    }
+    const isAllowed = await checkAndIncrementRateLimit(userId)
     if (!isAllowed) {
       return NextResponse.json(
         { error: 'Bạn đã đạt giới hạn 15 lần sử dụng AI trong ngày hôm nay. Vui lòng quay lại vào ngày mai!' },
@@ -206,13 +212,12 @@ export async function POST(req: NextRequest) {
       let systemPrompt = ''
 
       const basePrompt = `
-You are an expert, objective examiner. Your sole task is to grade the user's writing based on the official criteria for the given exam.
+You are an expert examiner. Your task is to grade the user's writing based on official exam criteria.
 CRITICAL RULES:
-1. NO CHITCHAT. NO CONVERSATIONAL TEXT. NO GREETINGS. 
-2. DO NOT include phrases like "Here is the result", "Sure", "I will evaluate". DO NOT output ANY text outside of the JSON object.
-3. Use fair and accurate international standard grading. Be highly constructive, brief, and objective. 
-4. Output MUST be a valid JSON object matching the exact schema below, strictly using Vietnamese language for the 'feedback', 'detailedFeedback', and 'explanation' fields.
-5. Provide precise, actionable feedback. Avoid vague or lengthy explanations. Keep the feedback concise.
+1. NO CHITCHAT. NO CONVERSATIONAL TEXT. DO NOT output ANY text outside of the JSON object.
+2. Evaluate fairly and objectively based strictly on the provided criteria. Do not be overly harsh or overly lenient. Ensure your scoring accurately reflects the true ability of the candidate according to the rubric.
+3. Output MUST be a valid JSON object matching the exact schema below, strictly using Vietnamese language for the 'feedback', 'detailedFeedback', and 'explanation' fields.
+4. In the 'corrections' array, you MUST find and fix EVERY grammatical, lexical, and structural error. Provide precise, actionable explanations.
 `
 
       if (type === 'IELTS_TASK_2') {
@@ -223,24 +228,68 @@ ${prompt}
 ESSAY:
 ${essay}
 
-Grade objectively using these 4 IELTS criteria:
-1. Task Response (TR)
-2. Coherence and Cohesion (CC)
-3. Lexical Resource (LR)
-4. Grammatical Range and Accuracy (GRA)
+# CORE SCORING PRINCIPLES
+1. Do NOT judge overall writing quality first. Score each criterion independently.
+2. A sophisticated essay can receive a low TR score if it does not answer the question properly.
+3. Do not let vocabulary influence grammar scoring. Do not let grammar influence Task Response scoring.
+4. Do not let the apparent intelligence of the argument automatically increase the score.
 
-Each criterion is scored from 0 to 9 in 0.5 increments. The overall band is the average rounded to nearest 0.5.
+# TASK RESPONSE (TR)
+Evaluate: Answers ALL parts of the question; Clear position maintained throughout; Main ideas relevant and sufficiently developed.
+- Band 9: Fully addresses every part. Fully developed position. Ideas fully extended.
+- Band 8: Sufficiently addresses all parts. Clear and well-developed position. Minor omissions possible.
+- Band 7: Addresses task appropriately. Clear position. Some ideas may be overgeneralised.
+- Band 6: Addresses main parts. Position may become unclear. Main ideas insufficiently developed.
+- Band 5: Partial address. Unclear position. Repetitive/insufficient ideas.
+- Band 4: Barely addresses task. Unclear position. Poorly developed ideas.
+
+# COHERENCE AND COHESION (CC)
+Evaluate: Logical organisation; Overall progression; Paragraphing; Use of cohesive devices (natural vs mechanical).
+- Band 9: Effortless coherence. Skilful paragraphing. Natural cohesion.
+- Band 8: Logical sequencing. Clear progression. Appropriate paragraphing.
+- Band 7: Logical organisation. Some over/under-use of cohesive devices. Generally effective paragraphing.
+- Band 6: Generally coherent. Faulty or mechanical cohesive devices.
+- Band 5: Limited organisation. Unclear progression. Inadequate paragraphing.
+- Band 4: Ideas difficult to follow. Poor paragraphing.
+
+# LEXICAL RESOURCE (LR)
+Evaluate: Range of vocabulary; Precision; Flexibility; Collocation; Spelling.
+- Band 9: Extremely wide vocabulary. Very natural and sophisticated control. Virtually no errors.
+- Band 8: Wide vocabulary. Fluent and flexible use. Occasional errors.
+- Band 7: Sufficient range. Some less common vocabulary. Occasional word choice/spelling errors.
+- Band 6: Adequate range. Some attempts at less common vocabulary. Noticeable errors but meaning clear.
+- Band 5: Limited range. Basic vocabulary dominates. Errors cause difficulty.
+- Band 4: Basic vocabulary only. Frequent repetition and inappropriate word choice.
+
+# GRAMMATICAL RANGE AND ACCURACY (GRA)
+Evaluate: Variety of complex structures; Subordination; Accuracy; Punctuation.
+- Band 9: Full range of structures. Accurate and flexible. Errors extremely rare.
+- Band 8: Wide range of structures. Majority error-free sentences. Occasional minor errors.
+- Band 7: Variety of complex structures. Good control. Frequent error-free sentences.
+- Band 6: Mix of simple/complex. Errors occur in complex structures. Meaning clear.
+- Band 5: Limited range. Frequent grammatical errors causing difficulty.
+- Band 4: Very limited structural range. Frequent errors interfering with communication.
+
+# HALF-BAND RULE
+Use 0.5 bands (e.g., 6.5, 7.5) when the essay clearly falls between two descriptor levels. Do NOT use .5 simply to appear precise.
+
+# IMPORTANT DISTINCTION: QUALITY VS COMPLEXITY
+Do NOT reward unnecessarily long sentences, obscure vocabulary, excessive linking words, memorised phrases, or generic intros/conclusions.
+Reward precise reasoning, natural cohesion, accurate vocabulary, and clear communication.
+
+# OUTPUT FORMAT
+Each criterion is scored from 0 to 9 in 0.5 increments. The overall band is the average rounded according to IELTS convention (e.g., 7.25 -> 7.5, 7.75 -> 8.0, 7.125 -> 7.0).
 
 JSON Schema:
 {
   "overallBand": 6.5,
   "criteria": {
-    "taskResponse": { "score": 6.5, "feedback": "Concise and direct feedback." },
-    "coherenceCohesion": { "score": 6.0, "feedback": "Concise and direct feedback." },
-    "lexicalResource": { "score": 7.0, "feedback": "Concise and direct feedback." },
-    "grammaticalRange": { "score": 6.5, "feedback": "Concise and direct feedback." }
+    "taskResponse": { "score": 6.5, "feedback": "Detailed justification based on the rubric above. Note strengths and weaknesses." },
+    "coherenceCohesion": { "score": 6.0, "feedback": "Detailed justification based on the rubric above." },
+    "lexicalResource": { "score": 7.0, "feedback": "Detailed justification based on the rubric above." },
+    "grammaticalRange": { "score": 6.5, "feedback": "Detailed justification based on the rubric above." }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese. Constructive and direct.",
+  "detailedFeedback": "Overall Examiner Summary in Vietnamese explaining why the essay received this score and the most important improvements.",
   "corrections": [
     { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
   ]

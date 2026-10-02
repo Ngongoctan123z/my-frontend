@@ -10,7 +10,7 @@ export function AiBanner() {
   const [showKey, setShowKey] = useState(false)
 
   const links = [
-    { href: '/ai-grader', label: 'Luyện Writing IELTS', icon: <PenTool size={14} /> },
+    { href: '/ai-grader/ielts', label: 'Luyện Writing IELTS', icon: <PenTool size={14} /> },
     { href: '/ai-grader/toeic', label: 'Luyện Writing TOEIC', icon: <PenTool size={14} /> },
     { href: '/ai-grader/topik', label: 'Luyện Writing TOPIK', icon: <PenTool size={14} /> },
     { href: '/ai-grader/hsk', label: 'Luyện Writing HSK', icon: <PenTool size={14} /> },

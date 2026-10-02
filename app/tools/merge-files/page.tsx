@@ -1,27 +1,40 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 import Link from 'next/link'
 import MergeFilesWrapper from './MergeFilesWrapper'
+import { getRouteMetadata } from '@/src/utils/serverSeo'
 
-export const metadata: Metadata = {
-  title: 'Gộp File PDF (Merge PDF) | VNDocs',
-  description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
-  keywords: 'gộp file pdf, ghép file pdf, nối file pdf, merge pdf, combine pdf, gộp ảnh thành pdf',
-  openGraph: {
-    title: 'Gộp File PDF (Merge PDF) | VNDocs',
-    description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
-    siteName: 'VNDocs',
-    locale: 'vi_VN',
-    type: 'website',
-  }
+
+
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/tools/merge-files',
+    'Gá»™p File PDF (Merge PDF) | VNDocs',
+    'GhÃ©p ná»‘i nhiá»u tÃ i liá»‡u PDF hoáº·c hÃ¬nh áº£nh thÃ nh má»™t báº£n duy nháº¥t. Sáº¯p xáº¿p thá»© tá»± cÃ¡c file báº±ng thao tÃ¡c kÃ©o tháº£ siÃªu nhanh vÃ  báº£o máº­t 100%.'
+  )
 }
 
 export default function MergeToolPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Công c? Ghép n?i file PDF',
+    operatingSystem: 'Web',
+    applicationCategory: 'UtilitiesApplication',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'VND',
+    },
+    description: 'Ghép nhi?u file PDF thành m?t t?p duy nh?t nhanh chóng, d? dàng, b?o m?t 100% b?ng x? lý tr?c ti?p trên trình duy?t.',
+    url: 'https://vndocs.net/tools/merge-files'
+  }
+
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Gộp Nhiều Tài Liệu</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Gá»™p Nhiá»u TÃ i Liá»‡u</h1>
         <p className="text-slate-500">
-          Ghép nhiều tài liệu hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả.
+          GhÃ©p nhiá»u tÃ i liá»‡u hoáº·c hÃ¬nh áº£nh thÃ nh má»™t báº£n duy nháº¥t. Sáº¯p xáº¿p thá»© tá»± cÃ¡c file báº±ng thao tÃ¡c kÃ©o tháº£.
         </p>
       </div>
 
@@ -30,41 +43,41 @@ export default function MergeToolPage() {
       {/* SEO Content Box */}
       <section className="mt-16 pt-12 border-t border-gray-100">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn Cách Gộp File PDF Siêu Nhanh</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">HÆ°á»›ng Dáº«n CÃ¡ch Gá»™p File PDF SiÃªu Nhanh</h2>
           <p className="mb-6 text-slate-600 text-center leading-relaxed">
-            Tính năng <strong>Gộp File PDF (Merge PDF)</strong> của VNDocs là giải pháp tối ưu khi bạn cần tổng hợp nhiều giấy tờ, báo cáo hay biểu mẫu rời rạc thành một văn bản thống nhất.
+            TÃ­nh nÄƒng <strong>Gá»™p File PDF (Merge PDF)</strong> cá»§a VNDocs lÃ  giáº£i phÃ¡p tá»‘i Æ°u khi báº¡n cáº§n tá»•ng há»£p nhiá»u giáº¥y tá», bÃ¡o cÃ¡o hay biá»ƒu máº«u rá»i ráº¡c thÃ nh má»™t vÄƒn báº£n thá»‘ng nháº¥t.
           </p>
 
           <div className="space-y-4">
             <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
               <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                1. Tính Năng Vượt Trội
+                1. TÃ­nh NÄƒng VÆ°á»£t Trá»™i
                 <span className="transition group-open:rotate-180">
                   <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
                 </span>
               </summary>
               <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
                 <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>Hỗ trợ trộn Hình Ảnh & PDF:</strong> Công cụ của chúng tôi không chỉ gộp các file PDF với nhau mà còn cho phép chèn thêm các file Hình ảnh (JPG, PNG) trực tiếp vào quá trình gộp để tạo thành 1 file PDF duy nhất.</li>
-                  <li><strong>Kéo và Thả (Drag & Drop) thông minh:</strong> Bạn chỉ cần thả các file vào trình duyệt, bấm giữ và kéo thả (Drag) các file để thay đổi thứ tự trang trước khi xuất bản một cách cực kỳ trực quan.</li>
-                  <li><strong>Bảo mật tuyệt đối 100%:</strong> Tất cả xử lý (đọc, gộp, xuất file) đều chạy hoàn toàn độc lập trên trình duyệt máy tính của bạn bằng công nghệ WebAssembly. Cam kết không có bất kỳ file nào của bạn bị upload lên máy chủ.</li>
+                  <li><strong>Há»— trá»£ trá»™n HÃ¬nh áº¢nh & PDF:</strong> CÃ´ng cá»¥ cá»§a chÃºng tÃ´i khÃ´ng chá»‰ gá»™p cÃ¡c file PDF vá»›i nhau mÃ  cÃ²n cho phÃ©p chÃ¨n thÃªm cÃ¡c file HÃ¬nh áº£nh (JPG, PNG) trá»±c tiáº¿p vÃ o quÃ¡ trÃ¬nh gá»™p Ä‘á»ƒ táº¡o thÃ nh 1 file PDF duy nháº¥t.</li>
+                  <li><strong>KÃ©o vÃ  Tháº£ (Drag & Drop) thÃ´ng minh:</strong> Báº¡n chá»‰ cáº§n tháº£ cÃ¡c file vÃ o trÃ¬nh duyá»‡t, báº¥m giá»¯ vÃ  kÃ©o tháº£ (Drag) cÃ¡c file Ä‘á»ƒ thay Ä‘á»•i thá»© tá»± trang trÆ°á»›c khi xuáº¥t báº£n má»™t cÃ¡ch cá»±c ká»³ trá»±c quan.</li>
+                  <li><strong>Báº£o máº­t tuyá»‡t Ä‘á»‘i 100%:</strong> Táº¥t cáº£ xá»­ lÃ½ (Ä‘á»c, gá»™p, xuáº¥t file) Ä‘á»u cháº¡y hoÃ n toÃ n Ä‘á»™c láº­p trÃªn trÃ¬nh duyá»‡t mÃ¡y tÃ­nh cá»§a báº¡n báº±ng cÃ´ng nghá»‡ WebAssembly. Cam káº¿t khÃ´ng cÃ³ báº¥t ká»³ file nÃ o cá»§a báº¡n bá»‹ upload lÃªn mÃ¡y chá»§.</li>
                 </ul>
               </div>
             </details>
 
             <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
               <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                2. Hướng Dẫn Sử Dụng
+                2. HÆ°á»›ng Dáº«n Sá»­ Dá»¥ng
                 <span className="transition group-open:rotate-180">
                   <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
                 </span>
               </summary>
               <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
                 <ol className="list-decimal pl-5 space-y-2">
-                  <li>Bấm nút <strong>"Chọn File"</strong> hoặc kéo thả các file PDF/Hình ảnh vào khu vực quy định.</li>
-                  <li>Chờ hệ thống tải file (diễn ra cực nhanh vì không tốn thời gian upload lên mạng).</li>
-                  <li>Di chuyển chuột để sắp xếp lại thứ tự các file nếu cần thiết.</li>
-                  <li>Bấm nút <strong>"Gộp File Ngay"</strong> và hệ thống sẽ tự động tải file PDF hoàn chỉnh về máy của bạn.</li>
+                  <li>Báº¥m nÃºt <strong>"Chá»n File"</strong> hoáº·c kÃ©o tháº£ cÃ¡c file PDF/HÃ¬nh áº£nh vÃ o khu vá»±c quy Ä‘á»‹nh.</li>
+                  <li>Chá» há»‡ thá»‘ng táº£i file (diá»…n ra cá»±c nhanh vÃ¬ khÃ´ng tá»‘n thá»i gian upload lÃªn máº¡ng).</li>
+                  <li>Di chuyá»ƒn chuá»™t Ä‘á»ƒ sáº¯p xáº¿p láº¡i thá»© tá»± cÃ¡c file náº¿u cáº§n thiáº¿t.</li>
+                  <li>Báº¥m nÃºt <strong>"Gá»™p File Ngay"</strong> vÃ  há»‡ thá»‘ng sáº½ tá»± Ä‘á»™ng táº£i file PDF hoÃ n chá»‰nh vá» mÃ¡y cá»§a báº¡n.</li>
                 </ol>
               </div>
             </details>

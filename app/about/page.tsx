@@ -1,15 +1,21 @@
 import React from 'react'
 import { Metadata } from 'next'
+import { getRouteMetadata } from '@/src/utils/serverSeo'
 
-export const metadata: Metadata = {
-  title: 'Về chúng tôi | VNDocs',
-  description: 'Tìm hiểu thêm về VNDocs - Nền tảng học tập và chia sẻ tài liệu trực tuyến miễn phí.'
+
+
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/about',
+    'Về chúng tôi | VNDocs',
+    'Tìm hiểu thêm về VNDocs - Nền tảng học tập và chia sẻ tài liệu trực tuyến miễn phí.'
+  )
 }
 
 export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 prose prose-slate dark:prose-invert">
-      <h1 className="text-3xl font-bold mb-6 text-[var(--text-primary)]">Về chúng tôi</h1>
+      <h1 className="text-3xl font-bold mb-6 text-[var(--text-primary)]">Về VNDocs — Nền Tảng Học Tập & Đề Thi Trực Tuyến Miễn Phí</h1>
       <p className="text-[var(--text-secondary)] text-base">Chào mừng bạn đến với <strong>VNDocs</strong> - nền tảng học tập và chia sẻ tài liệu trực tuyến hàng đầu dành cho học sinh, sinh viên và người đi làm tại Việt Nam.</p>
       
       <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">Sứ mệnh của chúng tôi</h2>
