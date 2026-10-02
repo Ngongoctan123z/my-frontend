@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
 import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight } from 'lucide-react'
@@ -182,14 +182,16 @@ export function AiGraderClient() {
       setResult(data)
       setUsageCount(prev => prev + 1)
       
-      await saveEssayHistory({
-        email: session.user.email,
-        examType,
-        prompt: prompt.content,
-        essay: finalEssay,
-        result: data
-      })
-      if (session?.user?.email) loadHistory()
+      if (session?.user?.email) {
+        await saveEssayHistory({
+          email: session.user.email,
+          examType,
+          prompt: prompt.content,
+          essay: finalEssay,
+          result: data
+        })
+        loadHistory()
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {

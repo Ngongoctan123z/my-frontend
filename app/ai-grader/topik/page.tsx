@@ -1,4 +1,3 @@
-﻿import { Metadata } from 'next'
 import Script from 'next/script'
 import { TopikGraderClient } from './TopikGraderClient'
 import { getRouteMetadata } from '@/src/utils/serverSeo'
@@ -7,8 +6,8 @@ import { FRONTEND_URL } from '@/src/utils/constants'
 export async function generateMetadata() {
   return getRouteMetadata(
     '/ai-grader/topik',
-    'Cháº¥m Äiá»ƒm Writing TOPIK Báº±ng AI & Luyá»‡n Viáº¿t TOPIK II | VNDocs',
-    'Tráº£i nghiá»‡m pháº§n má»m cháº¥m bÃ i viáº¿t TOPIK (cÃ¢u 51-54) báº±ng AI. Cháº¥m Ä‘iá»ƒm chi tiáº¿t, sá»­a lá»—i ngá»¯ phÃ¡p tiáº¿ng HÃ n, gá»£i Ã½ tá»« vá»±ng cao cáº¥p, dá»± Ä‘oÃ¡n Ä‘iá»ƒm sá»‘ TOPIK chÃ­nh xÃ¡c.'
+    'Chấm Điểm Writing TOPIK Bằng AI & Luyện Viết TOPIK II | VNDocs',
+    'Trải nghiệm phần mềm chấm bài viết TOPIK (câu 51-54) bằng AI. Chấm điểm chi tiết, sửa lỗi ngữ pháp tiếng Hàn, gợi ý từ vựng cao cấp, dự đoán điểm số TOPIK chính xác.'
   )
 }
 
@@ -16,7 +15,7 @@ export default function TopikPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'CÃ´ng cá»¥ Cháº¥m Ä‘iá»ƒm TOPIK Writing báº±ng AI',
+    name: 'Công cụ Chấm điểm TOPIK Writing bằng AI',
     operatingSystem: 'Web',
     applicationCategory: 'EducationalApplication',
     offers: {
@@ -24,7 +23,7 @@ export default function TopikPage() {
       price: '0',
       priceCurrency: 'VND',
     },
-    description: 'Tráº£i nghiá»‡m pháº§n má»m cháº¥m bÃ i viáº¿t TOPIK (cÃ¢u 51-54) báº±ng AI. Cháº¥m Ä‘iá»ƒm chi tiáº¿t, sá»­a lá»—i ngá»¯ phÃ¡p tiáº¿ng HÃ n, gá»£i Ã½ tá»« vá»±ng cao cáº¥p.',
+    description: 'Trải nghiệm phần mềm chấm bài viết TOPIK (câu 51-54) bằng AI. Chấm điểm chi tiết, sửa lỗi ngữ pháp tiếng Hàn, gợi ý từ vựng cao cấp.',
     url: `${FRONTEND_URL}/ai-grader/topik`
   }
 
@@ -38,10 +37,10 @@ export default function TopikPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-10">
           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
-            Cháº¥m Äiá»ƒm Writing <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">TOPIK AI</span>
+            Chấm Điểm Writing <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">TOPIK AI</span>
           </h1>
           <p className="text-lg text-slate-600 font-medium leading-relaxed">
-            Luyá»‡n táº­p Viáº¿t TOPIK II (CÃ¢u 51-54) chuáº©n form vá»›i Ä‘Ã¡nh giÃ¡ tá»± Ä‘á»™ng vÃ  sá»­a lá»—i chi tiáº¿t tá»«ng cÃ¢u tiáº¿ng HÃ n tá»« TrÃ­ Tuá»‡ NhÃ¢n Táº¡o hoÃ n toÃ n miá»…n phÃ­.
+            Luyện tập Viết TOPIK II (Câu 51-54) chuẩn form với đánh giá tự động và sửa lỗi chi tiết từng câu tiếng Hàn từ Trí Tuệ Nhân Tạo hoàn toàn miễn phí.
           </p>
         </div>
         <TopikGraderClient />
