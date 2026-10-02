@@ -7,9 +7,10 @@ export const maxDuration = 60 // 60 giây timeout cho file lớn
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const path = params.path.join('/')
+  const { path: pathArr } = await params
+  const path = pathArr.join('/')
   const targetUrl = `${VPS_API_URL}/api/${path}`
 
   try {
