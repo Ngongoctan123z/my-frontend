@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { auth } from '@/auth';
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../auth/[...nextauth]/route'
 
-const rootAdmins = ['ngongoctan282005@gmail.com']
+const rootAdmins = ['ngotandoo@gmail.com']
 
 export async function GET() {
-  // Guard: only admins can access this endpoint
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   if (!session?.user?.email || !rootAdmins.includes(session.user.email)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   let ctxError = '';
   let envKeys: string[] = [];

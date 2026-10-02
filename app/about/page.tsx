@@ -1,15 +1,9 @@
 import React from 'react'
 import { Metadata } from 'next'
-import { getRouteMetadata } from '@/src/utils/serverSeo'
 
-
-
-export async function generateMetadata() {
-  return getRouteMetadata(
-    '/about',
-    'Về chúng tôi | VNDocs',
-    'Tìm hiểu thêm về VNDocs - Nền tảng học tập và chia sẻ tài liệu trực tuyến miễn phí.'
-  )
+export const metadata: Metadata = {
+  title: 'Về chúng tôi | VNDocs',
+  description: 'Tìm hiểu thêm về VNDocs - Nền tảng học tập và chia sẻ tài liệu trực tuyến miễn phí.'
 }
 
 export default function AboutPage() {

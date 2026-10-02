@@ -228,9 +228,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
         <div>
           <h1 className="text-xl font-bold md:text-2xl leading-tight">{title}</h1>
           <p className="mt-1 text-ink-muted text-xs">
-            Mã đề: <span className="font-mono text-[var(--color-primary)]">{exam.examCode}</span>
-            {exam.downloadCount > 0 && ` · ${formatNumber(exam.downloadCount)} lượt tải`}
-            {exam.viewCount > 0 && ` · ${formatNumber(exam.viewCount)} lượt xem`}
+            Mã đề: <span className="font-mono text-[var(--color-primary)]">{exam.examCode}</span> · {formatNumber(exam.downloadCount)} lượt tải · {formatNumber(exam.viewCount)} lượt xem
           </p>
         </div>
       </div>
@@ -250,9 +248,9 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
 
           return (
             <>
-              <details className="group rounded-lg border border-line bg-surface overflow-hidden" open>
-                <summary className="flex items-center justify-between px-3 py-2 cursor-pointer select-none hover:bg-page transition-colors list-none">
-                  <h2 className="text-sm font-semibold text-ink m-0">Cấu trúc đề thi</h2>
+              <details className="group rounded-lg border border-line bg-surface overflow-hidden">
+                <summary className="flex items-center justify-between px-3 py-2 cursor-pointer select-none text-sm font-semibold text-ink hover:bg-page transition-colors list-none">
+                  <span>Cấu trúc đề thi</span>
                   <svg className="w-4 h-4 text-ink-muted transition-transform duration-200 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -263,7 +261,7 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
               </details>
               {noContentIdx >= 0 && isExamContent && (
                 <div className="mt-6 prose prose-sm max-w-none overflow-x-auto overflow-y-hidden break-words w-full">
-                  <div dangerouslySetInnerHTML={{ __html: h4Content.replace(/<h4/gi, '<h2').replace(/<\/h4>/gi, '</h2>') }} />
+                  <div dangerouslySetInnerHTML={{ __html: h4Content }} />
                 </div>
               )}
             </>
@@ -354,53 +352,6 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
           </Button>
         </div>
       </Card>
-
-      {/* FAQ */}
-      <div className="mt-8 pt-8 border-t border-line" id="faq">
-        <h3 className="mb-4 text-base font-semibold text-ink">Câu hỏi thường gặp</h3>
-        <div className="space-y-4">
-          <details className="group rounded-lg border border-line bg-surface overflow-hidden">
-            <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none hover:bg-page transition-colors list-none font-medium text-sm">
-              Đề thi {examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} môn {subjectLabel} {provinceLabel} {yearNumber} có đáp án không?
-              <svg className="w-4 h-4 text-ink-muted transition-transform duration-200 group-open:rotate-180 shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </summary>
-            <div className="px-4 pb-4 pt-2 text-sm text-ink border-t border-line leading-relaxed">
-              {exam.hasAnswers
-                ? `Có, đề thi ${examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} môn ${subjectLabel} ${provinceLabel} năm ${yearNumber}-${yearNumber + 1} được cung cấp kèm theo đáp án và hướng dẫn giải chi tiết để bạn tự đối chiếu kết quả.`
-                : `Hiện tại đề thi ${examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} môn ${subjectLabel} ${provinceLabel} năm ${yearNumber}-${yearNumber + 1} chưa có đáp án. Chúng tôi sẽ cố gắng cập nhật sớm nhất có thể.`}
-            </div>
-          </details>
-          <details className="group rounded-lg border border-line bg-surface overflow-hidden">
-            <summary className="flex items-center justify-between px-4 py-3 cursor-pointer select-none hover:bg-page transition-colors list-none font-medium text-sm">
-              Tải đề thi {examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} môn {subjectLabel} {provinceLabel} {yearNumber} định dạng gốc ở đâu?
-              <svg className="w-4 h-4 text-ink-muted transition-transform duration-200 group-open:rotate-180 shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </summary>
-            <div className="px-4 pb-4 pt-2 text-sm text-ink border-t border-line leading-relaxed">
-              Bạn có thể xem online trực tiếp hoặc tải miễn phí định dạng {exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'tài liệu'} của đề thi này ngay tại trang web VNDocs bằng cách ấn vào nút Tải đề thi ở phần dưới cùng của trang.
-            </div>
-          </details>
-        </div>
-      </div>
-
-      {/* Internal Links (Tags) cho SEO */}
-      <div className="mt-8 pt-8 border-t border-line">
-        <h3 className="mb-4 text-base font-semibold text-ink">Từ khóa nổi bật</h3>
-        <div className="flex flex-wrap gap-2">
-          <Link prefetch={false} href={`/exams/${examType}/${subject}`} className="text-sm px-3 py-1.5 bg-surface border border-line rounded-lg hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors shadow-sm">
-            Đề thi {subjectLabel} {examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'}
-          </Link>
-          <Link prefetch={false} href={`/exams/${examType}/${subject}/${province}`} className="text-sm px-3 py-1.5 bg-surface border border-line rounded-lg hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors shadow-sm">
-            Đề thi {subjectLabel} {examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} {provinceLabel}
-          </Link>
-          <Link prefetch={false} href={`/exams/${examType}/${subject}/${province}?year=${yearNumber}`} className="text-sm px-3 py-1.5 bg-surface border border-line rounded-lg hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors shadow-sm">
-            Đề thi {subjectLabel} {examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} {provinceLabel} năm {yearNumber}
-          </Link>
-        </div>
-      </div>
       </div>
 
       {/* Right Column - Related Exams (1/4 width on desktop) */}

@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
 import { users, prompts, systemConfigs } from '@/src/db/schema'
 import { desc, eq } from 'drizzle-orm'
-import { BASE_URL } from '@/src/utils/constants'
 
 async function checkAdmin() {
   const session = await auth()
@@ -75,33 +73,6 @@ export async function POST(req: NextRequest) {
               target: systemConfigs.key,
               set: { value: v }
             })
-          }
-          if (k.startsWith('SEO_')) {
-            revalidatePath('/', 'layout')
-          }
-          if (k.startsWith('SEO_ROUTE_')) {
-            const path = k.replace('SEO_ROUTE_', '')
-            revalidatePath(path)
-            
-            // Check if it's an exam route and touch backend
-            const match = path.match(/^\/exams\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(\d+)$/)
-            if (match) {
-              const [, examType, subject, province, year] = match
-              try {
-                // Read token to authenticate backend request
-                const session = await auth()
-                const token = (session as any)?.accessToken
-                
-                await fetch(`${BASE_URL}/api/v1/admin/exams/touch?examType=${examType}&subject=${subject}&province=${province}&year=${year}`, {
-                  method: 'PUT',
-                  headers: {
-                    'Authorization': `Bearer ${token}`
-                  }
-                })
-              } catch (e: any) {
-                console.error(`[Admin SEO] Lỗi khi gọi API touch cập nhật backend cho bài thi ${examType}:`, e.message)
-              }
-            }
           }
         }
       }

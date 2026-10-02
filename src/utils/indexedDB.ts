@@ -1,6 +1,6 @@
 export interface GradedEssayHistory {
-  id: string
   email: string
+  id: string
   examType: string
   prompt: string
   essay: string
@@ -10,7 +10,7 @@ export interface GradedEssayHistory {
 
 const DB_NAME = 'VNDocsAiGraderDB'
 const STORE_NAME = 'essays'
-const DB_VERSION = 2
+const DB_VERSION = 1
 
 export const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -22,14 +22,7 @@ export const initDB = (): Promise<IDBDatabase> => {
     request.onupgradeneeded = (event: any) => {
       const db = event.target.result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' })
-        store.createIndex('email', 'email', { unique: false })
-      } else {
-        // Upgrade from v1 to v2
-        const store = event.target.transaction.objectStore(STORE_NAME)
-        if (!store.indexNames.contains('email')) {
-          store.createIndex('email', 'email', { unique: false })
-        }
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' })
       }
     }
   })
@@ -58,17 +51,17 @@ export const saveEssayHistory = async (essay: Omit<GradedEssayHistory, 'id' | 't
 }
 
 export const getEssayHistory = async (email: string): Promise<GradedEssayHistory[]> => {
-  if (!email) return [];
   try {
     const db = await initDB()
     const transaction = db.transaction(STORE_NAME, 'readonly')
     const store = transaction.objectStore(STORE_NAME)
-    const index = store.index('email')
     
     return new Promise((resolve, reject) => {
-      const request = index.getAll(email)
+      const request = store.getAll()
       request.onsuccess = () => {
-        const sorted = (request.result as GradedEssayHistory[]).sort((a, b) => b.timestamp - a.timestamp)
+        // Sort by newest first
+        const filtered = (request.result as GradedEssayHistory[]).filter(x => x.email === email)
+        const sorted = filtered.sort((a, b) => b.timestamp - a.timestamp)
         resolve(sorted)
       }
       request.onerror = () => reject(request.error)
@@ -80,24 +73,17 @@ export const getEssayHistory = async (email: string): Promise<GradedEssayHistory
 }
 
 export const clearEssayHistory = async (email: string): Promise<void> => {
-  if (!email) return;
   try {
     const db = await initDB()
     const transaction = db.transaction(STORE_NAME, 'readwrite')
     const store = transaction.objectStore(STORE_NAME)
-    const index = store.index('email')
     
     return new Promise((resolve, reject) => {
-      const request = index.getAllKeys(email)
-      request.onsuccess = () => {
-        const keys = request.result
-        keys.forEach(key => store.delete(key))
-        resolve()
-      }
+      const request = store.clear()
+      request.onsuccess = () => resolve()
       request.onerror = () => reject(request.error)
     })
   } catch (error) {
     console.error('Lỗi khi xoá lịch sử IndexedDB:', error)
   }
 }
-

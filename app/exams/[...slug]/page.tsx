@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { Metadata } from 'next'
 import Script from 'next/script'
-import { notFound, permanentRedirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { ExamDetail } from '../../../src/views/ExamDetail'
 import { examTypeLabel, pathToExamType, slugify, examPath } from '../../../src/utils/slug'
 import { getCustomRouteSeo } from '../../../src/utils/serverSeo'
@@ -69,27 +69,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!exam) return {}
   
   const isVao10 = examTypeLabel(exam.examType) === 'Vào 10'
-  const typeText = isVao10 ? 'vào 10' : 'THPT'
-  const yearString = `${exam.year}-${exam.year + 1}`
-  const hasAnswers = exam.hasAnswers
-
-  // Step 2: Auto Title
-  let defaultTitle = `Đề thi ${typeText} môn ${exam.subject} ${exam.province} ${yearString}`
-  if (hasAnswers) defaultTitle += ' có đáp án'
-  defaultTitle += ' | VNDocs'
+  const prefix = `Đề thi ${exam.subject} ${isVao10 ? 'vào 10' : 'THPT'} ${exam.province} ${exam.year}`
+  const titleText = `${prefix}${exam.hasAnswers ? ' (có đáp án)' : ''}`
+  // Truncate if too long
+  const title = titleText.length <= 45 ? `${titleText} | VNDocs` : titleText
   
-  if (defaultTitle.length > 60) {
-     defaultTitle = `Đề thi ${typeText} ${exam.subject} ${exam.province} ${exam.year} | VNDocs`
+  let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
+  if (exam.seoStructure) {
+    const stripped = exam.seoStructure.replace(/<[^>]+>/g, '').trim()
+    if (stripped) {
+      const firstSentenceMatch = stripped.match(/^.*?[.!?](?=\s|$)/)
+      if (firstSentenceMatch && firstSentenceMatch[0].length > 50 && firstSentenceMatch[0].length < 180) {
+        desc = firstSentenceMatch[0].trim()
+      } else {
+        desc = stripped.length > 155 ? stripped.substring(0, 155).replace(/\s+\S*$/, '') + '...' : stripped
+      }
+    }
   }
-
-  // Step 2: Auto Description
-  const defaultDesc = `Tải miễn phí đề thi ${typeText} môn ${exam.subject} ${exam.province} ${yearString}${hasAnswers ? ' kèm đáp án' : ''}. Xem online hoặc tải ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} tại VNDocs.`
-
+  
   const pathName = examPath(exam as any)
   const canonical = `${FRONTEND_URL}${pathName}`
 
-  let finalTitle = defaultTitle
-  let finalDesc = defaultDesc
+  let finalTitle = title
+  let finalDesc = desc
   let finalKeywords = ''
   let ogImage = `${FRONTEND_URL}/api/og?slug=${slug.join('/')}`
 
@@ -101,14 +103,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (customSeo.ogImage) ogImage = customSeo.ogImage
   }
 
-  const isIndexable = exam.fileUrl && exam.fileUrl.trim() !== ''
-
   return { 
     title: finalTitle, 
     description: finalDesc, 
     keywords: finalKeywords,
     alternates: { canonical },
-    robots: { index: !!isIndexable, follow: true },
+    robots: { index: true, follow: true },
     openGraph: { 
       type: 'article', 
       locale: 'vi_VN', 
@@ -126,17 +126,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ],
       publishedTime: exam.createdAt,
       modifiedTime: exam.updatedAt || exam.createdAt
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: finalTitle,
-      description: finalDesc,
-      images: [ogImage],
     }
   }
 }
 
-export default async function ExamPage({ params, searchParams }: Props & { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default async function ExamPage({ params }: Props) {
   const { slug } = await params
   const exam = await fetchExamData(slug)
 
@@ -144,21 +138,9 @@ export default async function ExamPage({ params, searchParams }: Props & { searc
     notFound()
   }
 
-  const expectedPath = examPath(exam as any)
-  const currentSlugStr = slug.join('/')
-  const expectedSlugStr = expectedPath.replace(/^\/exams\//, '')
-  
-  const search = await searchParams
-  const hasQueryParams = search && Object.keys(search).length > 0
-  
-  if (currentSlugStr !== expectedSlugStr || hasQueryParams) {
-    permanentRedirect(expectedPath)
-  }
-
   const isVao10 = examTypeLabel(exam.examType) === 'Vào 10'
-  const typeText = isVao10 ? 'vào 10' : 'THPT'
-  const yearString = `${exam.year}-${exam.year + 1}`
-  const hasAnswers = exam.hasAnswers
+  const prefix = `Đề thi ${exam.subject} ${isVao10 ? 'vào 10' : 'THPT'} ${exam.province} ${exam.year}`
+  const titleText = `${prefix}${exam.hasAnswers ? ' (có đáp án)' : ''}`
   
   let relatedExams: import('../../../src/types/exam').Exam[] = []
   try {
@@ -169,47 +151,27 @@ export default async function ExamPage({ params, searchParams }: Props & { searc
     }
   } catch (e) {}
 
-  // Deduplicate and filter current exam
-  const seenIds = new Set<number>([exam.id])
-  relatedExams = relatedExams.filter(e => {
-    if (seenIds.has(e.id)) return false
-    seenIds.add(e.id)
-    return true
-  })
-
-  // Calculate same SEO values for JSON-LD
-  let defaultTitle = `Đề thi ${typeText} môn ${exam.subject} ${exam.province} ${yearString}`
-  if (hasAnswers) defaultTitle += ' có đáp án'
-  defaultTitle += ' | VNDocs'
-  if (defaultTitle.length > 60) {
-     defaultTitle = `Đề thi ${typeText} ${exam.subject} ${exam.province} ${exam.year} | VNDocs`
+  let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
+  if (exam.seoStructure) {
+    const stripped = exam.seoStructure.replace(/<[^>]+>/g, '').trim()
+    if (stripped) {
+      const firstSentenceMatch = stripped.match(/^.*?[.!?](?=\s|$)/)
+      if (firstSentenceMatch && firstSentenceMatch[0].length > 50 && firstSentenceMatch[0].length < 180) {
+        desc = firstSentenceMatch[0].trim()
+      } else {
+        desc = stripped.length > 155 ? stripped.substring(0, 155).replace(/\s+\S*$/, '') + '...' : stripped
+      }
+    }
   }
-  const defaultDesc = `Tải miễn phí đề thi ${typeText} môn ${exam.subject} ${exam.province} ${yearString}${hasAnswers ? ' kèm đáp án' : ''}. Xem online hoặc tải ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} tại VNDocs.`
-
-  const pathName = examPath(exam as any)
-  let finalTitle = defaultTitle
-  let finalDesc = defaultDesc
-  let ogImage = `${FRONTEND_URL}/api/og?slug=${slug.join('/')}`
-
-  const customSeo = await getCustomRouteSeo(pathName)
-  if (customSeo) {
-    if (customSeo.title) finalTitle = customSeo.title
-    if (customSeo.description) finalDesc = customSeo.description
-    if (customSeo.ogImage) ogImage = customSeo.ogImage
-  }
-
-  const truePdfUrl = exam.fileUrl?.startsWith('http') ? exam.fileUrl : `${FRONTEND_URL}${exam.fileUrl}`
-  const shortTitle = `Đề thi ${exam.subject} ${typeText} ${exam.province} ${exam.year}`
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'LearningResource',
-        '@id': `${FRONTEND_URL}${pathName}#resource`,
-        name: finalTitle,
-        description: finalDesc,
-        image: ogImage,
+        '@id': `${FRONTEND_URL}${examPath(exam as any)}#resource`,
+        name: exam.title || titleText,
+        description: desc,
         inLanguage: 'vi',
         educationalLevel: examTypeLabel(exam.examType),
         learningResourceType: 'Đề thi',
@@ -217,10 +179,6 @@ export default async function ExamPage({ params, searchParams }: Props & { searc
         isAccessibleForFree: true,
         datePublished: exam.createdAt,
         dateModified: exam.updatedAt || exam.createdAt,
-        author: {
-          '@type': 'Organization',
-          name: 'VNDocs'
-        },
         provider: {
           '@type': 'Organization',
           name: 'VNDocs',
@@ -231,13 +189,12 @@ export default async function ExamPage({ params, searchParams }: Props & { searc
           name: 'VNDocs',
           url: FRONTEND_URL
         },
-        isBasedOn: exam.province.toLowerCase().includes('sở') ? exam.province : `Sở GD&ĐT ${exam.province}`,
         encodingFormat: exam.fileUrl?.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        contentUrl: truePdfUrl
+        contentUrl: `${FRONTEND_URL}/files/${exam.slugIdentifier || exam.examCode}`
       },
       {
         '@type': 'BreadcrumbList',
-        '@id': `${FRONTEND_URL}${pathName}#breadcrumb`,
+        '@id': `${FRONTEND_URL}${examPath(exam as any)}#breadcrumb`,
         itemListElement: [
           {
             '@type': 'ListItem',
@@ -249,49 +206,25 @@ export default async function ExamPage({ params, searchParams }: Props & { searc
             '@type': 'ListItem',
             position: 2,
             name: examTypeLabel(exam.examType),
-            item: `${FRONTEND_URL}/tai-lieu?examType=${slug[0]}`,
+            item: `${FRONTEND_URL}/category/${slug[0]}`,
           },
           {
             '@type': 'ListItem',
             position: 3,
             name: exam.subject,
-            item: `${FRONTEND_URL}/tai-lieu?examType=${slug[0]}&subject=${slug[1]}`,
+            item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}`,
           },
           {
             '@type': 'ListItem',
             position: 4,
             name: exam.province,
-            item: `${FRONTEND_URL}/tai-lieu?examType=${slug[0]}&subject=${slug[1]}&province=${slug[2]}`,
+            item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}/${slug[2]}`,
           },
           {
             '@type': 'ListItem',
             position: 5,
-            name: shortTitle,
+            name: String(exam.year),
             item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}/${slug[2]}/${slug[3]}`,
-          }
-        ]
-      },
-      {
-        '@type': 'FAQPage',
-        '@id': `${FRONTEND_URL}${pathName}#faq`,
-        mainEntity: [
-          {
-            '@type': 'Question',
-            name: `Đề thi ${typeText} môn ${exam.subject} ${exam.province} ${exam.year} có đáp án không?`,
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: hasAnswers 
-                ? `Có, đề thi ${typeText} môn ${exam.subject} ${exam.province} năm ${yearString} được cung cấp kèm theo đáp án và hướng dẫn giải chi tiết để bạn tự đối chiếu kết quả.` 
-                : `Hiện tại đề thi ${typeText} môn ${exam.subject} ${exam.province} năm ${yearString} chưa có đáp án. Chúng tôi sẽ cố gắng cập nhật sớm nhất có thể.`
-            }
-          },
-          {
-            '@type': 'Question',
-            name: `Tải đề thi ${typeText} môn ${exam.subject} ${exam.province} ${exam.year} định dạng gốc ở đâu?`,
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: `Bạn có thể xem online trực tiếp hoặc tải miễn phí định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'tài liệu'} của đề thi này ngay tại trang web VNDocs bằng cách ấn vào nút Tải đề thi ở phần dưới cùng của trang.`
-            }
           }
         ]
       }

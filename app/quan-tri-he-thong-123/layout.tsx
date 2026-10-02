@@ -2,14 +2,6 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import React from 'react'
 import { ShieldAlert } from 'lucide-react'
-import { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  robots: {
-    index: false,
-    follow: false,
-  },
-}
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   let session = null;

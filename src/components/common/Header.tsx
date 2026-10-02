@@ -38,10 +38,10 @@ export function Header() {
       ]
     },
     { 
-      href: '/ai-grader/ielts', 
+      href: '/ai-grader', 
       label: 'Luyện Writing',
       dropdown: [
-        { href: '/ai-grader/ielts', label: 'Luyện IELTS' },
+        { href: '/ai-grader', label: 'Luyện IELTS' },
         { href: '/ai-grader/toeic', label: 'Luyện TOEIC' },
         { href: '/ai-grader/hsk', label: 'Luyện HSK' },
         { href: '/ai-grader/topik', label: 'Luyện TOPIK' },

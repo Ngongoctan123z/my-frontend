@@ -1,15 +1,9 @@
 import React from 'react'
 import { Metadata } from 'next'
-import { getRouteMetadata } from '@/src/utils/serverSeo'
 
-
-
-export async function generateMetadata() {
-  return getRouteMetadata(
-    '/privacy',
-    'Chính sách bảo mật | VNDocs',
-    'Cam kết bảo mật thông tin và dữ liệu cá nhân của người dùng tại VNDocs.'
-  )
+export const metadata: Metadata = {
+  title: 'Chính sách bảo mật | VNDocs',
+  description: 'Cam kết bảo mật thông tin và dữ liệu cá nhân của người dùng tại VNDocs.'
 }
 
 export default function PrivacyPage() {

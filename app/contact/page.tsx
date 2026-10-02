@@ -1,15 +1,9 @@
 import React from 'react'
 import { Metadata } from 'next'
-import { getRouteMetadata } from '@/src/utils/serverSeo'
 
-
-
-export async function generateMetadata() {
-  return getRouteMetadata(
-    '/contact',
-    'Liên hệ hợp tác | VNDocs',
-    'Liên hệ với VNDocs để phản hồi, đóng góp tài liệu hoặc đề xuất hợp tác.'
-  )
+export const metadata: Metadata = {
+  title: 'Liên hệ hợp tác | VNDocs',
+  description: 'Liên hệ với VNDocs để phản hồi, đóng góp tài liệu hoặc đề xuất hợp tác.'
 }
 
 export default function ContactPage() {
@@ -36,7 +30,7 @@ export default function ContactPage() {
           </li>
           <li className="flex items-center gap-3">
             <svg className="w-5 h-5 text-[var(--color-primary)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span><strong>Mạng xã hội:</strong> <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] font-medium hover:underline">Fanpage VNDocs</a></span>
+            <span><strong>Mạng xã hội:</strong> <a href="#" className="text-[var(--color-primary)] font-medium hover:underline">Fanpage VNDocs</a></span>
           </li>
         </ul>
       </div>

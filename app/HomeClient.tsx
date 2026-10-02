@@ -53,7 +53,7 @@ export function HomeClient() {
 
   // Rotation logic for mobile 2x2 grid (Absolute Positioning for smooth transition)
   const [rotationOffset, setRotationOffset] = useState(0)
-
+  
   useEffect(() => {
     const mobileQuery = window.matchMedia('(max-width: 767px)')
     const mobileInterval = setInterval(() => {
@@ -79,8 +79,7 @@ export function HomeClient() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style dangerouslySetInnerHTML={{__html: `
         @keyframes marquee {
           0% { transform: translateX(0); }
           100% { transform: translateX(calc(-50% - 0.5rem)); }
@@ -98,18 +97,21 @@ export function HomeClient() {
           <div className="flex-1 text-center md:text-left">
             <Reveal animation="fade-up" duration={700}>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 leading-snug">
-                VNDocs: Kho Đề Thi, Luyện IELTS Writing AI <br />
-                <span className="text-blue-600">& Tiện Ích Học Tập Miễn Phí</span>
+                Học cho vui điểm tới lui<br />
+                <span className="text-blue-600">VNDocs không học thì đừng khóc</span>
               </h1>
             </Reveal>
             <Reveal animation="fade-up" delay={150} duration={600}>
               <p className="text-slate-500 text-sm mb-5">
-                Đề thi vào 10, THPT Quốc Gia, luyện Writing IELTS, TOEIC, HSK & TOPIK — tất cả miễn phí
+                Đề thi vào 10, THPT Quốc Gia, luyện Writing IELTS, TOEIC, HSK & TOPIK — tất cả miễn phí{' '}
+                <span className="text-blue-600 text-lg md:text-xl font-bold inline-flex items-center gap-1">
+               
+                </span>
               </p>
             </Reveal>
 
             <Reveal animation="fade-up" delay={300} duration={600}>
-              <form
+              <form 
                 onSubmit={(e) => {
                   e.preventDefault()
                   if (searchQuery.trim()) {
@@ -121,7 +123,6 @@ export function HomeClient() {
                 <input
                   type="text"
                   name="q"
-                  aria-label="Tìm kiếm đề thi hoặc tài liệu"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Nhập thứ bạn muốn tìm ở đây"
@@ -145,12 +146,12 @@ export function HomeClient() {
       {/* Categories */}
       <section className="w-full max-w-4xl mx-auto px-4 py-8 md:py-12 overflow-hidden">
         <h2 className="sr-only">Các công cụ và tính năng chính</h2>
-
+        
         {/* Mobile Rotating 2x2 Grid */}
         <div className="relative w-full aspect-[4/3] sm:aspect-[3/2] md:hidden">
           {portalCategories.map((cat, idx) => (
-            <div
-              key={`${cat.title}-mobile`}
+            <div 
+              key={`${cat.title}-mobile`} 
               className={`absolute w-[calc(50%-6px)] h-[calc(50%-6px)] transition-all duration-700 ease-in-out ${getPosClass(idx)}`}
             >
               <Link
@@ -179,8 +180,8 @@ export function HomeClient() {
         <div className="hidden md:block relative w-full">
           <div className="flex gap-4 animate-marquee w-max">
             {[...portalCategories, ...portalCategories].map((cat, idx) => (
-              <div
-                key={`${cat.title}-desktop-${idx}`}
+              <div 
+                key={`${cat.title}-desktop-${idx}`} 
                 className="shrink-0 w-[240px] lg:w-[260px]"
               >
                 <Link
@@ -238,7 +239,7 @@ export function HomeClient() {
             </div>
             <Reveal animation="zoom-in" delay={500} duration={500}>
               <div className="z-10 shrink-0 w-full md:w-auto">
-                <Link href="/ai-grader/ielts" className="inline-flex items-center justify-center w-full md:w-auto px-6 py-2.5 bg-white text-slate-900 font-bold rounded-md text-sm transition-all hover:bg-blue-50 hover:scale-105 active:scale-95">
+                <Link href="/ai-grader" className="inline-flex items-center justify-center w-full md:w-auto px-6 py-2.5 bg-white text-slate-900 font-bold rounded-md text-sm transition-all hover:bg-blue-50 hover:scale-105 active:scale-95">
                   Truy cập nhanh <FileText className="w-4 h-4 ml-1.5" />
                 </Link>
               </div>
@@ -283,7 +284,7 @@ export function HomeClient() {
                 <h3 className="text-lg font-bold text-[var(--text-primary)]">AI Chấm Điểm Writing</h3>
               </div>
               <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-                Tự động đánh giá khắt khe theo tiêu chuẩn bằng mô hình ngôn ngữ lớn. <Link href="/ai-grader/ielts" className="text-[var(--text-primary)] font-semibold hover:underline">Phân tích lỗi sai</Link> và đề xuất từ vựng cao cấp, giúp bứt phá điểm số IELTS, TOEIC, HSK & TOPIK.
+                Tự động đánh giá khắt khe theo tiêu chuẩn bằng mô hình ngôn ngữ lớn. <Link href="/ai-grader" className="text-[var(--text-primary)] font-semibold hover:underline">Phân tích lỗi sai</Link> và đề xuất từ vựng cao cấp, giúp bứt phá điểm số IELTS, TOEIC, HSK & TOPIK.
               </p>
             </div>
           </Reveal>

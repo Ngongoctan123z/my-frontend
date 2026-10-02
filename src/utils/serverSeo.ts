@@ -55,7 +55,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       images: [finalOgImage],
     },
     alternates: {
-      canonical: `https://vndocs.net${path}`,
+      canonical: `https://vndocs.net${path === '/' ? '' : path}`,
     },
     robots: {
       index: true,

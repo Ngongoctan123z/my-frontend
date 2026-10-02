@@ -16,16 +16,10 @@ const inter = Inter({
 import { getDb } from '@/src/db'
 import { systemConfigs } from '@/src/db/schema'
 
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 5,
-  themeColor: '#ffffff',
-}
-
 export async function generateMetadata(): Promise<Metadata> {
   let title = 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí';
   let description = 'Kho đề thi vào 10, đề thi THPT Quốc Gia, luyện Writing IELTS, TOEIC và công cụ xử lý file PDF miễn phí.';
+  let keywords = 'đề thi, tài liệu, pdf, ielts, toeic';
   let ogImage = '';
   
   try {
@@ -36,6 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
       
       if (configMap.SEO_TITLE) title = configMap.SEO_TITLE;
       if (configMap.SEO_DESCRIPTION) description = configMap.SEO_DESCRIPTION;
+      if (configMap.SEO_KEYWORDS) keywords = configMap.SEO_KEYWORDS;
       if (configMap.SEO_OG_IMAGE) ogImage = configMap.SEO_OG_IMAGE;
     }
   } catch (e) {
@@ -48,6 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL('https://vndocs.net'),
     title: title,
     description: description,
+    keywords: keywords,
     openGraph: {
       title: title,
       description: description,
@@ -62,6 +58,9 @@ export async function generateMetadata(): Promise<Metadata> {
       title: title,
       description: description,
       images: [finalOgImage],
+    },
+    alternates: {
+      canonical: '/',
     },
     robots: {
       index: true,

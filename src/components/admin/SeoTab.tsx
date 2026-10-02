@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react'
-import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map, X, UploadCloud, AlertTriangle, Trash2, Image as ImageIcon } from 'lucide-react'
-import apiClient from '@/src/services/adminApi'
+import React, { useEffect, useState } from 'react'
+import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map, X } from 'lucide-react'
 
 const SEO_ROUTES = [
   { 
@@ -25,32 +24,11 @@ const SEO_ROUTES = [
     defaultDesc: 'Tải miễn phí hàng ngàn tài liệu luyện thi, đề thi vào 10, đề thi THPT Quốc gia (Toán, Văn, Anh), PDF ôn thi IELTS, TOEIC cập nhật mới nhất có đáp án.'
   },
   { 
-    path: '/ai-grader/ielts', 
-    name: 'Chấm Điểm IELTS', 
+    path: '/ai-grader', 
+    name: 'Trang Chấm Điểm AI', 
     icon: PenTool,
     defaultTitle: 'Luyện Writing IELTS Bằng AI & Chấm Điểm Chuẩn Band | VNDocs',
     defaultDesc: 'Trải nghiệm hệ thống luyện Writing IELTS bằng AI miễn phí tốt nhất. Chấm điểm chi tiết 4 tiêu chí (TR, CC, LR, GRA), sửa lỗi ngữ pháp, từ vựng và gợi ý nâng band điểm tự động.'
-  },
-  { 
-    path: '/ai-grader/toeic', 
-    name: 'Chấm Điểm TOEIC', 
-    icon: PenTool,
-    defaultTitle: 'Luyện Writing TOEIC Bằng AI & Chấm Điểm Chuẩn ETS | VNDocs',
-    defaultDesc: 'Công cụ chấm điểm TOEIC Writing bằng AI tiên tiến. Thực hành mô tả ảnh, viết email và viết bài luận theo format thực tế.'
-  },
-  { 
-    path: '/ai-grader/topik', 
-    name: 'Chấm Điểm TOPIK', 
-    icon: PenTool,
-    defaultTitle: 'Luyện Viết TOPIK Bằng AI & Chấm Điểm Tiếng Hàn | VNDocs',
-    defaultDesc: 'Nền tảng luyện viết TOPIK (쓰기) chuẩn xác. AI tự động sửa lỗi chính tả, ngữ pháp tiếng Hàn và gợi ý từ vựng cao cấp.'
-  },
-  { 
-    path: '/ai-grader/hsk', 
-    name: 'Chấm Điểm HSK', 
-    icon: PenTool,
-    defaultTitle: 'Luyện Viết HSK Bằng AI & Chấm Điểm Tiếng Trung | VNDocs',
-    defaultDesc: 'Công cụ chấm điểm viết tiếng Trung HSK bằng AI. Sửa lỗi ngữ pháp, cấu trúc câu và từ vựng chuẩn xác theo từng cấp độ HSK.'
   },
   { 
     path: '/flashcard', 
@@ -79,12 +57,6 @@ export function SeoTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  
-  // Upload state
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
-  const [uploadWarning, setUploadWarning] = useState('')
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -147,64 +119,6 @@ export function SeoTab() {
     })
   }
   
-  const handleFileUpload = async (file: File) => {
-    setUploadError('')
-    setUploadWarning('')
-    
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setUploadError('Chỉ hỗ trợ file PNG, JPG, WebP.')
-      return
-    }
-    
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError('File quá lớn, tối đa 2MB.')
-      return
-    }
-
-    const img = new globalThis.Image()
-    img.src = URL.createObjectURL(file)
-    img.onload = async () => {
-      URL.revokeObjectURL(img.src)
-      const ratio = img.width / img.height
-      if (ratio < 1.8 || ratio > 2.0) {
-        setUploadWarning('Khuyến nghị ảnh tỷ lệ 1.91:1 (vd: 1200x630) để hiển thị tốt nhất trên Facebook, Zalo.')
-      }
-
-      setIsUploading(true)
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-        
-        const res = await apiClient.post('/admin/upload/seo-image', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        
-        setConfigs(prev => ({
-          ...prev,
-          [activeRoute]: {
-            ...prev[activeRoute],
-            SEO_OG_IMAGE: res.data.url
-          }
-        }))
-      } catch (err: any) {
-        setUploadError(err.response?.data?.message || err.message || 'Lỗi mạng, không thể tải ảnh lên.')
-      } finally {
-        setIsUploading(false)
-        if (fileInputRef.current) fileInputRef.current.value = ''
-      }
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    const file = e.dataTransfer.files?.[0]
-    if (file) handleFileUpload(file)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-  }
-  
   const openAddCustomRouteModal = () => {
     setModalPathInput('')
     setIsModalOpen(true)
@@ -213,15 +127,8 @@ export function SeoTab() {
   const handleConfirmCustomRoute = () => {
     let path = modalPathInput.trim()
     if (!path) return
-    // Remove domain if it exists
-    path = path.replace(/^https?:\/\/[^\/]+/, '')
-    // Ensure it starts with /
     if (!path.startsWith('/')) {
       path = '/' + path
-    }
-    // Remove trailing slash if not root
-    if (path.length > 1 && path.endsWith('/')) {
-      path = path.slice(0, -1)
     }
     
     if (SEO_ROUTES.some(r => r.path === path) || customRoutes.includes(path)) {
@@ -334,7 +241,7 @@ export function SeoTab() {
           </div>
           <div>
             <h2 className="text-2xl font-black text-slate-800">
-              {activeRoute === 'GLOBAL' ? 'Cấu hình SEO Toàn Trang' : `Cấu hình SEO: ${SEO_ROUTES.find(r => r.path === activeRoute)?.name || activeRoute}`}
+              {activeRoute === 'GLOBAL' ? 'Cấu hình SEO Toàn Trang' : `Cấu hình SEO: ${SEO_ROUTES.find(r => r.path === activeRoute)?.name}`}
             </h2>
             <p className="text-sm text-gray-500 font-medium mt-1">
               {activeRoute === 'GLOBAL' 
@@ -373,76 +280,36 @@ export function SeoTab() {
             />
           </div>
 
-
+          <div>
+            <label className="block font-bold text-slate-700 mb-2">Meta Keywords (Từ khóa)</label>
+            <input 
+              type="text"
+              name="SEO_KEYWORDS"
+              value={currentConf.SEO_KEYWORDS || ''}
+              onChange={handleChange}
+              placeholder="đề thi, tài liệu, ielts..."
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-800 text-sm"
+            />
+          </div>
+          
           <div>
             <label className="block font-bold text-slate-700 mb-2">OpenGraph Image URL (Ảnh Thumbnail)</label>
-            
-            {!currentConf.SEO_OG_IMAGE ? (
-              <div 
-                className="w-full h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 hover:border-emerald-400 transition-all cursor-pointer mb-2"
-                onClick={() => fileInputRef.current?.click()}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-              >
-                {isUploading ? (
-                  <Loader2 className="animate-spin w-8 h-8 text-emerald-600 mb-2" />
-                ) : (
-                  <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
-                )}
-                <span className="text-sm font-semibold text-slate-600">
-                  {isUploading ? 'Đang tải lên...' : 'Click hoặc kéo thả file ảnh vào đây'}
-                </span>
-                <span className="text-xs text-gray-500 mt-1">Hỗ trợ PNG, JPG, WebP. Tối đa 2MB. Tỷ lệ chuẩn 1.91:1</span>
-              </div>
-            ) : (
-              <div className="mt-2 mb-3 relative group w-max border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm p-1">
-                <img src={currentConf.SEO_OG_IMAGE} alt="Preview" className="h-32 object-contain rounded-lg" />
-                <button
-                  onClick={() => setConfigs({ ...configs, [activeRoute]: { ...configs[activeRoute], SEO_OG_IMAGE: '' } })}
-                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Xóa ảnh"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            <input 
-              type="file" 
-              accept="image/png, image/jpeg, image/webp" 
-              className="hidden" 
-              ref={fileInputRef}
-              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-            />
-
             <input 
               type="text"
               name="SEO_OG_IMAGE"
               value={currentConf.SEO_OG_IMAGE || ''}
               onChange={handleChange}
-              placeholder="Hoặc dán link ảnh trực tiếp vào đây..."
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-600 text-sm mt-3"
+              placeholder="https://.../banner.png"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-800 text-sm"
             />
-            
-            {uploadError && (
-              <div className="flex items-center gap-2 text-red-600 text-sm font-medium bg-red-50 p-2.5 rounded-lg mt-3">
-                <AlertTriangle className="w-4 h-4" /> {uploadError}
-              </div>
-            )}
-            
-            {uploadWarning && (
-              <div className="flex items-center gap-2 text-amber-600 text-sm font-medium bg-amber-50 p-2.5 rounded-lg mt-3">
-                <AlertTriangle className="w-4 h-4" /> {uploadWarning}
-              </div>
-            )}
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           <button
             onClick={saveConfig}
-            disabled={saving || isUploading}
-            className="flex items-center gap-2 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saving}
+            className="flex items-center gap-2 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/30 active:scale-95"
           >
             {saving ? <Loader2 className="animate-spin w-5 h-5" /> : <Save className="w-5 h-5" />}
             Lưu Toàn Bộ Cấu Hình SEO
