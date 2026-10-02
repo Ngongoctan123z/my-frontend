@@ -150,6 +150,7 @@ export function TopikGraderClient() {
       setUsageCount(prev => prev + 1)
       
       await saveEssayHistory({
+        email: session?.user?.email || 'anonymous',
         examType,
         prompt: prompt.content,
         essay: finalEssay,
