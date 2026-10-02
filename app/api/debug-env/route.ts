@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { getServerSession } from 'next-auth'
-import { authOptions } from '../auth/[...nextauth]/route'
+import { auth } from '@/src/auth'
 
 const rootAdmins = ['ngotandoo@gmail.com']
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   if (!session?.user?.email || !rootAdmins.includes(session.user.email)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
