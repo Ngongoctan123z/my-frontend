@@ -51,13 +51,15 @@ export function HskGraderClient() {
   }, [essay, prompt, examType])
 
   const loadHistory = async () => {
-    const data = await getEssayHistory()
+    if (!session?.user?.email) return
+    const data = await getEssayHistory(session.user.email)
     setHistory(data.filter(h => h.examType.startsWith('HSK')))
   }
 
   useEffect(() => {
-    loadHistory()
-  }, [])
+    if (session?.user?.email) loadHistory()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email])
 
   const promptQueue = useRef<PromptObject[]>([])
   const isFetchingQueue = useRef(false)
