@@ -80,7 +80,7 @@ export function HskGraderClient() {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || 'ÄÃ£ cÃ³ lá»—i xáº£y ra.');
+      throw new Error(data.error || 'Đã có lỗi xảy ra.');
     }
     return data;
   }
