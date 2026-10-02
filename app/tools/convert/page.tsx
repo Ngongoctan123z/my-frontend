@@ -14,7 +14,8 @@ export default function ConvertPage() {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_CONVERTER_API_URL || 'http://localhost:8000';
+  // Gọi qua proxy route nội bộ thay vì gọi thẳng IP VPS (tránh lỗi HTTPS/HTTP Mixed Content)
+  const API_URL = '';
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,7 +65,7 @@ export default function ConvertPage() {
     const formData = new FormData();
     formData.append('file', selectedFile);
     
-    const endpoint = conversionType === 'pdf-to-word' ? '/api/pdf-to-word' : '/api/word-to-pdf';
+    const endpoint = conversionType === 'pdf-to-word' ? '/api/convert/pdf-to-word' : '/api/convert/word-to-pdf';
 
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {
