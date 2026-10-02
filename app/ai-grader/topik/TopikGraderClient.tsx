@@ -51,15 +51,14 @@ export function TopikGraderClient() {
   }, [essay, prompt, examType])
 
   const loadHistory = async () => {
-    if (!session?.user?.email) return
+    if (!session?.user?.email) return;
     const data = await getEssayHistory(session.user.email)
     setHistory(data.filter(h => h.examType.startsWith('TOPIK')))
   }
 
   useEffect(() => {
-    if (session?.user?.email) loadHistory()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.email])
+    loadHistory()
+  }, [])
 
   const promptQueue = useRef<PromptObject[]>([])
   const isFetchingQueue = useRef(false)

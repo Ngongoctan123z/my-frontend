@@ -58,15 +58,14 @@ export function AiGraderClient() {
   }, [essayTask1, essayTask2, prompt, examType])
 
   const loadHistory = async () => {
-    if (!session?.user?.email) return
+    if (!session?.user?.email) return;
     const data = await getEssayHistory(session.user.email)
     setHistory(data.filter(h => h.examType.startsWith('IELTS')))
   }
 
   useEffect(() => {
-    if (session?.user?.email) loadHistory()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.email])
+    loadHistory()
+  }, [])
 
   const promptQueue = useRef<PromptObject[]>([])
   const isFetchingQueue = useRef(false)
@@ -87,7 +86,7 @@ export function AiGraderClient() {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || 'Đã có lỗi xảy ra.');
+      throw new Error(data.error || 'ÄÃ£ cÃ³ lá»—i xáº£y ra.');
     }
     return data;
   }
@@ -136,22 +135,7 @@ export function AiGraderClient() {
     }
   }
 
-  const wordCount = examType === 'IELTS_TASK_1' 
-    ? (essayTask1.trim() ? essayTask1.trim().split(/\s+/).length : 0)
-    : (
-        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/\s+/).length : 0) +
-        (essayTask2.body.trim() ? essayTask2.body.trim().split(/\s+/).length : 0) +
-        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/\s+/).length : 0)
-      )
-
-  const minWords = examType === 'IELTS_TASK_1' ? 150 : 250
-
   const gradeEssay = async () => {
-    if (wordCount < minWords) {
-      setError(`Bài viết của bạn chưa đủ ${minWords} từ (mức tối thiểu cho ${examType === 'IELTS_TASK_1' ? 'Task 1' : 'Task 2'}). Vui lòng viết thêm để hệ thống chấm điểm chính xác.`)
-      return
-    }
-
     if (!prompt?.content.trim()) {
       setError('Vui lÃ²ng táº¡o Ä‘á» trÆ°á»›c khi cháº¥m.')
       return
@@ -182,16 +166,14 @@ export function AiGraderClient() {
       setResult(data)
       setUsageCount(prev => prev + 1)
       
-      if (session?.user?.email) {
-        await saveEssayHistory({
-          email: session.user.email,
-          examType,
-          prompt: prompt.content,
-          essay: finalEssay,
-          result: data
-        })
-        loadHistory()
-      }
+      await saveEssayHistory({
+        email: session?.user?.email || 'anonymous',
+        examType,
+        prompt: prompt.content,
+        essay: finalEssay,
+        result: data
+      })
+      loadHistory()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -199,6 +181,15 @@ export function AiGraderClient() {
     }
   }
 
+  const wordCount = examType === 'IELTS_TASK_1' 
+    ? (essayTask1.trim() ? essayTask1.trim().split(/\s+/).length : 0)
+    : (
+        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/\s+/).length : 0) +
+        (essayTask2.body.trim() ? essayTask2.body.trim().split(/\s+/).length : 0) +
+        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/\s+/).length : 0)
+      )
+
+  const minWords = examType === 'IELTS_TASK_1' ? 150 : 250
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -515,7 +506,7 @@ export function AiGraderClient() {
           </p>
           
           <div className="space-y-4">
-            <details open className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
               <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
                 1. 4 TiÃªu ChÃ­ Cháº¥m Äiá»ƒm (IELTS Grading Criteria)
                 <span className="transition group-open:rotate-180">
@@ -533,7 +524,7 @@ export function AiGraderClient() {
               </div>
             </details>
 
-            <details open className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
               <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
                 2. Máº¹o Äáº¡t Band 7.0+ Cho IELTS Task 2
                 <span className="transition group-open:rotate-180">
@@ -551,7 +542,7 @@ export function AiGraderClient() {
               </div>
             </details>
 
-            <details open className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
               <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
                 3. CÃ¡ch Sá»­ Dá»¥ng CÃ´ng Cá»¥ Cháº¥m BÃ i AI
                 <span className="transition group-open:rotate-180">
