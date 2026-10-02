@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { auth } from '@/src/auth'
+import { auth } from '@/auth'
 
 const rootAdmins = ['ngotandoo@gmail.com']
 
