@@ -97,8 +97,8 @@ export function HomeClient() {
           <div className="flex-1 text-center md:text-left">
             <Reveal animation="fade-up" duration={700}>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 leading-snug">
-                Học cho vui điểm tới lui<br />
-                <span className="text-blue-600">VNDocs không học thì đừng khóc</span>
+                VNDocs: Kho Đề Thi, Luyện IELTS Writing AI<br />
+                <span className="text-blue-600">& Tiện Ích Học Tập Miễn Phí</span>
               </h1>
             </Reveal>
             <Reveal animation="fade-up" delay={150} duration={600}>
