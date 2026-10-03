@@ -70,8 +70,40 @@ export default function MergeFilesClient() {
     }
   }
 
-  const handleExecuteOtherFormats = () => {
-    setError(`Định dạng ${format.toUpperCase()} hiện đang được nâng cấp để xử lý trên máy chủ. Tạm thời tính năng này chỉ khả dụng cho PDF.`)
+  const handleExecuteOtherFormats = async () => {
+    setIsProcessing(true)
+    setError('')
+    setResultUrl(null)
+    try {
+      if (multiFiles.length < 2) throw new Error("Cần ít nhất 2 file để gộp")
+      
+      const formData = new FormData()
+      formData.append('format', format)
+      multiFiles.forEach(file => {
+        formData.append('files', file)
+      })
+
+      // TODO: Đổi NEXT_PUBLIC_AWS_API_URL trong .env sau khi deploy backend lên AWS
+      const apiUrl = process.env.NEXT_PUBLIC_AWS_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/merge`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Lỗi từ máy chủ AWS khi gộp file. Vui lòng kiểm tra lại server.')
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      setResultUrl(url)
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Có lỗi kết nối đến máy chủ AWS. Vui lòng đảm bảo Backend đang chạy.')
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   const handleExecute = () => {
@@ -168,13 +200,13 @@ export default function MergeFilesClient() {
             </div>
             <a 
               href={resultUrl} 
-              download={`VNDocs-Merged.pdf`}
+              download={`VNDocs-Merged.${format}`}
               className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-8 py-4 rounded-xl hover:bg-emerald-700 transition-all hover:scale-105 shadow-lg"
             >
               <Download className="w-5 h-5" /> Tải xuống file Gộp ngay
             </a>
           </div>
-        ) : format === 'pdf' ? (
+        ) : (
           <div className="flex justify-center">
             <button 
               onClick={handleExecute}
@@ -182,18 +214,8 @@ export default function MergeFilesClient() {
               className="px-8 py-3 flex items-center gap-2 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover disabled:opacity-50 transition shadow-lg"
             >
               {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
-              Tiến hành Gộp {multiFiles.length} file
+              Tiến hành Gộp {multiFiles.length} file {getFormatLabel()}
             </button>
-          </div>
-        ) : (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center space-y-6">
-            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
-              <Settings2 className="w-8 h-8" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-amber-800">Tính năng đang phát triển!</h3>
-              <p className="text-amber-700 mt-2">Tính năng xử lý file {format.toUpperCase()} sẽ sớm ra mắt trong thời gian tới. Vui lòng chuyển sang dùng PDF tạm thời nhé!</p>
-            </div>
           </div>
         )}
       </div>
