@@ -26,7 +26,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
   const year = searchParams?.get('year') ?? ''
   const sort = (searchParams?.get('sort') as 'recent' | 'popular' | 'name') || 'recent'
 
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false) // chỉ dùng cho mobile
   const [page, setPage] = useState(0)
 
   useSeo(
@@ -38,6 +38,8 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       : 'VNDocs tuyển sinh vào lớp 10 và thi tốt nghiệp THPT của các tỉnh thành. Tải đề và xem online.',
   )
 
+  const PAGE_SIZE = 8
+
   const filters = useMemo(
     () => ({
       q: q.trim() || undefined,
@@ -46,7 +48,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       province: province || undefined,
       year: year ? Number(year) : undefined,
       page,
-      limit: 30,
+      limit: PAGE_SIZE,
       sort,
     }),
     [q, examType, subject, province, year, page, sort],
@@ -59,7 +61,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
   })
 
   const totalCount = results.data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(totalCount / 30))
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   const updateParam = (key: string, value: string | undefined) => {
     const nextParams = new URLSearchParams((searchParams?.toString() || ''))
@@ -298,7 +300,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
           )}
           <Button
             variant="ghost"
-            className="flex items-center gap-2 rounded-xl text-xs py-2 px-3 border border-line"
+            className="flex md:hidden items-center gap-2 rounded-xl text-xs py-2 px-3 border border-line"
             onClick={() => setFiltersOpen((open) => !open)}
           >
             <Filter size={14} />
@@ -308,9 +310,9 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       </div>
 
       {/* Main Content Layout: Filters + Results + Ad Banner */}
-      <div className={`grid grid-cols-1 gap-6 ${filtersOpen ? 'lg:grid-cols-[280px_1fr_300px] md:grid-cols-[280px_1fr]' : 'lg:grid-cols-[1fr_300px]'} pb-12 md:pb-16`}>
+      <div className={`grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr_300px] md:grid-cols-[280px_1fr] pb-12 md:pb-16`}>
         {/* Sidebar Filters */}
-        <div className={`${filtersOpen ? 'block' : 'hidden'} md:sticky md:top-24 h-max`}>
+        <div className={`${filtersOpen ? 'block' : 'hidden'} md:block md:sticky md:top-24 h-max`}>
           <ExamFilter
             examType={examType}
             subject={subject}
@@ -382,7 +384,8 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 pt-4">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-1.5 pt-4 border-t border-line">
+              {/* Nút Trước */}
               <button
                 type="button"
                 disabled={page === 0}
@@ -390,28 +393,52 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                   setPage((p) => Math.max(0, p - 1))
                   window.scrollTo({ top: 0, behavior: 'smooth' })
                 }}
-                className="min-h-10 rounded-xl px-3 border border-line bg-surface text-xs font-medium disabled:opacity-40"
+                className="min-h-9 rounded-lg px-3 border border-line bg-surface text-xs font-medium disabled:opacity-40 hover:bg-page transition-colors"
               >
-                Trước
+                ← Trước
               </button>
 
-              {Array.from({ length: Math.min(totalPages, 8) }, (_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => {
-                    setPage(index)
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }}
-                  className={`min-h-10 min-w-10 rounded-xl px-3 text-xs font-semibold transition-colors ${page === index
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'border-line bg-surface hover:bg-page border text-ink'
-                    }`}
-                >
-                  {index + 1}
-                </button>
-              ))}
+              {/* Smart page numbers */}
+              {(() => {
+                const delta = 2
+                const range: (number | '...')[] = []
+                const left = Math.max(0, page - delta)
+                const right = Math.min(totalPages - 1, page + delta)
 
+                if (left > 0) {
+                  range.push(0)
+                  if (left > 1) range.push('...')
+                }
+                for (let i = left; i <= right; i++) range.push(i)
+                if (right < totalPages - 1) {
+                  if (right < totalPages - 2) range.push('...')
+                  range.push(totalPages - 1)
+                }
+
+                return range.map((item, idx) =>
+                  item === '...' ? (
+                    <span key={`dot-${idx}`} className="px-1 text-ink-muted text-xs">…</span>
+                  ) : (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => {
+                        setPage(item as number)
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
+                      className={`min-h-9 min-w-9 rounded-lg px-2.5 text-xs font-semibold transition-colors ${
+                        page === item
+                          ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                          : 'border border-line bg-surface hover:bg-page text-ink'
+                      }`}
+                    >
+                      {(item as number) + 1}
+                    </button>
+                  )
+                )
+              })()}
+
+              {/* Nút Sau */}
               <button
                 type="button"
                 disabled={page >= totalPages - 1}
@@ -419,10 +446,15 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                   setPage((p) => Math.min(totalPages - 1, p + 1))
                   window.scrollTo({ top: 0, behavior: 'smooth' })
                 }}
-                className="min-h-10 rounded-xl px-3 border border-line bg-surface text-xs font-medium disabled:opacity-40"
+                className="min-h-9 rounded-lg px-3 border border-line bg-surface text-xs font-medium disabled:opacity-40 hover:bg-page transition-colors"
               >
-                Sau
+                Sau →
               </button>
+
+              {/* Hiển thị trang hiện tại */}
+              <span className="w-full text-center text-xs text-ink-muted mt-1">
+                Trang {page + 1} / {totalPages}
+              </span>
             </div>
           )}
         </div>

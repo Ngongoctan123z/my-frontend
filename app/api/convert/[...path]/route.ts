@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const VPS_API_URL = process.env.CONVERTER_API_URL || 'http://3.145.155.167:8000'
+const VPS_API_URL = 'http://3.145.155.167.nip.io:8000'
 
-export const runtime = 'edge'
 export const maxDuration = 60 // 60 giây timeout cho file lớn
 
 export async function POST(
