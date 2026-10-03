@@ -19,6 +19,9 @@ export default function ToolsIndexPage() {
         <p className="text-ink-muted text-lg">
           Trợ thủ đắc lực cho việc học tập và xử lý tài liệu của bạn. Hoàn toàn miễn phí.
         </p>
+        <p className="text-slate-500 font-medium max-w-2xl mx-auto">
+          Cung cấp các giải pháp tối ưu để xử lý, cắt ghép file PDF nhanh chóng, cùng với máy tính khoa học giả lập giúp bạn học tập và giải quyết bài tập dễ dàng hơn.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -88,6 +91,11 @@ export default function ToolsIndexPage() {
             Bên cạnh hệ thống kho đề thi và tài liệu học tập khổng lồ, <strong>VNDocs</strong> còn phát triển một <strong>bộ công cụ tiện ích hoàn toàn miễn phí</strong> nhằm hỗ trợ tối đa cho học sinh, sinh viên và nhân viên văn phòng. 
             Mọi thao tác xử lý file đều được thực hiện trực tiếp trên trình duyệt của bạn (Client-side), đảm bảo <strong>tuyệt đối an toàn và bảo mật dữ liệu</strong> vì tài liệu sẽ không bao giờ bị tải lên bất kỳ máy chủ nào.
           </p>
+
+          <h3 className="text-lg font-bold text-slate-800 mt-6 mb-3">Mục đích phục vụ & Giá trị mang lại</h3>
+          <p className="mb-4">
+            Chúng tôi hiểu rằng trong quá trình làm việc và học tập, bạn thường xuyên phải xử lý các tài liệu định dạng PDF, cần cắt ghép, trích xuất dữ liệu, hoặc sử dụng máy tính giả lập để giải toán. Các phần mềm chuyên dụng thường yêu cầu cài đặt và tốn phí cao. Vì vậy, VNDocs mang tới bộ công cụ trực tuyến toàn diện, giúp tiết kiệm thời gian, tối ưu quy trình làm việc và mang lại <strong>sự tiện lợi tối đa</strong> mà không yêu cầu bạn phải cài đặt bất kỳ phần mềm nào.
+          </p>
           
           <h3 className="text-lg font-bold text-slate-800 mt-6 mb-3">Tính Năng Xử Lý File PDF Mạnh Mẽ</h3>
           <p className="mb-4">
@@ -101,9 +109,14 @@ export default function ToolsIndexPage() {
           </ul>
 
           <h3 className="text-lg font-bold text-slate-800 mt-6 mb-3">Máy Tính Khoa Học Trực Tuyến Đầy Đủ</h3>
-          <p>
+          <p className="mb-4">
             Đặc biệt dành cho các bạn học sinh, sinh viên, hệ thống tích hợp sẵn <strong>trình giả lập Máy tính khoa học & Đồ thị</strong> siêu mạnh mẽ. 
             Hỗ trợ đầy đủ các hàm lượng giác, giải phương trình, hệ phương trình, ma trận, thống kê... giúp bạn có thể học tập và tính toán mọi lúc mọi nơi ngay trên trình duyệt mà không cần phải cài đặt thêm phần mềm phức tạp nào.
+          </p>
+
+          <h3 className="text-lg font-bold text-slate-800 mt-6 mb-3">Cơ chế hoạt động & Tính bảo mật</h3>
+          <p>
+            Tất cả các công cụ xử lý PDF của chúng tôi đều hoạt động trên cơ chế xử lý trực tiếp tại thiết bị của bạn (Local processing). Điều này có nghĩa là tài liệu của bạn <strong>không bao giờ rời khỏi máy tính</strong> và không được tải lên bất kỳ máy chủ nào. Tính bảo mật dữ liệu được đặt lên hàng đầu, giúp bạn yên tâm khi xử lý các tài liệu quan trọng, hợp đồng, hoặc đề thi bảo mật.
           </p>
         </article>
       </section>

@@ -70,7 +70,6 @@ export function SeoTab() {
           GLOBAL: {
             SEO_TITLE: data.SEO_TITLE || '',
             SEO_DESCRIPTION: data.SEO_DESCRIPTION || '',
-            SEO_KEYWORDS: data.SEO_KEYWORDS || '',
             SEO_OG_IMAGE: data.SEO_OG_IMAGE || ''
           }
         }
@@ -86,7 +85,6 @@ export function SeoTab() {
               loadedConfigs[path] = {
                 SEO_TITLE: parsed.title || '',
                 SEO_DESCRIPTION: parsed.description || '',
-                SEO_KEYWORDS: parsed.keywords || '',
                 SEO_OG_IMAGE: parsed.ogImage || ''
               }
               if (!SEO_ROUTES.some(r => r.path === path)) {
@@ -99,7 +97,7 @@ export function SeoTab() {
         // Ensure static routes exist in loadedConfigs
         SEO_ROUTES.filter(r => r.path !== 'GLOBAL').forEach(r => {
           if (!loadedConfigs[r.path]) {
-            loadedConfigs[r.path] = { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_KEYWORDS: '', SEO_OG_IMAGE: '' }
+            loadedConfigs[r.path] = { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_OG_IMAGE: '' }
           }
         })
         
@@ -139,7 +137,7 @@ export function SeoTab() {
     setCustomRoutes([...customRoutes, path])
     setConfigs({
       ...configs,
-      [path]: { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_KEYWORDS: '', SEO_OG_IMAGE: '' }
+      [path]: { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_OG_IMAGE: '' }
     })
     setActiveRoute(path)
     setIsModalOpen(false)
@@ -152,7 +150,6 @@ export function SeoTab() {
     const payload: Record<string, string> = {
       SEO_TITLE: configs.GLOBAL.SEO_TITLE,
       SEO_DESCRIPTION: configs.GLOBAL.SEO_DESCRIPTION,
-      SEO_KEYWORDS: configs.GLOBAL.SEO_KEYWORDS,
       SEO_OG_IMAGE: configs.GLOBAL.SEO_OG_IMAGE,
     }
 
@@ -160,11 +157,10 @@ export function SeoTab() {
 
     allPaths.forEach(path => {
       const rConf = configs[path]
-      if (rConf && (rConf.SEO_TITLE || rConf.SEO_DESCRIPTION || rConf.SEO_KEYWORDS || rConf.SEO_OG_IMAGE)) {
+      if (rConf && (rConf.SEO_TITLE || rConf.SEO_DESCRIPTION || rConf.SEO_OG_IMAGE)) {
         payload[`SEO_ROUTE_${path}`] = JSON.stringify({
           title: rConf.SEO_TITLE,
           description: rConf.SEO_DESCRIPTION,
-          keywords: rConf.SEO_KEYWORDS,
           ogImage: rConf.SEO_OG_IMAGE
         })
       } else {
@@ -280,18 +276,7 @@ export function SeoTab() {
             />
           </div>
 
-          <div>
-            <label className="block font-bold text-slate-700 mb-2">Meta Keywords (Từ khóa)</label>
-            <input 
-              type="text"
-              name="SEO_KEYWORDS"
-              value={currentConf.SEO_KEYWORDS || ''}
-              onChange={handleChange}
-              placeholder="đề thi, tài liệu, ielts..."
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-800 text-sm"
-            />
-          </div>
-          
+
           <div>
             <label className="block font-bold text-slate-700 mb-2">OpenGraph Image URL (Ảnh Thumbnail)</label>
             <input 

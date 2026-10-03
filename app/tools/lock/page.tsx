@@ -5,7 +5,6 @@ import PdfLockUnlockWrapper from './PdfLockUnlockWrapper'
 export const metadata: Metadata = {
   title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
   description: 'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.',
-  keywords: 'khóa pdf, mã hóa pdf, đặt mật khẩu pdf, mở khóa pdf, xóa mật khẩu pdf, bảo vệ pdf',
   openGraph: {
     title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
     description: 'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.',

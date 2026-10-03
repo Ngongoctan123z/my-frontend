@@ -92,21 +92,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   let finalTitle = title
   let finalDesc = desc
-  let finalKeywords = ''
   let ogImage = `${FRONTEND_URL}/api/og?slug=${slug.join('/')}`
 
   const customSeo = await getCustomRouteSeo(pathName)
   if (customSeo) {
     if (customSeo.title) finalTitle = customSeo.title
     if (customSeo.description) finalDesc = customSeo.description
-    if (customSeo.keywords) finalKeywords = customSeo.keywords
     if (customSeo.ogImage) ogImage = customSeo.ogImage
   }
 
   return { 
     title: finalTitle, 
     description: finalDesc, 
-    keywords: finalKeywords,
     alternates: { canonical },
     robots: { index: true, follow: true },
     openGraph: { 

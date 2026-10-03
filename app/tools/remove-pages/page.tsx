@@ -5,7 +5,6 @@ import RemovePagesWrapper from './RemovePagesWrapper'
 export const metadata: Metadata = {
   title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
   description: 'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.',
-  keywords: 'cắt trang pdf, xóa trang pdf, split pdf, remove pages pdf, trích xuất trang pdf',
   openGraph: {
     title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
     description: 'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.',

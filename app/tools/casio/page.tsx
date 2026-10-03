@@ -5,7 +5,6 @@ import { CasioCalculator } from '@/src/components/tools/CasioCalculator'
 export const metadata: Metadata = {
   title: 'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
   description: 'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.',
-  keywords: 'máy tính casio online, casio fx 580vn x online, giả lập casio, máy tính bỏ túi online',
   openGraph: {
     title: 'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
     description: 'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.',

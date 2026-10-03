@@ -5,7 +5,6 @@ import MergeFilesWrapper from './MergeFilesWrapper'
 export const metadata: Metadata = {
   title: 'Gộp File PDF (Merge PDF) | VNDocs',
   description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
-  keywords: 'gộp file pdf, ghép file pdf, nối file pdf, merge pdf, combine pdf, gộp ảnh thành pdf',
   openGraph: {
     title: 'Gộp File PDF (Merge PDF) | VNDocs',
     description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
