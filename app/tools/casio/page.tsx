@@ -19,8 +19,8 @@ export default function CasioToolPage() {
     <div className="py-12 max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Giả lập Máy tính Casio Online</h1>
-        <p className="text-slate-500">
-          Phiên bản giả lập máy tính Casio fx-580VN X, fx-570VN Plus đầy đủ chức năng, hỗ trợ giải quyết các bài toán và công thức phức tạp nhất.
+        <p className="text-slate-500 max-w-2xl mx-auto">
+          Phiên bản giả lập máy tính Casio fx-580VN X, fx-570VN Plus đầy đủ chức năng, hỗ trợ giải quyết các bài toán và công thức phức tạp nhất. Phục vụ học sinh, sinh viên tính toán trực tuyến không cần cài đặt phần mềm.
         </p>
       </div>
 
@@ -64,6 +64,23 @@ export default function CasioToolPage() {
                   <li><strong>Không cần cài đặt:</strong> Bạn không phải tốn dung lượng tải các phần mềm giả lập nặng nề trên PC hay App Store/CH Play. Chỉ cần mở web VNDocs là có thể bấm máy tính được ngay.</li>
                   <li><strong>Miễn phí & Không quảng cáo rác:</strong> Giao diện sạch sẽ, tập trung hoàn toàn vào việc tính toán, không bị quảng cáo video che mất màn hình lúc đang thi hoặc làm bài tập.</li>
                   <li><strong>Tương thích đa nền tảng:</strong> Chạy mượt mà trên iPad, iPhone, điện thoại Android hay Macbook, Windows.</li>
+                </ul>
+              </div>
+            </details>
+
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                3. Lợi Ích Trong Quá Trình Học Tập & Thi Cử
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p className="mb-2">Máy tính Casio Fx-580VN X trực tuyến là công cụ không thể thiếu khi bạn luyện thi Đại học, ôn thi THPT Quốc Gia môn Toán, Lý, Hóa, Sinh. Nó mang lại những lợi ích thiết thực:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>Giúp bạn làm quen với các phím bấm và luồng thao tác giải nhanh trắc nghiệm (bấm CALC, SOLVE, TABLE).</li>
+                  <li>Sử dụng như một phương án dự phòng hoàn hảo khi máy tính thật của bạn hết pin hoặc để quên ở nhà.</li>
+                  <li>Khả năng tính toán chính xác tuyệt đối, chuẩn xác đến từng chữ số thập phân, đảm bảo kết quả bài làm luôn đạt điểm số tối đa.</li>
                 </ul>
               </div>
             </details>

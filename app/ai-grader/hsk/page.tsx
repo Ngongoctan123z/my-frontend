@@ -72,6 +72,27 @@ export default function HskPage() {
       <div className="px-4 sm:px-6 lg:px-8">
         <HskGraderClient />
       </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-12 border-t border-gray-100">
+        <article className="prose prose-slate max-w-none text-justify">
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">Bí quyết chinh phục HSK Writing với Công cụ chấm bài AI</h2>
+          <p>Kỹ năng Viết (书写) trong kỳ thi năng lực Hán ngữ HSK, đặc biệt từ cấp 4 đến cấp 6, đòi hỏi sự chính xác cao về ngữ pháp và tư duy mạch lạc. Trợ lý AI của VNDocs ra đời giúp bạn <strong>chấm điểm và sửa lỗi HSK Writing</strong> một cách toàn diện nhất.</p>
+          
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">1. Tiêu chuẩn đánh giá chuẩn HSK</h3>
+          <p>Hệ thống AI mô phỏng cách chấm điểm của giám khảo Trung Quốc, tập trung vào các khía cạnh:</p>
+          <ul>
+            <li><strong>Độ chính xác của từ vựng và chữ Hán:</strong> Sửa các lỗi dùng sai từ (từ gần nghĩa, sai ngữ cảnh) và lỗi chính tả chữ Hán (nếu gõ pinyin sai).</li>
+            <li><strong>Ngữ pháp (语法):</strong> Phát hiện các lỗi sai trật tự từ, sử dụng sai các trợ từ động thái (了, 着, 过) hay các cấu trúc câu đặc biệt (câu chữ 把, câu chữ 被).</li>
+            <li><strong>Cấu trúc bài viết:</strong> Đánh giá tính mạch lạc, cách sử dụng các từ nối (liên từ) để đoạn văn tự nhiên và logic.</li>
+          </ul>
+
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">2. Lợi ích khi sử dụng tiện ích AI</h3>
+          <p>Bạn có thể chủ động luyện viết bất kỳ lúc nào. Sau khi nộp bài, AI sẽ chỉ ra những điểm còn hạn chế, giải thích chi tiết lý do sai bằng tiếng Việt và đề xuất cách sửa lại cho giống với văn phong người bản ngữ nhất. Đây là phương pháp tối ưu giúp bạn đạt điểm cao trong kỳ thi HSK sắp tới.</p>
+
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">3. An toàn thông tin tuyệt đối</h3>
+          <p>Chúng tôi cam kết hệ thống không thu thập hay chia sẻ bài viết của bạn với bất kỳ bên thứ ba nào. Quá trình trao đổi dữ liệu được mã hóa SSL, đảm bảo quyền riêng tư và an toàn thông tin ở mức cao nhất.</p>
+        </article>
+      </div>
     </div>
   )
 }

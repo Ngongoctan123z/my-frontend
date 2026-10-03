@@ -19,8 +19,8 @@ export default function MergeToolPage() {
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Gộp Nhiều Tài Liệu</h1>
-        <p className="text-slate-500">
-          Ghép nhiều tài liệu hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả.
+        <p className="text-slate-500 max-w-2xl mx-auto">
+          Ghép nối nhiều tài liệu PDF hoặc hình ảnh (JPG, PNG) thành một tệp duy nhất. Giao diện trực quan cho phép sắp xếp thứ tự trang bằng thao tác kéo thả thông minh.
         </p>
       </div>
 
@@ -65,6 +65,23 @@ export default function MergeToolPage() {
                   <li>Di chuyển chuột để sắp xếp lại thứ tự các file nếu cần thiết.</li>
                   <li>Bấm nút <strong>"Gộp File Ngay"</strong> và hệ thống sẽ tự động tải file PDF hoàn chỉnh về máy của bạn.</li>
                 </ol>
+              </div>
+            </details>
+
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                3. Những Ứng Dụng Hữu Ích Khi Ghép File PDF
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p className="mb-2">Gộp file không chỉ giúp tài liệu của bạn gọn gàng mà còn mang lại nhiều giá trị thiết thực trong thực tế:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>Làm Hồ sơ xin việc (CV & Portfolio):</strong> Tổng hợp sơ yếu lý lịch, bằng cấp, chứng chỉ thành một file PDF duy nhất giúp nhà tuyển dụng dễ dàng theo dõi toàn bộ thông tin của bạn.</li>
+                  <li><strong>Tổng hợp tài liệu học tập:</strong> Gom nhiều đề thi hoặc các chương sách rời rạc thành một bộ giáo trình đầy đủ để tiện lưu trữ hoặc đem ra tiệm in ấn.</li>
+                  <li><strong>Nộp báo cáo công việc:</strong> Sắp xếp hóa đơn, biên lai (dưới dạng ảnh chụp) và biểu mẫu báo cáo (dưới dạng PDF) vào cùng một tệp tin chuyên nghiệp.</li>
+                </ul>
               </div>
             </details>
           </div>

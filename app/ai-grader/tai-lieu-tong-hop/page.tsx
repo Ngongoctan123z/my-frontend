@@ -18,8 +18,14 @@ export const metadata: Metadata = {
 
 export default function TaiLieuTongHopPage() {
   return (
-    <Suspense>
-      <DocumentLibraryClient />
-    </Suspense>
+    <div className="py-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-black text-slate-800 mb-2">Tài Liệu Tiếng Anh & Luyện Thi Tổng Hợp Miễn Phí</h1>
+        <p className="text-slate-600 font-medium">Kho tài liệu miễn phí được tuyển chọn từ các giáo viên và trung tâm uy tín. Tải xuống giáo trình IELTS, TOEIC, TOPIK, HSK và các đề thi Đại Học môn Toán, Lý, Hóa, Văn, Anh chất lượng cao.</p>
+      </div>
+      <Suspense>
+        <DocumentLibraryClient />
+      </Suspense>
+    </div>
   )
 }

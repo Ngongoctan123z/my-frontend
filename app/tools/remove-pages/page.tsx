@@ -18,9 +18,9 @@ export default function RemovePagesToolPage() {
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Cắt & Xóa Trang</h1>
-        <p className="text-slate-500">
-          Loại bỏ các trang không cần thiết khỏi tài liệu của bạn một cách nhanh chóng.
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Cắt & Xóa Trang PDF</h1>
+        <p className="text-slate-500 max-w-2xl mx-auto">
+          Trích xuất, cắt tách và loại bỏ vĩnh viễn các trang thừa thãi ra khỏi tài liệu PDF của bạn. Thao tác siêu nhanh, xem trước trực quan từng trang và cam kết bảo mật quyền riêng tư tuyệt đối.
         </p>
       </div>
 
@@ -61,6 +61,23 @@ export default function RemovePagesToolPage() {
               </summary>
               <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
                 <p>Khác với các trang web cắt PDF trực tuyến khác yêu cầu upload file lên máy chủ (có rủi ro rò rỉ tài liệu), VNDocs ứng dụng công nghệ WebAssembly xử lý 100% tại thiết bị của bạn. Tài liệu của bạn <strong>không bao giờ chạm vào máy chủ của chúng tôi</strong>, đảm bảo an toàn tuyệt đối cho các hợp đồng, báo cáo tài chính hay đề thi bảo mật.</p>
+              </div>
+            </details>
+
+            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
+              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
+                3. Các Trường Hợp Nên Sử Dụng Công Cụ Này
+                <span className="transition group-open:rotate-180">
+                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </summary>
+              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
+                <p className="mb-2">Tính năng loại bỏ trang sẽ phát huy tối đa tác dụng trong nhiều tình huống khác nhau:</p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li><strong>Giảm dung lượng file:</strong> Bỏ đi những phần phụ lục không cần thiết, giúp file nhẹ hơn khi gửi email.</li>
+                  <li><strong>Trích xuất dữ liệu:</strong> Bạn tải được một ebook dài 500 trang nhưng chỉ muốn giữ lại 1 chương duy nhất (ví dụ từ trang 20 đến 35)? Chỉ cần xóa hết các phần còn lại và lưu bản mới.</li>
+                  <li><strong>Loại bỏ trang bị lỗi:</strong> Cắt bỏ trang trắng, trang bị mờ, hoặc trang bị ngược do lỗi scan tài liệu ban đầu.</li>
+                </ul>
               </div>
             </details>
           </div>
