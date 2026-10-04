@@ -154,6 +154,7 @@ export interface AnkiNote {
   css: string
   fieldsData: { name: string; value: string }[]
   extra: string[]
+  deckName?: string
 }
 
 export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
@@ -171,6 +172,8 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
 
   let notesRootPage = -1
   let modelsRootPage = -1
+  let cardsRootPage = -1
+  
   for (const row of masterRecords) {
     // sqlite_master: type, name, tbl_name, rootpage, sql
     if (row[0] === 'table' && row[1] === 'notes') {
@@ -179,22 +182,49 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
     if (row[0] === 'table' && row[1] === 'col') {
       modelsRootPage = Number(row[3])
     }
+    if (row[0] === 'table' && row[1] === 'cards') {
+      cardsRootPage = Number(row[3])
+    }
   }
 
   if (notesRootPage < 1) {
     throw new Error('Không tìm thấy bảng notes trong database Anki')
   }
 
-  // Read col table for models (JSON)
+  // Read col table for models and decks (JSON)
   let models: Record<string, any> = {}
+  let decks: Record<string, any> = {}
   if (modelsRootPage >= 1) {
     const colRecords: (string | number | null)[][] = []
     collectLeafRecords(data, modelsRootPage, pageSize, colRecords)
-    if (colRecords.length > 0 && typeof colRecords[0][9] === 'string') {
-      try {
-        models = JSON.parse(colRecords[0][9])
-      } catch (e) {
-        console.warn('Failed to parse models JSON from col table')
+    if (colRecords.length > 0) {
+      if (typeof colRecords[0][9] === 'string') {
+        try {
+          models = JSON.parse(colRecords[0][9])
+        } catch (e) {
+          console.warn('Failed to parse models JSON from col table')
+        }
+      }
+      if (typeof colRecords[0][10] === 'string') {
+        try {
+          decks = JSON.parse(colRecords[0][10])
+        } catch (e) {
+          console.warn('Failed to parse decks JSON from col table')
+        }
+      }
+    }
+  }
+
+  // Read cards table for nid -> did mapping
+  const nidToDid: Record<string, string> = {}
+  if (cardsRootPage >= 1) {
+    const cardRecords: (string | number | null)[][] = []
+    collectLeafRecords(data, cardsRootPage, pageSize, cardRecords)
+    for (const row of cardRecords) {
+      if (row.length >= 3) {
+        const nid = String(row[1])
+        const did = String(row[2])
+        if (!nidToDid[nid]) nidToDid[nid] = did // Just use the first card's deck
       }
     }
   }
@@ -207,8 +237,10 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
   return noteRecords
     .filter(row => row.length >= 7)
     .map(row => {
+      const id = String(row[0] ?? '')
       const mid = String(row[2] ?? '')
       const model = models[mid]
+      const did = nidToDid[id] || '1'
       
       const flds = String(row[6] ?? '')
       const fields = flds.split('\x1f')
@@ -292,6 +324,7 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
         css,
         fieldsData,
         extra: fields.length > 2 && !model ? fields.slice(2).filter(Boolean) : [],
+        deckName: decks[did]?.name || 'Mặc định',
       }
     })
 }

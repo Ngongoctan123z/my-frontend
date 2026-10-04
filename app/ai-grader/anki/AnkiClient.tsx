@@ -1,57 +1,30 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import localforage from 'localforage'
-import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers, Trash2, Edit2, Play } from 'lucide-react'
+import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers, Trash2, Folder, BrainCircuit, Activity, Calendar, FileText, CheckCircle2 } from 'lucide-react'
 import { parseSqliteAnki, AnkiNote } from './sqlite-reader'
 
 const ActivityCalendar = dynamic(
   () => import('react-activity-calendar').then(m => m.ActivityCalendar),
-  { ssr: false, loading: () => <div className="h-32" /> }
+  { ssr: false, loading: () => <div className="h-32 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div> }
 )
+
+interface CardStudyState {
+  reps: number
+  ivl: number
+  ef: number
+  due: number // timestamp
+}
 
 interface AnkiDeck {
   id: string
   name: string
   notes: AnkiNote[]
-  mediaMap: Record<string, Blob> // original filename -> blob
+  mediaMap: Record<string, Blob>
   importedAt: number
-}
-
-// Generate 366 days of empty activity data
-function generateEmptyActivity() {
-  const data = []
-  const today = new Date()
-  for (let i = 365; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
-    data.push({ date: d.toISOString().split('T')[0], count: 0, level: 0 as 0 | 1 | 2 | 3 | 4 })
-  }
-  return data
-}
-
-function loadActivityFromStorage(): { date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[] {
-  const base = generateEmptyActivity()
-  try {
-    const stored = JSON.parse(localStorage.getItem('anki_activity') || '{}')
-    return base.map(d => {
-      const count = stored[d.date] || 0
-      const level = count === 0 ? 0 : count < 5 ? 1 : count < 15 ? 2 : count < 30 ? 3 : 4
-      return { ...d, count, level: level as 0 | 1 | 2 | 3 | 4 }
-    })
-  } catch {
-    return base
-  }
-}
-
-function recordActivity() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('anki_activity') || '{}')
-    const today = new Date().toISOString().split('T')[0]
-    stored[today] = (stored[today] || 0) + 1
-    localStorage.setItem('anki_activity', JSON.stringify(stored))
-  } catch {}
+  studyState: Record<string, CardStudyState>
 }
 
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
@@ -66,9 +39,8 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
     if (this.state.hasError) {
       return (
         <div className="min-h-screen p-10 bg-red-50 text-red-600 font-mono">
-          <h1 className="text-2xl font-bold mb-4">Client-side Exception Caught!</h1>
+          <h1 className="text-2xl font-bold mb-4">Lỗi Giao Diện (Client-side Exception)!</h1>
           <p className="whitespace-pre-wrap">{this.state.error?.toString()}</p>
-          <p className="whitespace-pre-wrap mt-4 text-sm text-red-400">{this.state.error?.stack}</p>
         </div>
       )
     }
@@ -92,10 +64,17 @@ function AnkiClient() {
   const [activeDeck, setActiveDeck] = useState<AnkiDeck | null>(null)
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({})
   
-  const [activityData, setActivityData] = useState<{ date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[]>([])
+  // Subdeck selection
+  const [selectedSubdeck, setSelectedSubdeck] = useState<string | null>(null)
+  
+  // Study State
+  const [studyQueue, setStudyQueue] = useState<AnkiNote[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [isStudying, setIsStudying] = useState(false)
+  const [studySessionCount, setStudySessionCount] = useState(0)
+  
+  const [activityData, setActivityData] = useState<{ date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -103,7 +82,6 @@ function AnkiClient() {
     loadSavedDecks()
   }, [])
   
-  // Cleanup object URLs when component unmounts or active deck changes
   useEffect(() => {
     return () => {
       Object.values(mediaUrls).forEach(url => URL.revokeObjectURL(url))
@@ -115,12 +93,45 @@ function AnkiClient() {
     try {
       const decks: AnkiDeck[] = []
       await localforage.iterate((value: AnkiDeck, key: string) => {
-        if (key.startsWith('deck_')) decks.push(value)
+        if (key.startsWith('deck_')) {
+          // Initialize study state if missing (migration)
+          if (!value.studyState) value.studyState = {}
+          decks.push(value)
+        }
       })
       setSavedDecks(decks.sort((a, b) => b.importedAt - a.importedAt))
     } catch (e) {
       console.error('Lỗi khi tải decks từ localforage:', e)
     }
+  }
+
+  const loadActivityFromStorage = () => {
+    const data = []
+    const todayDate = new Date()
+    const stored = (() => {
+      try { return JSON.parse(localStorage.getItem('anki_activity') || '{}') }
+      catch { return {} }
+    })()
+    
+    for (let i = 365; i >= 0; i--) {
+      const d = new Date(todayDate)
+      d.setDate(d.getDate() - i)
+      const dateStr = d.toISOString().split('T')[0]
+      const count = stored[dateStr] || 0
+      const level = count === 0 ? 0 : count < 10 ? 1 : count < 25 ? 2 : count < 50 ? 3 : 4
+      data.push({ date: dateStr, count, level: level as 0|1|2|3|4 })
+    }
+    return data
+  }
+
+  const recordActivity = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('anki_activity') || '{}')
+      const today = new Date().toISOString().split('T')[0]
+      stored[today] = (stored[today] || 0) + 1
+      localStorage.setItem('anki_activity', JSON.stringify(stored))
+      setActivityData(loadActivityFromStorage())
+    } catch {}
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,8 +166,7 @@ function AnkiClient() {
         if (mediaFile) {
           try {
             const mediaJsonText = await mediaFile.async('string')
-            const mediaDict = JSON.parse(mediaJsonText) // {"0": "cat.jpg", "1": "dog.mp3"}
-            
+            const mediaDict = JSON.parse(mediaJsonText)
             for (const [key, filename] of Object.entries(mediaDict)) {
               const fileInZip = zip.file(key)
               if (fileInZip) {
@@ -177,6 +187,7 @@ function AnkiClient() {
         name: file.name.replace('.apkg', ''),
         notes,
         mediaMap,
+        studyState: {},
         importedAt: Date.now()
       }
       
@@ -192,19 +203,14 @@ function AnkiClient() {
   }
 
   const selectDeck = (deck: AnkiDeck) => {
-    // Revoke old URLs
     Object.values(mediaUrls).forEach(url => URL.revokeObjectURL(url))
-    
-    // Create new URLs for this deck's media
     const urls: Record<string, string> = {}
     for (const [filename, blob] of Object.entries(deck.mediaMap || {})) {
-      urls[filename] = URL.createObjectURL(blob)
+      urls[filename] = URL.createObjectURL(blob as Blob)
     }
-    
     setMediaUrls(urls)
     setActiveDeck(deck)
-    setCurrentIndex(0)
-    setIsFlipped(false)
+    setSelectedSubdeck(null)
     setIsStudying(false)
   }
 
@@ -227,247 +233,359 @@ function AnkiClient() {
   
   const processHtmlWithMedia = (html: string) => {
     let processed = html
-    
-    // Replace <img> src with blob URLs
     processed = processed.replace(/<img[^>]+src="([^">]+)"[^>]*>/gi, (match, src) => {
-      if (mediaUrls[src]) {
-        return match.replace(src, mediaUrls[src])
-      }
+      if (mediaUrls[src]) return match.replace(src, mediaUrls[src])
       return match
     })
-    
-    // Replace [sound:...] with audio tags
     processed = processed.replace(/\[sound:([^\]]+)\]/gi, (match, src) => {
       if (mediaUrls[src]) {
-        return `<audio controls autoplay src="${mediaUrls[src]}" class="mt-2 w-full max-w-[250px] outline-none rounded-full h-10 shadow-sm"></audio>`
+        return `<audio controls autoplay src="${mediaUrls[src]}" class="mt-4 mb-2 w-full max-w-[300px] outline-none rounded-full h-12 shadow-sm border border-indigo-100 bg-indigo-50/50"></audio>`
       }
-      return `<span class="text-xs text-red-400 border border-red-200 px-2 py-1 rounded bg-red-50">[Thiếu file âm thanh: ${src}]</span>`
+      return ''
     })
-    
     return processed
   }
 
-  const startStudying = () => {
+  // Group notes by deckName
+  const subdecks = useMemo(() => {
+    if (!activeDeck) return []
+    const groups: Record<string, number> = {}
+    activeDeck.notes.forEach(n => {
+      const name = n.deckName || 'Mặc định'
+      groups[name] = (groups[name] || 0) + 1
+    })
+    return Object.entries(groups).map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [activeDeck])
+
+  const startStudying = (subdeckName: string | null = null) => {
+    if (!activeDeck) return
+    setSelectedSubdeck(subdeckName)
+    
+    // Lọc theo subdeck nếu có
+    let queue = activeDeck.notes
+    if (subdeckName) {
+      queue = queue.filter(n => (n.deckName || 'Mặc định') === subdeckName)
+    }
+
+    // Thuật toán SM-2: Sắp xếp các thẻ cần ôn tập lên trước
+    const now = Date.now()
+    queue.sort((a, b) => {
+      const stateA = activeDeck.studyState[a.id]?.due || 0
+      const stateB = activeDeck.studyState[b.id]?.due || 0
+      return stateA - stateB
+    })
+
+    setStudyQueue(queue)
     setCurrentIndex(0)
     setIsFlipped(false)
     setIsStudying(true)
+    setStudySessionCount(0)
   }
 
-  const flipCard = () => {
-    if (!isFlipped) recordActivity()
-    setIsFlipped(!isFlipped)
-    setActivityData(loadActivityFromStorage())
-  }
-
-  const nextCard = () => {
-    if (activeDeck && currentIndex < activeDeck.notes.length - 1) {
+  const handleRating = async (quality: number) => {
+    if (!activeDeck || !currentCard) return
+    
+    recordActivity()
+    
+    const state = activeDeck.studyState[currentCard.id] || { reps: 0, ivl: 0, ef: 2.5, due: 0 }
+    let { reps, ivl, ef } = state
+    
+    // Simple SM-2 Implementation
+    if (quality >= 3) {
+      if (reps === 0) ivl = 1
+      else if (reps === 1) ivl = 6
+      else ivl = Math.round(ivl * ef)
+      reps += 1
+    } else {
+      reps = 0
+      ivl = 1
+    }
+    
+    ef = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    if (ef < 1.3) ef = 1.3
+    
+    const newState = { reps, ivl, ef, due: Date.now() + ivl * 24 * 60 * 60 * 1000 }
+    
+    // Save to activeDeck and localforage
+    const updatedDeck = { ...activeDeck }
+    updatedDeck.studyState[currentCard.id] = newState
+    setActiveDeck(updatedDeck)
+    localforage.setItem(updatedDeck.id, updatedDeck)
+    
+    setStudySessionCount(c => c + 1)
+    
+    // Move to next card
+    if (currentIndex < studyQueue.length - 1) {
       setCurrentIndex(curr => curr + 1)
       setIsFlipped(false)
-    }
-  }
-
-  const prevCard = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(curr => curr - 1)
-      setIsFlipped(false)
+    } else {
+      // Completed queue
+      alert('Tuyệt vời! Bạn đã hoàn thành các thẻ trong bộ này cho hôm nay.')
+      setIsStudying(false)
     }
   }
   
-  const currentCard = activeDeck?.notes[currentIndex]
+  // Intelligent parsing for raw fields to find Word, IPA, Meaning, Examples
+  const extractSemanticFields = (fieldsData: {name: string, value: string}[]) => {
+    let word = '', ipa = '', meaning = '', examples: string[] = [], media: string[] = []
+    
+    fieldsData.forEach(f => {
+      const name = f.name.toLowerCase()
+      const val = f.value.trim()
+      if (!val) return
+      
+      if (name.includes('word') || name.includes('từ vựng') || name.includes('vocab')) word = val
+      else if (name.includes('ipa') || name.includes('phiên âm') || name.includes('phonetic')) ipa = val
+      else if (name.includes('meaning') || name.includes('nghĩa') || name.includes('definition')) meaning = val
+      else if (name.includes('example') || name.includes('ví dụ') || name.includes('sentence')) examples.push(val)
+      else if (name.includes('audio') || name.includes('âm thanh') || name.includes('picture') || name.includes('image') || name.includes('hình ảnh')) media.push(val)
+      // Fallbacks
+      else if (!word && f.name.length < 15 && !val.includes('<img')) word = val
+      else if (!meaning && val.length > 5) meaning = val
+    })
+    
+    return { word, ipa, meaning, examples, media }
+  }
+
+  const currentCard = studyQueue[currentIndex]
+  const semantic = currentCard ? extractSemanticFields(currentCard.fieldsData || []) : null
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-12 font-sans selection:bg-indigo-100 selection:text-indigo-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f8fafc] pt-24 pb-12 font-sans selection:bg-blue-100 selection:text-blue-900">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200 mb-6 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
-            <Layers className="w-8 h-8" />
+        {!isStudying && (
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-200 mb-6 transform hover:scale-105 transition-transform duration-300">
+              <BrainCircuit className="w-8 h-8" />
+            </div>
+            <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
+              Hệ Thống Học Từ Vựng Thuật Toán
+            </h1>
+            <p className="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed">
+              Tối ưu hóa ghi nhớ bằng thuật toán lặp lại ngắt quãng (Spaced Repetition). Hỗ trợ đọc mọi file Anki, lấy đúng trọng tâm từ vựng.
+            </p>
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-800 mb-3 tracking-tight">
-            VNDocs Anki <span className="text-sm font-normal text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md ml-2 border border-indigo-100">v2.0</span>
-          </h1>
-          <p className="text-slate-500 max-w-xl mx-auto text-lg leading-relaxed">
-            Học từ vựng trực quan, lưu trữ offline ngay trên trình duyệt, không giới hạn dung lượng!
-          </p>
-        </div>
+        )}
         
         {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl mb-6 flex items-center shadow-sm">
-            <span className="mr-2">⚠️</span> {error}
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-8 flex items-center shadow-sm">
+            <span className="mr-3 text-xl">⚠️</span> {error}
           </div>
         )}
 
         {!isStudying ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            {/* Upload Area */}
-            <div
-              className={`bg-white rounded-3xl border-2 border-dashed ${
-                isUploading ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'
-              } p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer group shadow-sm min-h-[300px]`}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleDrop}
-              onClick={() => !isUploading && fileRef.current?.click()}
-            >
-              <input
-                type="file"
-                ref={fileRef}
-                className="hidden"
-                accept=".apkg"
-                onChange={handleFileUpload}
-              />
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
-                  <p className="text-slate-600 font-medium">Đang xử lý file trực tiếp trên trình duyệt...</p>
-                  <p className="text-sm text-slate-400 mt-2">Việc này không tốn dung lượng mạng!</p>
-                </>
-              ) : (
-                <>
-                  <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <UploadCloud className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-700 mb-2">Nhập file .apkg mới</h3>
-                  <p className="text-slate-500 text-sm max-w-[250px]">Kéo thả file Anki vào đây hoặc click để chọn file từ máy</p>
-                </>
-              )}
-            </div>
-
-            {/* Saved Decks List */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col h-full min-h-[300px]">
-              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-indigo-500" /> Các bộ thẻ đã lưu
-              </h3>
-              
-              <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                {savedDecks.length === 0 ? (
-                  <div className="text-center text-slate-400 py-10 text-sm">
-                    Bạn chưa lưu bộ thẻ nào. Hãy upload file .apkg để bắt đầu!
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+            {/* Left Column: Upload & Decks */}
+            <div className="lg:col-span-1 space-y-8">
+              {/* Upload Area */}
+              <div
+                className={`bg-white rounded-3xl border-2 border-dashed ${
+                  isUploading ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-blue-500 hover:bg-blue-50/50'
+                } p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer group shadow-sm`}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+                onClick={() => !isUploading && fileRef.current?.click()}
+              >
+                <input type="file" ref={fileRef} className="hidden" accept=".apkg" onChange={handleFileUpload} />
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+                    <p className="text-slate-700 font-bold">Đang xử lý thuật toán...</p>
+                    <p className="text-xs text-slate-500 mt-2">Dữ liệu được lưu an toàn trên máy bạn.</p>
+                  </>
                 ) : (
-                  savedDecks.map(deck => (
-                    <div 
-                      key={deck.id} 
-                      onClick={() => selectDeck(deck)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
-                        activeDeck?.id === deck.id 
-                          ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100 ring-offset-1' 
-                          : 'border-slate-100 bg-slate-50 hover:bg-white hover:border-indigo-200 hover:shadow-md'
-                      }`}
-                    >
-                      <div className="flex-1 overflow-hidden">
-                        <h4 className={`font-bold truncate ${activeDeck?.id === deck.id ? 'text-indigo-700' : 'text-slate-700'}`}>
-                          {deck.name}
-                        </h4>
-                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                          <Layers className="w-3 h-3" /> {deck.notes.length} thẻ
-                        </p>
-                      </div>
-                      <button 
-                        onClick={(e) => deleteDeck(deck.id, e)}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                        title="Xóa bộ thẻ"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                  <>
+                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-md">
+                      <UploadCloud className="w-8 h-8" />
                     </div>
-                  ))
+                    <h3 className="text-lg font-bold text-slate-800 mb-1">Import file .apkg</h3>
+                    <p className="text-slate-500 text-sm">Kéo thả file vào đây</p>
+                  </>
                 )}
               </div>
-              
-              {activeDeck && (
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <button
-                    onClick={startStudying}
-                    className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200 hover:shadow-lg hover:-translate-y-0.5"
-                  >
-                    <Play className="w-4 h-4 fill-current" /> Bắt đầu học "{activeDeck.name}"
-                  </button>
+
+              {/* Saved Decks List */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col max-h-[500px]">
+                <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-blue-600" /> Thư viện của bạn
+                </h3>
+                <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                  {savedDecks.length === 0 ? (
+                    <div className="text-center text-slate-400 py-10 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      Chưa có bộ thẻ nào.
+                    </div>
+                  ) : (
+                    savedDecks.map(deck => (
+                      <div 
+                        key={deck.id} 
+                        onClick={() => selectDeck(deck)}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
+                          activeDeck?.id === deck.id 
+                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100' 
+                            : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex-1 overflow-hidden">
+                          <h4 className={`font-bold truncate text-base ${activeDeck?.id === deck.id ? 'text-blue-800' : 'text-slate-800'}`}>
+                            {deck.name}
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1 font-medium">
+                            <Layers className="w-3 h-3" /> {deck.notes.length} thẻ
+                          </p>
+                        </div>
+                        <button 
+                          onClick={(e) => deleteDeck(deck.id, e)}
+                          className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
+                          title="Xóa bộ thẻ"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Deck Details & Subdecks */}
+            <div className="lg:col-span-2">
+              {activeDeck ? (
+                <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm h-full animate-in fade-in zoom-in-95 duration-300">
+                  <div className="flex justify-between items-start mb-8">
+                    <div>
+                      <h2 className="text-3xl font-extrabold text-slate-900 mb-2">{activeDeck.name}</h2>
+                      <p className="text-slate-500 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" /> Đã nhập vào {new Date(activeDeck.importedAt).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => startStudying(null)}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 hover:-translate-y-1 transition-all"
+                    >
+                      <Play className="w-5 h-5 fill-current" /> Học toàn bộ
+                    </button>
+                  </div>
+                  
+                  <div className="mb-6 flex items-center gap-2 text-lg font-bold text-slate-800 border-b border-slate-100 pb-4">
+                    <Folder className="w-5 h-5 text-blue-500" /> Các mục bài học trong bộ này
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {subdecks.map((sub, i) => (
+                      <div key={i} className="group bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex justify-between items-center" onClick={() => startStudying(sub.name)}>
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold flex-shrink-0">
+                            {i+1}
+                          </div>
+                          <span className="font-bold text-slate-700 truncate">{sub.name}</span>
+                        </div>
+                        <span className="text-sm font-bold bg-slate-200 text-slate-600 px-3 py-1 rounded-full group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors">
+                          {sub.count} thẻ
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center text-slate-400 p-10 min-h-[400px]">
+                  <FileText className="w-16 h-16 mb-4 text-slate-300" />
+                  <p className="text-lg font-medium">Chọn một bộ thẻ để xem chi tiết</p>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          /* STUDY MODE */
-          <div className="max-w-2xl mx-auto mb-10 relative">
-            <button
-              onClick={() => setIsStudying(false)}
-              className="absolute -top-12 left-0 text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" /> Quay lại danh sách
-            </button>
-            
-            <div className="flex justify-between items-center mb-6 px-2">
-              <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">
-                {activeDeck?.name}
-              </span>
-              <span className="text-sm font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full border border-indigo-100">
-                Thẻ {currentIndex + 1} / {activeDeck?.notes.length}
-              </span>
+          /* STUDY MODE - SCIENTIFIC UI */
+          <div className="max-w-3xl mx-auto mb-10 relative">
+            <div className="flex justify-between items-center mb-8">
+              <button
+                onClick={() => setIsStudying(false)}
+                className="text-slate-500 hover:text-blue-600 font-bold flex items-center gap-2 transition-colors px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm hover:shadow-md"
+              >
+                <ChevronLeft className="w-5 h-5" /> Trở về thư mục
+              </button>
+              
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-bold bg-green-50 text-green-600 px-4 py-2 rounded-full border border-green-100 flex items-center gap-1 shadow-sm">
+                  <CheckCircle2 className="w-4 h-4" /> Đã học: {studySessionCount}
+                </span>
+                <span className="text-sm font-bold bg-blue-50 text-blue-600 px-4 py-2 rounded-full border border-blue-100 shadow-sm">
+                  Thẻ {currentIndex + 1} / {studyQueue.length}
+                </span>
+              </div>
             </div>
 
             {currentCard && (
-              <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100 min-h-[400px] flex flex-col justify-center text-center relative overflow-hidden transition-all">
+              <div className="bg-white rounded-[2.5rem] p-8 md:p-14 shadow-2xl shadow-blue-900/5 border border-slate-100 min-h-[500px] flex flex-col justify-center text-center relative overflow-hidden transition-all">
                 
-                {/* Dynamic Anki CSS */}
-                {currentCard.css && (
-                  <style dangerouslySetInnerHTML={{ __html: `.anki-content { ${currentCard.css.replace(/card/gi, '')} }` }} />
-                )}
-                
-                {/* Front */}
-                <div className={`${isFlipped ? 'mb-8 pb-8 border-b border-slate-100' : ''}`}>
-                  <p className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-6 flex justify-center items-center gap-2">
-                    <Tag className="w-3 h-3" /> Mặt trước
-                  </p>
-                  <div
-                    className="text-lg md:text-xl text-slate-800 leading-relaxed anki-content"
-                    dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.front) }}
-                  />
+                {/* Front (Word & Language) */}
+                <div className={`transition-all duration-500 ${isFlipped ? 'mb-8 pb-8 border-b-2 border-dashed border-slate-100 opacity-60 scale-95 origin-top' : 'scale-100'}`}>
+                  {semantic?.word ? (
+                    <>
+                      <h2 className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight mb-4">
+                        {semantic.word}
+                      </h2>
+                      {semantic.ipa && (
+                        <p className="text-2xl font-medium text-slate-400 font-mono tracking-widest">{semantic.ipa}</p>
+                      )}
+                    </>
+                  ) : (
+                    // Fallback to Anki QFMT if we couldn't extract intelligently
+                    <div
+                      className="text-4xl md:text-5xl font-black text-slate-800 leading-relaxed anki-content"
+                      dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.front) }}
+                    />
+                  )}
                 </div>
 
-                {/* Back */}
+                {/* Back (Meanings, Audio, Examples) */}
                 {isFlipped && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <p className="text-xs uppercase tracking-widest text-indigo-400 font-bold mb-6 flex justify-center items-center gap-2">
-                      <BookOpen className="w-3 h-3" /> Đáp án
-                    </p>
-                    <div
-                      className="text-lg md:text-xl text-slate-700 leading-relaxed anki-content"
-                      dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.back) }}
-                    />
+                  <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 text-left">
                     
-                    {/* Raw Fields Data Table */}
-                    {currentCard.fieldsData && currentCard.fieldsData.length > 0 && (
-                      <div className="mt-10 text-left border-t border-slate-100 pt-8 animate-in fade-in duration-700">
-                        <h4 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 flex items-center gap-2">
-                          <Layers className="w-3 h-3" /> Chi tiết toàn bộ dữ liệu thẻ
-                        </h4>
-                        <div className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
-                          <table className="w-full text-sm text-slate-700">
-                            <tbody>
-                              {currentCard.fieldsData.map((f, i) => (
-                                f.value.trim() && (
-                                  <tr key={i} className="border-b border-slate-200 last:border-0">
-                                    <td className="py-4 px-5 font-bold bg-slate-100/80 w-1/3 md:w-1/4 align-top border-r border-slate-200 text-slate-600">
-                                      {f.name}
-                                    </td>
-                                    <td 
-                                      className="py-4 px-5 anki-content align-top"
-                                      dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(f.value) }}
-                                    />
-                                  </tr>
-                                )
-                              ))}
-                            </tbody>
-                          </table>
+                    {semantic?.meaning ? (
+                      <div className="space-y-8">
+                        <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
+                          <h3 className="text-xs uppercase tracking-widest text-blue-500 font-bold mb-2 flex items-center gap-2">
+                            <BookOpen className="w-4 h-4" /> Ý nghĩa
+                          </h3>
+                          <p className="text-3xl font-bold text-slate-700 leading-snug">
+                            {semantic.meaning}
+                          </p>
                         </div>
+                        
+                        {(semantic.examples.length > 0 || semantic.media.length > 0) && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Examples */}
+                            {semantic.examples.length > 0 && (
+                              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 flex items-center gap-2">
+                                  <FileText className="w-4 h-4" /> Ví dụ
+                                </h3>
+                                <ul className="space-y-4">
+                                  {semantic.examples.map((ex, i) => (
+                                    <li key={i} className="text-lg text-slate-600 font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(ex) }} />
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {/* Media (Audio/Images) */}
+                            {semantic.media.length > 0 && (
+                              <div className="flex flex-col gap-4">
+                                {semantic.media.map((m, i) => (
+                                  <div key={i} className="anki-content rounded-3xl overflow-hidden" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(m) }} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
-
-                    {currentCard.extra.length > 0 && !currentCard.fieldsData?.length && (
+                    ) : (
+                      // Fallback to Anki AFMT
                       <div
-                        className="mt-8 text-sm text-slate-500 bg-slate-50 p-4 rounded-xl border border-slate-100 anki-content"
-                        dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.extra.join('<br/><br/>')) }}
+                        className="text-2xl text-slate-700 leading-relaxed anki-content text-center"
+                        dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.back) }}
                       />
                     )}
                   </div>
@@ -475,76 +593,66 @@ function AnkiClient() {
               </div>
             )}
 
-            {/* Navigation */}
-            <div className="flex gap-4 justify-center mt-8">
-              <button
-                onClick={prevCard}
-                disabled={currentIndex === 0}
-                className="flex items-center justify-center w-14 h-14 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 transition-all disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-600 shadow-sm"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              
-              <button
-                onClick={flipCard}
-                className="flex-1 max-w-[240px] flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-1"
-              >
-                {isFlipped ? (
-                  <><RotateCcw className="w-5 h-5" /> Lật thẻ lại</>
-                ) : (
-                  <><PlayCircle className="w-5 h-5" /> Hiện đáp án</>
-                )}
-              </button>
-              
-              <button
-                onClick={nextCard}
-                disabled={currentIndex === (activeDeck?.notes.length ?? 1) - 1}
-                className="flex items-center justify-center w-14 h-14 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 transition-all disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-600 shadow-sm"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
+            {/* SRS Navigation Buttons */}
+            <div className="mt-10">
+              {!isFlipped ? (
+                <button
+                  onClick={() => setIsFlipped(true)}
+                  className="w-full py-5 rounded-[2rem] bg-blue-600 text-white font-extrabold text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 hover:-translate-y-1 hover:shadow-2xl"
+                >
+                  Hiện kết quả
+                </button>
+              ) : (
+                <div className="grid grid-cols-4 gap-3 md:gap-6 animate-in slide-in-from-bottom-4 duration-300">
+                  <button onClick={() => handleRating(0)} className="py-4 rounded-2xl bg-red-50 text-red-600 font-bold text-lg hover:bg-red-100 border border-red-200 transition-all shadow-sm hover:shadow-md hover:-translate-y-1">Lại (Khó)</button>
+                  <button onClick={() => handleRating(2)} className="py-4 rounded-2xl bg-orange-50 text-orange-600 font-bold text-lg hover:bg-orange-100 border border-orange-200 transition-all shadow-sm hover:shadow-md hover:-translate-y-1">Khá</button>
+                  <button onClick={() => handleRating(4)} className="py-4 rounded-2xl bg-green-50 text-green-600 font-bold text-lg hover:bg-green-100 border border-green-200 transition-all shadow-sm hover:shadow-md hover:-translate-y-1">Tốt</button>
+                  <button onClick={() => handleRating(5)} className="py-4 rounded-2xl bg-blue-50 text-blue-600 font-bold text-lg hover:bg-blue-100 border border-blue-200 transition-all shadow-sm hover:shadow-md hover:-translate-y-1">Dễ</button>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Activity Calendar */}
-        <div className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm overflow-hidden mt-10">
-          <h2 className="text-lg font-extrabold text-slate-800 mb-6 flex items-center gap-2">
-            🔥 Lịch sử học tập
-          </h2>
-          <div className="overflow-x-auto pb-2 custom-scrollbar">
-            <div className="min-w-[700px]">
-              {activityData.length > 0 ? (
-                <ActivityCalendar
-                  data={activityData}
-                  theme={{
-                    light: ['#f1f5f9', '#c7d2fe', '#818cf8', '#6366f1', '#4338ca'],
-                    dark: ['#1e293b', '#3730a3', '#4f46e5', '#6366f1', '#818cf8'],
-                  }}
-                  labels={{
-                    months: ['Th1','Th2','Th3','Th4','Th5','Th6','Th7','Th8','Th9','Th10','Th11','Th12'],
-                    weekdays: ['CN','T2','T3','T4','T5','T6','T7'],
-                    totalCount: '{{count}} từ vựng đã học trong năm qua',
-                    legend: { less: 'Ít', more: 'Nhiều' },
-                  }}
-                />
-              ) : (
-                <div className="h-32 flex items-center justify-center text-slate-400">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Đang tải lịch sử...
-                </div>
-              )}
+        {!isStudying && (
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 p-10 shadow-sm overflow-hidden mt-8">
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-8 flex items-center gap-3">
+              <Activity className="w-8 h-8 text-blue-500" /> Biểu Đồ Tích Lũy
+            </h2>
+            <div className="overflow-x-auto pb-4 custom-scrollbar">
+              <div className="min-w-[800px]">
+                {activityData.length > 0 ? (
+                  <ActivityCalendar
+                    data={activityData}
+                    theme={{
+                      light: ['#f1f5f9', '#dbeafe', '#93c5fd', '#3b82f6', '#1e3a8a'],
+                      dark: ['#1e293b', '#1e3a8a', '#3b82f6', '#93c5fd', '#dbeafe'],
+                    }}
+                    labels={{
+                      months: ['Th1','Th2','Th3','Th4','Th5','Th6','Th7','Th8','Th9','Th10','Th11','Th12'],
+                      weekdays: ['CN','T2','T3','T4','T5','T6','T7'],
+                      totalCount: 'Đã ôn tập {{count}} thẻ trong năm qua',
+                      legend: { less: 'Ít', more: 'Nhiều' },
+                    }}
+                  />
+                ) : (
+                  <div className="h-32 flex items-center justify-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mr-3" /> Đang tải dữ liệu...
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
         
       </div>
       
-      {/* Global styles for injected Anki HTML */}
+      {/* Global styles for injected Anki HTML and Overrides */}
       <style dangerouslySetInnerHTML={{__html: `
-        .anki-content img { max-width: 100%; border-radius: 8px; margin: 10px auto; display: block; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-        .anki-content audio { width: 100%; max-width: 300px; margin: 10px auto; display: block; }
-        .cloze { font-weight: bold; color: #4f46e5; background: #eef2ff; padding: 2px 6px; border-radius: 4px; border: 1px solid #c7d2fe; }
-        .anki-img-placeholder { display: inline-block; padding: 8px 12px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; color: #64748b; font-size: 13px; }
+        .anki-content img { max-width: 100%; border-radius: 16px; margin: 16px auto; display: block; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+        .anki-content audio { width: 100%; max-width: 350px; margin: 16px auto; display: block; }
+        .cloze { font-weight: 900; color: #2563eb; background: #eff6ff; padding: 2px 8px; border-radius: 6px; border: 2px solid #bfdbfe; }
       `}} />
     </div>
   )
