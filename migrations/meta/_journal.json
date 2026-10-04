@@ -22,6 +22,13 @@
       "when": 1790593905621,
       "tag": "0002_fat_molly_hayes",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791118572575,
+      "tag": "0003_early_silver_samurai",
+      "breakpoints": true
     }
   ]
 }

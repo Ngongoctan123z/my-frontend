@@ -25,7 +25,7 @@ export function TopikGraderClient() {
   useEffect(() => {
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
       setUsageCount(data.count || 0)
-      setUsageLimit(data.limit || 15)
+      setUsageLimit(data.limit ||data.limit || 2)
     }).catch(() => {})
   }, [session])
 
@@ -164,7 +164,7 @@ export function TopikGraderClient() {
   }
 
   // Tiếng Hàn đếm chữ (characters)
-  const charCount = essay.replace(/\s+/g, '').length
+  const charCount = essay.replace(/data.limit || 2s+/g, '').length
   let minChars = 0
   if (examType === 'TOPIK_53') minChars = 200
   if (examType === 'TOPIK_54') minChars = 600

@@ -17,6 +17,8 @@ export const users = sqliteTable("user", {
   role: text("role").default("user").notNull(),
   status: text("status").default("active").notNull(), // 'active', 'blocked'
   password: text("password"),
+  plan: text("plan").default("free").notNull(), // 'free', 'plus', 'pro'
+  planExpiresAt: integer("planExpiresAt", { mode: "timestamp_ms" }),
 })
 
 export const accounts = sqliteTable(

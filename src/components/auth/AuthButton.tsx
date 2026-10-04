@@ -3,6 +3,7 @@
 import { signIn, signOut, useSession } from "next-auth/react"
 import { LogOut, LogIn } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 
 export function AuthButton() {
   const { data: session, status } = useSession()
@@ -14,14 +15,20 @@ export function AuthButton() {
   if (session?.user) {
     return (
       <div className="flex items-center gap-3">
-        {session.user.image && (
-          <Image 
-            src={session.user.image} 
-            alt={session.user.name || "User"} 
-            width={32} 
-            height={32} 
-            className="rounded-full"
-          />
+        {session.user.image ? (
+          <Link href="/profile" className="block hover:opacity-80 transition-opacity" title="Hồ sơ cá nhân">
+            <Image 
+              src={session.user.image} 
+              alt={session.user.name || "User"} 
+              width={32} 
+              height={32} 
+              className="rounded-full"
+            />
+          </Link>
+        ) : (
+          <Link href="/profile" className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center hover:opacity-80 transition-opacity" title="Hồ sơ cá nhân">
+            <span className="font-bold text-slate-500 text-xs">{session.user.name?.charAt(0) || 'U'}</span>
+          </Link>
         )}
         <button
           onClick={() => signOut()}

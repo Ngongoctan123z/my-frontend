@@ -25,7 +25,7 @@ export function HskGraderClient() {
   useEffect(() => {
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
       setUsageCount(data.count || 0)
-      setUsageLimit(data.limit || 15)
+      setUsageLimit(data.limit ||data.limit || 2)
     }).catch(() => {})
   }, [session])
 
@@ -164,7 +164,7 @@ export function HskGraderClient() {
   }
 
   // Tiếng Trung đếm chữ (characters)
-  const charCount = essay.replace(/\s+/g, '').length
+  const charCount = essay.replace(/data.limit || 2s+/g, '').length
   const minChars = examType === 'HSK_5' ? 80 : 400
 
   return (

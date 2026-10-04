@@ -2,27 +2,35 @@
 import Groq from 'groq-sdk'
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
-import { systemConfigs, prompts as promptsTable, apiUsages } from '@/src/db/schema'
+import { systemConfigs, prompts as promptsTable, apiUsages, users } from '@/src/db/schema'
 import { eq, sql } from 'drizzle-orm'
 
-async function checkAndIncrementRateLimit(userId: string): Promise<boolean> {
+async function checkAndIncrementRateLimit(userId: string): Promise<{ allowed: boolean, limit: number }> {
   const db = await getDb()
-  const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD local
+  const today = new Date().toLocaleDateString('en-CA')
   
+  let limit = 2
+  const userRows = await db.select().from(users).where(eq(users.email, userId))
+  if (userRows.length > 0) {
+    const plan = userRows[0].plan
+    if (plan === 'pro') limit = 200
+    else if (plan === 'plus') limit = 50
+  }
+
   const usages = await db.select().from(apiUsages).where(sql`userId = ${userId} AND date = ${today}`)
   const usage = usages[0]
 
   if (!usage) {
     await db.insert(apiUsages).values({ userId, date: today, count: 1 })
-    return true
+    return { allowed: true, limit }
   }
 
-  if (usage.count >= 15) {
-    return false
+  if (usage.count >= limit) {
+    return { allowed: false, limit }
   }
 
   await db.update(apiUsages).set({ count: usage.count + 1 }).where(sql`userId = ${userId} AND date = ${today}`)
-  return true
+  return { allowed: true, limit }
 }
 
 async function incrementGlobalCounter(usedKey?: string) {
@@ -198,11 +206,13 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'Không thể xác thực tài khoản.' }, { status: 401 })
     }
-    const isAllowed = await checkAndIncrementRateLimit(userId)
-    if (!isAllowed) {
+    const { allowed, limit } = await checkAndIncrementRateLimit(userId)
+    if (!allowed) {
       return NextResponse.json(
-        { error: 'Bạn đã đạt giới hạn 15 lần sử dụng AI trong ngày hôm nay. Vui lòng quay lại vào ngày mai!' },
+        { error: 'Bạn đã đạt giới hạn ' + limit + ' lần sử dụng AI trong ngày hôm nay. Vui lòng quay lại vào ngày mai!' },
         { status: 429 }
+      )
+    }
       )
     }
 
@@ -458,20 +468,29 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
 export async function GET(_req: NextRequest) {
   try {
     const session = await auth()
-    if (!session || !session.user) {
-      return NextResponse.json({ count: 0, limit: 15 })
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ count: 0, limit: 2, plan: 'free' })
     }
 
-    const userId = session.user.email || session.user.id!
+    const userId = session.user.email
     const db = await getDb()
     const today = new Date().toLocaleDateString('en-CA')
+
+    const userRows = await db.select().from(users).where(eq(users.email, userId))
+    let limit = 2
+    let plan = 'free'
+    if (userRows.length > 0) {
+      plan = userRows[0].plan
+      if (plan === 'pro') limit = 200
+      else if (plan === 'plus') limit = 50
+    }
 
     const usages = await db.select().from(apiUsages).where(sql`userId = ${userId} AND date = ${today}`)
     const count = usages[0]?.count || 0
 
-    return NextResponse.json({ count, limit: 15 })
+    return NextResponse.json({ count, limit, plan })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ count: 0, limit: 15 })
+    return NextResponse.json({ count: 0, limit: 2, plan: 'free' })
   }
 }
