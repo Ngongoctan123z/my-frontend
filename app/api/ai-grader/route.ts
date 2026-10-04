@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
@@ -214,203 +214,202 @@ export async function POST(req: NextRequest) {
       let systemPrompt = ''
 
       const basePrompt = `
-You are an expert, objective examiner. Your sole task is to grade the user's writing based on the official criteria for the given exam.
-CRITICAL RULES:
-1. NO CHITCHAT. NO CONVERSATIONAL TEXT. NO GREETINGS. 
-2. DO NOT include phrases like "Here is the result", "Sure", "I will evaluate". DO NOT output ANY text outside of the JSON object.
-3. Use fair and accurate international standard grading. Be highly constructive, brief, and objective. 
-4. Output MUST be a valid JSON object matching the exact schema below, strictly using Vietnamese language for the 'feedback', 'detailedFeedback', and 'explanation' fields.
-5. Provide precise, actionable feedback. Avoid vague or lengthy explanations. Keep the feedback concise.
+Bạn là giám khảo chuyên nghiệp, khách quan. Nhiệm vụ duy nhất của bạn là chấm bài viết của thí sinh theo đúng tiêu chí chấm điểm chính thức của kỳ thi.
+QUY TẮC BẮT BUỘC:
+1. KHÔNG ĐƯỢC nói chuyện phiếm. KHÔNG ĐƯỢC thêm lời chào hỏi hay dẫn nhập.
+2. KHÔNG ĐƯỢC thêm các câu như "Đây là kết quả", "Được rồi", "Tôi sẽ đánh giá". KHÔNG ĐƯỢC xuất bất kỳ văn bản nào ngoài object JSON.
+3. Chấm điểm công bằng, chính xác theo chuẩn quốc tế. Nhận xét phải xây dựng, ngắn gọn và khách quan.
+4. Kết quả đầu ra PHẢI là một JSON object hợp lệ theo đúng schema bên dưới. Tất cả các trường 'feedback', 'detailedFeedback', và 'explanation' phải viết hoàn toàn bằng tiếng Việt.
+5. Nhận xét phải cụ thể, có tính hành động. Tránh giải thích chung chung hoặc quá dài dòng.
 `
 
       if (type === 'IELTS_TASK_2') {
         systemPrompt = basePrompt + `
-PROMPT:
+ĐỀ BÀI:
 ${prompt}
 
-ESSAY:
+BÀI VIẾT:
 ${essay}
 
-Grade objectively using these 4 IELTS criteria:
-1. Task Response (TR)
-2. Coherence and Cohesion (CC)
-3. Lexical Resource (LR)
-4. Grammatical Range and Accuracy (GRA)
+Hãy chấm điểm khách quan theo 4 tiêu chí IELTS Task 2:
+1. Task Response (TR) - Mức độ đáp ứng yêu cầu đề bài
+2. Coherence and Cohesion (CC) - Tính mạch lạc và liên kết
+3. Lexical Resource (LR) - Vốn từ vựng
+4. Grammatical Range and Accuracy (GRA) - Độ phong phú và chính xác ngữ pháp
 
-Each criterion is scored from 0 to 9 in 0.5 increments. The overall band is the average rounded to nearest 0.5.
+Mỗi tiêu chí được chấm từ 0 đến 9, theo thang 0.5. Band tổng là trung bình cộng của 4 tiêu chí, làm tròn đến 0.5 gần nhất.
 
-JSON Schema:
+Cấu trúc JSON bắt buộc:
 {
   "overallBand": 6.5,
   "criteria": {
-    "taskResponse": { "score": 6.5, "feedback": "Concise and direct feedback." },
-    "coherenceCohesion": { "score": 6.0, "feedback": "Concise and direct feedback." },
-    "lexicalResource": { "score": 7.0, "feedback": "Concise and direct feedback." },
-    "grammaticalRange": { "score": 6.5, "feedback": "Concise and direct feedback." }
+    "taskResponse": { "score": 6.5, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "coherenceCohesion": { "score": 6.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "lexicalResource": { "score": 7.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "grammaticalRange": { "score": 6.5, "feedback": "Nhận xét ngắn gọn, trực tiếp." }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese. Constructive and direct.",
+  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt. Xây dựng và đi thẳng vào vấn đề.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+    { "original": "câu sai", "corrected": "câu đã sửa", "explanation": "lý do ngắn gọn bằng tiếng Việt" }
   ]
 }
-Write all feedback in Vietnamese.
+Viết toàn bộ nhận xét bằng tiếng Việt.
 `
       } else if (type === 'IELTS_TASK_1') {
         systemPrompt = basePrompt + `
-PROMPT:
+ĐỀ BÀI:
 ${prompt}
 
-ESSAY:
+BÀI VIẾT:
 ${essay}
 
-Grade objectively using these 4 IELTS criteria:
-1. Task Achievement (TA)
-2. Coherence and Cohesion (CC)
-3. Lexical Resource (LR)
-4. Grammatical Range and Accuracy (GRA)
+Hãy chấm điểm khách quan theo 4 tiêu chí IELTS Task 1:
+1. Task Achievement (TA) - Mức độ hoàn thành nhiệm vụ
+2. Coherence and Cohesion (CC) - Tính mạch lạc và liên kết
+3. Lexical Resource (LR) - Vốn từ vựng
+4. Grammatical Range and Accuracy (GRA) - Độ phong phú và chính xác ngữ pháp
 
-Each criterion is scored from 0 to 9 in 0.5 increments. The overall band is the average rounded to nearest 0.5.
+Mỗi tiêu chí được chấm từ 0 đến 9, theo thang 0.5. Band tổng là trung bình cộng của 4 tiêu chí, làm tròn đến 0.5 gần nhất.
 
-JSON Schema:
+Cấu trúc JSON bắt buộc:
 {
   "overallBand": 6.5,
   "criteria": {
-    "taskResponse": { "score": 6.5, "feedback": "Concise and direct feedback." },
-    "coherenceCohesion": { "score": 6.0, "feedback": "Concise and direct feedback." },
-    "lexicalResource": { "score": 7.0, "feedback": "Concise and direct feedback." },
-    "grammaticalRange": { "score": 6.5, "feedback": "Concise and direct feedback." }
+    "taskResponse": { "score": 6.5, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "coherenceCohesion": { "score": 6.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "lexicalResource": { "score": 7.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "grammaticalRange": { "score": 6.5, "feedback": "Nhận xét ngắn gọn, trực tiếp." }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese. Constructive and direct.",
+  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt. Xây dựng và đi thẳng vào vấn đề.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+    { "original": "câu sai", "corrected": "câu đã sửa", "explanation": "lý do ngắn gọn bằng tiếng Việt" }
   ]
 }
-Write all feedback in Vietnamese.
+Viết toàn bộ nhận xét bằng tiếng Việt.
 `
       } else if (type === 'TOEIC_RESPOND') {
-        systemPrompt = basePrompt.replace('IELTS', 'TOEIC Writing') + `
-PROMPT:
+        systemPrompt = basePrompt + `
+ĐỀ BÀI:
 ${prompt}
 
-ESSAY:
+BÀI VIẾT:
 ${essay}
 
-Grade objectively using TOEIC Writing Question 6-7 (Respond to a written request) criteria:
-1. Quality and variety of your sentences (Grammar & Vocabulary)
-2. Organization and cohesion
-3. Whether you answered all parts of the request
+Hãy chấm điểm khách quan theo tiêu chí TOEIC Writing câu 6-7 (Phản hồi yêu cầu bằng văn bản):
+1. Chất lượng và sự đa dạng của câu văn (Ngữ pháp và Từ vựng)
+2. Tổ chức và tính liên kết
+3. Mức độ trả lời đầy đủ các yêu cầu của đề bài
 
-Score from 0 to 5.
+Thang điểm từ 0 đến 5.
 
-JSON Schema:
+Cấu trúc JSON bắt buộc:
 {
   "overallBand": 4.0,
   "criteria": {
-    "grammarAndVocabulary": { "score": 4, "feedback": "Concise feedback" },
-    "organization": { "score": 4, "feedback": "Concise feedback" },
-    "taskFulfillment": { "score": 4, "feedback": "Concise feedback" }
+    "grammarAndVocabulary": { "score": 4, "feedback": "Nhận xét ngắn gọn" },
+    "organization": { "score": 4, "feedback": "Nhận xét ngắn gọn" },
+    "taskFulfillment": { "score": 4, "feedback": "Nhận xét ngắn gọn" }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese.",
+  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+    { "original": "câu sai", "corrected": "câu đã sửa", "explanation": "lý do ngắn gọn bằng tiếng Việt" }
   ]
 }
-Write all feedback in Vietnamese.
+Viết toàn bộ nhận xét bằng tiếng Việt.
 `
       } else if (type === 'TOEIC_ESSAY') {
-        systemPrompt = basePrompt.replace('IELTS', 'TOEIC Writing') + `
-PROMPT:
+        systemPrompt = basePrompt + `
+ĐỀ BÀI:
 ${prompt}
 
-ESSAY:
+BÀI VIẾT:
 ${essay}
 
-Grade objectively using TOEIC Writing Question 8 (Opinion Essay) criteria:
-1. Reasons, examples, and details
-2. Organization and cohesion
-3. Grammar and vocabulary
+Hãy chấm điểm khách quan theo tiêu chí TOEIC Writing câu 8 (Bài luận nêu quan điểm):
+1. Lý lẽ, ví dụ và chi tiết minh họa
+2. Tổ chức và tính liên kết
+3. Ngữ pháp và từ vựng
 
-Score from 0 to 5.
+Thang điểm từ 0 đến 5.
 
-JSON Schema:
+Cấu trúc JSON bắt buộc:
 {
   "overallBand": 4.0,
   "criteria": {
-    "reasonsAndExamples": { "score": 4, "feedback": "Concise feedback" },
-    "organization": { "score": 4, "feedback": "Concise feedback" },
-    "grammarAndVocabulary": { "score": 4, "feedback": "Concise feedback" }
+    "reasonsAndExamples": { "score": 4, "feedback": "Nhận xét ngắn gọn" },
+    "organization": { "score": 4, "feedback": "Nhận xét ngắn gọn" },
+    "grammarAndVocabulary": { "score": 4, "feedback": "Nhận xét ngắn gọn" }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese.",
+  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+    { "original": "câu sai", "corrected": "câu đã sửa", "explanation": "lý do ngắn gọn bằng tiếng Việt" }
   ]
 }
-Write all feedback in Vietnamese.
+Viết toàn bộ nhận xét bằng tiếng Việt.
 `
       } else if (type === 'HSK_5' || type === 'HSK_6') {
-        systemPrompt = basePrompt.replace('IELTS', 'HSK Writing').replace('English', 'Chinese') + `
-PROMPT:
+        systemPrompt = basePrompt + `
+ĐỀ BÀI:
 ${prompt}
 
-ESSAY (written in Chinese):
+BÀI VIẾT (viết bằng tiếng Trung):
 ${essay}
 
-Grade objectively based on HSK Writing criteria:
-1. Grammar and syntax accuracy
-2. Vocabulary range and correctness
-3. Coherence and task fulfillment (for HSK 5: used all words or described picture / for HSK 6: summarized accurately with title, no personal opinions)
+Hãy chấm điểm khách quan theo tiêu chí thi viết HSK:
+1. Độ chính xác về ngữ pháp và cú pháp
+2. Sự đa dạng và chính xác của từ vựng
+3. Tính mạch lạc và mức độ hoàn thành nhiệm vụ (HSK 5: dùng hết từ gợi ý hoặc mô tả ảnh / HSK 6: tóm tắt chính xác nội dung bài đọc, có tiêu đề, không nêu ý kiến cá nhân)
 
-Score from 0 to 100.
+Thang điểm từ 0 đến 100.
 
-JSON Schema:
+Cấu trúc JSON bắt buộc:
 {
   "overallBand": 85,
   "criteria": {
-    "grammar": { "score": 85, "feedback": "Concise feedback" },
-    "vocabulary": { "score": 85, "feedback": "Concise feedback" },
-    "taskFulfillment": { "score": 85, "feedback": "Concise feedback" }
+    "grammar": { "score": 85, "feedback": "Nhận xét ngắn gọn" },
+    "vocabulary": { "score": 85, "feedback": "Nhận xét ngắn gọn" },
+    "taskFulfillment": { "score": 85, "feedback": "Nhận xét ngắn gọn" }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese.",
+  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+    { "original": "câu sai", "corrected": "câu đã sửa", "explanation": "lý do ngắn gọn bằng tiếng Việt" }
   ]
 }
-Write all feedback in Vietnamese.
+Viết toàn bộ nhận xét bằng tiếng Việt.
 `
       } else if (type === 'TOPIK_51_52' || type === 'TOPIK_53' || type === 'TOPIK_54') {
-        systemPrompt = basePrompt.replace('IELTS', 'TOPIK II Writing').replace('English', 'Korean') + `
-PROMPT:
+        systemPrompt = basePrompt + `
+ĐỀ BÀI:
 ${prompt}
 
-ESSAY (written in Korean):
+BÀI VIẾT (viết bằng tiếng Hàn):
 ${essay}
 
-Grade objectively based on TOPIK II Writing criteria:
-1. Grammar and vocabulary (Grammar and expression accuracy)
-2. Task completion (Content and task fulfillment)
-3. Organization (Coherence and structure)
+Hãy chấm điểm khách quan theo tiêu chí thi viết TOPIK II:
+1. Ngữ pháp và từ vựng (Độ chính xác trong diễn đạt và ngữ pháp)
+2. Hoàn thành nhiệm vụ (Nội dung và mức độ đáp ứng yêu cầu)
+3. Tổ chức bài viết (Tính mạch lạc và cấu trúc)
 
-Score from 0 to 100.
+Thang điểm từ 0 đến 100.
 
-JSON Schema:
+Cấu trúc JSON bắt buộc:
 {
   "overallBand": 75,
   "criteria": {
-    "grammarAndVocabulary": { "score": 75, "feedback": "Concise feedback" },
-    "taskCompletion": { "score": 75, "feedback": "Concise feedback" },
-    "organization": { "score": 75, "feedback": "Concise feedback" }
+    "grammarAndVocabulary": { "score": 75, "feedback": "Nhận xét ngắn gọn" },
+    "taskCompletion": { "score": 75, "feedback": "Nhận xét ngắn gọn" },
+    "organization": { "score": 75, "feedback": "Nhận xét ngắn gọn" }
   },
-  "detailedFeedback": "Overall analysis in Vietnamese.",
+  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt.",
   "corrections": [
-    { "original": "wrong sentence", "corrected": "correct sentence", "explanation": "brief reason in Vietnamese" }
+    { "original": "câu sai", "corrected": "câu đã sửa", "explanation": "lý do ngắn gọn bằng tiếng Việt" }
   ]
 }
-Write all feedback in Vietnamese.
+Viết toàn bộ nhận xét bằng tiếng Việt.
 `
       } else {
         return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
       }
-
       const text = await tryGenerateWithFallbackWrapped(systemPrompt, true)
 
       try {
