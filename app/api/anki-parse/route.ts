@@ -15,15 +15,20 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Dynamic import sql.js on server side
+    // Fetch sql.js WASM from CDN so it works on Cloudflare Workers (no local filesystem)
+    const wasmResponse = await fetch(
+      'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm'
+    )
+    if (!wasmResponse.ok) {
+      throw new Error('Không thể tải thư viện xử lý SQLite.')
+    }
+    const wasmBinary = await wasmResponse.arrayBuffer()
+
     const initSqlJs = (await import('sql.js')).default
-    const SQL = await initSqlJs()
+    const SQL = await initSqlJs({ wasmBinary })
 
-    // Try to open file directly as SQLite first (some .apkg are just SQLite)
-    // Otherwise unzip first using JSZip
+    // Check if it's a zip (.apkg) or raw SQLite
     let dbBuffer: Buffer = buffer
-
-    // Check if it's a zip (PK magic bytes)
     const isPkZip = buffer[0] === 0x50 && buffer[1] === 0x4b
 
     if (isPkZip) {
@@ -33,17 +38,16 @@ export async function POST(req: NextRequest) {
       const dbFile = zip.file('collection.anki21') || zip.file('collection.anki2')
       if (!dbFile) {
         return NextResponse.json(
-          { error: 'File .apkg không hợp lệ (thiếu collection database)' },
+          { error: 'File .apkg không hợp lệ (thiếu collection database bên trong)' },
           { status: 400 }
         )
       }
-      const dbData = await dbFile.async('nodebuffer')
-      dbBuffer = dbData
+      dbBuffer = await dbFile.async('nodebuffer')
     }
 
     const db = new SQL.Database(new Uint8Array(dbBuffer))
 
-    // Get notes
+    // Get notes (flashcards)
     const notesResult = db.exec('SELECT id, flds, mid, tags FROM notes LIMIT 500')
     const notes: any[] = []
     if (notesResult.length > 0) {
@@ -60,30 +64,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Get decks info
+    // Get deck names
     let decks: any[] = []
     try {
       const colResult = db.exec('SELECT decks FROM col')
       if (colResult.length > 0) {
-        const decksJson = String(colResult[0].values[0][0])
-        const decksObj = JSON.parse(decksJson)
-        decks = Object.values(decksObj).map((d: any) => ({
-          id: String(d.id),
-          name: d.name,
-        }))
+        const decksObj = JSON.parse(String(colResult[0].values[0][0]))
+        decks = Object.values(decksObj).map((d: any) => ({ id: String(d.id), name: d.name }))
       }
     } catch {}
 
     db.close()
 
-    return NextResponse.json({
-      success: true,
-      totalCards: notes.length,
-      decks,
-      notes,
-    })
+    return NextResponse.json({ success: true, totalCards: notes.length, decks, notes })
   } catch (err: any) {
-    console.error('[anki-parse] Error:', err)
+    console.error('[anki-parse]', err)
     return NextResponse.json(
       { error: err?.message || 'Lỗi khi đọc file Anki' },
       { status: 500 }
