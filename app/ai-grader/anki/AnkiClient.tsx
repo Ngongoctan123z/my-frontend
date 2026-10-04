@@ -2,37 +2,25 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers } from 'lucide-react'
-import { parseSqliteAnki } from './sqlite-reader'
+import JSZip from 'jszip'
+import localforage from 'localforage'
+import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers, Trash2, Edit2, Play } from 'lucide-react'
+import { parseSqliteAnki, AnkiNote } from './sqlite-reader'
 
 const ActivityCalendar = dynamic(
   () => import('react-activity-calendar').then(m => m.ActivityCalendar),
   { ssr: false, loading: () => <div className="h-32" /> }
 )
 
-interface AnkiCard {
-  id: string
-  modelId: string
-  tags: string
-  front: string
-  back: string
-  extra: string[]
-}
-
 interface AnkiDeck {
   id: string
   name: string
+  notes: AnkiNote[]
+  mediaMap: Record<string, Blob> // original filename -> blob
+  importedAt: number
 }
 
-// Clean Anki HTML: strip [sound:...] tags and clean up
-function cleanAnkiHtml(html: string): string {
-  return html
-    .replace(/\[sound:[^\]]+\]/g, '')
-    .replace(/<img[^>]+src="([^"]+)"[^>]*>/gi, '<span class="anki-img-placeholder">🖼️ [Hình ảnh]</span>')
-    .trim()
-}
-
-// Generate 366 days of empty activity data (from a year ago to today)
+// Generate 366 days of empty activity data
 function generateEmptyActivity() {
   const data = []
   const today = new Date()
@@ -70,8 +58,11 @@ function recordActivity() {
 export default function AnkiClient() {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState('')
-  const [cards, setCards] = useState<AnkiCard[]>([])
-  const [decks, setDecks] = useState<AnkiDeck[]>([])
+  const [savedDecks, setSavedDecks] = useState<AnkiDeck[]>([])
+  
+  const [activeDeck, setActiveDeck] = useState<AnkiDeck | null>(null)
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({})
+  
   const [activityData, setActivityData] = useState<{ date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -80,7 +71,27 @@ export default function AnkiClient() {
 
   useEffect(() => {
     setActivityData(loadActivityFromStorage())
+    loadSavedDecks()
   }, [])
+  
+  // Cleanup object URLs when component unmounts or active deck changes
+  useEffect(() => {
+    return () => {
+      Object.values(mediaUrls).forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [activeDeck])
+
+  const loadSavedDecks = async () => {
+    try {
+      const decks: AnkiDeck[] = []
+      await localforage.iterate((value: AnkiDeck, key: string) => {
+        if (key.startsWith('deck_')) decks.push(value)
+      })
+      setSavedDecks(decks.sort((a, b) => b.importedAt - a.importedAt))
+    } catch (e) {
+      console.error('Lỗi khi tải decks từ localforage:', e)
+    }
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -89,21 +100,16 @@ export default function AnkiClient() {
 
     setIsUploading(true)
     setError('')
-    setCards([])
-    setDecks([])
-
-    const formData = new FormData()
-    formData.append('file', file)
 
     try {
       const buffer = await file.arrayBuffer()
       const dbBuffer = new Uint8Array(buffer)
       let finalDbBuffer = dbBuffer
+      const mediaMap: Record<string, Blob> = {}
 
       const isPkZip = dbBuffer[0] === 0x50 && dbBuffer[1] === 0x4b
 
       if (isPkZip) {
-        const JSZip = (await import('jszip')).default
         const zip = await JSZip.loadAsync(buffer)
         const dbFile = zip.file('collection.anki21') || zip.file('collection.anki2')
         
@@ -112,16 +118,71 @@ export default function AnkiClient() {
         }
         const extracted = await dbFile.async('uint8array')
         finalDbBuffer = new Uint8Array(extracted.buffer as ArrayBuffer)
+        
+        // Extract media
+        const mediaFile = zip.file('media')
+        if (mediaFile) {
+          try {
+            const mediaJsonText = await mediaFile.async('string')
+            const mediaDict = JSON.parse(mediaJsonText) // {"0": "cat.jpg", "1": "dog.mp3"}
+            
+            for (const [key, filename] of Object.entries(mediaDict)) {
+              const fileInZip = zip.file(key)
+              if (fileInZip) {
+                const blob = await fileInZip.async('blob')
+                mediaMap[filename as string] = blob
+              }
+            }
+          } catch (e) {
+            console.warn('Lỗi khi parse media:', e)
+          }
+        }
       }
 
       const notes = parseSqliteAnki(finalDbBuffer)
+      
+      const newDeck: AnkiDeck = {
+        id: `deck_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        name: file.name.replace('.apkg', ''),
+        notes,
+        mediaMap,
+        importedAt: Date.now()
+      }
+      
+      await localforage.setItem(newDeck.id, newDeck)
+      await loadSavedDecks()
+      selectDeck(newDeck)
 
-      setCards(notes)
-      setDecks([{ id: '1', name: 'Deck mặc định' }])
     } catch (err: any) {
       setError(err.message || 'Có lỗi khi đọc file Anki.')
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const selectDeck = (deck: AnkiDeck) => {
+    // Revoke old URLs
+    Object.values(mediaUrls).forEach(url => URL.revokeObjectURL(url))
+    
+    // Create new URLs for this deck's media
+    const urls: Record<string, string> = {}
+    for (const [filename, blob] of Object.entries(deck.mediaMap || {})) {
+      urls[filename] = URL.createObjectURL(blob)
+    }
+    
+    setMediaUrls(urls)
+    setActiveDeck(deck)
+    setCurrentIndex(0)
+    setIsFlipped(false)
+    setIsStudying(false)
+  }
+
+  const deleteDeck = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (confirm('Bạn có chắc muốn xóa bộ thẻ này?')) {
+      await localforage.removeItem(id)
+      if (activeDeck?.id === id) setActiveDeck(null)
+      await loadSavedDecks()
     }
   }
 
@@ -131,6 +192,28 @@ export default function AnkiClient() {
     if (!file) return
     const synth = { target: { files: e.dataTransfer.files, value: '' } } as any
     handleFileUpload(synth)
+  }
+  
+  const processHtmlWithMedia = (html: string) => {
+    let processed = html
+    
+    // Replace <img> src with blob URLs
+    processed = processed.replace(/<img[^>]+src="([^">]+)"[^>]*>/gi, (match, src) => {
+      if (mediaUrls[src]) {
+        return match.replace(src, mediaUrls[src])
+      }
+      return match
+    })
+    
+    // Replace [sound:...] with audio tags
+    processed = processed.replace(/\[sound:([^\]]+)\]/gi, (match, src) => {
+      if (mediaUrls[src]) {
+        return `<audio controls autoplay src="${mediaUrls[src]}" class="mt-2 w-full max-w-[250px] outline-none rounded-full h-10 shadow-sm"></audio>`
+      }
+      return `<span class="text-xs text-red-400 border border-red-200 px-2 py-1 rounded bg-red-50">[Thiếu file âm thanh: ${src}]</span>`
+    })
+    
+    return processed
   }
 
   const startStudying = () => {
@@ -146,199 +229,258 @@ export default function AnkiClient() {
   }
 
   const nextCard = () => {
-    setIsFlipped(false)
-    setCurrentIndex(i => Math.min(i + 1, cards.length - 1))
+    if (activeDeck && currentIndex < activeDeck.notes.length - 1) {
+      setCurrentIndex(curr => curr + 1)
+      setIsFlipped(false)
+    }
   }
 
   const prevCard = () => {
-    setIsFlipped(false)
-    setCurrentIndex(i => Math.max(i - 1, 0))
+    if (currentIndex > 0) {
+      setCurrentIndex(curr => curr - 1)
+      setIsFlipped(false)
+    }
   }
-
-  const currentCard = cards[currentIndex]
+  
+  const currentCard = activeDeck?.notes[currentIndex]
 
   return (
-    <div className="min-h-screen bg-page py-10">
-      <div className="container mx-auto px-4 max-w-4xl">
-
+    <div className="min-h-screen bg-slate-50 pt-24 pb-12 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-ink mb-3 tracking-tight flex items-center justify-center gap-3">
-            <BookOpen className="w-10 h-10 text-primary" />
-            VNDocs Anki
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200 mb-6 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+            <Layers className="w-8 h-8" />
+          </div>
+          <h1 className="text-3xl font-extrabold text-slate-800 mb-3 tracking-tight">
+            VNDocs Anki <span className="text-sm font-normal text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md ml-2 border border-indigo-100">v2.0</span>
           </h1>
-          <p className="text-ink-muted text-lg max-w-xl mx-auto">
-            Nhập file <span className="font-semibold text-ink">.apkg</span> của bạn và học từ vựng thông minh hơn với Spaced Repetition.
+          <p className="text-slate-500 max-w-xl mx-auto text-lg leading-relaxed">
+            Học từ vựng trực quan, lưu trữ offline ngay trên trình duyệt, không giới hạn dung lượng!
           </p>
         </div>
-
-        {/* Error */}
+        
         {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-200 text-sm">
-            ⚠️ {error}
+          <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl mb-6 flex items-center shadow-sm">
+            <span className="mr-2">⚠️</span> {error}
           </div>
         )}
 
-        {/* Upload zone */}
-        {!isStudying && (
-          <div
-            className="bg-surface rounded-3xl border-2 border-dashed border-line hover:border-primary transition-all p-10 text-center relative mb-6"
-            onDrop={handleDrop}
-            onDragOver={e => e.preventDefault()}
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".apkg,.colpkg"
-              onChange={handleFileUpload}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              disabled={isUploading}
-            />
-            <div className="flex flex-col items-center gap-4 pointer-events-none">
-              <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-                {isUploading ? <Loader2 className="w-9 h-9 animate-spin" /> : <UploadCloud className="w-9 h-9" />}
-              </div>
-              <div>
-                <p className="text-lg font-bold text-ink mb-1">
-                  {isUploading ? 'Đang xử lý file...' : 'Kéo thả hoặc click để chọn file .apkg'}
-                </p>
-                <p className="text-sm text-ink-muted">Hỗ trợ: .apkg, .colpkg — Tất cả các loại deck của Anki</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Deck info + Start button */}
-        {cards.length > 0 && !isStudying && (
-          <div className="bg-surface rounded-3xl border border-line p-6 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Layers className="w-5 h-5 text-primary" />
-                <span className="font-bold text-ink text-lg">Đã tải xong!</span>
-              </div>
-              <p className="text-ink-muted text-sm">
-                <strong className="text-ink">{cards.length}</strong> thẻ từ vựng
-                {decks.length > 0 && <> • {decks.length} deck: <span className="font-medium text-ink">{decks.map(d => d.name).join(', ')}</span></>}
-              </p>
-            </div>
-            <button
-              onClick={startStudying}
-              className="bg-primary text-white font-bold py-3 px-8 rounded-full hover:bg-primary/90 hover:scale-105 transition-all flex items-center gap-2 shadow-lg shrink-0"
-            >
-              <PlayCircle className="w-5 h-5" /> Bắt đầu học
-            </button>
-          </div>
-        )}
-
-        {/* Flashcard study mode */}
-        {isStudying && currentCard && (
-          <div className="mb-6">
-            {/* Progress */}
-            <div className="flex items-center justify-between text-sm text-ink-muted mb-3">
-              <span>Thẻ {currentIndex + 1} / {cards.length}</span>
-              <button onClick={() => setIsStudying(false)} className="text-primary hover:underline flex items-center gap-1">
-                <RotateCcw className="w-4 h-4" /> Import file khác
-              </button>
-            </div>
-            <div className="w-full bg-line rounded-full h-1.5 mb-6">
-              <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }} />
-            </div>
-
-            {/* Card */}
+        {!isStudying ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            {/* Upload Area */}
             <div
-              onClick={flipCard}
-              className="bg-surface rounded-3xl border border-line shadow-sm cursor-pointer hover:shadow-md transition-all select-none min-h-[280px] flex flex-col items-center justify-center p-10 text-center mb-4 relative"
+              className={`bg-white rounded-3xl border-2 border-dashed ${
+                isUploading ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'
+              } p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer group shadow-sm min-h-[300px]`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              onClick={() => !isUploading && fileRef.current?.click()}
             >
-              {!isFlipped ? (
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-ink-muted font-semibold mb-4">Mặt trước — Nhấp để xem đáp án</p>
-                  <div
-                    className="text-2xl font-bold text-ink leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: cleanAnkiHtml(currentCard.front) }}
-                  />
-                  {currentCard.tags && (
-                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                      {currentCard.tags.split(' ').filter(Boolean).map(tag => (
-                        <span key={tag} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary rounded-full px-3 py-1">
-                          <Tag className="w-3 h-3" />{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              <input
+                type="file"
+                ref={fileRef}
+                className="hidden"
+                accept=".apkg"
+                onChange={handleFileUpload}
+              />
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
+                  <p className="text-slate-600 font-medium">Đang xử lý file trực tiếp trên trình duyệt...</p>
+                  <p className="text-sm text-slate-400 mt-2">Việc này không tốn dung lượng mạng!</p>
+                </>
               ) : (
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-ink-muted font-semibold mb-4">Mặt sau</p>
-                  <div
-                    className="text-xl text-ink leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: cleanAnkiHtml(currentCard.back) }}
-                  />
-                  {currentCard.extra.length > 0 && (
-                    <div
-                      className="mt-4 text-sm text-ink-muted border-t border-line pt-4"
-                      dangerouslySetInnerHTML={{ __html: cleanAnkiHtml(currentCard.extra.join(' • ')) }}
-                    />
-                  )}
-                </div>
+                <>
+                  <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-700 mb-2">Nhập file .apkg mới</h3>
+                  <p className="text-slate-500 text-sm max-w-[250px]">Kéo thả file Anki vào đây hoặc click để chọn file từ máy</p>
+                </>
               )}
             </div>
 
+            {/* Saved Decks List */}
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col h-full min-h-[300px]">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-indigo-500" /> Các bộ thẻ đã lưu
+              </h3>
+              
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                {savedDecks.length === 0 ? (
+                  <div className="text-center text-slate-400 py-10 text-sm">
+                    Bạn chưa lưu bộ thẻ nào. Hãy upload file .apkg để bắt đầu!
+                  </div>
+                ) : (
+                  savedDecks.map(deck => (
+                    <div 
+                      key={deck.id} 
+                      onClick={() => selectDeck(deck)}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
+                        activeDeck?.id === deck.id 
+                          ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100 ring-offset-1' 
+                          : 'border-slate-100 bg-slate-50 hover:bg-white hover:border-indigo-200 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex-1 overflow-hidden">
+                        <h4 className={`font-bold truncate ${activeDeck?.id === deck.id ? 'text-indigo-700' : 'text-slate-700'}`}>
+                          {deck.name}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                          <Layers className="w-3 h-3" /> {deck.notes.length} thẻ
+                        </p>
+                      </div>
+                      <button 
+                        onClick={(e) => deleteDeck(deck.id, e)}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Xóa bộ thẻ"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              {activeDeck && (
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <button
+                    onClick={startStudying}
+                    className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200 hover:shadow-lg hover:-translate-y-0.5"
+                  >
+                    <Play className="w-4 h-4 fill-current" /> Bắt đầu học "{activeDeck.name}"
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* STUDY MODE */
+          <div className="max-w-2xl mx-auto mb-10 relative">
+            <button
+              onClick={() => setIsStudying(false)}
+              className="absolute -top-12 left-0 text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Quay lại danh sách
+            </button>
+            
+            <div className="flex justify-between items-center mb-6 px-2">
+              <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+                {activeDeck?.name}
+              </span>
+              <span className="text-sm font-bold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full border border-indigo-100">
+                Thẻ {currentIndex + 1} / {activeDeck?.notes.length}
+              </span>
+            </div>
+
+            {currentCard && (
+              <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100 min-h-[400px] flex flex-col justify-center text-center relative overflow-hidden transition-all">
+                
+                {/* Front */}
+                <div className={`${isFlipped ? 'mb-8 pb-8 border-b border-slate-100' : ''}`}>
+                  <p className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-6 flex justify-center items-center gap-2">
+                    <Tag className="w-3 h-3" /> Mặt trước
+                  </p>
+                  <div
+                    className="text-2xl md:text-3xl font-medium text-slate-800 leading-relaxed anki-content"
+                    dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.front) }}
+                  />
+                </div>
+
+                {/* Back */}
+                {isFlipped && (
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <p className="text-xs uppercase tracking-widest text-indigo-400 font-bold mb-6 flex justify-center items-center gap-2">
+                      <BookOpen className="w-3 h-3" /> Đáp án
+                    </p>
+                    <div
+                      className="text-xl md:text-2xl text-slate-700 leading-relaxed anki-content"
+                      dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.back) }}
+                    />
+                    {currentCard.extra.length > 0 && (
+                      <div
+                        className="mt-8 text-sm text-slate-500 bg-slate-50 p-4 rounded-xl border border-slate-100 anki-content"
+                        dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.extra.join('<br/><br/>')) }}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Navigation */}
-            <div className="flex gap-3 justify-center">
+            <div className="flex gap-4 justify-center mt-8">
               <button
                 onClick={prevCard}
                 disabled={currentIndex === 0}
-                className="flex items-center gap-2 px-6 py-3 rounded-full bg-surface border border-line hover:border-primary hover:text-primary transition-all disabled:opacity-40 font-medium"
+                className="flex items-center justify-center w-14 h-14 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 transition-all disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-600 shadow-sm"
               >
-                <ChevronLeft className="w-4 h-4" /> Trước
+                <ChevronLeft className="w-6 h-6" />
               </button>
+              
               <button
                 onClick={flipCard}
-                className="flex items-center gap-2 px-8 py-3 rounded-full bg-primary text-white font-bold hover:bg-primary/90 transition-all shadow-sm"
+                className="flex-1 max-w-[240px] flex items-center justify-center gap-2 rounded-full bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-1"
               >
-                {isFlipped ? '🔄 Lật lại' : '👁️ Xem đáp án'}
+                {isFlipped ? (
+                  <><RotateCcw className="w-5 h-5" /> Lật thẻ lại</>
+                ) : (
+                  <><PlayCircle className="w-5 h-5" /> Hiện đáp án</>
+                )}
               </button>
+              
               <button
                 onClick={nextCard}
-                disabled={currentIndex === cards.length - 1}
-                className="flex items-center gap-2 px-6 py-3 rounded-full bg-surface border border-line hover:border-primary hover:text-primary transition-all disabled:opacity-40 font-medium"
+                disabled={currentIndex === (activeDeck?.notes.length ?? 1) - 1}
+                className="flex items-center justify-center w-14 h-14 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 transition-all disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:text-slate-600 shadow-sm"
               >
-                Tiếp <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-6 h-6" />
               </button>
             </div>
           </div>
         )}
 
         {/* Activity Calendar */}
-        <div className="bg-surface rounded-3xl border border-line p-6 overflow-hidden">
-          <h2 className="text-base font-bold text-ink mb-5 flex items-center gap-2">
-            🔥 Lịch sử học tập của bạn
+        <div className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm overflow-hidden mt-10">
+          <h2 className="text-lg font-extrabold text-slate-800 mb-6 flex items-center gap-2">
+            🔥 Lịch sử học tập
           </h2>
-          <div className="overflow-x-auto pb-2">
+          <div className="overflow-x-auto pb-2 custom-scrollbar">
             <div className="min-w-[700px]">
               {activityData.length > 0 ? (
                 <ActivityCalendar
                   data={activityData}
                   theme={{
-                    light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
-                    dark: ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'],
+                    light: ['#f1f5f9', '#c7d2fe', '#818cf8', '#6366f1', '#4338ca'],
+                    dark: ['#1e293b', '#3730a3', '#4f46e5', '#6366f1', '#818cf8'],
                   }}
                   labels={{
-                    months: ['Thg 1','Thg 2','Thg 3','Thg 4','Thg 5','Thg 6','Thg 7','Thg 8','Thg 9','Thg 10','Thg 11','Thg 12'],
+                    months: ['Th1','Th2','Th3','Th4','Th5','Th6','Th7','Th8','Th9','Th10','Th11','Th12'],
                     weekdays: ['CN','T2','T3','T4','T5','T6','T7'],
                     totalCount: '{{count}} từ vựng đã học trong năm qua',
                     legend: { less: 'Ít', more: 'Nhiều' },
                   }}
                 />
               ) : (
-                <div className="h-32 flex items-center justify-center text-ink-muted">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Đang tải dữ liệu học tập...
+                <div className="h-32 flex items-center justify-center text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Đang tải lịch sử...
                 </div>
               )}
             </div>
           </div>
         </div>
+        
       </div>
+      
+      {/* Global styles for injected Anki HTML */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .anki-content img { max-width: 100%; border-radius: 8px; margin: 10px auto; display: block; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .anki-content audio { width: 100%; max-width: 300px; margin: 10px auto; display: block; }
+        .cloze { font-weight: bold; color: #4f46e5; background: #eef2ff; padding: 2px 6px; border-radius: 4px; border: 1px solid #c7d2fe; }
+        .anki-img-placeholder { display: inline-block; padding: 8px 12px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; color: #64748b; font-size: 13px; }
+      `}} />
     </div>
   )
 }

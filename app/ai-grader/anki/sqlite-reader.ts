@@ -167,17 +167,33 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
   const masterRecords: (string | number | null)[][] = []
   collectLeafRecords(data, 1, pageSize, masterRecords)
 
-  let notesRootPage = -1
+  let modelsRootPage = -1
   for (const row of masterRecords) {
     // sqlite_master: type, name, tbl_name, rootpage, sql
     if (row[0] === 'table' && row[1] === 'notes') {
       notesRootPage = Number(row[3])
-      break
+    }
+    if (row[0] === 'table' && row[1] === 'col') {
+      modelsRootPage = Number(row[3])
     }
   }
 
   if (notesRootPage < 1) {
     throw new Error('Không tìm thấy bảng notes trong database Anki')
+  }
+
+  // Read col table for models (JSON)
+  let models: Record<string, any> = {}
+  if (modelsRootPage >= 1) {
+    const colRecords: (string | number | null)[][] = []
+    collectLeafRecords(data, modelsRootPage, pageSize, colRecords)
+    if (colRecords.length > 0 && typeof colRecords[0][9] === 'string') {
+      try {
+        models = JSON.parse(colRecords[0][9])
+      } catch (e) {
+        console.warn('Failed to parse models JSON from col table')
+      }
+    }
   }
 
   // Read notes table
@@ -188,15 +204,48 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
   return noteRecords
     .filter(row => row.length >= 7)
     .map(row => {
+      const mid = String(row[2] ?? '')
+      const model = models[mid]
+      
       const flds = String(row[6] ?? '')
       const fields = flds.split('\x1f')
+      
+      let front = fields[0] ?? ''
+      let back = fields[1] ?? ''
+      
+      // If we have model templates, try to use them
+      if (model && model.tmpls && model.tmpls.length > 0) {
+        let qfmt = model.tmpls[0].qfmt || ''
+        let afmt = model.tmpls[0].afmt || ''
+        
+        // Replace {{Field}} with actual field values
+        if (model.flds) {
+          model.flds.forEach((f: any) => {
+            const fieldName = f.name
+            const fieldVal = fields[f.ord] || ''
+            
+            // Basic replacement
+            const regex = new RegExp(`\\{\\{[^}]*${fieldName}[^}]*\\}\\}`, 'g')
+            qfmt = qfmt.replace(regex, fieldVal)
+            afmt = afmt.replace(regex, fieldVal)
+          })
+        }
+        
+        // Very basic cloze support
+        qfmt = qfmt.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, '<span class="cloze">[...]</span>')
+        afmt = afmt.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, '<span class="cloze text-indigo-600 font-bold">$1</span>')
+        
+        front = qfmt
+        back = afmt
+      }
+
       return {
         id: String(row[0] ?? ''),
-        modelId: String(row[2] ?? ''),
+        modelId: mid,
         tags: String(row[5] ?? '').trim(),
-        front: fields[0] ?? '',
-        back: fields[1] ?? '',
-        extra: fields.slice(2).filter(Boolean),
+        front,
+        back,
+        extra: fields.length > 2 ? fields.slice(2).filter(Boolean) : [],
       }
     })
 }
