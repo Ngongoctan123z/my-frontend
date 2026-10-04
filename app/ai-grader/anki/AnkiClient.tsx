@@ -227,7 +227,7 @@ function AnkiClient() {
 
         const dbFile = zip.file('collection.anki21') || zip.file('collection.anki2')
         if (!dbFile) throw new Error('File .apkg không hợp lệ (thiếu collection database bên trong)')
-        finalDbBuffer = await dbFile.async('uint8array') as any
+        finalDbBuffer = await dbFile.async('uint8array') as any as any
 
         const mediaFile = zip.file('media')
         if (mediaFile) {
