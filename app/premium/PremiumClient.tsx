@@ -72,13 +72,28 @@ export function PremiumClient() {
     setIsChecking(false)
   }
 
-  const checkPayment = () => {
+  const checkPayment = async () => {
     setIsChecking(true)
-    // Giả lập check payment (Sau này gọi API backend / SePay webhook)
-    setTimeout(() => {
+    try {
+      const expectedContent = `VNDOCS ${selectedPkg?.id.toUpperCase()} ${session?.user?.email?.split('@')[0] || 'USER'}`
+      const res = await fetch('/api/premium/check-transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: selectedPkg?.price, expectedContent })
+      })
+      const data = await res.json()
+      
+      if (data.isPaid) {
+        alert('Thanh toán thành công! Tài khoản của bạn đã được nâng cấp.')
+        setSelectedPkg(null)
+      } else {
+        alert(data.message || 'Chưa tìm thấy giao dịch. Vui lòng đợi trong giây lát hoặc kiểm tra lại thông tin chuyển khoản.')
+      }
+    } catch (e) {
+      alert('Lỗi kết nối khi kiểm tra giao dịch.')
+    } finally {
       setIsChecking(false)
-      alert('Chưa tìm thấy giao dịch. Vui lòng đợi trong giây lát hoặc kiểm tra lại thông tin chuyển khoản.')
-    }, 2000)
+    }
   }
 
   const qrUrl = selectedPkg 
