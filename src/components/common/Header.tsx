@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Star, Info, Menu, X } from 'lucide-react'
+import { Star, Info, Menu, X, Crown } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -122,6 +122,13 @@ export function Header() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 shrink-0">
+          <Link prefetch={false} href="/premium"
+            className="hidden sm:inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
+            aria-label="Premium"
+          >
+            <Crown size={16} className="text-yellow-900 fill-yellow-900/20" />
+            <span>Nâng cấp</span>
+          </Link>
           <div className="relative hidden sm:block" ref={supportRef}>
             <button
               onClick={() => setSupportOpen(!supportOpen)}
