@@ -19,6 +19,9 @@ const nextConfig = {
   env: {
     API_URL: process.env.API_URL || 'http://localhost:8081'
   },
+  experimental: {
+    optimizePackageImports: ['lucide-react']
+  },
   async headers() {
     return [
       {

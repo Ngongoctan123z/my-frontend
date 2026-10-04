@@ -72,7 +72,7 @@ export default function AnkiClient() {
   const [error, setError] = useState('')
   const [cards, setCards] = useState<AnkiCard[]>([])
   const [decks, setDecks] = useState<AnkiDeck[]>([])
-  const [activityData, setActivityData] = useState(generateEmptyActivity())
+  const [activityData, setActivityData] = useState<{ date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [isStudying, setIsStudying] = useState(false)
@@ -316,19 +316,25 @@ export default function AnkiClient() {
           </h2>
           <div className="overflow-x-auto pb-2">
             <div className="min-w-[700px]">
-              <ActivityCalendar
-                data={activityData}
-                theme={{
-                  light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
-                  dark: ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'],
-                }}
-                labels={{
-                  months: ['Thg 1','Thg 2','Thg 3','Thg 4','Thg 5','Thg 6','Thg 7','Thg 8','Thg 9','Thg 10','Thg 11','Thg 12'],
-                  weekdays: ['CN','T2','T3','T4','T5','T6','T7'],
-                  totalCount: '{{count}} từ vựng đã học trong năm qua',
-                  legend: { less: 'Ít', more: 'Nhiều' },
-                }}
-              />
+              {activityData.length > 0 ? (
+                <ActivityCalendar
+                  data={activityData}
+                  theme={{
+                    light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+                    dark: ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'],
+                  }}
+                  labels={{
+                    months: ['Thg 1','Thg 2','Thg 3','Thg 4','Thg 5','Thg 6','Thg 7','Thg 8','Thg 9','Thg 10','Thg 11','Thg 12'],
+                    weekdays: ['CN','T2','T3','T4','T5','T6','T7'],
+                    totalCount: '{{count}} từ vựng đã học trong năm qua',
+                    legend: { less: 'Ít', more: 'Nhiều' },
+                  }}
+                />
+              ) : (
+                <div className="h-32 flex items-center justify-center text-ink-muted">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Đang tải dữ liệu học tập...
+                </div>
+              )}
             </div>
           </div>
         </div>
