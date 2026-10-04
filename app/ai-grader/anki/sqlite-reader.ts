@@ -152,6 +152,8 @@ export interface AnkiNote {
   front: string
   back: string
   css: string
+  qfmt: string
+  sortf: number
   fieldsData: { name: string; value: string }[]
   extra: string[]
   deckName?: string
@@ -315,9 +317,14 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
         css = model.css || ''
       }
       
+      let qfmt = ''
+      let sortf = 0
+      
       if (model && model.tmpls && model.tmpls.length > 0) {
         const tmpl = model.tmpls[ord] || model.tmpls[0]
-        front = renderTemplate(tmpl.qfmt || '', fieldsDict, { clozeN: ord + 1 })
+        qfmt = tmpl.qfmt || ''
+        sortf = model.sortf || 0
+        front = renderTemplate(qfmt, fieldsDict, { clozeN: ord + 1 })
         back = renderTemplate(tmpl.afmt || '', fieldsDict, { frontSide: front, clozeN: ord + 1, reveal: true })
       }
       
@@ -328,6 +335,8 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
         front,
         back,
         css,
+        qfmt,
+        sortf,
         fieldsData,
         extra: [],
         deckName: decks[did]?.name || 'Mặc định',

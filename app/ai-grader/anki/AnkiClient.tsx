@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import localforage from 'localforage'
-import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers, Trash2, Folder, BrainCircuit, Activity, Calendar, FileText, CheckCircle2 } from 'lucide-react'
+import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers, Trash2, Folder, BrainCircuit, Activity, Calendar, FileText, CheckCircle2, Settings } from 'lucide-react'
 import { parseSqliteAnki, AnkiNote } from './sqlite-reader'
+import { FieldMappingModal, CardConfig, defaultConfig } from './FieldMappingModal'
 
 const ActivityCalendar = dynamic(
   () => import('react-activity-calendar').then(m => m.ActivityCalendar),
@@ -70,6 +71,8 @@ function AnkiClient() {
   // Custom display
   const [showDebug, setShowDebug] = useState(false)
   const [useOriginalLayout, setUseOriginalLayout] = useState(true)
+  const [showConfigModal, setShowConfigModal] = useState(false)
+  const [activeConfig, setActiveConfig] = useState<CardConfig | null>(null)
   
   // Study State
   const [studyQueue, setStudyQueue] = useState<AnkiNote[]>([])
@@ -614,108 +617,97 @@ function AnkiClient() {
                     <style dangerouslySetInnerHTML={{ __html: currentCard.css }} />
                     <div className="card anki-content anki-original-layout" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(isFlipped ? currentCard.back : currentCard.front) }} />
                   </div>
-                ) : (
-                  <>
-                    {/* Front (Word, IPA, Image) */}
-                <div className={`transition-all duration-500 ${isFlipped ? 'mb-8 pb-8 border-b-2 border-dashed border-slate-100 opacity-60 scale-95 origin-top' : 'scale-100'}`}>
-                  {semantic?.word ? (
-                    <div className="flex flex-col items-center justify-center gap-4">
-                      {semantic.images.length > 0 && (
-                        <div className="flex flex-col gap-4 mb-4">
-                          {semantic.images.map((m, i) => (
-                            <div key={i} className="anki-content rounded-3xl overflow-hidden shadow-lg border border-slate-100" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(m) }} />
-                          ))}
+                ) : (() => {
+                  const modelId = currentCard.modelId
+                  const names = currentCard.fieldsData.map((f: any) => f.name)
+                  const sampleRow = currentCard.fieldsData.map((f: any) => f.value)
+                  
+                  // Initialize or load config
+                  let cfg = activeConfig
+                  if (!cfg) {
+                    const saved = localStorage.getItem(`anki-cfg:${modelId}`)
+                    if (saved) {
+                      try { cfg = JSON.parse(saved) } catch(e){}
+                    }
+                    if (!cfg) {
+                       // We don't have full rows here, just use current note as sample
+                       cfg = defaultConfig(names, [sampleRow], currentCard.qfmt, currentCard.sortf)
+                    }
+                  }
+                  
+                  const getFieldHtml = (i: number | null) => {
+                    if (i === null || i < 0 || i >= currentCard.fieldsData.length) return ''
+                    return currentCard.fieldsData[i]?.value || ''
+                  }
+                  
+                  const renderFieldBlock = (i: number, showLabel: boolean = false) => {
+                    const html = getFieldHtml(i)
+                    if (!html.replace(/<[^>]*>/g, '').trim() && !/\[sound:|<img/i.test(html)) return null
+                    return (
+                      <div key={i} className="mb-4">
+                        {showLabel && <div className="text-[10px] uppercase font-bold text-slate-400 mb-2">{names[i]}</div>}
+                        <div className="anki-content text-lg" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(html) }} />
+                      </div>
+                    )
+                  }
+                  
+                  return (
+                    <div className="w-full text-left">
+                      <div className="flex justify-end mb-4">
+                        <button onClick={() => setShowConfigModal(true)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors border border-slate-100">
+                          <Settings className="w-4 h-4" /> Cài đặt mặt thẻ
+                        </button>
+                      </div>
+                      
+                      <div className={`transition-all duration-500 text-center ${isFlipped ? 'mb-8 pb-8 border-b-2 border-dashed border-slate-100 opacity-60 scale-95 origin-top' : 'scale-100'}`}>
+                        {cfg.big !== null && (
+                          <div className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight anki-content drop-shadow-sm mb-6" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(getFieldHtml(cfg.big)) }} />
+                        )}
+                        {cfg.front.map(i => renderFieldBlock(i))}
+                      </div>
+
+                      {isFlipped && (
+                        <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 text-left">
+                          <div className="bg-slate-50/80 p-6 md:p-8 rounded-3xl border border-slate-100 min-h-[200px] shadow-inner">
+                            {cfg.back.map(i => renderFieldBlock(i, true))}
+                          </div>
+                          
+                          {/* DEBUG BUTTON */}
+                          <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+                            <button onClick={() => setShowDebug(!showDebug)} className="text-xs text-slate-400 hover:text-blue-500 underline">
+                              {showDebug ? 'Ẩn Debug Info' : 'Sai cấu trúc? Bấm vào đây để xem lỗi (Debug)'}
+                            </button>
+                            {showDebug && (
+                              <div className="mt-4 text-left bg-slate-900 text-green-400 p-4 rounded-xl overflow-auto text-xs font-mono max-h-64">
+                                <p className="mb-2 text-white font-bold">RAW FIELDS DATA:</p>
+                                {currentCard.fieldsData?.map((f: any, i: number) => (
+                                  <div key={i} className="mb-2 border-b border-slate-700 pb-2">
+                                    <strong className="text-blue-300">[{f.name}]</strong>: {f.value}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      <div 
-                        className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight anki-content text-center drop-shadow-sm"
-                        dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(semantic.word) }}
-                      />
-                      {semantic.ipa && (
-                        <div 
-                          className="text-2xl font-medium text-slate-500 font-mono tracking-widest anki-content text-center opacity-80"
-                          dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(semantic.ipa) }}
-                        />
                       )}
                     </div>
-                  ) : (
-                    // Fallback to Anki QFMT only if we literally couldn't find ANY text field
-                    <div
-                      className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight anki-content text-center drop-shadow-sm"
-                      dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.front) }}
-                    />
-                  )}
-                </div>
-
-                {/* Back (Meanings, Audio, Examples) */}
-                {isFlipped && (
-                  <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 text-left">
-                    
-                    {semantic?.meaning ? (
-                      <div className="space-y-8">
-                        {/* Audio */}
-                        {semantic.audios.length > 0 && (
-                          <div className="flex flex-col items-center gap-2 mb-6">
-                            {semantic.audios.map((a, i) => (
-                              <div key={i} className="anki-content" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(a) }} />
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
-                          <h3 className="text-xs uppercase tracking-widest text-blue-500 font-bold mb-2 flex items-center gap-2">
-                            <BookOpen className="w-4 h-4" /> Ý nghĩa
-                          </h3>
-                          <div 
-                            className="text-3xl font-bold text-slate-700 leading-snug anki-content"
-                            dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(semantic.meaning) }}
-                          />
-                        </div>
-                        
-                        {semantic.examples.length > 0 && (
-                          <div className="grid grid-cols-1 gap-6 mt-6">
-                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                              <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Bổ sung
-                              </h3>
-                              <ul className="space-y-4">
-                                {semantic.examples.map((ex, i) => (
-                                  <li key={i} className="text-lg text-slate-600 font-medium leading-relaxed anki-content" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(ex) }} />
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* DEBUG BUTTON */}
-                        <div className="mt-8 pt-4 border-t border-slate-100 text-center">
-                          <button onClick={() => setShowDebug(!showDebug)} className="text-xs text-slate-400 hover:text-blue-500 underline">
-                            {showDebug ? 'Ẩn Debug Info' : 'Sai cấu trúc? Bấm vào đây để xem lỗi (Debug)'}
-                          </button>
-                          {showDebug && currentCard && (
-                            <div className="mt-4 text-left bg-slate-900 text-green-400 p-4 rounded-xl overflow-auto text-xs font-mono max-h-64">
-                              <p className="mb-2 text-white font-bold">RAW FIELDS DATA:</p>
-                              {currentCard.fieldsData?.map((f: any, i: number) => (
-                                <div key={i} className="mb-2 border-b border-slate-700 pb-2">
-                                  <strong className="text-blue-300">[{f.name}]</strong>: {f.value}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        
-                      </div>
-                    ) : (
-                      // Fallback to Anki AFMT
-                      <div className="bg-slate-50 p-6 md:p-8 rounded-3xl border border-slate-100 mt-6 min-h-[200px]">
-                        <div className="anki-content w-full overflow-hidden break-words text-lg" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.back) }} />
-                      </div>
-                    )}
-                  </div>
-                )}
-                </>
-                )}
+                  )
+                })()}
               </div>
+            )}
+
+            {showConfigModal && currentCard && activeDeck && (
+              <FieldMappingModal
+                modelId={currentCard.modelId}
+                names={currentCard.fieldsData.map((f: any) => f.name)}
+                sampleRow={currentCard.fieldsData.map((f: any) => f.value)}
+                rows={activeDeck.notes.filter(n => n.modelId === currentCard.modelId).map(n => n.fieldsData.map((f: any) => f.value))}
+                qfmt={currentCard.qfmt}
+                onSave={(cfg) => {
+                  setActiveConfig(cfg)
+                }}
+                onClose={() => setShowConfigModal(false)}
+              />
             )}
 
             {/* SRS Navigation Buttons */}
