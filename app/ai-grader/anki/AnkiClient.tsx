@@ -352,12 +352,14 @@ function AnkiClient() {
     const examples: string[] = [], images: string[] = [], audios: string[] = []
     
     fieldsData.forEach(f => {
-      const name = f.name.toLowerCase()
+      const name = f.name.toLowerCase().trim()
       const val = f.value.trim()
       if (!val) return
       
+      const strippedVal = val.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/gi, '').trim()
+      
       // Ignore index numbers
-      if (name === 'stt' || name === 'id' || name === 'thứ tự') return
+      if (name === 'stt' || name === 'id' || name === 'thứ tự' || name === 'seq' || name === 'index' || name === 'no') return
       
       const isImg = val.includes('<img')
       const isAudio = val.includes('[sound:')
@@ -370,13 +372,28 @@ function AnkiClient() {
       else if (name.includes('picture') || name.includes('image') || name.includes('hình ảnh') || name.includes('ảnh') || isImg) images.push(val)
       
       // Fallbacks if names are weird (avoid matching plain numbers)
-      else if (!word && isNaN(Number(val)) && val.length < 50 && !isImg && !isAudio) {
+      else if (!word && isNaN(Number(strippedVal)) && strippedVal.length > 0 && strippedVal.length < 100 && !isImg && !isAudio) {
         word = val
       }
-      else if (!meaning && isNaN(Number(val)) && val.length > 5 && !isImg && !isAudio && val !== word) {
+      else if (!meaning && isNaN(Number(strippedVal)) && strippedVal.length > 0 && !isImg && !isAudio && val !== word) {
         meaning = val
       }
     })
+    
+    // Đảm bảo không bao giờ để trống từ vựng (chống lỗi hiển thị số 1)
+    if (!word) {
+      const firstText = fieldsData.find(f => {
+        const s = f.value.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/gi, '').trim()
+        const n = f.name.toLowerCase().trim()
+        return s.length > 0 && isNaN(Number(s)) && !f.value.includes('<img') && !f.value.includes('[sound:') && !['stt','id','thứ tự','no','index','seq'].includes(n)
+      })
+      if (firstText) word = firstText.value
+    }
+    
+    // Nếu cả Word và Meaning bị trùng nhau (vì fallback lỡ lấy nhầm), cố tách ra
+    if (word && meaning && word === meaning) {
+      meaning = ''
+    }
     
     return { word, ipa, meaning, examples, images, audios }
   }
@@ -560,25 +577,25 @@ function AnkiClient() {
                       {semantic.images.length > 0 && (
                         <div className="flex flex-col gap-4 mb-4">
                           {semantic.images.map((m, i) => (
-                            <div key={i} className="anki-content rounded-3xl overflow-hidden" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(m) }} />
+                            <div key={i} className="anki-content rounded-3xl overflow-hidden shadow-lg border border-slate-100" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(m) }} />
                           ))}
                         </div>
                       )}
                       <div 
-                        className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight anki-content text-center"
+                        className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight anki-content text-center drop-shadow-sm"
                         dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(semantic.word) }}
                       />
                       {semantic.ipa && (
                         <div 
-                          className="text-2xl font-medium text-slate-500 font-mono tracking-widest anki-content text-center"
+                          className="text-2xl font-medium text-slate-500 font-mono tracking-widest anki-content text-center opacity-80"
                           dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(semantic.ipa) }}
                         />
                       )}
                     </div>
                   ) : (
-                    // Fallback to Anki QFMT if we couldn't extract intelligently
+                    // Fallback to Anki QFMT only if we literally couldn't find ANY text field
                     <div
-                      className="text-4xl md:text-5xl font-black text-slate-800 leading-relaxed anki-content"
+                      className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight anki-content text-center drop-shadow-sm"
                       dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.front) }}
                     />
                   )}
