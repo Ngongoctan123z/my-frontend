@@ -69,6 +69,7 @@ function AnkiClient() {
   
   // Custom display
   const [showDebug, setShowDebug] = useState(false)
+  const [useOriginalLayout, setUseOriginalLayout] = useState(true)
   
   // Study State
   const [studyQueue, setStudyQueue] = useState<AnkiNote[]>([])
@@ -551,6 +552,15 @@ function AnkiClient() {
                     <Folder className="w-5 h-5 text-blue-500" /> Các mục bài học trong bộ này
                   </div>
                   
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-slate-700 flex items-center gap-2"><Folder className="w-5 h-5 text-blue-500" /> Chọn phần học:</h3>
+                    
+                    <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl text-sm font-medium">
+                      <button onClick={() => setUseOriginalLayout(true)} className={`px-4 py-2 rounded-lg transition-all ${useOriginalLayout ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Gốc (Anki)</button>
+                      <button onClick={() => setUseOriginalLayout(false)} className={`px-4 py-2 rounded-lg transition-all ${!useOriginalLayout ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Hiện đại</button>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {subdecks.map((sub, i) => (
                       <div key={i} className="group bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex justify-between items-center" onClick={() => startStudying(sub.name, sub.isTag)}>
@@ -599,7 +609,14 @@ function AnkiClient() {
             {currentCard && (
               <div className="bg-white rounded-[2.5rem] p-8 md:p-14 shadow-2xl shadow-blue-900/5 border border-slate-100 min-h-[500px] flex flex-col justify-center text-center relative overflow-hidden transition-all">
                 
-                {/* Front (Word, IPA, Image) */}
+                {useOriginalLayout ? (
+                  <div className="transition-all duration-500 w-full text-left">
+                    <style dangerouslySetInnerHTML={{ __html: currentCard.css }} />
+                    <div className="card anki-content anki-original-layout" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(isFlipped ? currentCard.back : currentCard.front) }} />
+                  </div>
+                ) : (
+                  <>
+                    {/* Front (Word, IPA, Image) */}
                 <div className={`transition-all duration-500 ${isFlipped ? 'mb-8 pb-8 border-b-2 border-dashed border-slate-100 opacity-60 scale-95 origin-top' : 'scale-100'}`}>
                   {semantic?.word ? (
                     <div className="flex flex-col items-center justify-center gap-4">
@@ -690,12 +707,13 @@ function AnkiClient() {
                       </div>
                     ) : (
                       // Fallback to Anki AFMT
-                      <div
-                        className="text-2xl text-slate-700 leading-relaxed anki-content text-center"
-                        dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.back) }}
-                      />
+                      <div className="bg-slate-50 p-6 md:p-8 rounded-3xl border border-slate-100 mt-6 min-h-[200px]">
+                        <div className="anki-content w-full overflow-hidden break-words text-lg" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.back) }} />
+                      </div>
                     )}
                   </div>
+                )}
+                </>
                 )}
               </div>
             )}

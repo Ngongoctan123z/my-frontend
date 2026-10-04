@@ -204,6 +204,8 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
         } catch (e) {
           console.warn('Failed to parse models JSON from col table')
         }
+      } else if (typeof colRecords[0][9] === 'object' && colRecords[0][9] !== null) {
+         // handle if it's already a parsed object or different structure
       }
       if (typeof colRecords[0][10] === 'string') {
         try {
@@ -215,116 +217,120 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
     }
   }
 
-  // Read cards table for nid -> did mapping
-  const nidToDid: Record<string, string> = {}
+  const stripHtml = (s: string) => s.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim()
+  const hasContent = (v = '') => stripHtml(v.replace(/\[sound:[^\]]+\]/g, '')).length > 0 || /<img|\[sound:/i.test(v)
+  
+  function renderCloze(text: string, n: number, reveal: boolean) {
+    return text.replace(/\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g,
+      (_, num, ans, hint) =>
+        +num === n
+          ? reveal ? `<span class="cloze font-bold text-blue-600">${ans}</span>`
+                   : `<span class="cloze font-bold text-blue-600">[${hint ?? '...'}]</span>`
+          : ans)
+  }
+
+  function renderTemplate(
+    tpl: string,
+    fields: Record<string, string>,
+    opts: { frontSide?: string; clozeN?: number; reveal?: boolean } = {}
+  ) {
+    let out = tpl
+  
+    // {{#Field}}...{{/Field}} and {{^Field}}...{{/Field}}
+    const cond = /\{\{([#^])\s*([^}]+?)\s*\}\}([\s\S]*?)\{\{\/\s*\2\s*\}\}/g
+    let prev: string
+    do {
+      prev = out
+      out = out.replace(cond, (_, type, name, inner) =>
+        (type === '#') === hasContent(fields[name]) ? inner : '')
+    } while (out !== prev)
+  
+    out = out.replace(/\{\{FrontSide\}\}/g, opts.frontSide ?? '')
+  
+    // {{filter:Field}}, {{Field}}
+    out = out.replace(/\{\{([^}]+)\}\}/g, (_, expr: string) => {
+      const parts = expr.trim().split(':')
+      const name = parts.pop()!.trim()
+      const filters = parts.map(p => p.trim())
+      let v = fields[name] ?? ''
+  
+      if (filters.includes('type')) return '' // typing box -> skip
+      if (filters.includes('cloze'))
+        v = renderCloze(v, opts.clozeN ?? 1, !!opts.reveal)
+      if (filters.includes('text')) v = stripHtml(v)
+      if (filters.includes('hint'))
+        v = v ? `<details><summary>Gợi ý</summary>${v}</details>` : ''
+      return v
+    })
+  
+    return out
+  }
+
+  // Read cards table
+  const cardRecords: (string | number | null)[][] = []
   if (cardsRootPage >= 1) {
-    const cardRecords: (string | number | null)[][] = []
     collectLeafRecords(data, cardsRootPage, pageSize, cardRecords)
-    for (const row of cardRecords) {
-      if (row.length >= 3) {
-        const nid = String(row[1])
-        const did = String(row[2])
-        if (!nidToDid[nid]) nidToDid[nid] = did // Just use the first card's deck
-      }
-    }
   }
 
   // Read notes table
   const noteRecords: (string | number | null)[][] = []
   collectLeafRecords(data, notesRootPage, pageSize, noteRecords)
+  
+  const notesById: Record<string, any> = {}
+  noteRecords.forEach(row => {
+    if (row.length >= 7) notesById[String(row[0])] = row
+  })
 
-  // Anki notes schema: id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data
-  return noteRecords
-    .filter(row => row.length >= 7)
+  // Build the final deck by iterating over cards
+  return cardRecords
+    .filter(row => row.length >= 4)
     .map(row => {
-      const id = String(row[0] ?? '')
-      const mid = String(row[2] ?? '')
-      const model = models[mid]
-      const did = nidToDid[id] || '1'
+      const id = String(row[0]) // card id
+      const nid = String(row[1]) // note id
+      const did = String(row[2]) // deck id
+      const ord = Number(row[3]) || 0 // template ord
       
-      const flds = String(row[6] ?? '')
+      const noteRow = notesById[nid]
+      if (!noteRow) return null
+      
+      const mid = String(noteRow[2] ?? '')
+      const tags = String(noteRow[5] ?? '').trim()
+      const flds = String(noteRow[6] ?? '')
       const fields = flds.split('\x1f')
       
+      const model = models[mid]
       let front = fields[0] ?? ''
       let back = fields[1] ?? ''
       let css = ''
       
       const fieldsData: { name: string; value: string }[] = []
+      const fieldsDict: Record<string, string> = {}
       
       if (model && model.flds) {
         model.flds.forEach((f: any) => {
-          fieldsData.push({
-            name: f.name,
-            value: fields[f.ord] || ''
-          })
+          const val = fields[f.ord] || ''
+          fieldsData.push({ name: f.name, value: val })
+          fieldsDict[f.name] = val
         })
+        css = model.css || ''
       }
       
-      // If we have model templates, try to use them
       if (model && model.tmpls && model.tmpls.length > 0) {
-        let qfmt = model.tmpls[0].qfmt || ''
-        let afmt = model.tmpls[0].afmt || ''
-        css = model.css || ''
-        
-        // Escape regex special characters in field name
-        const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-        // Handle conditional fields {{#Field}}...{{/Field}} and {{^Field}}...{{/Field}}
-        if (model.flds) {
-          model.flds.forEach((f: any) => {
-            const fieldName = escapeRegExp(f.name)
-            const fieldVal = fields[f.ord] || ''
-            
-            // {{#Field}}...{{/Field}}
-            const positiveRegex = new RegExp(`\\{\\{#${fieldName}\\}\\}([\\s\\S]*?)\\{\\{/${fieldName}\\}\\}`, 'g')
-            qfmt = qfmt.replace(positiveRegex, fieldVal.trim() ? '$1' : '')
-            afmt = afmt.replace(positiveRegex, fieldVal.trim() ? '$1' : '')
-            
-            // {{^Field}}...{{/Field}}
-            const negativeRegex = new RegExp(`\\{\\{\\^${fieldName}\\}\\}([\\s\\S]*?)\\{\\{/${fieldName}\\}\\}`, 'g')
-            qfmt = qfmt.replace(negativeRegex, !fieldVal.trim() ? '$1' : '')
-            afmt = afmt.replace(negativeRegex, !fieldVal.trim() ? '$1' : '')
-          })
-        }
-        
-        // Replace {{Field}} with actual field values
-        if (model.flds) {
-          model.flds.forEach((f: any) => {
-            const fieldName = escapeRegExp(f.name)
-            const fieldVal = fields[f.ord] || ''
-            
-            // Basic replacement (handle variations like {{Field}}, {{type:Field}}, etc)
-            const regex = new RegExp(`\\{\\{[^}]*${fieldName}[^}]*\\}\\}`, 'g')
-            qfmt = qfmt.replace(regex, fieldVal)
-            afmt = afmt.replace(regex, fieldVal)
-          })
-        }
-        
-        // Handle {{FrontSide}}
-        afmt = afmt.replace(/\{\{FrontSide\}\}/g, qfmt)
-        
-        // Very basic cloze support
-        qfmt = qfmt.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, '<span class="cloze">[...]</span>')
-        afmt = afmt.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, '<span class="cloze text-indigo-600 font-bold">$1</span>')
-        
-        // Remove any remaining tags that weren't replaced
-        qfmt = qfmt.replace(/\{\{.*?\}\}/g, '')
-        afmt = afmt.replace(/\{\{.*?\}\}/g, '')
-        
-        front = qfmt
-        back = afmt
+        const tmpl = model.tmpls[ord] || model.tmpls[0]
+        front = renderTemplate(tmpl.qfmt || '', fieldsDict, { clozeN: ord + 1 })
+        back = renderTemplate(tmpl.afmt || '', fieldsDict, { frontSide: front, clozeN: ord + 1, reveal: true })
       }
-
+      
       return {
-        id: String(row[0] ?? ''),
+        id,
         modelId: mid,
-        tags: String(row[5] ?? '').trim(),
+        tags,
         front,
         back,
         css,
         fieldsData,
-        extra: fields.length > 2 && !model ? fields.slice(2).filter(Boolean) : [],
+        extra: [],
         deckName: decks[did]?.name || 'Mặc định',
       }
-    })
+    }).filter(Boolean) as AnkiNote[]
 }
