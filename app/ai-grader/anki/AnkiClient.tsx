@@ -350,50 +350,74 @@ function AnkiClient() {
   const extractSemanticFields = (fieldsData: {name: string, value: string}[]) => {
     let word = '', ipa = '', meaning = ''
     const examples: string[] = [], images: string[] = [], audios: string[] = []
+    const others: {name: string, value: string}[] = []
     
     fieldsData.forEach(f => {
       const name = f.name.toLowerCase().trim()
       const val = f.value.trim()
       if (!val) return
       
-      const strippedVal = val.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/gi, '').trim()
+      const textOnly = val.replace(/<[^>]*>?/gm, '').replace(/\[sound:[^\]]+\]/gi, '').replace(/&nbsp;/gi, '').trim()
       
-      // Ignore index numbers
-      if (name === 'stt' || name === 'id' || name === 'thứ tự' || name === 'seq' || name === 'index' || name === 'no') return
+      // Ignore index numbers or fields that are purely numbers
+      if (['stt', 'id', 'thứ tự', 'seq', 'index', 'no', 'số thứ tự'].includes(name) || (textOnly.length > 0 && !isNaN(Number(textOnly)))) {
+        return
+      }
       
-      const isImg = val.includes('<img')
-      const isAudio = val.includes('[sound:')
+      const isImgOnly = textOnly.length === 0 && val.includes('<img')
+      const isAudioOnly = textOnly.length === 0 && val.includes('[sound:')
       
-      if (name.includes('word') || name.includes('từ vựng') || name.includes('từ') || name.includes('vocab') || name.includes('english') || name.includes('tiếng anh')) word = val
-      else if (name.includes('ipa') || name.includes('phiên âm') || name.includes('phonetic') || name.includes('pronunciation')) ipa = val
-      else if (name.includes('meaning') || name.includes('nghĩa') || name.includes('definition') || name.includes('tiếng việt') || name.includes('dịch')) meaning = val
-      else if (name.includes('example') || name.includes('ví dụ') || name.includes('sentence') || name.includes('câu')) examples.push(val)
-      else if (name.includes('audio') || name.includes('âm thanh') || name.includes('sound') || name.includes('nghe') || isAudio) audios.push(val)
-      else if (name.includes('picture') || name.includes('image') || name.includes('hình ảnh') || name.includes('ảnh') || isImg) images.push(val)
-      
-      // Fallbacks if names are weird (avoid matching plain numbers)
-      else if (!word && isNaN(Number(strippedVal)) && strippedVal.length > 0 && strippedVal.length < 100 && !isImg && !isAudio) {
+      if (name.includes('word') || name.includes('từ vựng') || name.includes('từ') || name.includes('vocab') || name.includes('english') || name.includes('tiếng anh') || name.includes('mặt trước') || name.includes('front')) {
         word = val
       }
-      else if (!meaning && isNaN(Number(strippedVal)) && strippedVal.length > 0 && !isImg && !isAudio && val !== word) {
+      else if (name.includes('ipa') || name.includes('phiên âm') || name.includes('phonetic') || name.includes('pronunciation')) {
+        ipa = val
+      }
+      else if (name.includes('meaning') || name.includes('nghĩa') || name.includes('definition') || name.includes('tiếng việt') || name.includes('dịch') || name.includes('mặt sau') || name.includes('back')) {
         meaning = val
+      }
+      else if (name.includes('example') || name.includes('ví dụ') || name.includes('sentence') || name.includes('câu')) {
+        examples.push(val)
+      }
+      else if (name.includes('audio') || name.includes('âm thanh') || name.includes('sound') || name.includes('nghe') || isAudioOnly) {
+        audios.push(val)
+      }
+      else if (name.includes('picture') || name.includes('image') || name.includes('hình ảnh') || name.includes('ảnh') || isImgOnly) {
+        images.push(val)
+      }
+      else {
+        others.push(f)
       }
     })
     
-    // Đảm bảo không bao giờ để trống từ vựng (chống lỗi hiển thị số 1)
-    if (!word) {
-      const firstText = fieldsData.find(f => {
-        const s = f.value.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/gi, '').trim()
-        const n = f.name.toLowerCase().trim()
-        return s.length > 0 && isNaN(Number(s)) && !f.value.includes('<img') && !f.value.includes('[sound:') && !['stt','id','thứ tự','no','index','seq'].includes(n)
+    // Nếu chưa tìm thấy Word (Từ khóa chính), lấy field text đầu tiên
+    if (!word && others.length > 0) {
+      const idx = others.findIndex(f => {
+         const t = f.value.replace(/<[^>]*>?/gm, '').replace(/\[sound:[^\]]+\]/gi, '').replace(/&nbsp;/gi, '').trim()
+         return t.length > 0
       })
-      if (firstText) word = firstText.value
+      if (idx !== -1) {
+        word = others[idx].value
+        others.splice(idx, 1)
+      }
     }
     
-    // Nếu cả Word và Meaning bị trùng nhau (vì fallback lỡ lấy nhầm), cố tách ra
-    if (word && meaning && word === meaning) {
-      meaning = ''
+    // Nếu chưa tìm thấy Meaning, lấy field text tiếp theo
+    if (!meaning && others.length > 0) {
+      const idx = others.findIndex(f => {
+         const t = f.value.replace(/<[^>]*>?/gm, '').replace(/\[sound:[^\]]+\]/gi, '').replace(/&nbsp;/gi, '').trim()
+         return t.length > 0
+      })
+      if (idx !== -1) {
+        meaning = others[idx].value
+        others.splice(idx, 1)
+      }
     }
+    
+    // Tống hết các fields còn lại vào examples để không bị mất dữ liệu
+    others.forEach(o => {
+      examples.push(`<b>${o.name}:</b><br/>${o.value}`)
+    })
     
     return { word, ipa, meaning, examples, images, audios }
   }
