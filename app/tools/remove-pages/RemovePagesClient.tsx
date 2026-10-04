@@ -25,7 +25,7 @@ export default function RemovePagesClient() {
   const handleSingleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (format === 'pdf' && file.type !== 'application/pdf') {
+    if (file.type !== 'application/pdf') {
       setError('Vui lòng chọn file PDF.')
       return
     }
@@ -99,7 +99,7 @@ export default function RemovePagesClient() {
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-primary">
               <UploadCloud className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold mb-2">Tải file {getFormatLabel()} lên đây</h3>
+            <h3 className="text-xl font-bold mb-2">Tải file .PDF lên đây</h3>
             <p className="text-ink-muted text-sm sm:text-base">Nhấn vào đây để tải tài liệu lên và xóa các trang không cần thiết</p>
           </div>
         ) : (
@@ -143,7 +143,7 @@ export default function RemovePagesClient() {
                   <Download className="w-5 h-5" /> Tải xuống file ngay
                 </a>
               </div>
-            ) : format === 'pdf' ? (
+            ) : (
               <div className="bg-surface p-6 rounded-2xl border border-line shadow-sm">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                   <div>
@@ -190,45 +190,6 @@ export default function RemovePagesClient() {
                       )
                     })}
                   </Document>
-                </div>
-              </div>
-            ) : format === 'pptx' ? (
-              <div className="bg-surface p-6 rounded-2xl border border-line shadow-sm space-y-6">
-                <div>
-                  <h3 className="font-semibold text-lg">Nhập trang cần xóa</h3>
-                  <p className="text-sm text-ink-muted">Vì định dạng PPTX không thể xem trước, vui lòng nhập số trang (slide) bạn muốn xóa (cách nhau bởi dấu phẩy, VD: 1, 3, 5).</p>
-                </div>
-                <input
-                  type="text"
-                  placeholder="VD: 1, 3, 5"
-                  className="w-full border border-line rounded-lg px-4 py-3 focus:outline-none focus:border-primary"
-                  onChange={(e) => {
-                    const val = e.target.value
-                    const newSet = new Set<number>()
-                    val.split(',').forEach(p => {
-                      const num = parseInt(p.trim())
-                      if (!isNaN(num) && num > 0) newSet.add(num - 1)
-                    })
-                    setPagesToDelete(newSet)
-                  }}
-                />
-                <button 
-                  onClick={handleExecute}
-                  disabled={isProcessing || pagesToDelete.size === 0}
-                  className="px-6 py-2.5 flex items-center gap-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover disabled:opacity-50 transition w-full justify-center"
-                >
-                  {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
-                  Tiến hành Xóa {pagesToDelete.size} slide
-                </button>
-              </div>
-            ) : (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center space-y-6">
-                <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
-                  <AlertCircle className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-amber-800">Không hỗ trợ xóa trang Word</h3>
-                  <p className="text-amber-700 mt-2">Định dạng file Word (.docx) không có số trang cố định (phụ thuộc vào thiết bị mở). Kỹ thuật cắt trang không thể thực hiện chính xác. Vui lòng xuất sang PDF trước khi xóa trang!</p>
                 </div>
               </div>
             )}
