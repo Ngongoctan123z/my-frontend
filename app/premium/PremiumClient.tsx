@@ -58,10 +58,10 @@ export function PremiumClient() {
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null)
   const [isChecking, setIsChecking] = useState(false)
 
-  // THÔNG TIN TÀI KHOẢN (Cần cấu hình thật sau này với VietQR / SePay)
-  const BANK_ID = 'MB' // Mã ngân hàng (vd: MB, VCB, TCB)
-  const ACCOUNT_NO = '1234567890' // Số tài khoản
-  const ACCOUNT_NAME = 'NGUYEN VAN A' // Tên chủ tài khoản
+  // THÔNG TIN TÀI KHOẢN
+  const BANK_ID = 'MB' 
+  const ACCOUNT_NO = '0565683172' 
+  const ACCOUNT_NAME = 'NGO NGOC TAN'
 
   const handleCheckout = (pkg: Package) => {
     if (!session?.user) {
