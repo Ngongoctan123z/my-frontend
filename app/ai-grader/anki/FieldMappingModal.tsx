@@ -15,6 +15,7 @@ interface Props {
   sampleRow: string[]
   rows: string[][]
   qfmt: string
+  sortf?: number
   onSave: (cfg: CardConfig) => void
   onClose: () => void
 }
