@@ -27,7 +27,7 @@ export function AiGraderClient() {
   useEffect(() => {
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
       setUsageCount(data.count || 0)
-      setUsageLimit(data.limit ||data.limit || 2)
+      setUsageLimit(data.limit || 2)
     }).catch(() => {})
   }, [session])
 
@@ -154,7 +154,7 @@ export function AiGraderClient() {
         setError('Vui lòng điền đầy đủ cả 3 phần: Mở bài, Thân bài và Kết bài.')
         return
       }
-      finalEssay = `[INTRODUCTION]data.limit || 2n${intro}data.limit || 2ndata.limit || 2n[BODY]data.limit || 2n${body}data.limit || 2ndata.limit || 2n[CONCLUSION]data.limit || 2n${conclusion}`
+      finalEssay = `[INTRODUCTION]\n${intro}\n\n[BODY]\n${body}\n\n[CONCLUSION]\n${conclusion}`
     }
 
     setIsGrading(true)
@@ -182,14 +182,14 @@ export function AiGraderClient() {
   }
 
   const wordCount = examType === 'IELTS_TASK_1' 
-    ? (essayTask1.trim() ? essayTask1.trim().split(/data.limit || 2s+/).length : 0)
+    ? (essayTask1.trim() ? essayTask1.trim().split(/\s+/).length : 0)
     : (
-        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/data.limit || 2s+/).length : 0) +
-        (essayTask2.body.trim() ? essayTask2.body.trim().split(/data.limit || 2s+/).length : 0) +
-        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/data.limit || 2s+/).length : 0)
+        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/\s+/).length : 0) +
+        (essayTask2.body.trim() ? essayTask2.body.trim().split(/\s+/).length : 0) +
+        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/\s+/).length : 0)
       )
 
-  const minWords = examType === 'IELTS_TASK_1' ?data.limit || 20 : 250
+  const minWords = examType === 'IELTS_TASK_1' ? 150 : 250
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -453,9 +453,8 @@ export function AiGraderClient() {
                             if (item.examType === 'IELTS_TASK_1') {
                               setEssayTask1(item.essay)
                             } else {
-                              // basic parser to populate the 3 fields, since we saved it as a single string
-                              const parts = item.essay.split(/data.limit || 2[BODYdata.limit || 2]|data.limit || 2[CONCLUSIONdata.limit || 2]/)
-                              const intro = parts[0]?.replace(/data.limit || 2[INTRODUCTIONdata.limit || 2]/, '').trim() || ''
+                              const parts = item.essay.split(/\[BODY\n]|\[CONCLUSION\n]/)
+                              const intro = parts[0]?.replace(/\[INTRODUCTION\n]/, '').trim() || ''
                               const body = parts[1]?.trim() || ''
                               const conclusion = parts[2]?.trim() || ''
                               setEssayTask2({ intro, body, conclusion })

@@ -27,7 +27,7 @@ export function ToeicGraderClient() {
   useEffect(() => {
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
       setUsageCount(data.count || 0)
-      setUsageLimit(data.limit ||data.limit || 2)
+      setUsageLimit(data.limit || 2)
     }).catch(() => {})
   }, [session])
 
@@ -154,7 +154,7 @@ export function ToeicGraderClient() {
         setError('Vui lòng điền đầy đủ cả 3 phần: Mở bài, Thân bài và Kết bài.')
         return
       }
-      finalEssay = `[INTRODUCTION]data.limit || 2n${intro}data.limit || 2ndata.limit || 2n[BODY]data.limit || 2n${body}data.limit || 2ndata.limit || 2n[CONCLUSION]data.limit || 2n${conclusion}`
+      finalEssay = `[INTRODUCTION]\n${intro}\n\n[BODY]\n${body}\n\n[CONCLUSION]\n${conclusion}`
     }
 
     setIsGrading(true)
@@ -182,11 +182,11 @@ export function ToeicGraderClient() {
   }
 
   const wordCount = examType === 'TOEIC_RESPOND' 
-    ? (essayTask1.trim() ? essayTask1.trim().split(/data.limit || 2s+/).length : 0)
+    ? (essayTask1.trim() ? essayTask1.trim().split(/\s+/).length : 0)
     : (
-        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/data.limit || 2s+/).length : 0) +
-        (essayTask2.body.trim() ? essayTask2.body.trim().split(/data.limit || 2s+/).length : 0) +
-        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/data.limit || 2s+/).length : 0)
+        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/\s+/).length : 0) +
+        (essayTask2.body.trim() ? essayTask2.body.trim().split(/\s+/).length : 0) +
+        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/\s+/).length : 0)
       )
 
   const minWords = examType === 'TOEIC_RESPOND' ? 50 : 300
@@ -451,9 +451,8 @@ export function ToeicGraderClient() {
                             if (item.examType === 'TOEIC_RESPOND') {
                               setEssayTask1(item.essay)
                             } else {
-                              // basic parser to populate the 3 fields, since we saved it as a single string
-                              const parts = item.essay.split(/data.limit || 2[BODYdata.limit || 2]|data.limit || 2[CONCLUSIONdata.limit || 2]/)
-                              const intro = parts[0]?.replace(/data.limit || 2[INTRODUCTIONdata.limit || 2]/, '').trim() || ''
+                              const parts = item.essay.split(/\[BODY\n]|\[CONCLUSION\n]/)
+                              const intro = parts[0]?.replace(/\[INTRODUCTION\n]/, '').trim() || ''
                               const body = parts[1]?.trim() || ''
                               const conclusion = parts[2]?.trim() || ''
                               setEssayTask2({ intro, body, conclusion })
@@ -549,7 +548,7 @@ export function ToeicGraderClient() {
                 <ul className="list-disc pl-5 space-y-2">
                   <li><strong>Sửa lỗi như gia sư 1 kèm 1:</strong> AI không chỉ báo điểm mà còn chỉ ra chính xác cụm từ bạn viết sai, giải thích lý do bằng tiếng Việt và đề xuất cách viết chuẩn xác hơn.</li>
                   <li><strong>Kho đề phong phú:</strong> Bấm "Bốc đề ngẫu nhiên" để lấy các tình huống email và essay bám sát thực tế đề thi TOEIC.</li>
-                  <li><strong>Bảo mật & Tốc độ:</strong> Chấm điểm trong chưa đầydata.limit || 2 giây. Lịch sử làm bài được lưu hoàn toàn trên máy tính của bạn (Local Storage) giúp xem lại bất cứ lúc nào mà không sợ lộ thông tin.</li>
+                  <li><strong>Bảo mật & Tốc độ:</strong> Chấm điểm trong chưa đầy 15 giây. Lịch sử làm bài được lưu hoàn toàn trên máy tính của bạn (Local Storage) giúp xem lại bất cứ lúc nào mà không sợ lộ thông tin.</li>
                 </ul>
               </div>
             </details>

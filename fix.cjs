@@ -1,30 +1,11 @@
 const fs = require('fs');
-let content = fs.readFileSync('app/ai-grader/paraphrase/ParaphraseClient.tsx', 'utf8');
 
-content = content.replace(/const res = await fetch\('\/api\/ai-grader'[\s\S]*?setCurrentPrompt\(data\)/, 
-`const { callAiGraderClient } = await import('@/src/utils/geminiClient')
-      const data = await callAiGraderClient(
-        {
-          action: 'generate_paraphrase_prompt',
-          topic: topicName,
-          level: selectedLevel
-        },
-        apiKey.trim()
-      )
-      setCurrentPrompt(data)`);
+// Fix route.ts
+let route = fs.readFileSync('app/api/ai-grader/route.ts', 'utf8');
+route = route.replace(/    \}\r?\n      \)\r?\n    \}\r?\n\r?\n    if \(action === 'grade_essay'\) \{/, "    }\n\n    if (action === 'grade_essay') {");
+fs.writeFileSync('app/api/ai-grader/route.ts', route);
 
-content = content.replace(/const res = await fetch\('\/api\/ai-grader'[\s\S]*?setResult\(data\)/, 
-`const { callAiGraderClient } = await import('@/src/utils/geminiClient')
-      const data = await callAiGraderClient(
-        {
-          action: 'grade_paraphrase',
-          level: selectedLevel,
-          vietnameseText: currentPrompt.vietnameseText,
-          contextText: currentPrompt.context,
-          userTranslation
-        },
-        apiKey.trim()
-      )
-      setResult(data)`);
-
-fs.writeFileSync('app/ai-grader/paraphrase/ParaphraseClient.tsx', content);
+// Fix ProfileClient.tsx (if any syntax error)
+let profile = fs.readFileSync('app/profile/ProfileClient.tsx', 'utf8');
+// Check if the closing tag or brackets are correct.
+fs.writeFileSync('app/profile/ProfileClient.tsx', profile);

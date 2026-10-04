@@ -130,7 +130,7 @@ export function ProfileClient() {
                   className={`h-full rounded-full transition-all duration-1000 ease-out ${
                     usagePercent >= 90 ? 'bg-red-500' : 'bg-blue-500'
                   }`}
-                  style={{ width: \`\${usagePercent}%\` }}
+                  style={{ width: usagePercent + '%' }}
                 />
               </div>
               <p className="text-xs text-slate-400 text-right">

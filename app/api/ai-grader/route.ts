@@ -213,8 +213,6 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       )
     }
-      )
-    }
 
     if (action === 'grade_essay') {
       if (!prompt || !essay) {
