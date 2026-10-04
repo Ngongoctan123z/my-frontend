@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import JSZip from 'jszip'
 import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers } from 'lucide-react'
 import { parseSqliteAnki } from './sqlite-reader'
 
@@ -104,13 +103,15 @@ export default function AnkiClient() {
       const isPkZip = dbBuffer[0] === 0x50 && dbBuffer[1] === 0x4b
 
       if (isPkZip) {
+        const JSZip = (await import('jszip')).default
         const zip = await JSZip.loadAsync(buffer)
         const dbFile = zip.file('collection.anki21') || zip.file('collection.anki2')
         
         if (!dbFile) {
           throw new Error('File .apkg không hợp lệ (thiếu collection database bên trong)')
         }
-        finalDbBuffer = await dbFile.async('uint8array')
+        const extracted = await dbFile.async('uint8array')
+        finalDbBuffer = new Uint8Array(extracted.buffer as ArrayBuffer)
       }
 
       const notes = parseSqliteAnki(finalDbBuffer)
