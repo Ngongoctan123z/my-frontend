@@ -54,7 +54,37 @@ function recordActivity() {
   } catch {}
 }
 
-export default function AnkiClient() {
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen p-10 bg-red-50 text-red-600 font-mono">
+          <h1 className="text-2xl font-bold mb-4">Client-side Exception Caught!</h1>
+          <p className="whitespace-pre-wrap">{this.state.error?.toString()}</p>
+          <p className="whitespace-pre-wrap mt-4 text-sm text-red-400">{this.state.error?.stack}</p>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+export default function AnkiClientWrapper() {
+  return (
+    <ErrorBoundary>
+      <AnkiClient />
+    </ErrorBoundary>
+  )
+}
+
+function AnkiClient() {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState('')
   const [savedDecks, setSavedDecks] = useState<AnkiDeck[]>([])
