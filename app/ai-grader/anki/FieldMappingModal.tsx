@@ -164,7 +164,7 @@ export function FieldMappingModal({ modelId, names, sampleRow, rows, qfmt, onSav
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center shadow-inner h-full flex flex-col justify-center">
               
               <div className="text-4xl font-bold mb-6 text-slate-800">
-                {cfg.big !== null ? strip(sampleRow[cfg.big]) || name : '---'}
+                {cfg.big !== null ? (strip(sampleRow[cfg.big]) || names[cfg.big]) : '---'}
               </div>
               
               {cfg.front.length > 0 && (
