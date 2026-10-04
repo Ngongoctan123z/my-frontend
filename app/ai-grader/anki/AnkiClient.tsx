@@ -67,6 +67,9 @@ function AnkiClient() {
   // Subdeck selection
   const [selectedSubdeck, setSelectedSubdeck] = useState<string | null>(null)
   
+  // Custom display
+  const [showDebug, setShowDebug] = useState(false)
+  
   // Study State
   const [studyQueue, setStudyQueue] = useState<AnkiNote[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -359,8 +362,10 @@ function AnkiClient() {
       
       const textOnly = val.replace(/<[^>]*>?/gm, '').replace(/\[sound:[^\]]+\]/gi, '').replace(/&nbsp;/gi, '').trim()
       
-      // Ignore index numbers or fields that are purely numbers
-      if (['stt', 'id', 'thứ tự', 'seq', 'index', 'no', 'số thứ tự'].includes(name) || (textOnly.length > 0 && !isNaN(Number(textOnly)))) {
+      const hasLetters = /\p{L}/u.test(textOnly)
+      
+      // Ignore index numbers or fields that contain NO letters (like "1", "#1", "1/100")
+      if (['stt', 'id', 'thứ tự', 'seq', 'index', 'no', 'số thứ tự'].includes(name) || (textOnly.length > 0 && !hasLetters)) {
         return
       }
       
@@ -394,7 +399,7 @@ function AnkiClient() {
     if (!word && others.length > 0) {
       const idx = others.findIndex(f => {
          const t = f.value.replace(/<[^>]*>?/gm, '').replace(/\[sound:[^\]]+\]/gi, '').replace(/&nbsp;/gi, '').trim()
-         return t.length > 0
+         return /\p{L}/u.test(t)
       })
       if (idx !== -1) {
         word = others[idx].value
@@ -406,7 +411,7 @@ function AnkiClient() {
     if (!meaning && others.length > 0) {
       const idx = others.findIndex(f => {
          const t = f.value.replace(/<[^>]*>?/gm, '').replace(/\[sound:[^\]]+\]/gi, '').replace(/&nbsp;/gi, '').trim()
-         return t.length > 0
+         return /\p{L}/u.test(t)
       })
       if (idx !== -1) {
         meaning = others[idx].value
@@ -654,7 +659,7 @@ function AnkiClient() {
                           <div className="grid grid-cols-1 gap-6 mt-6">
                             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                               <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Ví dụ
+                                <FileText className="w-4 h-4" /> Bổ sung
                               </h3>
                               <ul className="space-y-4">
                                 {semantic.examples.map((ex, i) => (
@@ -664,6 +669,24 @@ function AnkiClient() {
                             </div>
                           </div>
                         )}
+                        
+                        {/* DEBUG BUTTON */}
+                        <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+                          <button onClick={() => setShowDebug(!showDebug)} className="text-xs text-slate-400 hover:text-blue-500 underline">
+                            {showDebug ? 'Ẩn Debug Info' : 'Sai cấu trúc? Bấm vào đây để xem lỗi (Debug)'}
+                          </button>
+                          {showDebug && currentCard && (
+                            <div className="mt-4 text-left bg-slate-900 text-green-400 p-4 rounded-xl overflow-auto text-xs font-mono max-h-64">
+                              <p className="mb-2 text-white font-bold">RAW FIELDS DATA:</p>
+                              {currentCard.fieldsData?.map((f: any, i: number) => (
+                                <div key={i} className="mb-2 border-b border-slate-700 pb-2">
+                                  <strong className="text-blue-300">[{f.name}]</strong>: {f.value}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
                       </div>
                     ) : (
                       // Fallback to Anki AFMT
