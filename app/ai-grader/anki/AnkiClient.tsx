@@ -1,8 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { ActivityCalendar } from 'react-activity-calendar'
+import dynamic from 'next/dynamic'
 import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers } from 'lucide-react'
+
+const ActivityCalendar = dynamic(
+  () => import('react-activity-calendar').then(m => m.ActivityCalendar),
+  { ssr: false, loading: () => <div className="h-32" /> }
+)
 
 interface AnkiCard {
   id: string
