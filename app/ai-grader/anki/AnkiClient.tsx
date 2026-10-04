@@ -227,7 +227,7 @@ function AnkiClient() {
 
         const dbFile = zip.file('collection.anki21') || zip.file('collection.anki2')
         if (!dbFile) throw new Error('File .apkg không hợp lệ (thiếu collection database bên trong)')
-        finalDbBuffer = new Uint8Array(await dbFile.async('arraybuffer'))
+        finalDbBuffer = await dbFile.async('uint8array') as any
 
         const mediaFile = zip.file('media')
         if (mediaFile) {
@@ -342,6 +342,11 @@ function AnkiClient() {
 
     // sort ổn định: thẻ chưa học / đến hạn trước, giữ thứ tự gốc
     queue.sort((a, b) => (activeDeck.studyState[a.id]?.due || 0) - (activeDeck.studyState[b.id]?.due || 0))
+
+    if (queue.length === 0) {
+      setError('Bộ thẻ này có 0 thẻ (thường là deck cũ import bị lỗi). Hãy xoá deck rồi import lại file .apkg.')
+      return
+    }
 
     setStudyQueue(queue)
     setCurrentIndex(0)
