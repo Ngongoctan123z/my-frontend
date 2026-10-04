@@ -241,12 +241,12 @@ Mỗi tiêu chí được chấm từ 0 đến 9, theo thang 0.5. Band tổng l�
 
 Cấu trúc JSON bắt buộc:
 {
-  "overallBand": 6.5,
+  "overallBand": 0.0,
   "criteria": {
-    "taskResponse": { "score": 6.5, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
-    "coherenceCohesion": { "score": 6.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
-    "lexicalResource": { "score": 7.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
-    "grammaticalRange": { "score": 6.5, "feedback": "Nhận xét ngắn gọn, trực tiếp." }
+    "taskResponse": { "score": 0.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "coherenceCohesion": { "score": 0.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "lexicalResource": { "score": 0.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "grammaticalRange": { "score": 0.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." }
   },
   "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt. Xây dựng và đi thẳng vào vấn đề.",
   "corrections": [
@@ -273,12 +273,12 @@ Mỗi tiêu chí được chấm từ 0 đến 9, theo thang 0.5. Band tổng l�
 
 Cấu trúc JSON bắt buộc:
 {
-  "overallBand": 6.5,
+  "overallBand": 0.0,
   "criteria": {
-    "taskResponse": { "score": 6.5, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
-    "coherenceCohesion": { "score": 6.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
-    "lexicalResource": { "score": 7.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
-    "grammaticalRange": { "score": 6.5, "feedback": "Nhận xét ngắn gọn, trực tiếp." }
+    "taskResponse": { "score": 0.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "coherenceCohesion": { "score": 0.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "lexicalResource": { "score": 0.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." },
+    "grammaticalRange": { "score": 0.0, "feedback": "Nhận xét ngắn gọn, trực tiếp." }
   },
   "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt. Xây dựng và đi thẳng vào vấn đề.",
   "corrections": [
@@ -304,11 +304,11 @@ Thang điểm từ 0 đến 5.
 
 Cấu trúc JSON bắt buộc:
 {
-  "overallBand": 4.0,
+  "overallBand": 0,
   "criteria": {
-    "grammarAndVocabulary": { "score": 4, "feedback": "Nhận xét ngắn gọn" },
-    "organization": { "score": 4, "feedback": "Nhận xét ngắn gọn" },
-    "taskFulfillment": { "score": 4, "feedback": "Nhận xét ngắn gọn" }
+    "grammarAndVocabulary": { "score": 0, "feedback": "Nhận xét ngắn gọn" },
+    "organization": { "score": 0, "feedback": "Nhận xét ngắn gọn" },
+    "taskFulfillment": { "score": 0, "feedback": "Nhận xét ngắn gọn" }
   },
   "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt.",
   "corrections": [
@@ -334,11 +334,11 @@ Thang điểm từ 0 đến 5.
 
 Cấu trúc JSON bắt buộc:
 {
-  "overallBand": 4.0,
+  "overallBand": 0,
   "criteria": {
-    "reasonsAndExamples": { "score": 4, "feedback": "Nhận xét ngắn gọn" },
-    "organization": { "score": 4, "feedback": "Nhận xét ngắn gọn" },
-    "grammarAndVocabulary": { "score": 4, "feedback": "Nhận xét ngắn gọn" }
+    "reasonsAndExamples": { "score": 0, "feedback": "Nhận xét ngắn gọn" },
+    "organization": { "score": 0, "feedback": "Nhận xét ngắn gọn" },
+    "grammarAndVocabulary": { "score": 0, "feedback": "Nhận xét ngắn gọn" }
   },
   "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt.",
   "corrections": [
@@ -364,11 +364,11 @@ Thang điểm từ 0 đến 100.
 
 Cấu trúc JSON bắt buộc:
 {
-  "overallBand": 85,
+  "overallBand": 0,
   "criteria": {
-    "grammar": { "score": 85, "feedback": "Nhận xét ngắn gọn" },
-    "vocabulary": { "score": 85, "feedback": "Nhận xét ngắn gọn" },
-    "taskFulfillment": { "score": 85, "feedback": "Nhận xét ngắn gọn" }
+    "grammar": { "score": 0, "feedback": "Nhận xét ngắn gọn" },
+    "vocabulary": { "score": 0, "feedback": "Nhận xét ngắn gọn" },
+    "taskFulfillment": { "score": 0, "feedback": "Nhận xét ngắn gọn" }
   },
   "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt.",
   "corrections": [
@@ -394,11 +394,11 @@ Thang điểm từ 0 đến 100.
 
 Cấu trúc JSON bắt buộc:
 {
-  "overallBand": 75,
+  "overallBand": 0,
   "criteria": {
-    "grammarAndVocabulary": { "score": 75, "feedback": "Nhận xét ngắn gọn" },
-    "taskCompletion": { "score": 75, "feedback": "Nhận xét ngắn gọn" },
-    "organization": { "score": 75, "feedback": "Nhận xét ngắn gọn" }
+    "grammarAndVocabulary": { "score": 0, "feedback": "Nhận xét ngắn gọn" },
+    "taskCompletion": { "score": 0, "feedback": "Nhận xét ngắn gọn" },
+    "organization": { "score": 0, "feedback": "Nhận xét ngắn gọn" }
   },
   "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt.",
   "corrections": [
