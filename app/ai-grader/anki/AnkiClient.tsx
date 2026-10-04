@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Script from 'next/script'
 import JSZip from 'jszip'
-import initSqlJs from 'sql.js'
 import { ActivityCalendar } from 'react-activity-calendar'
 import { UploadCloud, Loader2, PlayCircle, BookOpen } from 'lucide-react'
 
@@ -24,11 +24,18 @@ const generateDummyData = () => {
   return data
 }
 
+declare global {
+  interface Window {
+    initSqlJs: any
+  }
+}
+
 export default function AnkiClient() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
   const [cards, setCards] = useState<any[]>([])
   const [activityData, setActivityData] = useState<any[]>([])
+  const [sqlReady, setSqlReady] = useState(false)
 
   useEffect(() => {
     // Load local storage activity data later, use dummy for now
@@ -38,6 +45,11 @@ export default function AnkiClient() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!sqlReady) {
+      setError('Hệ thống đang tải thư viện xử lý, vui lòng đợi vài giây và thử lại.')
+      return
+    }
 
     setIsProcessing(true)
     setError('')
@@ -55,8 +67,8 @@ export default function AnkiClient() {
       const dbData = await dbFile.async('uint8array')
 
       // 3. Initialize sql.js and load DB
-      const SQL = await initSqlJs({
-        locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+      const SQL = await window.initSqlJs({
+        locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
       })
       const db = new SQL.Database(dbData)
 
@@ -90,6 +102,11 @@ export default function AnkiClient() {
 
   return (
     <div className="min-h-screen bg-page py-12">
+      <Script 
+        src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js" 
+        strategy="lazyOnload" 
+        onLoad={() => setSqlReady(true)}
+      />
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-extrabold text-ink mb-4 tracking-tight flex items-center justify-center gap-4">
