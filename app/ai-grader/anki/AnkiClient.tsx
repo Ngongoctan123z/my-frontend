@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import JSZip from 'jszip'
 import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers } from 'lucide-react'
+import { parseSqliteAnki } from './sqlite-reader'
 
 const ActivityCalendar = dynamic(
   () => import('react-activity-calendar').then(m => m.ActivityCalendar),
@@ -95,15 +97,26 @@ export default function AnkiClient() {
     formData.append('file', file)
 
     try {
-      const res = await fetch('/api/anki-parse', { method: 'POST', body: formData })
-      const data = await res.json()
+      const buffer = await file.arrayBuffer()
+      const dbBuffer = new Uint8Array(buffer)
+      let finalDbBuffer = dbBuffer
 
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Lỗi không xác định')
+      const isPkZip = dbBuffer[0] === 0x50 && dbBuffer[1] === 0x4b
+
+      if (isPkZip) {
+        const zip = await JSZip.loadAsync(buffer)
+        const dbFile = zip.file('collection.anki21') || zip.file('collection.anki2')
+        
+        if (!dbFile) {
+          throw new Error('File .apkg không hợp lệ (thiếu collection database bên trong)')
+        }
+        finalDbBuffer = await dbFile.async('uint8array')
       }
 
-      setCards(data.notes)
-      setDecks(data.decks)
+      const notes = parseSqliteAnki(finalDbBuffer)
+
+      setCards(notes)
+      setDecks([{ id: '1', name: 'Deck mặc định' }])
     } catch (err: any) {
       setError(err.message || 'Có lỗi khi đọc file Anki.')
     } finally {
