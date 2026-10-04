@@ -435,7 +435,36 @@ function AnkiClient() {
                       className="text-lg md:text-xl text-slate-700 leading-relaxed anki-content"
                       dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.back) }}
                     />
-                    {currentCard.extra.length > 0 && (
+                    
+                    {/* Raw Fields Data Table */}
+                    {currentCard.fieldsData && currentCard.fieldsData.length > 0 && (
+                      <div className="mt-10 text-left border-t border-slate-100 pt-8 animate-in fade-in duration-700">
+                        <h4 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 flex items-center gap-2">
+                          <Layers className="w-3 h-3" /> Chi tiết toàn bộ dữ liệu thẻ
+                        </h4>
+                        <div className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
+                          <table className="w-full text-sm text-slate-700">
+                            <tbody>
+                              {currentCard.fieldsData.map((f, i) => (
+                                f.value.trim() && (
+                                  <tr key={i} className="border-b border-slate-200 last:border-0">
+                                    <td className="py-4 px-5 font-bold bg-slate-100/80 w-1/3 md:w-1/4 align-top border-r border-slate-200 text-slate-600">
+                                      {f.name}
+                                    </td>
+                                    <td 
+                                      className="py-4 px-5 anki-content align-top"
+                                      dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(f.value) }}
+                                    />
+                                  </tr>
+                                )
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentCard.extra.length > 0 && !currentCard.fieldsData?.length && (
                       <div
                         className="mt-8 text-sm text-slate-500 bg-slate-50 p-4 rounded-xl border border-slate-100 anki-content"
                         dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.extra.join('<br/><br/>')) }}

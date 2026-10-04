@@ -152,6 +152,7 @@ export interface AnkiNote {
   front: string
   back: string
   css: string
+  fieldsData: { name: string; value: string }[]
   extra: string[]
 }
 
@@ -214,8 +215,18 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
       
       let front = fields[0] ?? ''
       let back = fields[1] ?? ''
-      
       let css = ''
+      
+      const fieldsData: { name: string; value: string }[] = []
+      
+      if (model && model.flds) {
+        model.flds.forEach((f: any) => {
+          fieldsData.push({
+            name: f.name,
+            value: fields[f.ord] || ''
+          })
+        })
+      }
       
       // If we have model templates, try to use them
       if (model && model.tmpls && model.tmpls.length > 0) {
@@ -223,10 +234,13 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
         let afmt = model.tmpls[0].afmt || ''
         css = model.css || ''
         
+        // Escape regex special characters in field name
+        const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
         // Handle conditional fields {{#Field}}...{{/Field}} and {{^Field}}...{{/Field}}
         if (model.flds) {
           model.flds.forEach((f: any) => {
-            const fieldName = f.name
+            const fieldName = escapeRegExp(f.name)
             const fieldVal = fields[f.ord] || ''
             
             // {{#Field}}...{{/Field}}
@@ -244,7 +258,7 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
         // Replace {{Field}} with actual field values
         if (model.flds) {
           model.flds.forEach((f: any) => {
-            const fieldName = f.name
+            const fieldName = escapeRegExp(f.name)
             const fieldVal = fields[f.ord] || ''
             
             // Basic replacement (handle variations like {{Field}}, {{type:Field}}, etc)
@@ -276,6 +290,7 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
         front,
         back,
         css,
+        fieldsData,
         extra: fields.length > 2 && !model ? fields.slice(2).filter(Boolean) : [],
       }
     })
