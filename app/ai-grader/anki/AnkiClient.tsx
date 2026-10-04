@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import JSZip from 'jszip'
 import localforage from 'localforage'
 import { UploadCloud, Loader2, PlayCircle, BookOpen, ChevronLeft, ChevronRight, RotateCcw, Tag, Layers, Trash2, Edit2, Play } from 'lucide-react'
 import { parseSqliteAnki, AnkiNote } from './sqlite-reader'
@@ -110,6 +109,7 @@ export default function AnkiClient() {
       const isPkZip = dbBuffer[0] === 0x50 && dbBuffer[1] === 0x4b
 
       if (isPkZip) {
+        const JSZip = (await import('jszip')).default
         const zip = await JSZip.loadAsync(buffer)
         const dbFile = zip.file('collection.anki21') || zip.file('collection.anki2')
         
