@@ -246,25 +246,46 @@ function AnkiClient() {
     return processed
   }
 
-  // Group notes by deckName
+  // Group notes by Deck or Tags
   const subdecks = useMemo(() => {
     if (!activeDeck) return []
     const groups: Record<string, number> = {}
-    activeDeck.notes.forEach(n => {
-      const name = n.deckName || 'Mặc định'
-      groups[name] = (groups[name] || 0) + 1
-    })
-    return Object.entries(groups).map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name))
+    let usesTags = false
+    
+    const uniqueDecks = new Set(activeDeck.notes.map(n => n.deckName || 'Mặc định'))
+    if (uniqueDecks.size === 1) {
+      activeDeck.notes.forEach(n => {
+        if (n.tags && n.tags.trim()) {
+          usesTags = true
+          const cardTags = n.tags.split(' ').map(t => t.trim()).filter(Boolean)
+          cardTags.forEach(tag => groups[tag] = (groups[tag] || 0) + 1)
+        }
+      })
+    }
+    
+    if (!usesTags || Object.keys(groups).length === 0) {
+      activeDeck.notes.forEach(n => {
+        const name = n.deckName || 'Mặc định'
+        groups[name] = (groups[name] || 0) + 1
+      })
+    }
+    
+    return Object.entries(groups)
+      .map(([name, count]) => ({ name, count, isTag: usesTags }))
+      .sort((a, b) => a.name.localeCompare(b.name))
   }, [activeDeck])
 
-  const startStudying = (subdeckName: string | null = null) => {
+  const startStudying = (categoryName: string | null = null, isTag: boolean = false) => {
     if (!activeDeck) return
-    setSelectedSubdeck(subdeckName)
+    setSelectedSubdeck(categoryName)
     
-    // Lọc theo subdeck nếu có
     let queue = activeDeck.notes
-    if (subdeckName) {
-      queue = queue.filter(n => (n.deckName || 'Mặc định') === subdeckName)
+    if (categoryName) {
+      if (isTag) {
+        queue = queue.filter(n => n.tags && n.tags.includes(categoryName))
+      } else {
+        queue = queue.filter(n => (n.deckName || 'Mặc định') === categoryName)
+      }
     }
 
     // Thuật toán SM-2: Sắp xếp các thẻ cần ôn tập lên trước
@@ -328,24 +349,36 @@ function AnkiClient() {
   // Intelligent parsing for raw fields to find Word, IPA, Meaning, Examples
   const extractSemanticFields = (fieldsData: {name: string, value: string}[]) => {
     let word = '', ipa = '', meaning = ''
-    const examples: string[] = [], media: string[] = []
+    const examples: string[] = [], images: string[] = [], audios: string[] = []
     
     fieldsData.forEach(f => {
       const name = f.name.toLowerCase()
       const val = f.value.trim()
       if (!val) return
       
-      if (name.includes('word') || name.includes('từ vựng') || name.includes('vocab')) word = val
-      else if (name.includes('ipa') || name.includes('phiên âm') || name.includes('phonetic')) ipa = val
-      else if (name.includes('meaning') || name.includes('nghĩa') || name.includes('definition')) meaning = val
-      else if (name.includes('example') || name.includes('ví dụ') || name.includes('sentence')) examples.push(val)
-      else if (name.includes('audio') || name.includes('âm thanh') || name.includes('picture') || name.includes('image') || name.includes('hình ảnh')) media.push(val)
-      // Fallbacks
-      else if (!word && f.name.length < 15 && !val.includes('<img')) word = val
-      else if (!meaning && val.length > 5) meaning = val
+      // Ignore index numbers
+      if (name === 'stt' || name === 'id' || name === 'thứ tự') return
+      
+      const isImg = val.includes('<img')
+      const isAudio = val.includes('[sound:')
+      
+      if (name.includes('word') || name.includes('từ vựng') || name.includes('từ') || name.includes('vocab') || name.includes('english') || name.includes('tiếng anh')) word = val
+      else if (name.includes('ipa') || name.includes('phiên âm') || name.includes('phonetic') || name.includes('pronunciation')) ipa = val
+      else if (name.includes('meaning') || name.includes('nghĩa') || name.includes('definition') || name.includes('tiếng việt') || name.includes('dịch')) meaning = val
+      else if (name.includes('example') || name.includes('ví dụ') || name.includes('sentence') || name.includes('câu')) examples.push(val)
+      else if (name.includes('audio') || name.includes('âm thanh') || name.includes('sound') || name.includes('nghe') || isAudio) audios.push(val)
+      else if (name.includes('picture') || name.includes('image') || name.includes('hình ảnh') || name.includes('ảnh') || isImg) images.push(val)
+      
+      // Fallbacks if names are weird (avoid matching plain numbers)
+      else if (!word && isNaN(Number(val)) && val.length < 50 && !isImg && !isAudio) {
+        word = val
+      }
+      else if (!meaning && isNaN(Number(val)) && val.length > 5 && !isImg && !isAudio && val !== word) {
+        meaning = val
+      }
     })
     
-    return { word, ipa, meaning, examples, media }
+    return { word, ipa, meaning, examples, images, audios }
   }
 
   const currentCard = studyQueue[currentIndex]
@@ -474,10 +507,10 @@ function AnkiClient() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {subdecks.map((sub, i) => (
-                      <div key={i} className="group bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex justify-between items-center" onClick={() => startStudying(sub.name)}>
+                      <div key={i} className="group bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex justify-between items-center" onClick={() => startStudying(sub.name, sub.isTag)}>
                         <div className="flex items-center gap-3 overflow-hidden">
                           <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold flex-shrink-0">
-                            {i+1}
+                            {sub.isTag ? <Tag className="w-4 h-4" /> : i+1}
                           </div>
                           <span className="font-bold text-slate-700 truncate">{sub.name}</span>
                         </div>
@@ -520,17 +553,28 @@ function AnkiClient() {
             {currentCard && (
               <div className="bg-white rounded-[2.5rem] p-8 md:p-14 shadow-2xl shadow-blue-900/5 border border-slate-100 min-h-[500px] flex flex-col justify-center text-center relative overflow-hidden transition-all">
                 
-                {/* Front (Word & Language) */}
+                {/* Front (Word, IPA, Image) */}
                 <div className={`transition-all duration-500 ${isFlipped ? 'mb-8 pb-8 border-b-2 border-dashed border-slate-100 opacity-60 scale-95 origin-top' : 'scale-100'}`}>
                   {semantic?.word ? (
-                    <>
-                      <h2 className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight mb-4">
-                        {semantic.word}
-                      </h2>
-                      {semantic.ipa && (
-                        <p className="text-2xl font-medium text-slate-400 font-mono tracking-widest">{semantic.ipa}</p>
+                    <div className="flex flex-col items-center justify-center gap-4">
+                      {semantic.images.length > 0 && (
+                        <div className="flex flex-col gap-4 mb-4">
+                          {semantic.images.map((m, i) => (
+                            <div key={i} className="anki-content rounded-3xl overflow-hidden" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(m) }} />
+                          ))}
+                        </div>
                       )}
-                    </>
+                      <div 
+                        className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight leading-tight anki-content text-center"
+                        dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(semantic.word) }}
+                      />
+                      {semantic.ipa && (
+                        <div 
+                          className="text-2xl font-medium text-slate-500 font-mono tracking-widest anki-content text-center"
+                          dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(semantic.ipa) }}
+                        />
+                      )}
+                    </div>
                   ) : (
                     // Fallback to Anki QFMT if we couldn't extract intelligently
                     <div
@@ -546,39 +590,37 @@ function AnkiClient() {
                     
                     {semantic?.meaning ? (
                       <div className="space-y-8">
+                        {/* Audio */}
+                        {semantic.audios.length > 0 && (
+                          <div className="flex flex-col items-center gap-2 mb-6">
+                            {semantic.audios.map((a, i) => (
+                              <div key={i} className="anki-content" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(a) }} />
+                            ))}
+                          </div>
+                        )}
+                        
                         <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100">
                           <h3 className="text-xs uppercase tracking-widest text-blue-500 font-bold mb-2 flex items-center gap-2">
                             <BookOpen className="w-4 h-4" /> Ý nghĩa
                           </h3>
-                          <p className="text-3xl font-bold text-slate-700 leading-snug">
-                            {semantic.meaning}
-                          </p>
+                          <div 
+                            className="text-3xl font-bold text-slate-700 leading-snug anki-content"
+                            dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(semantic.meaning) }}
+                          />
                         </div>
                         
-                        {(semantic.examples.length > 0 || semantic.media.length > 0) && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Examples */}
-                            {semantic.examples.length > 0 && (
-                              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                                <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 flex items-center gap-2">
-                                  <FileText className="w-4 h-4" /> Ví dụ
-                                </h3>
-                                <ul className="space-y-4">
-                                  {semantic.examples.map((ex, i) => (
-                                    <li key={i} className="text-lg text-slate-600 font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(ex) }} />
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {/* Media (Audio/Images) */}
-                            {semantic.media.length > 0 && (
-                              <div className="flex flex-col gap-4">
-                                {semantic.media.map((m, i) => (
-                                  <div key={i} className="anki-content rounded-3xl overflow-hidden" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(m) }} />
+                        {semantic.examples.length > 0 && (
+                          <div className="grid grid-cols-1 gap-6 mt-6">
+                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                              <h3 className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-4 flex items-center gap-2">
+                                <FileText className="w-4 h-4" /> Ví dụ
+                              </h3>
+                              <ul className="space-y-4">
+                                {semantic.examples.map((ex, i) => (
+                                  <li key={i} className="text-lg text-slate-600 font-medium leading-relaxed anki-content" dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(ex) }} />
                                 ))}
-                              </div>
-                            )}
+                              </ul>
+                            </div>
                           </div>
                         )}
                       </div>
