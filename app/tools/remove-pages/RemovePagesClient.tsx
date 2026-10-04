@@ -10,11 +10,8 @@ import 'react-pdf/dist/Page/TextLayer.css'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
-type FileFormat = 'pdf' | 'pptx'
 
 export default function RemovePagesClient() {
-  const [format, setFormat] = useState<FileFormat>('pdf')
-  
   const [singleFile, setSingleFile] = useState<File | null>(null)
   const [numPages, setNumPages] = useState<number>(0)
   const [pagesToDelete, setPagesToDelete] = useState<Set<number>>(new Set())
@@ -59,14 +56,7 @@ export default function RemovePagesClient() {
     }
   }
 
-  const handleExecuteOtherFormats = () => {
-    setError(`Định dạng ${format.toUpperCase()} hiện đang được nâng cấp để xử lý trên máy chủ. Tạm thời tính năng này chỉ khả dụng cho PDF.`)
-  }
-
-  const handleExecute = () => {
-    if (format === 'pdf') handleExecutePDF()
-    else handleExecuteOtherFormats()
-  }
+  const handleExecute = () => handleExecutePDF()
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages)
@@ -81,28 +71,11 @@ export default function RemovePagesClient() {
     setResultUrl(null) // Cần xử lý lại nếu đổi trang
   }
 
-  const getFormatLabel = () => {
-    if (format === 'pdf') return '.PDF'
-    if (format === 'pptx') return '.PPTX'
-    return ''
-  }
 
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4">
 
 
-      <div className="flex flex-wrap items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line max-w-full sm:w-max mx-auto">
-        <Settings2 className="w-5 h-5 text-ink-muted shrink-0" />
-        <span className="text-sm font-medium shrink-0">Định dạng file:</span>
-        <select 
-          value={format} 
-          onChange={(e) => { setFormat(e.target.value as FileFormat); setError(''); }}
-          className="bg-page border border-line rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
-        >
-          <option value="pdf">Tài liệu PDF (.pdf)</option>
-          <option value="pptx">PowerPoint (.pptx)</option>
-        </select>
-      </div>
 
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center font-medium flex items-center justify-center gap-2">
@@ -118,7 +91,7 @@ export default function RemovePagesClient() {
           >
             <input 
               type="file" 
-              accept={format === 'pdf' ? '.pdf' : '.pptx'}
+            accept=".pdf"
               className="hidden" 
               ref={fileInputRef}
               onChange={handleSingleFileChange}
@@ -139,7 +112,7 @@ export default function RemovePagesClient() {
                 <div className="text-left">
                   <p className="font-semibold truncate max-w-[200px] sm:max-w-md">{singleFile.name}</p>
                   <p className="text-sm text-ink-muted">
-                    {(singleFile.size / 1024 / 1024).toFixed(2)} MB {format === 'pdf' && `• ${numPages} trang`}
+                    {(singleFile.size / 1024 / 1024).toFixed(2)} MB • {numPages} trang
                   </p>
                 </div>
               </div>

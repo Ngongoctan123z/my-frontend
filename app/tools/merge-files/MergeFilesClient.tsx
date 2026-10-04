@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { mergePDFs } from '../../../src/lib/pdfTools'
 import { UploadCloud, Trash2, Download, Loader2, Settings2, Plus, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react'
 
-type FileFormat = 'pdf' | 'docx' | 'pptx'
+type FileFormat = 'pdf'
 
 export default function MergeFilesClient() {
   const [format, setFormat] = useState<FileFormat>('pdf')
@@ -83,9 +83,9 @@ export default function MergeFilesClient() {
         formData.append('files', file)
       })
 
-      // TODO: Đổi NEXT_PUBLIC_AWS_API_URL trong .env sau khi deploy backend lên AWS
-      const apiUrl = process.env.NEXT_PUBLIC_AWS_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/api/merge`, {
+      // Sử dụng Proxy nội bộ của Next.js để vượt qua lỗi Mixed Content và DNS
+      const apiUrl = '/api/aws-merge'
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
       })
@@ -111,30 +111,13 @@ export default function MergeFilesClient() {
     else handleExecuteOtherFormats()
   }
 
-  const getFormatLabel = () => {
-    if (format === 'pdf') return '.PDF'
-    if (format === 'docx') return '.DOCX'
-    if (format === 'pptx') return '.PPTX'
-    return ''
-  }
+  const getFormatLabel = () => '.PDF'
 
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4">
 
 
-      <div className="flex flex-wrap items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-line max-w-full sm:w-max mx-auto">
-        <Settings2 className="w-5 h-5 text-ink-muted shrink-0" />
-        <span className="text-sm font-medium shrink-0">Định dạng file:</span>
-        <select 
-          value={format} 
-          onChange={(e) => { setFormat(e.target.value as FileFormat); setError(''); }}
-          className="bg-page border border-line rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary"
-        >
-          <option value="pdf">Tài liệu PDF (.pdf)</option>
-          <option value="docx">Word (.docx)</option>
-          <option value="pptx">PowerPoint (.pptx)</option>
-        </select>
-      </div>
+
 
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center font-medium flex items-center justify-center gap-2">
