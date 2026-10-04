@@ -123,11 +123,11 @@ export function Header() {
         {/* Right actions */}
         <div className="flex items-center gap-2 shrink-0">
           <Link prefetch={false} href="/premium"
-            className="hidden sm:inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
+            className="inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
             aria-label="Premium"
           >
             <Crown size={16} className="text-yellow-900 fill-yellow-900/20" />
-            <span>Nâng cấp</span>
+            <span className="hidden sm:inline">Nâng cấp</span>
           </Link>
           <div className="relative hidden sm:block" ref={supportRef}>
             <button
@@ -209,6 +209,12 @@ export function Header() {
                   Cài đặt & Hỗ trợ
                 </h3>
                 <div className="space-y-1">
+                  <Link prefetch={false} href="/premium" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors">
+                    <Crown size={18} /> Nâng cấp Premium
+                  </Link>
+                  <Link prefetch={false} href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    <Star size={18} /> Hồ sơ cá nhân
+                  </Link>
                   <Link prefetch={false} href="/favorites" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Star size={18} /> Đề yêu thích
                   </Link>
