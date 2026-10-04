@@ -379,13 +379,18 @@ export default function AnkiClient() {
             {currentCard && (
               <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100 min-h-[400px] flex flex-col justify-center text-center relative overflow-hidden transition-all">
                 
+                {/* Dynamic Anki CSS */}
+                {currentCard.css && (
+                  <style dangerouslySetInnerHTML={{ __html: `.anki-content { ${currentCard.css.replace(/card/gi, '')} }` }} />
+                )}
+                
                 {/* Front */}
                 <div className={`${isFlipped ? 'mb-8 pb-8 border-b border-slate-100' : ''}`}>
                   <p className="text-xs uppercase tracking-widest text-slate-400 font-bold mb-6 flex justify-center items-center gap-2">
                     <Tag className="w-3 h-3" /> Mặt trước
                   </p>
                   <div
-                    className="text-2xl md:text-3xl font-medium text-slate-800 leading-relaxed anki-content"
+                    className="text-lg md:text-xl text-slate-800 leading-relaxed anki-content"
                     dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.front) }}
                   />
                 </div>
@@ -397,7 +402,7 @@ export default function AnkiClient() {
                       <BookOpen className="w-3 h-3" /> Đáp án
                     </p>
                     <div
-                      className="text-xl md:text-2xl text-slate-700 leading-relaxed anki-content"
+                      className="text-lg md:text-xl text-slate-700 leading-relaxed anki-content"
                       dangerouslySetInnerHTML={{ __html: processHtmlWithMedia(currentCard.back) }}
                     />
                     {currentCard.extra.length > 0 && (

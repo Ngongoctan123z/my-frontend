@@ -151,6 +151,7 @@ export interface AnkiNote {
   tags: string
   front: string
   back: string
+  css: string
   extra: string[]
 }
 
@@ -214,10 +215,31 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
       let front = fields[0] ?? ''
       let back = fields[1] ?? ''
       
+      let css = ''
+      
       // If we have model templates, try to use them
       if (model && model.tmpls && model.tmpls.length > 0) {
         let qfmt = model.tmpls[0].qfmt || ''
         let afmt = model.tmpls[0].afmt || ''
+        css = model.css || ''
+        
+        // Handle conditional fields {{#Field}}...{{/Field}} and {{^Field}}...{{/Field}}
+        if (model.flds) {
+          model.flds.forEach((f: any) => {
+            const fieldName = f.name
+            const fieldVal = fields[f.ord] || ''
+            
+            // {{#Field}}...{{/Field}}
+            const positiveRegex = new RegExp(`\\{\\{#${fieldName}\\}\\}([\\s\\S]*?)\\{\\{/${fieldName}\\}\\}`, 'g')
+            qfmt = qfmt.replace(positiveRegex, fieldVal.trim() ? '$1' : '')
+            afmt = afmt.replace(positiveRegex, fieldVal.trim() ? '$1' : '')
+            
+            // {{^Field}}...{{/Field}}
+            const negativeRegex = new RegExp(`\\{\\{\\^${fieldName}\\}\\}([\\s\\S]*?)\\{\\{/${fieldName}\\}\\}`, 'g')
+            qfmt = qfmt.replace(negativeRegex, !fieldVal.trim() ? '$1' : '')
+            afmt = afmt.replace(negativeRegex, !fieldVal.trim() ? '$1' : '')
+          })
+        }
         
         // Replace {{Field}} with actual field values
         if (model.flds) {
@@ -225,16 +247,23 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
             const fieldName = f.name
             const fieldVal = fields[f.ord] || ''
             
-            // Basic replacement
+            // Basic replacement (handle variations like {{Field}}, {{type:Field}}, etc)
             const regex = new RegExp(`\\{\\{[^}]*${fieldName}[^}]*\\}\\}`, 'g')
             qfmt = qfmt.replace(regex, fieldVal)
             afmt = afmt.replace(regex, fieldVal)
           })
         }
         
+        // Handle {{FrontSide}}
+        afmt = afmt.replace(/\{\{FrontSide\}\}/g, qfmt)
+        
         // Very basic cloze support
         qfmt = qfmt.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, '<span class="cloze">[...]</span>')
         afmt = afmt.replace(/\{\{c\d+::(.*?)(::.*?)?\}\}/g, '<span class="cloze text-indigo-600 font-bold">$1</span>')
+        
+        // Remove any remaining tags that weren't replaced
+        qfmt = qfmt.replace(/\{\{.*?\}\}/g, '')
+        afmt = afmt.replace(/\{\{.*?\}\}/g, '')
         
         front = qfmt
         back = afmt
@@ -246,7 +275,8 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
         tags: String(row[5] ?? '').trim(),
         front,
         back,
-        extra: fields.length > 2 ? fields.slice(2).filter(Boolean) : [],
+        css,
+        extra: fields.length > 2 && !model ? fields.slice(2).filter(Boolean) : [],
       }
     })
 }
