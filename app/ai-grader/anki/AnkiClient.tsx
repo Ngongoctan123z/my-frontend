@@ -327,7 +327,8 @@ function AnkiClient() {
   
   // Intelligent parsing for raw fields to find Word, IPA, Meaning, Examples
   const extractSemanticFields = (fieldsData: {name: string, value: string}[]) => {
-    let word = '', ipa = '', meaning = '', examples: string[] = [], media: string[] = []
+    let word = '', ipa = '', meaning = ''
+    const examples: string[] = [], media: string[] = []
     
     fieldsData.forEach(f => {
       const name = f.name.toLowerCase()
@@ -463,7 +464,7 @@ function AnkiClient() {
                       onClick={() => startStudying(null)}
                       className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 hover:-translate-y-1 transition-all"
                     >
-                      <Play className="w-5 h-5 fill-current" /> Học toàn bộ
+                      <PlayCircle className="w-5 h-5 fill-current" /> Học toàn bộ
                     </button>
                   </div>
                   
