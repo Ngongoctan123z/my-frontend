@@ -78,6 +78,7 @@ export default function AnkiClient() {
     return () => {
       Object.values(mediaUrls).forEach(url => URL.revokeObjectURL(url))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDeck])
 
   const loadSavedDecks = async () => {

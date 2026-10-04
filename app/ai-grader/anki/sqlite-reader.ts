@@ -167,6 +167,7 @@ export function parseSqliteAnki(data: Uint8Array): AnkiNote[] {
   const masterRecords: (string | number | null)[][] = []
   collectLeafRecords(data, 1, pageSize, masterRecords)
 
+  let notesRootPage = -1
   let modelsRootPage = -1
   for (const row of masterRecords) {
     // sqlite_master: type, name, tbl_name, rootpage, sql
