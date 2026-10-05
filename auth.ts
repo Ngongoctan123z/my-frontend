@@ -79,7 +79,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
       },
       async jwt({ token, user }) {
         if (user) {
-          token.role = (user as any).role || 'user';
+          let role = (user as any).role || 'user';
+          // Tự động cấp quyền admin nếu đăng nhập bằng Google bằng email admin
+          if (user.email === envObj.ADMIN_EMAIL || user.email === 'admin@vndocs.net' || user.email === 'ngongoctan282005@gmail.com') {
+            role = 'admin';
+          }
+          token.role = role;
         }
         return token;
       }

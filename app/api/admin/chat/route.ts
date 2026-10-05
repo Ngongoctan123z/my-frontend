@@ -11,6 +11,11 @@ async function checkAdmin() {
   const session = await auth()
   if (!session?.user?.email) throw new Error('Unauthorized')
 
+  // Cho phép cứng email chủ sở hữu
+  if (session.user.email === 'ngongoctan282005@gmail.com' || session.user.email === 'admin@vndocs.net') {
+    return;
+  }
+
   const db = await getDb()
   const user = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
   
