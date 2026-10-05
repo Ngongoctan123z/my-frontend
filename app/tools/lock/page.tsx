@@ -5,18 +5,44 @@ import PdfLockUnlockWrapper from './PdfLockUnlockWrapper'
 export const metadata: Metadata = {
   title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
   description: 'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.',
+  alternates: {
+    canonical: 'https://vndocs.net/tools/lock',
+  },
   openGraph: {
     title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
     description: 'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.',
+    url: 'https://vndocs.net/tools/lock',
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
+    description: 'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.',
   }
 }
+
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Khóa & Mở Khóa PDF",
+  "operatingSystem": "Web",
+  "applicationCategory": "UtilitiesApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "VND"
+  }
+};
 
 export default function LockToolPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Khóa & Mở Khóa PDF</h1>
         <p className="text-slate-500 max-w-2xl mx-auto">

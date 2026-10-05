@@ -4,11 +4,44 @@ import FileConverterWrapper from './FileConverterWrapper'
 export const metadata: Metadata = {
   title: 'Chuyển Đổi Định Dạng Ảnh | VNDocs',
   description: 'Chuyển đổi ảnh giữa các định dạng JPG, PNG, WEBP, BMP, GIF, ICO miễn phí và nhanh chóng.',
+  alternates: {
+    canonical: 'https://vndocs.net/tools/convert',
+  },
+  openGraph: {
+    title: 'Chuyển Đổi Định Dạng Ảnh | VNDocs',
+    description: 'Chuyển đổi ảnh giữa các định dạng JPG, PNG, WEBP, BMP, GIF, ICO miễn phí và nhanh chóng.',
+    url: 'https://vndocs.net/tools/convert',
+    siteName: 'VNDocs',
+    locale: 'vi_VN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Chuyển Đổi Định Dạng Ảnh | VNDocs',
+    description: 'Chuyển đổi ảnh giữa các định dạng JPG, PNG, WEBP, BMP, GIF, ICO miễn phí và nhanh chóng.',
+  }
 }
+
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Chuyển Đổi Định Dạng Ảnh",
+  "operatingSystem": "Web",
+  "applicationCategory": "UtilitiesApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "VND"
+  }
+};
 
 export default function ConvertImagePage() {
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Chuyển Đổi Định Dạng Ảnh</h1>
         <p className="text-slate-500 font-medium max-w-3xl mx-auto">

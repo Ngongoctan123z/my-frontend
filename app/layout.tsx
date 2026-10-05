@@ -68,9 +68,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: description,
       images: [finalOgImage],
     },
-    alternates: {
-      canonical: '/',
-    },
+
     robots: {
       index: true,
       follow: true,

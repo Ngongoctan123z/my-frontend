@@ -5,18 +5,44 @@ import MergeFilesWrapper from './MergeFilesWrapper'
 export const metadata: Metadata = {
   title: 'Gộp File PDF (Merge PDF) | VNDocs',
   description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
+  alternates: {
+    canonical: 'https://vndocs.net/tools/merge-files',
+  },
   openGraph: {
     title: 'Gộp File PDF (Merge PDF) | VNDocs',
     description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
+    url: 'https://vndocs.net/tools/merge-files',
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Gộp File PDF (Merge PDF) | VNDocs',
+    description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
   }
 }
+
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Gộp File PDF",
+  "operatingSystem": "Web",
+  "applicationCategory": "UtilitiesApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "VND"
+  }
+};
 
 export default function MergeToolPage() {
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Gộp Nhiều Tài Liệu</h1>
         <p className="text-slate-500 max-w-2xl mx-auto">

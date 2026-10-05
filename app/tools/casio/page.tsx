@@ -5,18 +5,80 @@ import { CasioCalculator } from '@/src/components/tools/CasioCalculator'
 export const metadata: Metadata = {
   title: 'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
   description: 'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.',
+  alternates: {
+    canonical: 'https://vndocs.net/tools/casio',
+  },
   openGraph: {
     title: 'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
     description: 'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.',
+    url: 'https://vndocs.net/tools/casio',
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
+    description: 'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.',
   }
 }
+
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Máy Tính Casio Online",
+  "operatingSystem": "Web",
+  "applicationCategory": "EducationalApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "VND"
+  }
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Tính Năng Của Máy Tính Giả Lập",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Tính toán cơ bản, Giải phương trình, Toán cao cấp (Ma trận, Véc-tơ, Số phức, Tích phân, Đạo hàm)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Ưu Điểm So Với App Cài Đặt",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Không cần cài đặt, Miễn phí & Không quảng cáo rác, Tương thích đa nền tảng."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Lợi Ích Trong Quá Trình Học Tập & Thi Cử",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Làm quen phím bấm, phương án dự phòng khi quên máy, tính toán chính xác tuyệt đối."
+      }
+    }
+  ]
+};
 
 export default function CasioToolPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Giả lập Máy tính Casio Online</h1>
         <p className="text-slate-500 max-w-2xl mx-auto">

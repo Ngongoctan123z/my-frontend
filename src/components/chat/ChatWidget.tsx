@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { MessageSquare, X, Send, User, ShieldAlert } from 'lucide-react'
+import { MessageSquare, X, Send, User, ShieldAlert, Paperclip } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
 export function ChatWidget() {
@@ -97,7 +97,7 @@ export function ChatWidget() {
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-indigo-600 rounded-full"></div>
             </div>
             <div>
-              <h3 className="font-bold text-sm">Hỗ trợ VNDocs</h3>
+              <h3 className="font-bold text-sm">Admin</h3>
               <p className="text-xs text-blue-100 opacity-90">Chúng tôi luôn sẵn sàng hỗ trợ</p>
             </div>
           </div>
@@ -131,6 +131,13 @@ export function ChatWidget() {
         {/* Input */}
         <div className="p-3 bg-white border-t border-gray-100">
           <form onSubmit={handleSend} className="flex items-center gap-2">
+            <button 
+              type="button"
+              onClick={() => alert('Tính năng gửi file/ảnh đang được nâng cấp! Vui lòng cho mình biết bạn muốn lưu ảnh ở đâu (ví dụ Cloudflare R2, AWS S3...) để mình code tiếp nhé.')}
+              className="p-2 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
+            >
+              <Paperclip size={20} />
+            </button>
             <input 
               type="text"
               value={input}
@@ -142,7 +149,7 @@ export function ChatWidget() {
             <button 
               type="submit"
               disabled={!input.trim() || loading}
-              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 flex items-center justify-center w-10 h-10"
+              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 flex items-center justify-center w-10 h-10 flex-shrink-0"
             >
               <Send size={18} className="ml-1" />
             </button>

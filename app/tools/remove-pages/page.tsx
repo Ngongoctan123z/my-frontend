@@ -5,18 +5,44 @@ import RemovePagesWrapper from './RemovePagesWrapper'
 export const metadata: Metadata = {
   title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
   description: 'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.',
+  alternates: {
+    canonical: 'https://vndocs.net/tools/remove-pages',
+  },
   openGraph: {
     title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
     description: 'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.',
+    url: 'https://vndocs.net/tools/remove-pages',
     siteName: 'VNDocs',
     locale: 'vi_VN',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
+    description: 'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.',
   }
 }
+
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Cắt & Xóa Trang PDF",
+  "operatingSystem": "Web",
+  "applicationCategory": "UtilitiesApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "VND"
+  }
+};
 
 export default function RemovePagesToolPage() {
   return (
     <div className="py-12 max-w-5xl mx-auto space-y-8 px-4 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Cắt & Xóa Trang PDF</h1>
         <p className="text-slate-500 max-w-2xl mx-auto">
