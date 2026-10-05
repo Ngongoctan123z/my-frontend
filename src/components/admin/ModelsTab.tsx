@@ -46,17 +46,25 @@ export function ModelsTab() {
 
   const saveConfig = async () => {
     setSaving(true)
-    await fetch('/api/admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'save_configs',
-        payload: { ACTIVE_GROQ_MODEL: activeModels.join(','), GROQ_API_KEY: apiKey }
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_configs',
+          payload: { ACTIVE_GROQ_MODEL: activeModels.join(','), GROQ_API_KEY: apiKey }
+        })
       })
-    })
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+      if (!res.ok) {
+        throw new Error("Lỗi khi lưu cấu hình")
+      }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch (e: any) {
+      alert("Lỗi: " + e.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const fetchModelsList = async () => {
@@ -161,9 +169,12 @@ export function ModelsTab() {
               <button
                 onClick={() => {
                   if (!newKey.trim()) return
+                  const addedKeys = newKey.split(/[\n,]+/).map(k => k.trim()).filter(Boolean)
                   const currentKeys = apiKey.split(',').map(k => k.trim()).filter(Boolean)
-                  if (!currentKeys.includes(newKey.trim())) {
-                     setApiKey([...currentKeys, newKey.trim()].join(','))
+                  const newKeysToAdd = addedKeys.filter(k => !currentKeys.includes(k))
+                  
+                  if (newKeysToAdd.length > 0) {
+                     setApiKey([...currentKeys, ...newKeysToAdd].join(','))
                   }
                   setNewKey('')
                 }}

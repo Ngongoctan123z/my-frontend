@@ -32,6 +32,17 @@ export function UsersTab() {
     fetchUsers()
   }
 
+  const handleUpdatePlan = async (id: string, newPlan: string) => {
+    if (!confirm(`Xác nhận đổi gói của người dùng thành ${newPlan.toUpperCase()}?`)) return
+    
+    await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_user_plan', payload: { id, plan: newPlan } })
+    })
+    fetchUsers()
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN người dùng này?')) return
     
@@ -70,6 +81,7 @@ export function UsersTab() {
             <tr>
               <th className="px-6 py-3 rounded-tl-lg">Người Dùng</th>
               <th className="px-6 py-3">Vai Trò</th>
+              <th className="px-6 py-3">Gói (Plan)</th>
               <th className="px-6 py-3">Trạng Thái</th>
               <th className="px-6 py-3 text-right rounded-tr-lg">Thao tác</th>
             </tr>
@@ -109,6 +121,21 @@ export function UsersTab() {
                     ) : (
                       <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-xs">Member</span>
                     )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <select 
+                      value={u.plan || 'free'}
+                      onChange={(e) => handleUpdatePlan(u.id, e.target.value)}
+                      className={`text-xs font-bold px-2 py-1.5 rounded border focus:outline-none focus:ring-2 ${
+                        u.plan === 'pro' ? 'bg-orange-100 text-orange-700 border-orange-200 focus:ring-orange-500' :
+                        u.plan === 'plus' ? 'bg-blue-100 text-blue-700 border-blue-200 focus:ring-blue-500' :
+                        'bg-gray-100 text-gray-700 border-gray-200 focus:ring-gray-500'
+                      }`}
+                    >
+                      <option value="free">FREE</option>
+                      <option value="plus">PLUS</option>
+                      <option value="pro">PRO</option>
+                    </select>
                   </td>
                   <td className="px-6 py-4">
                     {u.status === 'blocked' ? (

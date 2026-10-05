@@ -5,6 +5,7 @@ import { Star, Info, Menu, X, Crown } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 import { SearchBar } from '../search/SearchBar'
 import { ThemeToggle } from './ThemeToggle'
@@ -13,6 +14,9 @@ import { AuthButton } from '../auth/AuthButton'
 export function Header() {
   const pathname = usePathname()
   const isHomePage = pathname === '/'
+  const { data: session } = useSession()
+
+  const [userPlan, setUserPlan] = useState<string>('free')
 
   const [supportOpen, setSupportOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -27,6 +31,21 @@ export function Header() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/profile')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.plan) {
+            setUserPlan(data.plan)
+          }
+        })
+        .catch(() => {})
+    } else {
+      setUserPlan('free')
+    }
+  }, [session])
 
   const navLinks = [
     { 
@@ -48,11 +67,12 @@ export function Header() {
       ]
     },
     { 
-      href: '/tools', 
+      href: '/tools',
       label: 'Công cụ',
       dropdown: [
         { href: '/tools/casio', label: 'Máy tính Khoa học' },
         { href: '/tools/convert', label: 'Chuyển đổi ảnh' },
+        { href: '/tools/compress', label: 'Nén Ảnh/File' },
         { href: '/tools/lock', label: 'Khóa/Mở PDF' },
         { href: '/tools/remove-pages', label: 'Xóa trang PDF' },
         { href: '/tools/merge-files', label: 'Gộp PDF' },
@@ -122,13 +142,31 @@ export function Header() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 shrink-0">
-          <Link prefetch={false} href="/premium"
-            className="inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
-            aria-label="Premium"
-          >
-            <Crown size={16} className="text-yellow-900 fill-yellow-900/20" />
-            <span className="hidden sm:inline">Nâng cấp</span>
-          </Link>
+          {userPlan === 'free' ? (
+            <Link prefetch={false} href="/premium"
+              className="inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
+              aria-label="Premium"
+            >
+              <Crown size={16} className="text-yellow-900 fill-yellow-900/20" />
+              <span className="hidden sm:inline">Nâng cấp</span>
+            </Link>
+          ) : userPlan === 'plus' ? (
+            <Link prefetch={false} href="/profile"
+              className="inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
+              aria-label="Plus"
+            >
+              <Crown size={16} className="text-white fill-white/20" />
+              <span className="hidden sm:inline">PLUS</span>
+            </Link>
+          ) : (
+            <Link prefetch={false} href="/profile"
+              className="inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
+              aria-label="Pro"
+            >
+              <Crown size={16} className="text-white fill-white/20" />
+              <span className="hidden sm:inline">PRO</span>
+            </Link>
+          )}
           <div className="relative hidden sm:block" ref={supportRef}>
             <button
               onClick={() => setSupportOpen(!supportOpen)}
@@ -209,9 +247,19 @@ export function Header() {
                   Cài đặt & Hỗ trợ
                 </h3>
                 <div className="space-y-1">
-                  <Link prefetch={false} href="/premium" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors">
-                    <Crown size={18} /> Nâng cấp Premium
-                  </Link>
+                  {userPlan === 'free' ? (
+                    <Link prefetch={false} href="/premium" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors">
+                      <Crown size={18} /> Nâng cấp Premium
+                    </Link>
+                  ) : userPlan === 'plus' ? (
+                    <Link prefetch={false} href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                      <Crown size={18} /> Gói của bạn: PLUS
+                    </Link>
+                  ) : (
+                    <Link prefetch={false} href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+                      <Crown size={18} /> Gói của bạn: PRO
+                    </Link>
+                  )}
                   <Link prefetch={false} href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Star size={18} /> Hồ sơ cá nhân
                   </Link>

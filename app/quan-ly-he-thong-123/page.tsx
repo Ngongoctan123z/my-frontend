@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Users, Settings, FileText } from 'lucide-react'
+import { Users, Settings, FileText, MessageSquare } from 'lucide-react'
 
 // Tabs components
 import { UsersTab } from '@/src/components/admin/UsersTab'
 import { ModelsTab } from '@/src/components/admin/ModelsTab'
 import { PromptsTab } from '@/src/components/admin/PromptsTab'
 import { SeoTab } from '@/src/components/admin/SeoTab'
+import { ChatTab } from '@/src/components/admin/ChatTab'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('users')
@@ -45,6 +46,13 @@ export default function AdminPage() {
           <FileText size={18} />
           Cấu hình SEO
         </button>
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'chat' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          <MessageSquare size={18} />
+          Hỗ Trợ Khách
+        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm min-h-[500px]">
@@ -52,6 +60,7 @@ export default function AdminPage() {
         {activeTab === 'models' && <ModelsTab />}
         {activeTab === 'prompts' && <PromptsTab />}
         {activeTab === 'seo' && <SeoTab />}
+        {activeTab === 'chat' && <ChatTab />}
       </div>
     </div>
   )

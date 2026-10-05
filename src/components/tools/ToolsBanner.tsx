@@ -10,6 +10,7 @@ export function ToolsBanner() {
   const links = [
     { href: '/tools', label: 'Tất cả công cụ', icon: null },
     { href: '/tools/convert', label: 'Chuyển đổi định dạng ảnh', icon: <FileText size={14} /> },
+    { href: '/tools/compress', label: 'Nén Ảnh/File', icon: <Layers size={14} /> },
     { href: '/tools/lock', label: 'Khóa File', icon: <Lock size={14} /> },
     { href: '/tools/remove-pages', label: 'Xóa Trang', icon: <Layers size={14} /> },
     { href: '/tools/merge-files', label: 'Gộp File', icon: <Layers size={14} /> },

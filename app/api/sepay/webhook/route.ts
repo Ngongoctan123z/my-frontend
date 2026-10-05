@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/db'
-import { users } from '@/db/schema'
+import { getDb } from '@/src/db'
+import { users } from '@/src/db/schema'
 import { like, eq } from 'drizzle-orm'
 
 export async function POST(req: Request) {
@@ -14,24 +14,23 @@ export async function POST(req: Request) {
     if (transferType === 'in') {
       const memo = (content || '').toUpperCase()
       
-      // Parse username (phần email phía trước @) từ memo. Vd: VNDOCS PLUS TANNGOC
-      // Memo thường có dạng: VNDOCS PLUS TANNGOC123
-      const isPlus = memo.includes('VNDOCS PLUS') && transferAmount >= 50000
-      const isPro = memo.includes('VNDOCS PRO') && transferAmount >= 149000
+      // Parse username bằng Regex để tránh trường hợp ngân hàng nối thêm chữ
+      // Tìm mẫu: VNDOCS PLUS <username> hoặc VNDOCS PRO <username>
+      const match = memo.match(/VNDOCS\s+(PLUS|PRO)\s+([A-Z0-9_\.\-]+)/)
 
-      if (isPlus || isPro) {
-        // Tách lấy từ cuối cùng trong memo (tên user)
-        const parts = memo.split(' ')
-        const userPrefix = parts[parts.length - 1] // "TANNGOC123"
+      if (match) {
+        const plan = match[1].toLowerCase() // "plus" hoặc "pro"
+        const userPrefix = match[2].toLowerCase()
+        const requiredAmount = plan === 'pro' ? 149000 : 50000
 
-        if (userPrefix) {
+        if (transferAmount >= requiredAmount) {
+          const db = await getDb()
           // Tìm user có email bắt đầu bằng userPrefix (case insensitive)
           // Do SQLite LIKE mặc định case-insensitive với ASCII
           const userRows = await db.select().from(users).where(like(users.email, `${userPrefix.toLowerCase()}@%`)).limit(1)
           
           if (userRows.length > 0) {
             const user = userRows[0]
-            const plan = isPro ? 'pro' : 'plus'
             
             // Hạn sử dụng: 30 ngày kể từ lúc nạp
             const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
@@ -39,7 +38,7 @@ export async function POST(req: Request) {
             await db.update(users)
               .set({
                 plan: plan,
-                planExpiresAt: expiresAt
+                planExpiresAt: new Date(expiresAt)
               })
               .where(eq(users.id, user.id))
             
@@ -47,7 +46,11 @@ export async function POST(req: Request) {
           } else {
             console.error('=> Không tìm thấy user nào khớp với prefix:', userPrefix)
           }
+        } else {
+          console.error(`=> Số tiền không đủ. Yêu cầu: ${requiredAmount}, nhận được: ${transferAmount}`)
         }
+      } else {
+         console.error('=> Nội dung không đúng cú pháp:', memo)
       }
     }
 

@@ -183,6 +183,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    if (action === 'update_user_plan') {
+      const { id, plan } = payload
+      let planExpiresAt = null
+      
+      // If upgraded to plus or pro, set expiration to 30 days from now
+      if (plan === 'plus' || plan === 'pro') {
+        planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      }
+
+      await db.update(users).set({ 
+        plan, 
+        planExpiresAt 
+      }).where(eq(users.id, id))
+      return NextResponse.json({ success: true })
+    }
+
     if (action === 'delete_user') {
       await db.delete(users).where(eq(users.id, payload.id))
       return NextResponse.json({ success: true })

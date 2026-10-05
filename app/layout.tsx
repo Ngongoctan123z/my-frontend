@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '../src/components/Providers'
 import { Layout as AppLayout } from '../src/components/common/Layout'
+import { ChatWidget } from '../src/components/chat/ChatWidget'
 
 const inter = Inter({
   subsets: ['latin', 'vietnamese'],
@@ -88,6 +89,7 @@ export default function RootLayout({
         />
         <Providers>
           <AppLayout>{children}</AppLayout>
+          <ChatWidget />
         </Providers>
       </body>
     </html>

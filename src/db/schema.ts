@@ -93,3 +93,52 @@ export const apiUsages = sqliteTable(
     compoundKey: primaryKey({ columns: [table.userId, table.date] }),
   })
 )
+
+export const chatMessages = sqliteTable("chat_message", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("userId").notNull(),
+  isAdmin: integer("isAdmin", { mode: "boolean" }).default(false).notNull(),
+  content: text("content").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+  isRead: integer("isRead", { mode: "boolean" }).default(false).notNull(),
+})
+
+export const sharedExams = sqliteTable("shared_exam", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  creatorId: text("creatorId").notNull(),
+  examType: text("examType").notNull(), // e.g. IELTS_TASK_1
+  content: text("content").notNull(), // The prompt content
+  imageUrl: text("imageUrl"), // Optional image URL for Task 1
+  imageDescription: text("imageDescription"), // Custom image description by Pro user
+  requirePhone: integer("requirePhone", { mode: "boolean" }).default(false).notNull(),
+  requireEmail: integer("requireEmail", { mode: "boolean" }).default(false).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+  expiresAt: integer("expiresAt", { mode: "timestamp_ms" }).notNull(),
+})
+
+export const sharedExamSubmissions = sqliteTable("shared_exam_submission", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  sharedExamId: text("sharedExamId").notNull(),
+  studentName: text("studentName").notNull(),
+  studentPhone: text("studentPhone"),
+  studentEmail: text("studentEmail"),
+  studentEssay: text("studentEssay").notNull(),
+  gradingResult: text("gradingResult").notNull(), // JSON string
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+})
+
+export const essayHistory = sqliteTable("essay_history", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  email: text("email").notNull(),
+  examType: text("examType").notNull(),
+  prompt: text("prompt").notNull(),
+  essay: text("essay").notNull(),
+  result: text("result").notNull(), // JSON string
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+})

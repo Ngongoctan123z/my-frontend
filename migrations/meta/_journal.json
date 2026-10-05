@@ -29,6 +29,34 @@
       "when": 1791118572575,
       "tag": "0003_early_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791123108418,
+      "tag": "0004_gigantic_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791124343510,
+      "tag": "0005_dashing_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791125468762,
+      "tag": "0006_free_prowler",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791179195303,
+      "tag": "0007_many_unicorn",
+      "breakpoints": true
     }
   ]
 }

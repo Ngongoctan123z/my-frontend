@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { db } from '@/db'
-import { users } from '@/db/schema'
+import { getDb } from '@/src/db'
+import { users } from '@/src/db/schema'
 import { eq } from 'drizzle-orm'
 
 // MÔ HÌNH KIỂM TRA GIAO DỊCH CHỦ ĐỘNG (Frontend gọi API này)
@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     await new Promise(resolve => setTimeout(resolve, 2000))
 
     // Kiểm tra database xem user đã được nâng cấp chưa
+    const db = await getDb()
     const userRows = await db.select().from(users).where(eq(users.email, session.user.email))
     
     if (userRows.length > 0) {

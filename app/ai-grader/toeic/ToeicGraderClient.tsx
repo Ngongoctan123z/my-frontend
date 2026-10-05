@@ -1,19 +1,24 @@
 'use client'
 
+import { GradingResultModal } from '@/src/components/common/GradingResultModal'
 import React, { useState, useRef, useEffect } from 'react'
-import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight } from 'lucide-react'
+import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Users, Clock, Trash2, ArrowRight, Share2 } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
+import { ShareExamModal } from '@/src/components/common/ShareExamModal'
+import { StudentManagementModal } from '@/src/components/common/StudentManagementModal'
 
 type ExamType = 'TOEIC_RESPOND' | 'TOEIC_ESSAY'
 type PromptObject = { content: string, imageUrl?: string | null }
 
 export function ToeicGraderClient() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [examType, setExamType] = useState<ExamType>('TOEIC_ESSAY')
   const [prompt, setPrompt] = useState<PromptObject | null>(null)
   
   // States for Task 1 and Task 2
+  const [userPlan, setUserPlan] = useState<string>('free')
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [essayTask1, setEssayTask1] = useState('')
   const [essayTask2, setEssayTask2] = useState({ intro: '', body: '', conclusion: '' })
   
@@ -29,9 +34,33 @@ export function ToeicGraderClient() {
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 2)
     }).catch(() => {})
-  }, [session])
+  
+    if (session?.user) {
+      fetch('/api/profile').then(r => r.json()).then(data => {
+        if (data && data.plan) setUserPlan(data.plan)
+      }).catch(() => {})
+    }
+}, [session])
 
   const [history, setHistory] = useState<GradedEssayHistory[]>([])
+
+  const [showStudentsModal, setShowStudentsModal] = useState(false)
+  const [studentsData, setStudentsData] = useState<any[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null)
+
+  const loadStudentsData = async () => {
+    setLoadingStudents(true)
+    try {
+      const res = await fetch('/api/shared-exams/submissions')
+      const data = await res.json()
+      setStudentsData(data.submissions || [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingStudents(false)
+    }
+  }
   const [showHistoryModal, setShowHistoryModal] = useState(false)
 
   // Load draft on mount
@@ -58,14 +87,16 @@ export function ToeicGraderClient() {
   }, [essayTask1, essayTask2, prompt, examType])
 
   const loadHistory = async () => {
-    if (!session?.user?.email) return;
-    const data = await getEssayHistory(session.user.email)
+    const email = session?.user?.email || 'anonymous';
+    const data = await getEssayHistory(email)
     setHistory(data.filter(h => h.examType.startsWith('TOEIC')))
   }
 
   useEffect(() => {
-    loadHistory()
-  }, [])
+    if (status !== 'loading') {
+      loadHistory()
+    }
+  }, [status, session])
 
   const promptQueue = useRef<PromptObject[]>([])
   const isFetchingQueue = useRef(false)
@@ -135,6 +166,36 @@ export function ToeicGraderClient() {
     }
   }
 
+
+  const handleCreateSharedLink = async (reqPhone: boolean, reqEmail: boolean): Promise<string | void> => {
+    if (!prompt?.content?.trim()) {
+      alert('Vui lòng tạo hoặc nhập đề trước.')
+      return
+    }
+    
+    try {
+      const res = await fetch('/api/shared-exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          examType,
+          content: prompt.content,
+          imageUrl: prompt.imageUrl,
+          imageDescription: (prompt as any).imageDescription,
+          requirePhone: reqPhone,
+          requireEmail: reqEmail
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      
+      return `${window.location.origin}/shared/${data.id}`
+    } catch (e: any) {
+      alert(e.message || 'Lỗi khi tạo link.')
+      throw e
+    }
+  }
+
   const gradeEssay = async () => {
     if (!prompt?.content.trim()) {
       setError('Vui lòng tạo đề trước khi chấm.')
@@ -193,7 +254,7 @@ export function ToeicGraderClient() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 items-start">
         {/* Left Column: Editor */}
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -201,7 +262,17 @@ export function ToeicGraderClient() {
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                 <FileEdit className="w-5 h-5 text-blue-600" /> Thiết lập đề thi
               </h2>
-              <button 
+              
+              {(userPlan === 'plus' || userPlan === 'pro') && (
+                <button 
+                  onClick={() => { loadStudentsData(); setShowStudentsModal(true); }}
+                  className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                >
+                  <Users className="w-4 h-4" />
+                  Quản lý học viên
+                </button>
+              )}
+<button 
                 onClick={() => setShowHistoryModal(true)}
                 className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
               >
@@ -232,7 +303,17 @@ export function ToeicGraderClient() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="font-medium text-slate-700 text-sm">Nội dung đề bài:</label>
-                <button
+                
+                  {(userPlan === 'plus' || userPlan === 'pro') && prompt?.content && (
+                    <button
+                      onClick={() => setIsShareModalOpen(true)}
+                      className="text-sm text-indigo-600 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Tạo link chia sẻ
+                    </button>
+                  )}
+                  <button
                   onClick={generatePrompt}
                   disabled={isGenerating || isGrading}
                   className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-50"
@@ -242,9 +323,11 @@ export function ToeicGraderClient() {
                 </button>
               </div>
               
-              <div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
+              {!prompt?.imageUrl && (
+<div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
                 {prompt ? prompt.content : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu..."}
               </div>
+)}
 
               {prompt?.imageUrl && (
                 <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
@@ -254,6 +337,17 @@ export function ToeicGraderClient() {
             </div>
           </div>
 
+          
+        </div>
+
+        {/* Right Column: Editor */}
+        <div className="h-full">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 text-red-600 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="font-medium">{error}</p>
+            </div>
+          )}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col min-h-[480px]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
@@ -320,88 +414,6 @@ export function ToeicGraderClient() {
               </p>
             )}
           </div>
-        </div>
-
-        {/* Right Column: Result */}
-        <div className="h-full">
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 text-red-600 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <p className="font-medium">{error}</p>
-            </div>
-          )}
-
-          {!result && !isGrading && !error && (
-            <div className="h-full min-h-[500px] border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center p-8 text-center bg-gray-50">
-              <FileEdit className="w-12 h-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-bold text-slate-700 mb-2">Chưa có kết quả</h3>
-              <p className="text-gray-500 text-sm max-w-sm">Hoàn thành bài viết và nộp bài để nhận đánh giá chi tiết theo chuẩn tiêu chí IELTS.</p>
-            </div>
-          )}
-
-          {isGrading && (
-            <div className="h-full min-h-[500px] border border-gray-200 rounded-xl flex flex-col items-center justify-center p-8 text-center bg-white shadow-sm">
-              <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Hệ thống đang xử lý...</h3>
-              <p className="text-gray-500 text-sm">AI đang chấm bài của bạn, vui lòng đợi trong giây lát.</p>
-            </div>
-          )}
-
-          {result && !isGrading && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm sticky top-24">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-center text-white">
-                <p className="font-semibold text-blue-100 mb-1 text-sm tracking-wider">OVERALL BAND SCORE</p>
-                <h2 className="text-5xl font-black">{result.overallBand}</h2>
-              </div>
-
-              <div className="p-5 md:p-6 space-y-6">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Điểm Thành Phần (Thang TOEIC)</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {Object.entries(result.criteria).map(([key, data]: [string, any]) => (
-                      <div key={key} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <div className="text-xs text-gray-500 font-bold mb-1 uppercase">
-                          {key}
-                        </div>
-                        <div className="text-xl font-bold text-indigo-600">{data.score}/5</div>
-                        <div className="text-xs text-gray-400 mt-1">{data.feedback}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Nhận Xét Tổng Quan</h3>
-                  <div className="bg-blue-50/50 p-4 rounded-lg">
-                    <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{result.detailedFeedback}</p>
-                  </div>
-                </div>
-
-                {result.corrections && result.corrections.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Sửa Lỗi Chi Tiết</h3>
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                      {result.corrections.map((corr: any, idx: number) => (
-                        <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-blue-200 transition-colors">
-                          <div className="flex items-start gap-2 mb-1.5 text-sm">
-                            <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                            <p className="text-rose-700 line-through">{corr.original}</p>
-                          </div>
-                          <div className="flex items-start gap-2 mb-2 text-sm">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                            <p className="text-emerald-700 font-medium">{corr.corrected}</p>
-                          </div>
-                          <div className="text-xs bg-slate-50 p-2.5 rounded border border-slate-100 text-slate-600">
-                            <strong>Lý do:</strong> {corr.explanation}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -555,6 +567,20 @@ export function ToeicGraderClient() {
           </div>
         </div>
       </section>
+
+      <ShareExamModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)} 
+        onConfirm={handleCreateSharedLink} 
+      />
+    
+      <GradingResultModal 
+        isOpen={isGrading || !!result} 
+        onClose={() => { if (!isGrading) setResult(null) }} 
+        isGrading={isGrading} 
+        result={result} 
+        examType={examType || 'IELTS'} 
+      />
     </div>
   )
 }

@@ -91,11 +91,16 @@ export function PromptsTab() {
               <option value="IELTS_TASK_2">IELTS Task 2</option>
               <option value="TOEIC_RESPOND">TOEIC Writing Q6-7</option>
               <option value="TOEIC_ESSAY">TOEIC Writing Q8</option>
+              <option value="TOPIK_51_52">TOPIK Câu 51-52</option>
+              <option value="TOPIK_53">TOPIK Câu 53</option>
+              <option value="TOPIK_54">TOPIK Câu 54</option>
+              <option value="HSK_5">HSK 5 Writing</option>
+              <option value="HSK_6">HSK 6 Writing</option>
             </select>
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1">Nội dung đề (Tiếng Anh)</label>
+            <label className="block text-sm font-medium mb-1">Nội dung đề (Tiếng Anh / Hàn / Trung)</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -104,7 +109,7 @@ export function PromptsTab() {
             />
           </div>
 
-          {['IELTS_TASK_1', 'TOEIC_RESPOND'].includes(type) && (
+          {['IELTS_TASK_1', 'TOEIC_RESPOND', 'TOPIK_53', 'HSK_5', 'HSK_6'].includes(type) && (
             <div>
               <label className="block text-sm font-medium mb-1">Ảnh đính kèm (URL hoặc File - Tùy chọn)</label>
               <div className="flex flex-col gap-2">

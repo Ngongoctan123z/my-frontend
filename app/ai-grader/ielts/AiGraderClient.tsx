@@ -1,19 +1,23 @@
 'use client'
 
+import { GradingResultModal } from '@/src/components/common/GradingResultModal'
 import React, { useState, useRef, useEffect } from 'react'
-import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight } from 'lucide-react'
+import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight, Share2, Copy, Users } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
+import { ShareExamModal } from '@/src/components/common/ShareExamModal'
+import { StudentManagementModal } from '@/src/components/common/StudentManagementModal'
 
 type ExamType = 'IELTS_TASK_1' | 'IELTS_TASK_2'
 type PromptObject = { content: string, imageUrl?: string | null }
 
 export function AiGraderClient() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [examType, setExamType] = useState<ExamType>('IELTS_TASK_2')
   const [prompt, setPrompt] = useState<PromptObject | null>(null)
   
   // States for Task 1 and Task 2
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [essayTask1, setEssayTask1] = useState('')
   const [essayTask2, setEssayTask2] = useState({ intro: '', body: '', conclusion: '' })
   
@@ -23,16 +27,39 @@ export function AiGraderClient() {
   const [result, setResult] = useState<any>(null)
   const [usageCount, setUsageCount] = useState(0)
   const [usageLimit, setUsageLimit] = useState(15)
-
+  const [userPlan, setUserPlan] = useState<string>('free')
   useEffect(() => {
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 2)
     }).catch(() => {})
+
+    if (session?.user) {
+      fetch('/api/profile').then(r => r.json()).then(data => {
+        if (data && data.plan) setUserPlan(data.plan)
+      }).catch(() => {})
+    }
   }, [session])
 
   const [history, setHistory] = useState<GradedEssayHistory[]>([])
   const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [showStudentsModal, setShowStudentsModal] = useState(false)
+  const [studentsData, setStudentsData] = useState<any[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null)
+
+  const loadStudentsData = async () => {
+    setLoadingStudents(true)
+    try {
+      const res = await fetch('/api/shared-exams/submissions')
+      const data = await res.json()
+      setStudentsData(data.submissions || [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingStudents(false)
+    }
+  }
 
   // Load draft on mount
   useEffect(() => {
@@ -58,14 +85,16 @@ export function AiGraderClient() {
   }, [essayTask1, essayTask2, prompt, examType])
 
   const loadHistory = async () => {
-    if (!session?.user?.email) return;
-    const data = await getEssayHistory(session.user.email)
+    const email = session?.user?.email || 'anonymous';
+    const data = await getEssayHistory(email)
     setHistory(data.filter(h => h.examType.startsWith('IELTS')))
   }
 
   useEffect(() => {
-    loadHistory()
-  }, [])
+    if (status !== 'loading') {
+      loadHistory()
+    }
+  }, [status, session])
 
   const promptQueue = useRef<PromptObject[]>([])
   const isFetchingQueue = useRef(false)
@@ -135,8 +164,42 @@ export function AiGraderClient() {
     }
   }
 
+  
+
+  
+  const handleCreateSharedLink = async (reqPhone: boolean, reqEmail: boolean): Promise<string | void> => {
+    if (!prompt?.content?.trim()) {
+      alert('Vui lòng tạo hoặc nhập đề trước.')
+      return
+    }
+    
+    try {
+      const res = await fetch('/api/shared-exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          examType,
+          content: prompt.content,
+          imageUrl: prompt.imageUrl,
+          imageDescription: (prompt as any).imageDescription,
+          requirePhone: reqPhone,
+          requireEmail: reqEmail
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert('Đã tạo link chia sẻ thành công! Link có hiệu lực 24h.\nBạn có thể gửi link này cho học sinh.')
+        return `${window.location.origin}/shared/${data.id}`
+      } else {
+        alert(data.error || 'Lỗi hệ thống')
+      }
+    } catch (e) {
+      alert('Lỗi tạo link')
+    }
+  }
+
   const gradeEssay = async () => {
-    if (!prompt?.content.trim()) {
+    if (!prompt?.content?.trim()) {
       setError('Vui lòng tạo đề trước khi chấm.')
       return
     }
@@ -162,7 +225,7 @@ export function AiGraderClient() {
     setResult(null)
 
     try {
-      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: finalEssay })
+      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: finalEssay, imageDescription: (prompt as any).imageDescription || undefined })
       setResult(data)
       setUsageCount(prev => prev + 1)
       
@@ -193,7 +256,7 @@ export function AiGraderClient() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 items-start">
         {/* Left Column: Editor */}
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -201,13 +264,24 @@ export function AiGraderClient() {
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                 <FileEdit className="w-5 h-5 text-blue-600" /> Thiết lập đề thi
               </h2>
-              <button 
-                onClick={() => setShowHistoryModal(true)}
-                className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
-              >
-                <History className="w-4 h-4" />
-                Lịch sử ({history.length})
-              </button>
+              <div className="flex gap-2">
+                {(userPlan === 'plus' || userPlan === 'pro') && (
+                  <button 
+                    onClick={() => { setShowStudentsModal(true); loadStudentsData(); }}
+                    className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
+                  >
+                    <Users className="w-4 h-4" />
+                    Học viên
+                  </button>
+                )}
+                <button 
+                  onClick={() => setShowHistoryModal(true)}
+                  className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
+                >
+                  <History className="w-4 h-4" />
+                  Lịch sử ({history.length})
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
@@ -232,28 +306,79 @@ export function AiGraderClient() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="font-medium text-slate-700 text-sm">Nội dung đề bài:</label>
-                <button
-                  onClick={generatePrompt}
-                  disabled={isGenerating || isGrading}
-                  className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-50"
-                >
-                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  Bốc đề ngẫu nhiên
-                </button>
+                <div className="flex items-center gap-2">
+                  
+                  
+                  {(userPlan === 'plus' || userPlan === 'pro') && prompt?.content && (
+                    <button
+                      onClick={() => setIsShareModalOpen(true)}
+                      className="text-sm text-indigo-600 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Tạo link chia sẻ
+                    </button>
+                  )}
+                  <button
+                    onClick={generatePrompt}
+                    disabled={isGenerating || isGrading}
+                    className="text-sm text-blue-600 font-medium hover:bg-blue-50 px-2 py-1 rounded transition-colors flex items-center gap-1 disabled:opacity-50"
+                  >
+                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    Bốc đề ngẫu nhiên
+                  </button>
+                </div>
               </div>
               
-              <div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
-                {prompt ? prompt.content : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu..."}
-              </div>
+              {userPlan === 'pro' ? (
+                <div className="space-y-1">
+                  {prompt?.imageUrl && <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Context ẩn cho AI (Học viên không thấy):</label>}
+                  <textarea 
+                    value={prompt?.content || ''}
+                    onChange={(e) => setPrompt(prompt ? { ...prompt, content: e.target.value } : { content: e.target.value })}
+                    placeholder="Nhập đề thi tùy chỉnh hoặc bấm 'Bốc đề ngẫu nhiên'..."
+                    className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 text-sm whitespace-pre-wrap resize-y"
+                  />
+                </div>
+              ) : (
+                !prompt?.imageUrl && (
+                  <div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
+                    {prompt ? prompt.content : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu..."}
+                  </div>
+                )
+              )}
+
+              
 
               {prompt?.imageUrl && (
-                <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+                <div className="mt-4 space-y-2 border border-gray-200 rounded-lg overflow-hidden bg-white p-2">
                   <img src={prompt.imageUrl} alt="Chart/Graph" className="w-full h-auto object-contain bg-white" />
+                  {userPlan === 'pro' && (
+                    <input 
+                      type="text"
+                      placeholder="Nhập mô tả đề (viết các thông số có trên hình ảnh ra để AI chấm thuận tiện hơn)..."
+                      value={(prompt as any).imageDescription || ''}
+                      onChange={(e) => setPrompt({ ...prompt, imageDescription: e.target.value } as any)}
+                      className="w-full px-3 py-2 text-sm border-t border-gray-200 focus:outline-none focus:bg-gray-50"
+                    />
+                  )}
                 </div>
               )}
+
+
             </div>
           </div>
 
+          
+        </div>
+
+        {/* Right Column: Editor */}
+        <div className="h-full">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 text-red-600 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="font-medium">{error}</p>
+            </div>
+          )}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col min-h-[480px]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
@@ -320,90 +445,6 @@ export function AiGraderClient() {
               </p>
             )}
           </div>
-        </div>
-
-        {/* Right Column: Result */}
-        <div className="h-full">
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 text-red-600 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <p className="font-medium">{error}</p>
-            </div>
-          )}
-
-          {!result && !isGrading && !error && (
-            <div className="h-full min-h-[500px] border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center p-8 text-center bg-gray-50">
-              <FileEdit className="w-12 h-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-bold text-slate-700 mb-2">Chưa có kết quả</h3>
-              <p className="text-gray-500 text-sm max-w-sm">Hoàn thành bài viết và nộp bài để nhận đánh giá chi tiết theo chuẩn tiêu chí IELTS.</p>
-            </div>
-          )}
-
-          {isGrading && (
-            <div className="h-full min-h-[500px] border border-gray-200 rounded-xl flex flex-col items-center justify-center p-8 text-center bg-white shadow-sm">
-              <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Hệ thống đang xử lý...</h3>
-              <p className="text-gray-500 text-sm">AI đang chấm bài của bạn, vui lòng đợi trong giây lát.</p>
-            </div>
-          )}
-
-          {result && !isGrading && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm sticky top-24">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-center text-white">
-                <p className="font-semibold text-blue-100 mb-1 text-sm tracking-wider">OVERALL BAND SCORE</p>
-                <h2 className="text-5xl font-black">{result.overallBand}</h2>
-              </div>
-
-              <div className="p-5 md:p-6 space-y-6">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Điểm Thành Phần</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {Object.entries(result.criteria).map(([key, data]: [string, any]) => (
-                      <div key={key} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <div className="text-xs text-gray-500 font-bold mb-1">
-                          {key === 'taskResponse' ? 'Task Response' :
-                           key === 'coherenceCohesion' ? 'Coherence & Cohesion' :
-                           key === 'lexicalResource' ? 'Lexical Resource' :
-                           key === 'grammaticalRange' ? 'Grammar & Accuracy' : key}
-                        </div>
-                        <div className="text-xl font-bold text-indigo-600">{data.score}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Nhận Xét Tổng Quan</h3>
-                  <div className="bg-blue-50/50 p-4 rounded-lg">
-                    <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{result.detailedFeedback}</p>
-                  </div>
-                </div>
-
-                {result.corrections && result.corrections.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 mb-3 border-b border-gray-100 pb-2 uppercase tracking-wide">Sửa Lỗi Chi Tiết</h3>
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                      {result.corrections.map((corr: any, idx: number) => (
-                        <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-blue-200 transition-colors">
-                          <div className="flex items-start gap-2 mb-1.5 text-sm">
-                            <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                            <p className="text-rose-700 line-through">{corr.original}</p>
-                          </div>
-                          <div className="flex items-start gap-2 mb-2 text-sm">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                            <p className="text-emerald-700 font-medium">{corr.corrected}</p>
-                          </div>
-                          <div className="text-xs bg-slate-50 p-2.5 rounded border border-slate-100 text-slate-600">
-                            <strong>Lý do:</strong> {corr.explanation}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -559,6 +600,101 @@ export function AiGraderClient() {
           </div>
         </div>
       </section>
+
+      {/* Students Modal */}
+      {showStudentsModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-emerald-50/50">
+              <h3 className="font-bold text-lg flex items-center gap-2 text-emerald-800">
+                <Users className="w-5 h-5" /> Quản lý học viên
+              </h3>
+              <button 
+                onClick={() => setShowStudentsModal(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+              {loadingStudents ? (
+                <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>
+              ) : studentsData.length === 0 ? (
+                <div className="text-center p-12 bg-white rounded-xl border border-dashed border-gray-200">
+                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">Chưa có học viên nào làm bài.</p>
+                </div>
+              ) : (
+                studentsData.map((sub) => (
+                  <div key={sub.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 transition-all hover:border-emerald-300">
+                    <div 
+                      className="flex justify-between items-center cursor-pointer"
+                      onClick={() => setExpandedStudentId(expandedStudentId === sub.id ? null : sub.id)}
+                    >
+                      <div>
+                        <h4 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                          {sub.studentName}
+                          {sub.studentPhone && <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{sub.studentPhone}</span>}
+                          {sub.studentEmail && <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{sub.studentEmail}</span>}
+                        </h4>
+                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(sub.createdAt).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-bold text-lg">
+                          Band {sub.gradingResult.overall_band || sub.gradingResult.band_score}
+                        </div>
+                        <div className="text-gray-400">
+                          {expandedStudentId === sub.id ? 'Thu gọn' : 'Chi tiết'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {expandedStudentId === sub.id && (
+                      <div className="space-y-4 mt-6 pt-4 border-t border-gray-100">
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm">
+                          <strong className="text-gray-700 block mb-1">Đề bài:</strong>
+                          <p className="text-gray-600 line-clamp-2">{sub.examContent}</p>
+                        </div>
+                        
+                        <div>
+                          <strong className="text-gray-700 text-sm block mb-1">Bài làm:</strong>
+                          <div className="p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                            {sub.studentEssay}
+                          </div>
+                        </div>
+
+                        <div>
+                          <strong className="text-gray-700 text-sm block mb-1">Nhận xét:</strong>
+                          <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800 whitespace-pre-wrap">
+                            {sub.gradingResult.feedback}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ShareExamModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)} 
+        onConfirm={handleCreateSharedLink} 
+      />
+    
+      <GradingResultModal 
+        isOpen={isGrading || !!result} 
+        onClose={() => { if (!isGrading) setResult(null) }} 
+        isGrading={isGrading} 
+        result={result} 
+        examType={examType || 'IELTS'} 
+      />
     </div>
   )
 }
