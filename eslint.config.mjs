@@ -21,6 +21,7 @@ const eslintConfig = [
       "dist/**",
       ".open-next/**",
       "next-env.d.ts",
+      "scratch/**"
     ],
   },
   {
