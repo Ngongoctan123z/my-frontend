@@ -42,6 +42,17 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL('https://vndocs.net'),
     title: title,
     description: description,
+    // LƯU Ý CHO AI/DEV: KHÔNG XÓA PHẦN NÀY.
+    // Phải khai báo tường minh 'icons' ở đây để đảm bảo thẻ <link rel="icon">
+    // luôn được render ra HTML cho Googlebot nhận diện được logo trên kết quả tìm kiếm.
+    icons: {
+      icon: [
+        { url: '/icon.png' },
+        new URL('/icon.png', 'https://vndocs.net').href
+      ],
+      shortcut: '/icon.png',
+      apple: '/icon.png',
+    },
     openGraph: {
       title: title,
       description: description,
