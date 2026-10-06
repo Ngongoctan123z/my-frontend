@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
 import { SearchBar } from '../search/SearchBar'
-import { ThemeToggle } from './ThemeToggle'
+
 import { AuthButton } from '../auth/AuthButton'
 
 export function Header() {
@@ -213,15 +213,7 @@ export function Header() {
               </div>
             )}
           </div>
-          <Link prefetch={false} href="/favorites"
-            className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all"
-            aria-label="Đề yêu thích"
-          >
-            <Star size={16} />
-          </Link>
-          <div className="hidden sm:block">
-            <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all" />
-          </div>
+
           <Link 
             prefetch={false}
             href={isEnRoute ? '/' : '/en'} 
@@ -299,18 +291,11 @@ export function Header() {
                   <Link prefetch={false} href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Star size={18} /> {isEnRoute ? 'Profile' : 'Hồ sơ cá nhân'}
                   </Link>
-                  <Link prefetch={false} href="/favorites" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                    <Star size={18} /> {isEnRoute ? 'Favorites' : 'Đề yêu thích'}
-                  </Link>
+
                   <Link prefetch={false} href="/about" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Info size={18} /> {isEnRoute ? 'About Us' : 'Về chúng tôi'}
                   </Link>
-                  <div className="px-3 py-2.5 flex items-center gap-3 text-[15px] font-semibold text-[var(--text-secondary)]">
-                    {isEnRoute ? 'Dark Mode' : 'Chế độ nền tối'}
-                    <div className="ml-auto">
-                      <ThemeToggle className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent hover:text-[var(--text-primary)] transition-all" />
-                    </div>
-                  </div>
+
                 </div>
               </div>
             </div>

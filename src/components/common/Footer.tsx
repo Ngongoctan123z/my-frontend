@@ -41,7 +41,6 @@ export function Footer() {
     bottom: [
       { href: '/', label: 'Trang chủ' },
       { href: '/tai-lieu', label: 'Tài liệu' },
-      { href: '/favorites', label: 'Yêu thích' },
     ]
   }
 
@@ -77,7 +76,6 @@ export function Footer() {
     },
     bottom: [
       { href: '/en', label: 'Home' },
-      { href: '/favorites', label: 'Favorites' },
     ]
   }
 
