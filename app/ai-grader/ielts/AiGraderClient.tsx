@@ -483,15 +483,7 @@ export function AiGraderClient() {
                           onClick={() => {
                             setExamType(item.examType as ExamType)
                             setPrompt({ content: item.prompt })
-                            if (item.examType === 'IELTS_TASK_1') {
-                              setEssayTask1(item.essay)
-                            } else {
-                              const parts = item.essay.split(/\[BODY\n]|\[CONCLUSION\n]/)
-                              const intro = parts[0]?.replace(/\[INTRODUCTION\n]/, '').trim() || ''
-                              const body = parts[1]?.trim() || ''
-                              const conclusion = parts[2]?.trim() || ''
-                              setEssayTask2({ intro, body, conclusion })
-                            }
+                            setEssay(item.essay)
                             setResult(item.result)
                             setShowHistoryModal(false)
                           }}
