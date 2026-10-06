@@ -357,6 +357,7 @@ export function AiGraderClient() {
 
               
 
+              {prompt?.imageUrl && (
                 <div className="mt-4 space-y-2 border border-gray-200 rounded-lg overflow-hidden bg-white p-2">
                   <div className="relative group cursor-pointer" onClick={() => setExpandedImage(prompt.imageUrl!)}>
                     <img src={prompt.imageUrl} alt="Chart/Graph" className="w-full h-auto object-contain bg-white transition-opacity group-hover:opacity-90" />
