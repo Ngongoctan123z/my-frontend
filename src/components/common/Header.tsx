@@ -222,6 +222,14 @@ export function Header() {
           <div className="hidden sm:block">
             <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all" />
           </div>
+          <Link 
+            prefetch={false}
+            href={isEnRoute ? '/' : '/en'} 
+            className="flex items-center gap-1.5 h-9 px-2.5 rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all"
+            aria-label="Toggle Language"
+          >
+            <span className="text-[13px] font-bold tracking-tight">{isEnRoute ? 'VN' : 'EN'}</span>
+          </Link>
           <div className="ml-0 sm:ml-2 sm:pl-2 sm:border-l border-[var(--border-color)]">
             <AuthButton />
           </div>

@@ -2,8 +2,88 @@
 
 import Link from 'next/link'
 import { BookOpen, Sparkles, Shield, Mail } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 
 export function Footer() {
+  const pathname = usePathname()
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
+  const vnContent = {
+    desc: 'Nền tảng đề thi & công cụ học tập miễn phí. Kho tài liệu phong phú cùng AI và bộ công cụ PDF mạnh mẽ.',
+    col1: {
+      title: 'Học Tập',
+      links: [
+        { href: '/tai-lieu?examType=VAO_10', label: 'Đề thi vào lớp 10' },
+        { href: '/tai-lieu?examType=THPT', label: 'Đề thi THPT Quốc Gia' },
+        { href: '/tai-lieu', label: 'Tất cả tài liệu' },
+        { href: '/ai-grader/tai-lieu-tong-hop', label: 'Tài liệu miễn phí' },
+      ]
+    },
+    col2: {
+      title: 'Tiện Ích & AI',
+      links: [
+        { href: '/ai-grader', label: 'Chấm Writing IELTS/TOEIC' },
+        { href: '/tools/merge-files', label: 'Gộp file PDF' },
+        { href: '/tools/remove-pages', label: 'Xóa trang PDF' },
+        { href: '/tools/lock', label: 'Đặt mật khẩu PDF' },
+        { href: '/tools/casio', label: 'Máy tính Casio online' },
+      ]
+    },
+    col3: {
+      title: 'Hỗ Trợ',
+      links: [
+        { href: '/about', label: 'Về chúng tôi' },
+        { href: '/terms', label: 'Điều khoản sử dụng' },
+        { href: '/privacy', label: 'Chính sách bảo mật' },
+        { href: '/contact', label: 'Liên hệ hợp tác' },
+      ]
+    },
+    bottom: [
+      { href: '/', label: 'Trang chủ' },
+      { href: '/tai-lieu', label: 'Tài liệu' },
+      { href: '/favorites', label: 'Yêu thích' },
+    ]
+  }
+
+  const enContent = {
+    desc: 'Free exam platform & learning tools. Rich document library with powerful AI and PDF toolset.',
+    col1: {
+      title: 'Study Materials',
+      links: [
+        { href: '/en', label: '10th Grade Exams' },
+        { href: '/en', label: 'National High School Exams' },
+        { href: '/en/tai-lieu', label: 'All Documents' },
+        { href: '/en/tai-lieu', label: 'Free Resources' },
+      ]
+    },
+    col2: {
+      title: 'Tools & AI',
+      links: [
+        { href: '/en/ai-grader', label: 'AI Writing Grader' },
+        { href: '/en/tools/merge-files', label: 'Merge PDF' },
+        { href: '/en/tools/remove-pages', label: 'Remove PDF Pages' },
+        { href: '/en/tools/lock', label: 'Lock/Unlock PDF' },
+        { href: '/en/tools/casio', label: 'Online Calculator' },
+      ]
+    },
+    col3: {
+      title: 'Support',
+      links: [
+        { href: '/about', label: 'About Us' },
+        { href: '/terms', label: 'Terms of Use' },
+        { href: '/privacy', label: 'Privacy Policy' },
+        { href: '/contact', label: 'Contact Us' },
+      ]
+    },
+    bottom: [
+      { href: '/en', label: 'Home' },
+      { href: '/en/tai-lieu', label: 'Documents' },
+      { href: '/favorites', label: 'Favorites' },
+    ]
+  }
+
+  const content = isEn ? enContent : vnContent
+
   return (
     <footer className="w-full bg-[var(--bg-secondary)] border-t border-[var(--border-color)] mt-16 pt-14 pb-8 transition-colors duration-300">
       <div className="mx-auto max-w-7xl px-6 md:px-10">
@@ -13,11 +93,11 @@ export function Footer() {
 
           {/* Brand col */}
           <div className="lg:col-span-2 flex flex-col items-start">
-            <Link prefetch={false} href="/" className="inline-block mb-3">
+            <Link prefetch={false} href={isEn ? "/en" : "/"} className="inline-block mb-3">
               <span className="text-[22px] font-[900] text-[var(--text-primary)] tracking-tight">VNDocs.net</span>
             </Link>
             <p className="text-[var(--text-secondary)] text-[13px] leading-relaxed mb-6 max-w-xs">
-              Nền tảng đề thi & công cụ học tập miễn phí. Kho tài liệu phong phú cùng AI và bộ công cụ PDF mạnh mẽ.
+              {content.desc}
             </p>
             <div className="flex items-center gap-2">
               {[
@@ -57,14 +137,9 @@ export function Footer() {
 
           {/* Column 2 */}
           <div>
-            <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">Học Tập</h4>
+            <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">{content.col1.title}</h4>
             <ul className="space-y-2.5">
-              {[
-                { href: '/tai-lieu?examType=VAO_10', label: 'Đề thi vào lớp 10' },
-                { href: '/tai-lieu?examType=THPT', label: 'Đề thi THPT Quốc Gia' },
-                { href: '/tai-lieu', label: 'Tất cả tài liệu' },
-                { href: '/ai-grader/tai-lieu-tong-hop', label: 'Tài liệu miễn phí' },
-              ].map((l) => (
+              {content.col1.links.map((l) => (
                 <li key={l.href}>
                   <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
                     {l.label}
@@ -76,15 +151,9 @@ export function Footer() {
 
           {/* Column 3 */}
           <div>
-            <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">Tiện Ích & AI</h4>
+            <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">{content.col2.title}</h4>
             <ul className="space-y-2.5">
-              {[
-                { href: '/ai-grader', label: 'Chấm Writing IELTS/TOEIC' },
-                { href: '/tools/merge-files', label: 'Gộp file PDF' },
-                { href: '/tools/remove-pages', label: 'Xóa trang PDF' },
-                { href: '/tools/lock', label: 'Đặt mật khẩu PDF' },
-                { href: '/tools/casio', label: 'Máy tính Casio online' },
-              ].map((l) => (
+              {content.col2.links.map((l) => (
                 <li key={l.href}>
                   <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
                     {l.label}
@@ -96,14 +165,9 @@ export function Footer() {
 
           {/* Column 4 */}
           <div>
-            <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">Hỗ Trợ</h4>
+            <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">{content.col3.title}</h4>
             <ul className="space-y-2.5">
-              {[
-                { href: '#', label: 'Về chúng tôi' },
-                { href: '#', label: 'Điều khoản sử dụng' },
-                { href: '#', label: 'Chính sách bảo mật' },
-                { href: '#', label: 'Liên hệ hợp tác' },
-              ].map((l) => (
+              {content.col3.links.map((l) => (
                 <li key={l.href}>
                   <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
                     {l.label}
@@ -120,11 +184,7 @@ export function Footer() {
             © {new Date().getFullYear()} <span className="font-semibold text-[var(--text-secondary)]">VNDocs</span>. All rights reserved.
           </p>
           <div className="flex gap-5 text-[12px]">
-            {[
-              { href: '/', label: 'Trang chủ' },
-              { href: '/tai-lieu', label: 'Tài liệu' },
-              { href: '/favorites', label: 'Yêu thích' },
-            ].map((l) => (
+            {content.bottom.map((l) => (
               <Link key={l.href} prefetch={false} href={l.href} className="text-[var(--text-tertiary)] hover:text-[var(--color-primary)] transition-colors">
                 {l.label}
               </Link>
