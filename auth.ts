@@ -81,7 +81,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
         if (user) {
           let role = (user as any).role || 'user';
           // Tự động cấp quyền admin nếu đăng nhập bằng Google bằng email admin
-          if (user.email === envObj.ADMIN_EMAIL || user.email === 'admin@vndocs.net' || user.email === 'ngongoctan282005@gmail.com') {
+          if (user.email === envObj?.ADMIN_EMAIL || user.email === 'admin@vndocs.net' || user.email === 'ngongoctan282005@gmail.com') {
             role = 'admin';
           }
           token.role = role;
@@ -89,5 +89,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
         return token;
       }
     },
+    debug: true,
   }
 })

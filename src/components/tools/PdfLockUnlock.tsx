@@ -6,8 +6,12 @@ import { PDFDocument } from 'pdf-lib'
 
 import { encryptPDF } from '@pdfsmaller/pdf-encrypt'
 import { decryptPDF } from '@pdfsmaller/pdf-decrypt'
+import { usePathname } from 'next/navigation'
 
 export function PdfLockUnlock() {
+  const pathname = usePathname()
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
   const [file, setFile] = useState<File | null>(null)
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<'lock' | 'unlock'>('lock')
@@ -20,7 +24,7 @@ export function PdfLockUnlock() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0]
       if (selectedFile.type !== 'application/pdf') {
-        setError('Vui lòng chọn file PDF hợp lệ.')
+        setError(isEn ? 'Please select a valid PDF file.' : 'Vui lòng chọn file PDF hợp lệ.')
         setFile(null)
         return
       }
@@ -33,11 +37,11 @@ export function PdfLockUnlock() {
 
   const processPdf = async () => {
     if (!file) {
-      setError('Vui lòng chọn một file PDF.')
+      setError(isEn ? 'Please select a PDF file.' : 'Vui lòng chọn một file PDF.')
       return
     }
     if (!password) {
-      setError('Vui lòng nhập mật khẩu.')
+      setError(isEn ? 'Please enter a password.' : 'Vui lòng nhập mật khẩu.')
       return
     }
 
@@ -56,7 +60,7 @@ export function PdfLockUnlock() {
           resultBytes = await encryptPDF(uint8Array, password, { algorithm: 'AES-256' })
         } catch (e: any) {
           if (e.code === 'ALREADY_ENCRYPTED') {
-            throw new Error('File này đã được mã hóa từ trước. Vui lòng chọn file khác hoặc mở khóa trước.')
+            throw new Error(isEn ? 'This file is already encrypted. Please select another file or unlock it first.' : 'File này đã được mã hóa từ trước. Vui lòng chọn file khác hoặc mở khóa trước.')
           }
           throw e
         }
@@ -65,7 +69,7 @@ export function PdfLockUnlock() {
         try {
           resultBytes = await decryptPDF(uint8Array, password)
         } catch (e: any) {
-          throw new Error('Mật khẩu không chính xác hoặc file không được mã hóa đúng chuẩn.')
+          throw new Error(isEn ? 'Incorrect password or file is not properly encrypted.' : 'Mật khẩu không chính xác hoặc file không được mã hóa đúng chuẩn.')
         }
       }
 
@@ -80,10 +84,10 @@ export function PdfLockUnlock() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      setSuccessMsg(mode === 'lock' ? 'Đã khóa file thành công!' : 'Đã mở khóa file thành công!')
+      setSuccessMsg(mode === 'lock' ? (isEn ? 'File successfully locked!' : 'Đã khóa file thành công!') : (isEn ? 'File successfully unlocked!' : 'Đã mở khóa file thành công!'))
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'Đã xảy ra lỗi trong quá trình xử lý.')
+      setError(err.message || (isEn ? 'An error occurred during processing.' : 'Đã xảy ra lỗi trong quá trình xử lý.'))
     } finally {
       setIsProcessing(false)
     }
@@ -101,7 +105,7 @@ export function PdfLockUnlock() {
               : 'text-ink-muted hover:text-ink'
           }`}
         >
-          <Lock className="w-4 h-4" /> Khóa File
+          <Lock className="w-4 h-4" /> {isEn ? 'Lock File' : 'Khóa File'}
         </button>
         <button
           onClick={() => { setMode('unlock'); setError(null); setSuccessMsg(null); }}
@@ -111,7 +115,7 @@ export function PdfLockUnlock() {
               : 'text-ink-muted hover:text-ink'
           }`}
         >
-          <Unlock className="w-4 h-4" /> Mở Khóa
+          <Unlock className="w-4 h-4" /> {isEn ? 'Unlock File' : 'Mở Khóa'}
         </button>
       </div>
 
@@ -121,7 +125,7 @@ export function PdfLockUnlock() {
           {/* File Upload Area */}
           <div>
             <label className="block text-sm font-medium text-ink mb-2">
-              Tài liệu PDF
+              {isEn ? 'PDF Document' : 'Tài liệu PDF'}
             </label>
             <div 
               onClick={() => fileInputRef.current?.click()}
@@ -145,7 +149,7 @@ export function PdfLockUnlock() {
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                   <button className="mt-4 text-primary text-sm font-medium hover:underline">
-                    Chọn file khác
+                    {isEn ? 'Select another file' : 'Chọn file khác'}
                   </button>
                 </div>
               ) : (
@@ -153,8 +157,8 @@ export function PdfLockUnlock() {
                   <div className="w-16 h-16 bg-surface-hover rounded-full flex items-center justify-center mb-4 text-ink-muted group-hover:text-primary group-hover:bg-primary/10 transition-colors">
                     <Upload className="w-8 h-8" />
                   </div>
-                  <p className="text-ink font-medium">Nhấn để chọn hoặc kéo thả file vào đây</p>
-                  <p className="text-ink-muted text-sm mt-1">Chỉ hỗ trợ định dạng PDF</p>
+                  <p className="text-ink font-medium">{isEn ? 'Click to select or drag and drop file here' : 'Nhấn để chọn hoặc kéo thả file vào đây'}</p>
+                  <p className="text-ink-muted text-sm mt-1">{isEn ? 'Only PDF format supported' : 'Chỉ hỗ trợ định dạng PDF'}</p>
                 </div>
               )}
             </div>
@@ -163,7 +167,7 @@ export function PdfLockUnlock() {
           {/* Password Input */}
           <div>
             <label className="block text-sm font-medium text-ink mb-2">
-              {mode === 'lock' ? 'Mật khẩu bảo vệ' : 'Mật khẩu hiện tại của file'}
+              {mode === 'lock' ? (isEn ? 'Protection Password' : 'Mật khẩu bảo vệ') : (isEn ? 'Current file password' : 'Mật khẩu hiện tại của file')}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-muted">
@@ -173,13 +177,13 @@ export function PdfLockUnlock() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu..."
+                placeholder={isEn ? 'Enter password...' : 'Nhập mật khẩu...'}
                 className="w-full pl-10 pr-4 py-3 bg-surface border border-line rounded-xl text-ink focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
               />
             </div>
             {mode === 'lock' && (
               <p className="text-xs text-ink-muted mt-2 flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5" /> Hãy ghi nhớ mật khẩu này vì không thể khôi phục nếu quên.
+                <Shield className="w-3.5 h-3.5" /> {isEn ? 'Please remember this password as it cannot be recovered if lost.' : 'Hãy ghi nhớ mật khẩu này vì không thể khôi phục nếu quên.'}
               </p>
             )}
           </div>

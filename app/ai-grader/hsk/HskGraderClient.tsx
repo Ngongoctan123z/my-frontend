@@ -11,9 +11,15 @@ import { StudentManagementModal } from '@/src/components/common/StudentManagemen
 type ExamType = 'HSK_5' | 'HSK_6'
 type PromptObject = { content: string, imageUrl?: string | null }
 
+import { usePathname } from 'next/navigation'
+
 export function HskGraderClient() {
+  const pathname = usePathname()
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
   const { data: session, status } = useSession()
   const [examType, setExamType] = useState<ExamType>('HSK_5')
+  const [feedbackLang, setFeedbackLang] = useState<string>('Tiếng Việt')
   const [prompt, setPrompt] = useState<PromptObject | null>(null)
   
   const [userPlan, setUserPlan] = useState<string>('free')
@@ -194,10 +200,14 @@ export function HskGraderClient() {
       return
     }
 
-    const finalEssay = essay.trim()
+    let finalEssay = essay.trim()
     if (!finalEssay) {
       setError('Vui lòng viết bài trước khi nộp.')
       return
+    }
+
+    if (feedbackLang !== 'Tiếng Việt') {
+      finalEssay += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
     }
 
     setIsGrading(true)
@@ -236,7 +246,7 @@ export function HskGraderClient() {
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                <FileEdit className="w-5 h-5 text-red-600" /> Thiết lập đề thi HSK
+                <FileEdit className="w-5 h-5 text-red-600" /> {isEn ? 'Exam Setup' : 'Thiết lập đề thi HSK'}
               </h2>
               
               {(userPlan === 'plus' || userPlan === 'pro') && (
@@ -245,7 +255,7 @@ export function HskGraderClient() {
                   className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                 >
                   <Users className="w-4 h-4" />
-                  Quản lý học viên
+                  {isEn ? 'Students' : 'Quản lý học viên'}
                 </button>
               )}
 <button 
@@ -253,7 +263,7 @@ export function HskGraderClient() {
                 className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
               >
                 <History className="w-4 h-4" />
-                Lịch sử ({history.length})
+                {isEn ? 'History' : 'Lịch sử'} ({history.length})
               </button>
             </div>
 
@@ -264,7 +274,7 @@ export function HskGraderClient() {
                   examType === 'HSK_5' ? 'bg-red-600 text-white border-red-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                 }`}
               >
-                HSK 5 (Viết đoạn văn)
+                {isEn ? 'HSK 5 (Paragraph)' : 'HSK 5 (Viết đoạn văn)'}
               </button>
               <button
                 onClick={() => { setExamType('HSK_6'); setResult(null); setPrompt(null); }}
@@ -272,13 +282,30 @@ export function HskGraderClient() {
                   examType === 'HSK_6' ? 'bg-red-600 text-white border-red-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                 }`}
               >
-                HSK 6 (Tóm tắt bài văn)
+                {isEn ? 'HSK 6 (Summary)' : 'HSK 6 (Tóm tắt bài văn)'}
               </button>
+            </div>
+
+            <div className="flex items-center gap-3 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
+                {isEn ? 'Feedback Language:' : 'Ngôn ngữ nhận xét:'}
+              </label>
+              <select 
+                value={feedbackLang} 
+                onChange={e => setFeedbackLang(e.target.value)}
+                className="w-full text-sm bg-white border border-slate-300 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Tiếng Việt">Tiếng Việt</option>
+                <option value="English">English</option>
+                <option value="한국어">한국어 (Korean)</option>
+                <option value="中文">中文 (Chinese)</option>
+                <option value="日本語">日本語 (Japanese)</option>
+              </select>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="font-medium text-slate-700 text-sm">Nội dung đề bài:</label>
+                <label className="font-medium text-slate-700 text-sm">{isEn ? 'Prompt Content:' : 'Nội dung đề bài:'}</label>
                 
                   {(userPlan === 'plus' || userPlan === 'pro') && prompt?.content && (
                     <button
@@ -286,7 +313,7 @@ export function HskGraderClient() {
                       className="text-sm text-indigo-600 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
                     >
                       <Share2 className="w-4 h-4" />
-                      Tạo link chia sẻ
+                      {isEn ? 'Share Link' : 'Tạo link chia sẻ'}
                     </button>
                   )}
                   <button
@@ -295,13 +322,13 @@ export function HskGraderClient() {
                   className="text-sm text-red-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-50"
                 >
                   {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  Bốc đề ngẫu nhiên
+                  {isEn ? 'Random Prompt' : 'Bốc đề ngẫu nhiên'}
                 </button>
               </div>
               
               {!prompt?.imageUrl && (
 <div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
-                {prompt ? prompt.content : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu..."}
+                {prompt ? prompt.content : (isEn ? "Click 'Random Prompt' to begin..." : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu...")}
               </div>
 )}
 
@@ -327,17 +354,17 @@ export function HskGraderClient() {
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col min-h-[480px]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                Bài làm của bạn
+                {isEn ? 'Your Essay' : 'Bài làm của bạn'}
               </h2>
               <div className={`text-xs font-semibold px-2 py-1 rounded ${charCount >= minChars ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                {charCount} / {minChars} chữ
+                {charCount} / {minChars} {isEn ? 'chars' : 'chữ'}
               </div>
             </div>
 
             <textarea
               value={essay}
               onChange={(e) => setEssay(e.target.value)}
-              placeholder="Viết bài của bạn bằng chữ Hán (Tiếng Trung) vào đây..."
+              placeholder={isEn ? "Write your essay here (Chinese)..." : "Viết bài của bạn bằng chữ Hán (Tiếng Trung) vào đây..."}
               className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 resize-none text-base leading-relaxed font-sans"
             />
 
@@ -350,11 +377,11 @@ export function HskGraderClient() {
               className="mt-6 w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isGrading ? 'Đang chấm điểm...' : (session ? 'Nộp bài & Chấm điểm' : 'Đăng nhập để Chấm điểm')}
+              {isGrading ? (isEn ? 'Grading...' : 'Đang chấm điểm...') : (session ? (isEn ? 'Submit & Grade' : 'Nộp bài & Chấm điểm') : (isEn ? 'Login to Grade' : 'Đăng nhập để Chấm điểm'))}
             </button>
             {session && (
               <p className="text-center text-xs text-slate-500 mt-2">
-                Lượt chấm hôm nay: <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
+                {isEn ? 'Usage today:' : 'Lượt chấm hôm nay:'} <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
               </p>
             )}
           </div>
@@ -367,7 +394,7 @@ export function HskGraderClient() {
             <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-slate-50/50">
               <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                 <History className="w-5 h-5 text-red-600" /> 
-                Lịch sử chấm bài HSK
+                {isEn ? 'HSK Grading History' : 'Lịch sử chấm bài HSK'}
               </h3>
               <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-700">
                 <XCircle className="w-6 h-6" />
@@ -378,7 +405,7 @@ export function HskGraderClient() {
               {history.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                   <Clock className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                  <p>Bạn chưa chấm bài nào.</p>
+                  <p>{isEn ? 'You have no grading history.' : 'Bạn chưa chấm bài nào.'}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -393,11 +420,11 @@ export function HskGraderClient() {
                         </span>
                       </div>
                       <p className="text-sm text-slate-700 font-medium line-clamp-2 mb-3 bg-slate-50 p-2 rounded border border-slate-100">
-                        <span className="font-bold text-slate-900">Đề bài:</span> {item.prompt}
+                        <span className="font-bold text-slate-900">{isEn ? 'Prompt:' : 'Đề bài:'}</span> {item.prompt}
                       </p>
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                         <div className="font-bold text-red-600">
-                          Điểm số: <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
+                          {isEn ? 'Score:' : 'Điểm số:'} <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
                         </div>
                         <button 
                           onClick={() => {
@@ -409,7 +436,7 @@ export function HskGraderClient() {
                           }}
                           className="flex items-center gap-1.5 text-sm font-bold text-red-600 hover:text-red-800 bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
                         >
-                          Xem chi tiết <ArrowRight className="w-4 h-4" />
+                          {isEn ? 'View Details' : 'Xem chi tiết'} <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -422,7 +449,7 @@ export function HskGraderClient() {
               <div className="p-4 border-t border-gray-100 bg-slate-50 flex justify-end">
                 <button 
                   onClick={async () => {
-                    if (confirm('Bạn có chắc muốn xoá toàn bộ lịch sử?')) {
+                    if (confirm(isEn ? 'Are you sure you want to clear all history?' : 'Bạn có chắc muốn xoá toàn bộ lịch sử?')) {
                       await clearEssayHistory(session?.user?.email || 'anonymous')
                       loadHistory()
                     }
@@ -430,7 +457,7 @@ export function HskGraderClient() {
                   className="text-sm font-semibold flex items-center gap-1.5 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Xóa tất cả
+                  {isEn ? 'Clear All' : 'Xóa tất cả'}
                 </button>
               </div>
             )}
@@ -439,6 +466,7 @@ export function HskGraderClient() {
       )}
 
       {/* SEO Content Section */}
+      {!isEn && (
       <section className="mt-12 pt-8 border-t border-gray-200">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn Luyện Viết HSK Bằng AI</h2>
@@ -473,6 +501,7 @@ export function HskGraderClient() {
           </div>
         </div>
       </section>
+      )}
 
       <ShareExamModal 
         isOpen={isShareModalOpen} 

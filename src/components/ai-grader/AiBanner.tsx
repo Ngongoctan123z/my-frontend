@@ -9,13 +9,25 @@ export function AiBanner() {
   const pathname = usePathname()
   const [showKey, setShowKey] = useState(false)
 
-  const links = [
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
+  const vnLinks = [
     { href: '/ai-grader', label: 'Luyện Writing IELTS', icon: <PenTool size={14} /> },
     { href: '/ai-grader/toeic', label: 'Luyện Writing TOEIC', icon: <PenTool size={14} /> },
     { href: '/ai-grader/topik', label: 'Luyện Writing TOPIK', icon: <PenTool size={14} /> },
     { href: '/ai-grader/hsk', label: 'Luyện Writing HSK', icon: <PenTool size={14} /> },
     { href: '/ai-grader/tai-lieu-tong-hop', label: 'Tài liệu Free', icon: <BookOpen size={14} /> },
   ]
+
+  const enLinks = [
+    { href: '/en/ai-grader/ielts', label: 'IELTS Writing', icon: <PenTool size={14} /> },
+    { href: '/en/ai-grader/toeic', label: 'TOEIC Writing', icon: <PenTool size={14} /> },
+    { href: '/en/ai-grader/topik', label: 'TOPIK Writing', icon: <PenTool size={14} /> },
+    { href: '/en/ai-grader/hsk', label: 'HSK Writing', icon: <PenTool size={14} /> },
+    { href: '/en/tai-lieu', label: 'Free Documents', icon: <BookOpen size={14} /> },
+  ]
+
+  const links = isEn ? enLinks : vnLinks
 
   return (
     <>
@@ -28,11 +40,11 @@ export function AiBanner() {
 
           {/* Navigation Tabs */}
           <div className="flex items-center gap-2 pt-1 relative z-10 overflow-x-auto pb-2 -mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x">
-            <Link prefetch={false} href="/"
+            <Link prefetch={false} href={isEn ? "/en" : "/"}
               className="shrink-0 flex items-center gap-1.5 rounded-full border border-line bg-page px-3.5 py-1.5 text-[13px] font-semibold text-ink hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all snap-start"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-              Trang chủ
+              {isEn ? 'Home' : 'Trang chủ'}
             </Link>
             {links.map((link) => {
               const isActive = pathname === link.href

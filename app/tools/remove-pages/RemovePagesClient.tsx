@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { removePDFPages } from '../../../src/lib/pdfTools'
 import { UploadCloud, Trash2, Download, FileText, Loader2, Settings2, AlertCircle } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
@@ -12,6 +13,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 
 export default function RemovePagesClient() {
+  const pathname = usePathname()
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
   const [singleFile, setSingleFile] = useState<File | null>(null)
   const [numPages, setNumPages] = useState<number>(0)
   const [pagesToDelete, setPagesToDelete] = useState<Set<number>>(new Set())
@@ -26,7 +30,7 @@ export default function RemovePagesClient() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.type !== 'application/pdf') {
-      setError('Vui lòng chọn file PDF.')
+      setError(isEn ? 'Please select a PDF file.' : 'Vui lòng chọn file PDF.')
       return
     }
     setSingleFile(file)
@@ -42,7 +46,7 @@ export default function RemovePagesClient() {
     setError('')
     setResultUrl(null)
     try {
-      if (!singleFile) throw new Error("Chưa chọn file")
+      if (!singleFile) throw new Error(isEn ? "No file selected" : "Chưa chọn file")
       const indices = Array.from(pagesToDelete)
       const newPdfBlob = await removePDFPages(singleFile, indices)
       
@@ -50,7 +54,7 @@ export default function RemovePagesClient() {
       setResultUrl(url)
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'Có lỗi xảy ra khi xử lý PDF.')
+      setError(err.message || (isEn ? 'An error occurred while processing PDF.' : 'Có lỗi xảy ra khi xử lý PDF.'))
     } finally {
       setIsProcessing(false)
     }
@@ -99,8 +103,8 @@ export default function RemovePagesClient() {
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-primary">
               <UploadCloud className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold mb-2">Tải file .PDF lên đây</h3>
-            <p className="text-ink-muted text-sm sm:text-base">Nhấn vào đây để tải tài liệu lên và xóa các trang không cần thiết</p>
+            <h3 className="text-xl font-bold mb-2">{isEn ? 'Upload .PDF file here' : 'Tải file .PDF lên đây'}</h3>
+            <p className="text-ink-muted text-sm sm:text-base">{isEn ? 'Click here to upload your document and remove unnecessary pages' : 'Nhấn vào đây để tải tài liệu lên và xóa các trang không cần thiết'}</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -112,14 +116,14 @@ export default function RemovePagesClient() {
                 <div className="text-left">
                   <p className="font-semibold truncate max-w-[200px] sm:max-w-md">{singleFile.name}</p>
                   <p className="text-sm text-ink-muted">
-                    {(singleFile.size / 1024 / 1024).toFixed(2)} MB • {numPages} trang
+                    {(singleFile.size / 1024 / 1024).toFixed(2)} MB • {numPages} {isEn ? 'pages' : 'trang'}
                   </p>
                 </div>
               </div>
               
               <div className="flex gap-3 mt-4 sm:mt-0">
                 <button onClick={() => { setSingleFile(null); setResultUrl(null); }} className="px-4 py-2 flex items-center gap-2 text-ink-muted hover:bg-surface-hover rounded-lg transition">
-                  <Trash2 className="w-4 h-4" /> Đổi file khác
+                  <Trash2 className="w-4 h-4" /> {isEn ? 'Change file' : 'Đổi file khác'}
                 </button>
               </div>
             </div>
@@ -132,23 +136,23 @@ export default function RemovePagesClient() {
                   <Download className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-emerald-800">Xử lý thành công!</h3>
-                  <p className="text-emerald-600 mt-2">File của bạn đã sẵn sàng để tải xuống.</p>
+                  <h3 className="text-2xl font-bold text-emerald-800">{isEn ? 'Processing successful!' : 'Xử lý thành công!'}</h3>
+                  <p className="text-emerald-600 mt-2">{isEn ? 'Your file is ready to download.' : 'File của bạn đã sẵn sàng để tải xuống.'}</p>
                 </div>
                 <a 
                   href={resultUrl} 
                   download={`VNDocs-Cleaned-${singleFile.name}`}
                   className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-8 py-4 rounded-xl hover:bg-emerald-700 transition-all hover:scale-105 shadow-lg"
                 >
-                  <Download className="w-5 h-5" /> Tải xuống file ngay
+                  <Download className="w-5 h-5" /> {isEn ? 'Download now' : 'Tải xuống file ngay'}
                 </a>
               </div>
             ) : (
               <div className="bg-surface p-6 rounded-2xl border border-line shadow-sm">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                   <div>
-                    <h3 className="font-semibold text-lg">Click vào các trang bạn muốn XÓA</h3>
-                    <p className="text-sm text-ink-muted">Trang bị chọn (Màu đỏ) sẽ bị loại bỏ khỏi file.</p>
+                    <h3 className="font-semibold text-lg">{isEn ? 'Click on the pages you want to REMOVE' : 'Click vào các trang bạn muốn XÓA'}</h3>
+                    <p className="text-sm text-ink-muted">{isEn ? 'Selected pages (Red) will be removed from the file.' : 'Trang bị chọn (Màu đỏ) sẽ bị loại bỏ khỏi file.'}</p>
                   </div>
                   <button 
                     onClick={handleExecute}
@@ -156,7 +160,7 @@ export default function RemovePagesClient() {
                     className="px-6 py-2.5 flex items-center gap-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover disabled:opacity-50 transition w-full md:w-auto justify-center"
                   >
                     {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
-                    Tiến hành Xóa {pagesToDelete.size} trang
+                    {isEn ? `Remove ${pagesToDelete.size} pages` : `Tiến hành Xóa ${pagesToDelete.size} trang`}
                   </button>
                 </div>
                 
@@ -164,7 +168,7 @@ export default function RemovePagesClient() {
                   <Document
                     file={singleFile}
                     onLoadSuccess={onDocumentLoadSuccess}
-                    loading={<div className="flex justify-center py-20 text-ink-muted"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Đang đọc file PDF...</div>}
+                    loading={<div className="flex justify-center py-20 text-ink-muted"><Loader2 className="w-6 h-6 animate-spin mr-2" /> {isEn ? 'Reading PDF file...' : 'Đang đọc file PDF...'}</div>}
                     className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 justify-items-center"
                   >
                     {Array.from({ length: numPages }, (_, index) => {
@@ -184,7 +188,7 @@ export default function RemovePagesClient() {
                             </div>
                           )}
                           <div className={`absolute bottom-0 inset-x-0 text-white text-xs font-medium py-1.5 text-center ${isDeleted ? 'bg-red-600' : 'bg-black/60'}`}>
-                            Trang {index + 1}
+                            {isEn ? `Page ${index + 1}` : `Trang ${index + 1}`}
                           </div>
                         </div>
                       )

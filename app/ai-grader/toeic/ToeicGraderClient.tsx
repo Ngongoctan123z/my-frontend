@@ -11,9 +11,15 @@ import { StudentManagementModal } from '@/src/components/common/StudentManagemen
 type ExamType = 'TOEIC_RESPOND' | 'TOEIC_ESSAY'
 type PromptObject = { content: string, imageUrl?: string | null }
 
+import { usePathname } from 'next/navigation'
+
 export function ToeicGraderClient() {
+  const pathname = usePathname()
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
   const { data: session, status } = useSession()
   const [examType, setExamType] = useState<ExamType>('TOEIC_ESSAY')
+  const [feedbackLang, setFeedbackLang] = useState<string>('Tiếng Việt')
   const [prompt, setPrompt] = useState<PromptObject | null>(null)
   
   // States for Task 1 and Task 2
@@ -218,6 +224,10 @@ export function ToeicGraderClient() {
       finalEssay = `[INTRODUCTION]\n${intro}\n\n[BODY]\n${body}\n\n[CONCLUSION]\n${conclusion}`
     }
 
+    if (feedbackLang !== 'Tiếng Việt') {
+      finalEssay += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
+    }
+
     setIsGrading(true)
     setError(null)
     setResult(null)
@@ -300,9 +310,26 @@ export function ToeicGraderClient() {
               </button>
             </div>
 
+            <div className="flex items-center gap-3 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
+                {isEn ? 'Feedback Language:' : 'Ngôn ngữ nhận xét:'}
+              </label>
+              <select 
+                value={feedbackLang} 
+                onChange={e => setFeedbackLang(e.target.value)}
+                className="w-full text-sm bg-white border border-slate-300 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Tiếng Việt">Tiếng Việt</option>
+                <option value="English">English</option>
+                <option value="한국어">한국어 (Korean)</option>
+                <option value="中文">中文 (Chinese)</option>
+                <option value="日本語">日本語 (Japanese)</option>
+              </select>
+            </div>
+
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="font-medium text-slate-700 text-sm">Nội dung đề bài:</label>
+                <label className="font-medium text-slate-700 text-sm">{isEn ? 'Prompt Content:' : 'Nội dung đề bài:'}</label>
                 
                   {(userPlan === 'plus' || userPlan === 'pro') && prompt?.content && (
                     <button
@@ -310,7 +337,7 @@ export function ToeicGraderClient() {
                       className="text-sm text-indigo-600 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
                     >
                       <Share2 className="w-4 h-4" />
-                      Tạo link chia sẻ
+                      {isEn ? 'Share Link' : 'Tạo link chia sẻ'}
                     </button>
                   )}
                   <button
@@ -319,13 +346,13 @@ export function ToeicGraderClient() {
                   className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-50"
                 >
                   {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  Bốc đề ngẫu nhiên
+                  {isEn ? 'Random Prompt' : 'Bốc đề ngẫu nhiên'}
                 </button>
               </div>
               
               {!prompt?.imageUrl && (
 <div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
-                {prompt ? prompt.content : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu..."}
+                {prompt ? prompt.content : (isEn ? "Click 'Random Prompt' to begin..." : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu...")}
               </div>
 )}
 
@@ -351,10 +378,10 @@ export function ToeicGraderClient() {
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col min-h-[480px]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                Bài làm của bạn
+                {isEn ? 'Your Essay' : 'Bài làm của bạn'}
               </h2>
               <div className={`text-xs font-semibold px-2 py-1 rounded ${wordCount >= minWords ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                {wordCount} / {minWords} từ
+                {wordCount} / {minWords} {isEn ? 'words' : 'từ'}
               </div>
             </div>
 
@@ -362,13 +389,13 @@ export function ToeicGraderClient() {
               <textarea
                 value={essayTask1}
                 onChange={(e) => setEssayTask1(e.target.value)}
-                placeholder="Viết email phản hồi của bạn vào đây (Tiếng Anh)..."
+                placeholder={isEn ? "Write your email response here (English)..." : "Viết email phản hồi của bạn vào đây (Tiếng Anh)..."}
                 className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-y text-sm leading-relaxed min-h-[300px]"
               />
             ) : (
               <div className="flex-1 flex flex-col gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Mở bài (Introduction)</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{isEn ? 'Introduction' : 'Mở bài (Introduction)'}</label>
                   <textarea
                     value={essayTask2.intro}
                     onChange={(e) => setEssayTask2({ ...essayTask2, intro: e.target.value })}
@@ -377,7 +404,7 @@ export function ToeicGraderClient() {
                   />
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Thân bài (Body Paragraphs)</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{isEn ? 'Body Paragraphs' : 'Thân bài (Body Paragraphs)'}</label>
                   <textarea
                     value={essayTask2.body}
                     onChange={(e) => setEssayTask2({ ...essayTask2, body: e.target.value })}
@@ -386,7 +413,7 @@ export function ToeicGraderClient() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Kết bài (Conclusion)</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{isEn ? 'Conclusion' : 'Kết bài (Conclusion)'}</label>
                   <textarea
                     value={essayTask2.conclusion}
                     onChange={(e) => setEssayTask2({ ...essayTask2, conclusion: e.target.value })}
@@ -406,11 +433,11 @@ export function ToeicGraderClient() {
               className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isGrading ? 'Đang chấm điểm...' : (session ? 'Nộp bài & Chấm điểm' : 'Đăng nhập để Chấm điểm')}
+              {isGrading ? (isEn ? 'Grading...' : 'Đang chấm điểm...') : (session ? (isEn ? 'Submit & Grade' : 'Nộp bài & Chấm điểm') : (isEn ? 'Login to Grade' : 'Đăng nhập để Chấm điểm'))}
             </button>
             {session && (
               <p className="text-center text-xs text-slate-500 mt-2">
-                Lượt chấm hôm nay: <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
+                {isEn ? 'Usage today:' : 'Lượt chấm hôm nay:'} <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
               </p>
             )}
           </div>
@@ -423,7 +450,7 @@ export function ToeicGraderClient() {
             <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-slate-50/50">
               <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                 <History className="w-5 h-5 text-indigo-600" /> 
-                Lịch sử chấm bài (Lưu trữ ngoại tuyến an toàn)
+                {isEn ? 'Grading History (Secure offline storage)' : 'Lịch sử chấm bài (Lưu trữ ngoại tuyến an toàn)'}
               </h3>
               <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-700">
                 <XCircle className="w-6 h-6" />
@@ -434,8 +461,8 @@ export function ToeicGraderClient() {
               {history.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                   <Clock className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                  <p>Bạn chưa chấm bài nào.</p>
-                  <p className="text-sm mt-1">Dữ liệu sẽ được lưu tự động trên trình duyệt mà không cần tài khoản!</p>
+                  <p>{isEn ? 'You have no grading history.' : 'Bạn chưa chấm bài nào.'}</p>
+                  <p className="text-sm mt-1">{isEn ? 'Data will be saved automatically on your browser without an account!' : 'Dữ liệu sẽ được lưu tự động trên trình duyệt mà không cần tài khoản!'}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -450,11 +477,11 @@ export function ToeicGraderClient() {
                         </span>
                       </div>
                       <p className="text-sm text-slate-700 font-medium line-clamp-2 mb-3 bg-slate-50 p-2 rounded border border-slate-100">
-                        <span className="font-bold text-slate-900">Đề bài:</span> {item.prompt}
+                        <span className="font-bold text-slate-900">{isEn ? 'Prompt:' : 'Đề bài:'}</span> {item.prompt}
                       </p>
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                         <div className="font-bold text-indigo-600">
-                          Điểm số: <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
+                          {isEn ? 'Score:' : 'Điểm số:'} <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
                         </div>
                         <button 
                           onClick={() => {
@@ -474,7 +501,7 @@ export function ToeicGraderClient() {
                           }}
                           className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
                         >
-                          Xem chi tiết <ArrowRight className="w-4 h-4" />
+                          {isEn ? 'View Details' : 'Xem chi tiết'} <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -486,11 +513,11 @@ export function ToeicGraderClient() {
             {history.length > 0 && (
               <div className="p-4 border-t border-gray-100 bg-slate-50 flex justify-between items-center">
                 <p className="text-xs text-slate-500 max-w-[60%]">
-                  Dữ liệu được lưu trữ an toàn ngay trên trình duyệt (IndexedDB), đảm bảo quyền riêng tư 100%.
+                  {isEn ? 'Data is stored securely on your browser (IndexedDB), ensuring 100% privacy.' : 'Dữ liệu được lưu trữ an toàn ngay trên trình duyệt (IndexedDB), đảm bảo quyền riêng tư 100%.'}
                 </p>
                 <button 
                   onClick={async () => {
-                    if (confirm('Bạn có chắc muốn xoá toàn bộ lịch sử?')) {
+                    if (confirm(isEn ? 'Are you sure you want to clear all history?' : 'Bạn có chắc muốn xoá toàn bộ lịch sử?')) {
                       await clearEssayHistory(session?.user?.email || 'anonymous')
                       loadHistory()
                     }
@@ -498,7 +525,7 @@ export function ToeicGraderClient() {
                   className="text-sm font-semibold flex items-center gap-1.5 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Xóa tất cả
+                  {isEn ? 'Clear All' : 'Xóa tất cả'}
                 </button>
               </div>
             )}
@@ -507,6 +534,7 @@ export function ToeicGraderClient() {
       )}
 
       {/* SEO Content Section */}
+      {!isEn && (
       <section className="mt-12 pt-8 border-t border-gray-200">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn & Tiêu Chí Chấm Điểm TOEIC Writing Bằng AI</h2>
@@ -567,6 +595,7 @@ export function ToeicGraderClient() {
           </div>
         </div>
       </section>
+      )}
 
       <ShareExamModal 
         isOpen={isShareModalOpen} 

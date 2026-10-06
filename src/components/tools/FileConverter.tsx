@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react'
 import { ImageIcon, ArrowRight, Upload, Download, Loader2, AlertCircle, RefreshCw, File } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 
 type Format = 'jpg' | 'png' | 'webp' | 'bmp' | 'gif' | 'ico' | 'tiff' | 'heic'
 
@@ -11,29 +12,6 @@ interface ConversionOption {
   label: string
   supported: boolean
 }
-
-const CONVERSION_OPTIONS: ConversionOption[] = [
-  { from: 'jpg', to: 'png', label: 'JPG sang PNG', supported: true },
-  { from: 'png', to: 'jpg', label: 'PNG sang JPG', supported: true },
-  
-  { from: 'jpg', to: 'webp', label: 'JPG sang WEBP', supported: true },
-  { from: 'png', to: 'webp', label: 'PNG sang WEBP', supported: true },
-  
-  { from: 'webp', to: 'jpg', label: 'WEBP sang JPG', supported: true },
-  { from: 'webp', to: 'png', label: 'WEBP sang PNG', supported: true },
-  
-  { from: 'jpg', to: 'bmp', label: 'JPG sang BMP', supported: true },
-  { from: 'png', to: 'bmp', label: 'PNG sang BMP', supported: true },
-
-  { from: 'gif', to: 'jpg', label: 'GIF sang JPG', supported: true },
-  { from: 'gif', to: 'png', label: 'GIF sang PNG', supported: true },
-  
-  { from: 'jpg', to: 'ico', label: 'JPG sang ICO', supported: true },
-  { from: 'png', to: 'ico', label: 'PNG sang ICO', supported: true },
-  
-  { from: 'heic', to: 'jpg', label: 'HEIC sang JPG', supported: true },
-  { from: 'tiff', to: 'jpg', label: 'TIFF sang JPG', supported: true },
-]
 
 const getFormatColor = (fmt: Format) => {
   switch (fmt) {
@@ -50,6 +28,32 @@ const getFormatColor = (fmt: Format) => {
 }
 
 export function FileConverter() {
+  const pathname = usePathname()
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
+  const CONVERSION_OPTIONS: ConversionOption[] = [
+    { from: 'jpg', to: 'png', label: isEn ? 'JPG to PNG' : 'JPG sang PNG', supported: true },
+    { from: 'png', to: 'jpg', label: isEn ? 'PNG to JPG' : 'PNG sang JPG', supported: true },
+    
+    { from: 'jpg', to: 'webp', label: isEn ? 'JPG to WEBP' : 'JPG sang WEBP', supported: true },
+    { from: 'png', to: 'webp', label: isEn ? 'PNG to WEBP' : 'PNG sang WEBP', supported: true },
+    
+    { from: 'webp', to: 'jpg', label: isEn ? 'WEBP to JPG' : 'WEBP sang JPG', supported: true },
+    { from: 'webp', to: 'png', label: isEn ? 'WEBP to PNG' : 'WEBP sang PNG', supported: true },
+    
+    { from: 'jpg', to: 'bmp', label: isEn ? 'JPG to BMP' : 'JPG sang BMP', supported: true },
+    { from: 'png', to: 'bmp', label: isEn ? 'PNG to BMP' : 'PNG sang BMP', supported: true },
+
+    { from: 'gif', to: 'jpg', label: isEn ? 'GIF to JPG' : 'GIF sang JPG', supported: true },
+    { from: 'gif', to: 'png', label: isEn ? 'GIF to PNG' : 'GIF sang PNG', supported: true },
+    
+    { from: 'jpg', to: 'ico', label: isEn ? 'JPG to ICO' : 'JPG sang ICO', supported: true },
+    { from: 'png', to: 'ico', label: isEn ? 'PNG to ICO' : 'PNG sang ICO', supported: true },
+    
+    { from: 'heic', to: 'jpg', label: isEn ? 'HEIC to JPG' : 'HEIC sang JPG', supported: true },
+    { from: 'tiff', to: 'jpg', label: isEn ? 'TIFF to JPG' : 'TIFF sang JPG', supported: true },
+  ]
+
   const [selectedOption, setSelectedOption] = useState<ConversionOption>(CONVERSION_OPTIONS[0])
   const [file, setFile] = useState<File | null>(null)
   
@@ -63,7 +67,7 @@ export function FileConverter() {
     if (e.target.files && e.target.files[0]) {
       const selected = e.target.files[0]
       if (!selected.type.startsWith('image/')) {
-        setError('Vui lòng chọn file hình ảnh.')
+        setError(isEn ? 'Please select an image file.' : 'Vui lòng chọn file hình ảnh.')
         return
       }
       setFile(selected)
@@ -84,7 +88,7 @@ export function FileConverter() {
         canvas.height = img.height
         const ctx = canvas.getContext('2d')
         if (!ctx) {
-          reject(new Error('Không thể khởi tạo Canvas 2D'))
+          reject(new Error(isEn ? 'Could not initialize 2D Canvas' : 'Không thể khởi tạo Canvas 2D'))
           return
         }
 
@@ -111,12 +115,12 @@ export function FileConverter() {
             setResultUrls([{ url: URL.createObjectURL(blob), name: `VNDocs-Converted-${file.name.split('.')[0]}.${ext}` }])
             resolve()
           } else {
-            reject(new Error('Lỗi khi xuất ảnh. Hãy thử lại.'))
+            reject(new Error(isEn ? 'Error exporting image. Please try again.' : 'Lỗi khi xuất ảnh. Hãy thử lại.'))
           }
         }, mimeType, 0.9)
       }
       
-      img.onerror = () => reject(new Error('File không hợp lệ hoặc bị hỏng'))
+      img.onerror = () => reject(new Error(isEn ? 'Invalid or corrupted file' : 'File không hợp lệ hoặc bị hỏng'))
       img.src = URL.createObjectURL(file)
     })
   }
@@ -131,7 +135,7 @@ export function FileConverter() {
       await convertImageFormat()
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'Có lỗi xảy ra trong quá trình chuyển đổi.')
+      setError(err.message || (isEn ? 'An error occurred during conversion.' : 'Có lỗi xảy ra trong quá trình chuyển đổi.'))
     } finally {
       setIsProcessing(false)
     }
@@ -148,7 +152,7 @@ export function FileConverter() {
       {/* Option Selector */}
       <div className="bg-surface rounded-2xl border border-line p-6 shadow-sm">
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 text-primary" /> Chọn loại chuyển đổi
+          <RefreshCw className="w-5 h-5 text-primary" /> {isEn ? 'Select conversion type' : 'Chọn loại chuyển đổi'}
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {CONVERSION_OPTIONS.map((opt, idx) => (
@@ -189,13 +193,13 @@ export function FileConverter() {
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 text-primary">
                 <Upload className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Tải ảnh lên</h3>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">{isEn ? 'Upload image' : 'Tải ảnh lên'}</h3>
               <p className="text-slate-500 mb-6 max-w-sm mx-auto">
-                Nhấn vào đây để chọn ảnh từ thiết bị của bạn. 
-                Hỗ trợ JPG, PNG, WEBP, BMP, GIF.
+                {isEn ? 'Click here to select an image from your device.' : 'Nhấn vào đây để chọn ảnh từ thiết bị của bạn.'} 
+                {isEn ? ' Supports JPG, PNG, WEBP, BMP, GIF.' : ' Hỗ trợ JPG, PNG, WEBP, BMP, GIF.'}
               </p>
               <button className="bg-primary text-white font-semibold py-2.5 px-6 rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
-                Chọn File
+                {isEn ? 'Select File' : 'Chọn File'}
               </button>
             </div>
           </div>
@@ -206,8 +210,8 @@ export function FileConverter() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-slate-800 mb-2">Chuyển đổi hoàn tất!</h3>
-            <p className="text-slate-500 mb-8">Ảnh của bạn đã sẵn sàng để tải xuống.</p>
+            <h3 className="text-2xl font-bold text-slate-800 mb-2">{isEn ? 'Conversion complete!' : 'Chuyển đổi hoàn tất!'}</h3>
+            <p className="text-slate-500 mb-8">{isEn ? 'Your image is ready to download.' : 'Ảnh của bạn đã sẵn sàng để tải xuống.'}</p>
             
             <div className="flex flex-col gap-3 max-w-sm mx-auto">
               {resultUrls.map((res, i) => (
@@ -217,14 +221,14 @@ export function FileConverter() {
                   download={res.name}
                   className="flex items-center justify-center gap-2 bg-primary text-white font-bold py-3.5 px-6 rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 hover:-translate-y-0.5"
                 >
-                  <Download className="w-5 h-5" /> Tải xuống ({res.name})
+                  <Download className="w-5 h-5" /> {isEn ? 'Download' : 'Tải xuống'} ({res.name})
                 </a>
               ))}
               <button 
                 onClick={resetAll}
                 className="mt-2 text-primary font-semibold hover:underline"
               >
-                Chuyển đổi ảnh khác
+                {isEn ? 'Convert another image' : 'Chuyển đổi ảnh khác'}
               </button>
             </div>
           </div>
@@ -235,20 +239,20 @@ export function FileConverter() {
             </div>
             <h3 className="text-lg font-bold text-slate-800 mb-1 max-w-sm truncate">{file?.name}</h3>
             <p className="text-slate-500 text-sm mb-8">
-              {(file?.size! / 1024 / 1024).toFixed(2)} MB • Đang chuẩn bị chuyển đổi sang {selectedOption.to.toUpperCase()}
+              {(file?.size! / 1024 / 1024).toFixed(2)} MB • {isEn ? 'Preparing to convert to' : 'Đang chuẩn bị chuyển đổi sang'} {selectedOption.to.toUpperCase()}
             </p>
 
             {error ? (
               <div className="bg-red-50 text-red-600 p-4 rounded-xl flex flex-col items-center gap-3 w-full max-w-md mx-auto">
                 <div className="flex items-center gap-2 font-bold">
-                  <AlertCircle className="w-5 h-5" /> Đã xảy ra lỗi
+                  <AlertCircle className="w-5 h-5" /> {isEn ? 'An error occurred' : 'Đã xảy ra lỗi'}
                 </div>
                 <p className="text-sm">{error}</p>
                 <button 
                   onClick={resetAll}
                   className="mt-2 bg-red-100 text-red-700 px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-red-200 transition-colors"
                 >
-                  Thử lại
+                  {isEn ? 'Retry' : 'Thử lại'}
                 </button>
               </div>
             ) : (
@@ -258,7 +262,7 @@ export function FileConverter() {
                   disabled={isProcessing}
                   className="px-6 py-2.5 rounded-xl border border-line font-semibold text-ink-muted hover:bg-page transition-colors disabled:opacity-50"
                 >
-                  Hủy
+                  {isEn ? 'Cancel' : 'Hủy'}
                 </button>
                 <button 
                   onClick={processFile}
@@ -267,10 +271,10 @@ export function FileConverter() {
                 >
                   {isProcessing ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...
+                      <Loader2 className="w-5 h-5 animate-spin" /> {isEn ? 'Processing...' : 'Đang xử lý...'}
                     </>
                   ) : (
-                    'Chuyển đổi ngay'
+                    isEn ? 'Convert now' : 'Chuyển đổi ngay'
                   )}
                 </button>
               </div>

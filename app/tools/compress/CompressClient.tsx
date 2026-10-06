@@ -3,10 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { FileImage, Archive, UploadCloud, Download, Loader2, X, Settings, FileBox } from 'lucide-react'
 import JSZip from 'jszip'
+import { usePathname } from 'next/navigation'
 
 type Tab = 'IMAGE' | 'ZIP'
 
 export function CompressClient() {
+  const pathname = usePathname()
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
   const [activeTab, setActiveTab] = useState<Tab>('IMAGE')
   const [files, setFiles] = useState<File[]>([])
   
@@ -120,7 +124,7 @@ export function CompressClient() {
       setZipSize(content.size)
     } catch (e) {
       console.error(e)
-      alert('Đã xảy ra lỗi khi tạo file ZIP.')
+      alert(isEn ? 'An error occurred while creating the ZIP file.' : 'Đã xảy ra lỗi khi tạo file ZIP.')
     } finally {
       setIsZipping(false)
     }
@@ -146,7 +150,7 @@ export function CompressClient() {
               : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
           }`}
         >
-          <FileImage className="w-5 h-5" /> Nén ảnh (Giảm dung lượng)
+          <FileImage className="w-5 h-5" /> {isEn ? 'Compress Image (Reduce Size)' : 'Nén ảnh (Giảm dung lượng)'}
         </button>
         <button
           onClick={() => { setActiveTab('ZIP'); setFiles([]); setZipUrl(null) }}
@@ -156,7 +160,7 @@ export function CompressClient() {
               : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
           }`}
         >
-          <Archive className="w-5 h-5" /> Đóng gói (Tạo file .ZIP)
+          <Archive className="w-5 h-5" /> {isEn ? 'Package (Create .ZIP file)' : 'Đóng gói (Tạo file .ZIP)'}
         </button>
       </div>
 
@@ -171,10 +175,10 @@ export function CompressClient() {
             <UploadCloud className="w-8 h-8 text-[var(--text-secondary)] group-hover:text-blue-600" />
           </div>
           <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">
-            Nhấn để chọn file
+            {isEn ? 'Click to select file' : 'Nhấn để chọn file'}
           </h3>
           <p className="text-sm text-[var(--text-secondary)]">
-            {activeTab === 'IMAGE' ? 'Hỗ trợ JPG, PNG, WEBP.' : 'Hỗ trợ mọi định dạng file.'}
+            {activeTab === 'IMAGE' ? (isEn ? 'Supports JPG, PNG, WEBP.' : 'Hỗ trợ JPG, PNG, WEBP.') : (isEn ? 'Supports all file formats.' : 'Hỗ trợ mọi định dạng file.')}
           </p>
           <input 
             type="file" 
@@ -191,9 +195,9 @@ export function CompressClient() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <FileBox className="w-5 h-5" /> Danh sách file ({files.length})
+                <FileBox className="w-5 h-5" /> {isEn ? `File list (${files.length})` : `Danh sách file (${files.length})`}
               </h4>
-              <button onClick={() => setFiles([])} className="text-sm text-red-500 hover:underline">Xóa tất cả</button>
+              <button onClick={() => setFiles([])} className="text-sm text-red-500 hover:underline">{isEn ? 'Clear all' : 'Xóa tất cả'}</button>
             </div>
             
             <div className="max-h-60 overflow-y-auto space-y-2 border border-[var(--border-color)] rounded-xl p-2 bg-[var(--bg-secondary)]">
@@ -219,29 +223,29 @@ export function CompressClient() {
         {/* Action Area */}
         {files.length > 0 && activeTab === 'IMAGE' && compressedImages.length === 0 && (
           <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-color)] space-y-6">
-            <h4 className="font-bold flex items-center gap-2"><Settings className="w-5 h-5" /> Tùy chỉnh Nén ảnh</h4>
+            <h4 className="font-bold flex items-center gap-2"><Settings className="w-5 h-5" /> {isEn ? 'Customize Image Compression' : 'Tùy chỉnh Nén ảnh'}</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold mb-2">Chất lượng ảnh: {Math.round(quality * 100)}%</label>
+                <label className="block text-sm font-semibold mb-2">{isEn ? `Image quality: ${Math.round(quality * 100)}%` : `Chất lượng ảnh: ${Math.round(quality * 100)}%`}</label>
                 <input 
                   type="range" min="0.1" max="1" step="0.1" 
                   value={quality} 
                   onChange={(e) => setQuality(parseFloat(e.target.value))}
                   className="w-full accent-blue-600"
                 />
-                <p className="text-xs text-[var(--text-secondary)] mt-1">Chất lượng càng thấp, dung lượng càng nhỏ nhưng ảnh sẽ mờ hơn.</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{isEn ? 'Lower quality means smaller file size but the image will be blurrier.' : 'Chất lượng càng thấp, dung lượng càng nhỏ nhưng ảnh sẽ mờ hơn.'}</p>
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-2">Chiều ngang tối đa (px)</label>
+                <label className="block text-sm font-semibold mb-2">{isEn ? 'Max width (px)' : 'Chiều ngang tối đa (px)'}</label>
                 <select 
                   value={maxWidth} 
                   onChange={(e) => setMaxWidth(parseInt(e.target.value))}
                   className="w-full p-2 rounded-lg border border-[var(--border-color)] bg-white dark:bg-[#0D1117] outline-none focus:border-blue-500"
                 >
-                  <option value={800}>800px (Nhẹ nhất)</option>
-                  <option value={1280}>1280px (Vừa)</option>
-                  <option value={1920}>1920px (Tốt)</option>
-                  <option value={3840}>3840px (Rất nét)</option>
+                  <option value={800}>{isEn ? '800px (Lightest)' : '800px (Nhẹ nhất)'}</option>
+                  <option value={1280}>{isEn ? '1280px (Medium)' : '1280px (Vừa)'}</option>
+                  <option value={1920}>{isEn ? '1920px (Good)' : '1920px (Tốt)'}</option>
+                  <option value={3840}>{isEn ? '3840px (Very sharp)' : '3840px (Rất nét)'}</option>
                 </select>
               </div>
             </div>
@@ -250,7 +254,7 @@ export function CompressClient() {
               onClick={compressImages}
               className="w-full py-4 bg-[var(--color-primary)] hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md shadow-blue-500/20"
             >
-              Bắt đầu nén {files.length} ảnh
+              {isEn ? `Start compressing ${files.length} images` : `Bắt đầu nén ${files.length} ảnh`}
             </button>
           </div>
         )}
@@ -258,13 +262,13 @@ export function CompressClient() {
         {files.length > 0 && activeTab === 'ZIP' && !zipUrl && (
           <div className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--border-color)] space-y-6">
             <div>
-              <label className="block text-sm font-semibold mb-2">Tên file nén (.zip)</label>
+              <label className="block text-sm font-semibold mb-2">{isEn ? 'Archive name (.zip)' : 'Tên file nén (.zip)'}</label>
               <input 
                 type="text" 
                 value={zipName}
                 onChange={(e) => setZipName(e.target.value)}
                 className="w-full p-3 rounded-xl border border-[var(--border-color)] bg-white dark:bg-[#0D1117] outline-none focus:border-blue-500"
-                placeholder="VD: tailieu_hoctap.zip"
+                placeholder={isEn ? "Ex: study_materials.zip" : "VD: tailieu_hoctap.zip"}
               />
             </div>
             <button 
@@ -272,7 +276,7 @@ export function CompressClient() {
               disabled={isZipping}
               className="w-full py-4 bg-[var(--color-primary)] hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isZipping ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang đóng gói...</> : <><Archive className="w-5 h-5" /> Tạo File ZIP</>}
+              {isZipping ? <><Loader2 className="w-5 h-5 animate-spin" /> {isEn ? 'Packaging...' : 'Đang đóng gói...'}</> : <><Archive className="w-5 h-5" /> {isEn ? 'Create ZIP File' : 'Tạo File ZIP'}</>}
             </button>
           </div>
         )}
@@ -281,7 +285,7 @@ export function CompressClient() {
         {compressedImages.length > 0 && (
           <div className="space-y-4 pt-6 border-t border-[var(--border-color)]">
             <h4 className="font-bold text-green-600 text-xl flex items-center gap-2">
-              Nén thành công {compressedImages.length} ảnh!
+              {isEn ? `Successfully compressed ${compressedImages.length} images!` : `Nén thành công ${compressedImages.length} ảnh!`}
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -303,7 +307,7 @@ export function CompressClient() {
                     download={img.name}
                     className="w-full py-2 bg-green-100 text-green-700 hover:bg-green-200 font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
                   >
-                    <Download className="w-4 h-4" /> Tải về
+                    <Download className="w-4 h-4" /> {isEn ? 'Download' : 'Tải về'}
                   </a>
                 </div>
               ))}
@@ -317,15 +321,15 @@ export function CompressClient() {
               <Archive className="w-10 h-10 text-green-600" />
             </div>
             <div>
-              <h4 className="text-2xl font-black text-green-600 mb-2">Tạo file ZIP thành công!</h4>
-              <p className="text-[var(--text-secondary)] font-medium">Dung lượng: {formatSize(zipSize)}</p>
+              <h4 className="text-2xl font-black text-green-600 mb-2">{isEn ? 'ZIP file created successfully!' : 'Tạo file ZIP thành công!'}</h4>
+              <p className="text-[var(--text-secondary)] font-medium">{isEn ? 'Size:' : 'Dung lượng:'} {formatSize(zipSize)}</p>
             </div>
             <a 
               href={zipUrl} 
               download={zipName.endsWith('.zip') ? zipName : `${zipName}.zip`}
               className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-full flex items-center gap-2 transition-all shadow-lg shadow-green-500/30 text-lg hover:scale-105"
             >
-              <Download className="w-6 h-6" /> Tải File {zipName}
+              <Download className="w-6 h-6" /> {isEn ? `Download ${zipName}` : `Tải File ${zipName}`}
             </a>
           </div>
         )}

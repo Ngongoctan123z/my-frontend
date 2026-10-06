@@ -7,7 +7,7 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { getSuggestions } from '../../services/searchService'
 import { getSmartRoute } from '../../utils/searchRouting'
 
-export function SearchBar() {
+export function SearchBar({ isEn = false }: { isEn?: boolean }) {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [open, setOpen] = useState(false)
@@ -55,7 +55,7 @@ export function SearchBar() {
           onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
-          placeholder="Tìm: Toán Nam Định 2024"
+          placeholder={isEn ? "Search tools & exams..." : "Tìm: Toán Nam Định 2024"}
           className="h-full w-full bg-transparent text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none"
         />
       </div>

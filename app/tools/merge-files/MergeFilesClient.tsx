@@ -3,10 +3,14 @@
 import { useState, useRef } from 'react'
 import { mergePDFs } from '../../../src/lib/pdfTools'
 import { UploadCloud, Trash2, Download, Loader2, Settings2, Plus, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 
 type FileFormat = 'pdf'
 
 export default function MergeFilesClient() {
+  const pathname = usePathname()
+  const isEn = pathname.startsWith('/en/') || pathname === '/en'
+
   const [format, setFormat] = useState<FileFormat>('pdf')
   const [multiFiles, setMultiFiles] = useState<File[]>([])
   
@@ -23,7 +27,7 @@ export default function MergeFilesClient() {
     if (format === 'pdf') {
       const validFiles = files.filter(f => f.type === 'application/pdf')
       if (validFiles.length !== files.length) {
-        setError('Một số file không phải là PDF. Đã tự động loại bỏ.')
+        setError(isEn ? 'Some files are not PDF. They were automatically removed.' : 'Một số file không phải là PDF. Đã tự động loại bỏ.')
       }
       setMultiFiles(prev => [...prev, ...validFiles])
     } else {
@@ -57,14 +61,14 @@ export default function MergeFilesClient() {
     setError('')
     setResultUrl(null)
     try {
-      if (multiFiles.length < 2) throw new Error("Cần ít nhất 2 file để gộp")
+      if (multiFiles.length < 2) throw new Error(isEn ? "At least 2 files are required to merge" : "Cần ít nhất 2 file để gộp")
       const newPdfBlob = await mergePDFs(multiFiles)
       
       const url = URL.createObjectURL(newPdfBlob)
       setResultUrl(url)
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'Có lỗi xảy ra khi xử lý file.')
+      setError(err.message || (isEn ? 'An error occurred while processing files.' : 'Có lỗi xảy ra khi xử lý file.'))
     } finally {
       setIsProcessing(false)
     }
@@ -75,7 +79,7 @@ export default function MergeFilesClient() {
     setError('')
     setResultUrl(null)
     try {
-      if (multiFiles.length < 2) throw new Error("Cần ít nhất 2 file để gộp")
+      if (multiFiles.length < 2) throw new Error(isEn ? "At least 2 files are required to merge" : "Cần ít nhất 2 file để gộp")
       
       const formData = new FormData()
       formData.append('format', format)
@@ -92,7 +96,7 @@ export default function MergeFilesClient() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Lỗi từ máy chủ AWS khi gộp file. Vui lòng kiểm tra lại server.')
+        throw new Error(errorData.message || (isEn ? 'Error from AWS server when merging files. Please check the server.' : 'Lỗi từ máy chủ AWS khi gộp file. Vui lòng kiểm tra lại server.'))
       }
 
       const blob = await response.blob()
@@ -100,7 +104,7 @@ export default function MergeFilesClient() {
       setResultUrl(url)
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'Có lỗi kết nối đến máy chủ AWS. Vui lòng đảm bảo Backend đang chạy.')
+      setError(err.message || (isEn ? 'Error connecting to AWS server. Please ensure the Backend is running.' : 'Có lỗi kết nối đến máy chủ AWS. Vui lòng đảm bảo Backend đang chạy.'))
     } finally {
       setIsProcessing(false)
     }
@@ -128,12 +132,12 @@ export default function MergeFilesClient() {
       <div className="space-y-6">
         <div className="bg-surface p-6 rounded-2xl border border-line shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-lg">Danh sách file cần gộp</h3>
+            <h3 className="font-semibold text-lg">{isEn ? 'List of files to merge' : 'Danh sách file cần gộp'}</h3>
             <button 
               onClick={() => multiFileInputRef.current?.click()}
               className="flex items-center gap-2 text-primary font-medium hover:underline"
             >
-              <Plus className="w-4 h-4" /> Thêm file
+              <Plus className="w-4 h-4" /> {isEn ? 'Add file' : 'Thêm file'}
             </button>
             <input 
               type="file" multiple accept={format === 'pdf' ? '.pdf' : format === 'docx' ? '.docx' : '.pptx'}
@@ -147,7 +151,7 @@ export default function MergeFilesClient() {
               onClick={() => multiFileInputRef.current?.click()}
             >
               <UploadCloud className="w-12 h-12 text-ink-muted mx-auto mb-3" />
-              <p className="text-ink-muted">Chưa có file nào. Click để tải lên nhiều file {getFormatLabel()}.</p>
+              <p className="text-ink-muted">{isEn ? `No files yet. Click to upload multiple ${getFormatLabel()} files.` : `Chưa có file nào. Click để tải lên nhiều file ${getFormatLabel()}.`}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -178,15 +182,15 @@ export default function MergeFilesClient() {
               <Download className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-emerald-800">Xử lý thành công!</h3>
-              <p className="text-emerald-600 mt-2">Đã gộp thành công {multiFiles.length} file tài liệu lại thành 1 bản duy nhất.</p>
+              <h3 className="text-2xl font-bold text-emerald-800">{isEn ? 'Processing successful!' : 'Xử lý thành công!'}</h3>
+              <p className="text-emerald-600 mt-2">{isEn ? `Successfully merged ${multiFiles.length} files into a single document.` : `Đã gộp thành công ${multiFiles.length} file tài liệu lại thành 1 bản duy nhất.`}</p>
             </div>
             <a 
               href={resultUrl} 
               download={`VNDocs-Merged.${format}`}
               className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-8 py-4 rounded-xl hover:bg-emerald-700 transition-all hover:scale-105 shadow-lg"
             >
-              <Download className="w-5 h-5" /> Tải xuống file Gộp ngay
+              <Download className="w-5 h-5" /> {isEn ? 'Download Merged file now' : 'Tải xuống file Gộp ngay'}
             </a>
           </div>
         ) : (
@@ -197,7 +201,7 @@ export default function MergeFilesClient() {
               className="px-8 py-3 flex items-center gap-2 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover disabled:opacity-50 transition shadow-lg"
             >
               {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings2 className="w-5 h-5" />}
-              Tiến hành Gộp {multiFiles.length} file {getFormatLabel()}
+              {isEn ? `Proceed to Merge ${multiFiles.length} ${getFormatLabel()} files` : `Tiến hành Gộp ${multiFiles.length} file ${getFormatLabel()}`}
             </button>
           </div>
         )}
