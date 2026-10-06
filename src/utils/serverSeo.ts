@@ -56,6 +56,11 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
     },
     alternates: {
       canonical: `https://vndocs.net${path === '/' ? '' : path}`,
+      languages: {
+        'vi-VN': `https://vndocs.net${path.startsWith('/en') ? path.replace('/en', '') || '/' : path}`,
+        'en-US': `https://vndocs.net${path.startsWith('/en') ? path : (path === '/' ? '/en' : `/en${path}`)}`,
+        'x-default': `https://vndocs.net${path.startsWith('/en') ? path.replace('/en', '') || '/' : path}`,
+      }
     },
     robots: {
       index: true,
