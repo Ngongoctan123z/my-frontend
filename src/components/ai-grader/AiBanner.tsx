@@ -24,7 +24,6 @@ export function AiBanner() {
     { href: '/en/ai-grader/toeic', label: 'TOEIC Writing', icon: <PenTool size={14} /> },
     { href: '/en/ai-grader/topik', label: 'TOPIK Writing', icon: <PenTool size={14} /> },
     { href: '/en/ai-grader/hsk', label: 'HSK Writing', icon: <PenTool size={14} /> },
-    { href: '/en/tai-lieu', label: 'Free Documents', icon: <BookOpen size={14} /> },
   ]
 
   const links = isEn ? enLinks : vnLinks

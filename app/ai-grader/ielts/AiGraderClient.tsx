@@ -23,8 +23,7 @@ export function AiGraderClient() {
   
   // States for Task 1 and Task 2
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-  const [essayTask1, setEssayTask1] = useState('')
-  const [essayTask2, setEssayTask2] = useState({ intro: '', body: '', conclusion: '' })
+  const [essay, setEssay] = useState('')
   
   const [isGenerating, setIsGenerating] = useState(false)
   const [isGrading, setIsGrading] = useState(false)
@@ -69,13 +68,11 @@ export function AiGraderClient() {
   // Load draft on mount
   useEffect(() => {
     try {
-      const savedTask1 = localStorage.getItem('draft_essayTask1')
-      const savedTask2 = localStorage.getItem('draft_essayTask2')
-      const savedPrompt = localStorage.getItem('draft_prompt')
-      const savedExamType = localStorage.getItem('draft_examType')
+      const savedEssay = localStorage.getItem('draft_ielts_essay')
+      const savedPrompt = localStorage.getItem('draft_ielts_prompt')
+      const savedExamType = localStorage.getItem('draft_ielts_examType')
 
-      if (savedTask1) setEssayTask1(savedTask1)
-      if (savedTask2) setEssayTask2(JSON.parse(savedTask2))
+      if (savedEssay) setEssay(savedEssay)
       if (savedPrompt) setPrompt(JSON.parse(savedPrompt))
       if (savedExamType) setExamType(savedExamType as ExamType)
     } catch (e) {}
@@ -83,11 +80,10 @@ export function AiGraderClient() {
 
   // Save draft on change
   useEffect(() => {
-    localStorage.setItem('draft_essayTask1', essayTask1)
-    localStorage.setItem('draft_essayTask2', JSON.stringify(essayTask2))
-    if (prompt) localStorage.setItem('draft_prompt', JSON.stringify(prompt))
-    localStorage.setItem('draft_examType', examType)
-  }, [essayTask1, essayTask2, prompt, examType])
+    localStorage.setItem('draft_ielts_essay', essay)
+    if (prompt) localStorage.setItem('draft_ielts_prompt', JSON.stringify(prompt))
+    localStorage.setItem('draft_ielts_examType', examType)
+  }, [essay, prompt, examType])
 
   const loadHistory = async () => {
     const email = session?.user?.email || 'anonymous';
@@ -143,8 +139,7 @@ export function AiGraderClient() {
   const generatePrompt = async () => {
     setError(null)
     setResult(null)
-    setEssayTask1('')
-    setEssayTask2({ intro: '', body: '', conclusion: '' })
+    setEssay('')
 
     if (promptQueue.current.length === 0) {
       setIsGenerating(true)
@@ -209,24 +204,15 @@ export function AiGraderClient() {
       return
     }
 
-    let finalEssay = ''
-    if (examType === 'IELTS_TASK_1') {
-      finalEssay = essayTask1.trim()
-      if (!finalEssay) {
-        setError('Vui lòng viết bài trước khi nộp.')
-        return
-      }
-    } else {
-      const { intro, body, conclusion } = essayTask2
-      if (!intro.trim() || !body.trim() || !conclusion.trim()) {
-        setError('Vui lòng điền đầy đủ cả 3 phần: Mở bài, Thân bài và Kết bài.')
-        return
-      }
-      finalEssay = `[INTRODUCTION]\n${intro}\n\n[BODY]\n${body}\n\n[CONCLUSION]\n${conclusion}`
+    const finalEssay = essay.trim()
+    if (!finalEssay) {
+      setError('Vui lòng viết bài trước khi nộp.')
+      return
     }
 
+    let essayForApi = finalEssay
     if (feedbackLang !== 'Tiếng Việt') {
-      finalEssay += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
+      essayForApi += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
     }
 
     setIsGrading(true)
@@ -234,7 +220,7 @@ export function AiGraderClient() {
     setResult(null)
 
     try {
-      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: finalEssay, imageDescription: (prompt as any).imageDescription || undefined })
+      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: essayForApi, imageDescription: (prompt as any).imageDescription || undefined })
       setResult(data)
       setUsageCount(prev => prev + 1)
       
@@ -253,13 +239,7 @@ export function AiGraderClient() {
     }
   }
 
-  const wordCount = examType === 'IELTS_TASK_1' 
-    ? (essayTask1.trim() ? essayTask1.trim().split(/\s+/).length : 0)
-    : (
-        (essayTask2.intro.trim() ? essayTask2.intro.trim().split(/\s+/).length : 0) +
-        (essayTask2.body.trim() ? essayTask2.body.trim().split(/\s+/).length : 0) +
-        (essayTask2.conclusion.trim() ? essayTask2.conclusion.trim().split(/\s+/).length : 0)
-      )
+  const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0
 
   const minWords = examType === 'IELTS_TASK_1' ? 150 : 250
 
@@ -415,44 +395,12 @@ export function AiGraderClient() {
               </div>
             </div>
 
-            {examType === 'IELTS_TASK_1' ? (
-              <textarea
-                value={essayTask1}
-                onChange={(e) => setEssayTask1(e.target.value)}
-                placeholder={isEn ? "Write your Task 1 essay here (English)..." : "Viết bài làm Task 1 của bạn vào đây (Tiếng Anh)..."}
-                className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-y text-sm leading-relaxed min-h-[300px]"
-              />
-            ) : (
-              <div className="flex-1 flex flex-col gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{isEn ? 'Introduction' : 'Mở bài (Introduction)'}</label>
-                  <textarea
-                    value={essayTask2.intro}
-                    onChange={(e) => setEssayTask2({ ...essayTask2, intro: e.target.value })}
-                    placeholder="Paraphrase the prompt & state your thesis..."
-                    className="w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-y min-h-[120px]"
-                  />
-                </div>
-                <div className="flex-1 flex flex-col">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{isEn ? 'Body Paragraphs' : 'Thân bài (Body Paragraphs)'}</label>
-                  <textarea
-                    value={essayTask2.body}
-                    onChange={(e) => setEssayTask2({ ...essayTask2, body: e.target.value })}
-                    placeholder="Develop your arguments with examples..."
-                    className="flex-1 w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-y min-h-[250px]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{isEn ? 'Conclusion' : 'Kết bài (Conclusion)'}</label>
-                  <textarea
-                    value={essayTask2.conclusion}
-                    onChange={(e) => setEssayTask2({ ...essayTask2, conclusion: e.target.value })}
-                    placeholder="Summarize your main points..."
-                    className="w-full p-3 rounded-lg border border-gray-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm resize-y min-h-[120px]"
-                  />
-                </div>
-              </div>
-            )}
+            <textarea
+              value={essay}
+              onChange={(e) => setEssay(e.target.value)}
+              placeholder={isEn ? "Write your essay here..." : "Viết bài làm của bạn vào đây..."}
+              className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none text-base leading-relaxed font-sans"
+            />
 
             <button
               onClick={() => {

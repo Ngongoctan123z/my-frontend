@@ -46,24 +46,24 @@ export function Footer() {
   }
 
   const enContent = {
-    desc: 'Free exam platform & learning tools. Rich document library with powerful AI and PDF toolset.',
+    desc: 'Free learning tools platform. Enhance your language skills with powerful AI and streamline your workflow with our PDF toolset.',
     col1: {
-      title: 'Study Materials',
+      title: 'AI Language Grader',
       links: [
-        { href: '/en', label: '10th Grade Exams' },
-        { href: '/en', label: 'National High School Exams' },
-        { href: '/en/tai-lieu', label: 'All Documents' },
-        { href: '/en/tai-lieu', label: 'Free Resources' },
+        { href: '/en/ai-grader/ielts', label: 'IELTS Writing Grader' },
+        { href: '/en/ai-grader/toeic', label: 'TOEIC Writing Grader' },
+        { href: '/en/ai-grader/hsk', label: 'HSK Writing Grader' },
+        { href: '/en/ai-grader/topik', label: 'TOPIK Writing Grader' },
       ]
     },
     col2: {
-      title: 'Tools & AI',
+      title: 'PDF Tools',
       links: [
-        { href: '/en/ai-grader', label: 'AI Writing Grader' },
         { href: '/en/tools/merge-files', label: 'Merge PDF' },
         { href: '/en/tools/remove-pages', label: 'Remove PDF Pages' },
         { href: '/en/tools/lock', label: 'Lock/Unlock PDF' },
-        { href: '/en/tools/casio', label: 'Online Calculator' },
+        { href: '/en/tools/convert', label: 'Image to PDF' },
+        { href: '/en/tools/compress', label: 'Compress PDF' },
       ]
     },
     col3: {
@@ -77,7 +77,6 @@ export function Footer() {
     },
     bottom: [
       { href: '/en', label: 'Home' },
-      { href: '/en/tai-lieu', label: 'Documents' },
       { href: '/favorites', label: 'Favorites' },
     ]
   }
