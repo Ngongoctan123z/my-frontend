@@ -163,18 +163,20 @@ export function Footer() {
           </div>
 
           {/* Column 4 */}
-          <div>
-            <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">{content.col3.title}</h4>
-            <ul className="space-y-2.5">
-              {content.col3.links.map((l) => (
-                <li key={l.href}>
-                  <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {!isEn && (
+            <div>
+              <h4 className="text-[12px] font-[700] uppercase tracking-widest text-[var(--text-tertiary)] mb-4">{content.col3.title}</h4>
+              <ul className="space-y-2.5">
+                {content.col3.links.map((l) => (
+                  <li key={l.href}>
+                    <Link prefetch={false} href={l.href} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--color-primary)] transition-colors">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Bottom Bar */}

@@ -2,7 +2,7 @@
 
 import { GradingResultModal } from '@/src/components/common/GradingResultModal'
 import React, { useState, useRef, useEffect } from 'react'
-import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Users, Clock, Trash2, ArrowRight, Share2 } from 'lucide-react'
+import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Users, Clock, Trash2, ArrowRight, Share2, Maximize2, Minimize2 } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
 import { ShareExamModal } from '@/src/components/common/ShareExamModal'
@@ -26,6 +26,8 @@ export function ToeicGraderClient() {
   const [userPlan, setUserPlan] = useState<string>('free')
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [essay, setEssay] = useState('')
+  const [expandedImage, setExpandedImage] = useState<string | null>(null)
+  const [isEditorExpanded, setIsEditorExpanded] = useState(false)
   
   const [isGenerating, setIsGenerating] = useState(false)
   const [isGrading, setIsGrading] = useState(false)
@@ -337,8 +339,15 @@ export function ToeicGraderClient() {
 )}
 
               {prompt?.imageUrl && (
-                <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
-                  <img src={prompt.imageUrl} alt="Chart/Graph" className="w-full h-auto object-contain bg-white" />
+                <div className="mt-4 space-y-2 border border-gray-200 rounded-lg overflow-hidden bg-white p-2">
+                  <div className="relative group cursor-pointer" onClick={() => setExpandedImage(prompt.imageUrl!)}>
+                    <img src={prompt.imageUrl} alt="Chart/Graph" className="w-full h-auto object-contain bg-white transition-opacity group-hover:opacity-90" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/10 transition-opacity">
+                      <div className="bg-white/90 p-2 rounded-full shadow-sm text-slate-700">
+                        <Maximize2 className="w-6 h-6" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -348,20 +357,29 @@ export function ToeicGraderClient() {
         </div>
 
         {/* Right Column: Editor */}
-        <div className="h-full">
+        <div className={`h-full ${isEditorExpanded ? 'fixed inset-0 z-50 bg-slate-100 p-4 sm:p-8 flex flex-col' : ''}`}>
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 text-red-600 text-sm">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <p className="font-medium">{error}</p>
             </div>
           )}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col min-h-[480px]">
+          <div className={`bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col ${isEditorExpanded ? 'flex-1 p-6' : 'p-6 min-h-[480px]'}`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                 {isEn ? 'Your Essay' : 'Bài làm của bạn'}
               </h2>
-              <div className={`text-xs font-semibold px-2 py-1 rounded ${wordCount >= minWords ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                {wordCount} / {minWords} {isEn ? 'words' : 'từ'}
+              <div className="flex items-center gap-3">
+                <div className={`text-xs font-semibold px-2 py-1 rounded ${wordCount >= minWords ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                  {wordCount} / {minWords} {isEn ? 'words' : 'từ'}
+                </div>
+                <button 
+                  onClick={() => setIsEditorExpanded(!isEditorExpanded)}
+                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors"
+                  title={isEditorExpanded ? (isEn ? 'Minimize' : 'Thu nhỏ') : (isEn ? 'Expand' : 'Phóng to')}
+                >
+                  {isEditorExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 
@@ -558,6 +576,19 @@ export function ToeicGraderClient() {
         result={result} 
         examType={examType || 'IELTS'} 
       />
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
+          onClick={() => setExpandedImage(null)}
+        >
+          <img src={expandedImage} alt="Expanded Graph" className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl cursor-default" onClick={e => e.stopPropagation()} />
+          <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2" onClick={() => setExpandedImage(null)}>
+            <XCircle className="w-8 h-8" />
+          </button>
+        </div>
+      )}
+
     </div>
   )
 }
