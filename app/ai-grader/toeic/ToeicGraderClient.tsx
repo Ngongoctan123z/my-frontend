@@ -19,7 +19,7 @@ export function ToeicGraderClient() {
 
   const { data: session, status } = useSession()
   const [examType, setExamType] = useState<ExamType>('TOEIC_ESSAY')
-  const [feedbackLang, setFeedbackLang] = useState<string>('Tiếng Việt')
+  const [feedbackLang, setFeedbackLang] = useState<string>(isEn ? 'English' : 'Tiếng Việt')
   const [prompt, setPrompt] = useState<PromptObject | null>(null)
   
   // States for Task 1 and Task 2
@@ -79,7 +79,11 @@ export function ToeicGraderClient() {
 
       if (savedEssay) setEssay(savedEssay)
       if (savedPrompt) setPrompt(JSON.parse(savedPrompt))
-      if (savedExamType) setExamType(savedExamType as ExamType)
+      if (savedExamType && ['TOEIC_RESPOND', 'TOEIC_ESSAY'].includes(savedExamType)) {
+        setExamType(savedExamType as ExamType)
+      } else {
+        localStorage.removeItem('draft_toeic_examType')
+      }
     } catch (e) {}
   }, [])
 
@@ -192,7 +196,7 @@ export function ToeicGraderClient() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       
-      return `${window.location.origin}/shared/${data.id}`
+      return `${window.location.origin}${isEn ? '/en' : ''}/shared/${data.id}`
     } catch (e: any) {
       alert(e.message || 'Lỗi khi tạo link.')
       throw e
@@ -211,17 +215,14 @@ export function ToeicGraderClient() {
       return
     }
 
-    let essayForApi = finalEssay
-    if (feedbackLang !== 'Tiếng Việt') {
-      essayForApi += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
-    }
+    const essayForApi = finalEssay
 
     setIsGrading(true)
     setError(null)
     setResult(null)
 
     try {
-      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: essayForApi })
+      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: essayForApi, feedbackLang })
       setResult(data)
       setUsageCount(prev => prev + 1)
       

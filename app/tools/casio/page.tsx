@@ -2,26 +2,14 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { CasioCalculator } from '@/src/components/tools/CasioCalculator'
 
-export const metadata: Metadata = {
-  title: 'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
-  description: 'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.',
-  alternates: {
-    canonical: 'https://vndocs.net/tools/casio',
-  },
-  openGraph: {
-    title: 'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
-    description: 'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.',
-    url: 'https://vndocs.net/tools/casio',
-    siteName: 'VNDocs',
-    locale: 'vi_VN',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
-    description: 'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/tools/casio',
+    'Máy Tính Casio Online (Fx-580VN X) | VNDocs',
+    'Trình giả lập máy tính bỏ túi Casio fx-580VN X, fx-570VN Plus, fx-880BTG trực tuyến miễn phí giúp giải toán nhanh chóng.'
+  )
 }
+
 
 const softwareSchema = {
   "@context": "https://schema.org",

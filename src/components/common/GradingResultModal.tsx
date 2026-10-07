@@ -73,10 +73,10 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {Object.entries(result.criteria).map(([key, data]: [string, any]) => {
                       let label = key;
-                      if (key === 'taskResponse' || key === 'taskAchievement' || key === 'contentAndTask' || key === 'taskCompletion' || key === 'opinionAndReason') label = 'Nội dung & Yêu cầu';
-                      if (key === 'coherenceCohesion' || key === 'structure' || key === 'coherence' || key === 'organization') label = 'Bố cục & Liên kết';
-                      if (key === 'lexicalResource' || key === 'vocabulary' || key === 'grammarAndVocab') label = 'Từ vựng';
-                      if (key === 'grammaticalRange' || key === 'languageUse' || key === 'grammar') label = 'Ngữ pháp';
+                      if (key === 'taskResponse' || key === 'taskAchievement' || key === 'contentAndTask' || key === 'taskCompletion' || key === 'opinionAndReason') label = isEn ? 'Content & Task' : 'Nội dung & Yêu cầu';
+                      if (key === 'coherenceCohesion' || key === 'structure' || key === 'coherence' || key === 'organization') label = isEn ? 'Structure & Cohesion' : 'Bố cục & Liên kết';
+                      if (key === 'lexicalResource' || key === 'vocabulary' || key === 'grammarAndVocab') label = isEn ? 'Vocabulary' : 'Từ vựng';
+                      if (key === 'grammaticalRange' || key === 'languageUse' || key === 'grammar') label = isEn ? 'Grammar' : 'Ngữ pháp';
                       
                       return (
                         <div key={key} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">

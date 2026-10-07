@@ -18,7 +18,7 @@ export function AiGraderClient() {
 
   const { data: session, status } = useSession()
   const [examType, setExamType] = useState<ExamType>('IELTS_TASK_2')
-  const [feedbackLang, setFeedbackLang] = useState<string>('Tiếng Việt')
+  const [feedbackLang, setFeedbackLang] = useState<string>(isEn ? 'English' : 'Tiếng Việt')
   const [prompt, setPrompt] = useState<PromptObject | null>(null)
   
   // States for Task 1 and Task 2
@@ -76,7 +76,11 @@ export function AiGraderClient() {
 
       if (savedEssay) setEssay(savedEssay)
       if (savedPrompt) setPrompt(JSON.parse(savedPrompt))
-      if (savedExamType) setExamType(savedExamType as ExamType)
+      if (savedExamType && ['IELTS_WRITING_TASK1', 'IELTS_WRITING_TASK2'].includes(savedExamType)) {
+        setExamType(savedExamType as ExamType)
+      } else {
+        localStorage.removeItem('draft_ielts_examType')
+      }
     } catch (e) {}
   }, [])
 
@@ -191,7 +195,7 @@ export function AiGraderClient() {
       const data = await res.json()
       if (res.ok) {
         alert('Đã tạo link chia sẻ thành công! Link có hiệu lực 24h.\nBạn có thể gửi link này cho học sinh.')
-        return `${window.location.origin}/shared/${data.id}`
+        return `${window.location.origin}${isEn ? '/en' : ''}/shared/${data.id}`
       } else {
         alert(data.error || 'Lỗi hệ thống')
       }
@@ -212,17 +216,14 @@ export function AiGraderClient() {
       return
     }
 
-    let essayForApi = finalEssay
-    if (feedbackLang !== 'Tiếng Việt') {
-      essayForApi += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
-    }
+    const essayForApi = finalEssay
 
     setIsGrading(true)
     setError(null)
     setResult(null)
 
     try {
-      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: essayForApi, imageDescription: (prompt as any).imageDescription || undefined })
+      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: essayForApi, imageDescription: (prompt as any).imageDescription || undefined, feedbackLang })
       setResult(data)
       setUsageCount(prev => prev + 1)
       
@@ -337,13 +338,12 @@ export function AiGraderClient() {
                 </div>
               </div>
               
-              {userPlan === 'pro' ? (
+              {userPlan === 'pro' && !prompt?.imageUrl ? (
                 <div className="space-y-1">
-                  {prompt?.imageUrl && <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Context ẩn cho AI (Học viên không thấy):</label>}
                   <textarea 
                     value={prompt?.content || ''}
                     onChange={(e) => setPrompt(prompt ? { ...prompt, content: e.target.value } : { content: e.target.value })}
-                    placeholder="Nhập đề thi tùy chỉnh hoặc bấm 'Bốc đề ngẫu nhiên'..."
+                    placeholder={isEn ? "Enter custom prompt or click 'Random Prompt'..." : "Nhập đề thi tùy chỉnh hoặc bấm 'Bốc đề ngẫu nhiên'..."}
                     className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 text-sm whitespace-pre-wrap resize-y"
                   />
                 </div>
@@ -367,15 +367,6 @@ export function AiGraderClient() {
                       </div>
                     </div>
                   </div>
-                  {userPlan === 'pro' && (
-                    <input 
-                      type="text"
-                      placeholder="Nhập mô tả đề (viết các thông số có trên hình ảnh ra để AI chấm thuận tiện hơn)..."
-                      value={(prompt as any).imageDescription || ''}
-                      onChange={(e) => setPrompt({ ...prompt, imageDescription: e.target.value } as any)}
-                      className="w-full px-3 py-2 text-sm border-t border-gray-200 focus:outline-none focus:bg-gray-50"
-                    />
-                  )}
                 </div>
               )}
 

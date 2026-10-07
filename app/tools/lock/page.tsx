@@ -2,26 +2,14 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import PdfLockUnlockWrapper from './PdfLockUnlockWrapper'
 
-export const metadata: Metadata = {
-  title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
-  description: 'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.',
-  alternates: {
-    canonical: 'https://vndocs.net/tools/lock',
-  },
-  openGraph: {
-    title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
-    description: 'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.',
-    url: 'https://vndocs.net/tools/lock',
-    siteName: 'VNDocs',
-    locale: 'vi_VN',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
-    description: 'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/tools/lock',
+    'Khóa / Mở Khóa File PDF (Protect PDF) | VNDocs',
+    'Công cụ mã hóa file PDF bằng mật khẩu chống xem, chống in hoặc xóa bỏ mật khẩu bảo vệ PDF nhanh chóng.'
+  )
 }
+
 
 const softwareSchema = {
   "@context": "https://schema.org",

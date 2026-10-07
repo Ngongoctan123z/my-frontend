@@ -1,26 +1,12 @@
-import { Metadata } from 'next'
 import Link from 'next/link'
 import { CasioCalculator } from '@/src/components/tools/CasioCalculator'
 
-export const metadata: Metadata = {
-  title: 'Online Casio Calculator (Fx-580VN X) | VNDocs',
-  description: 'Free online calculator emulator for Casio fx-580VN X, fx-570VN Plus, fx-880BTG to solve math problems quickly.',
-  alternates: {
-    canonical: 'https://vndocs.net/en/tools/casio',
-  },
-  openGraph: {
-    title: 'Online Casio Calculator (Fx-580VN X) | VNDocs',
-    description: 'Free online calculator emulator for Casio fx-580VN X, fx-570VN Plus, fx-880BTG to solve math problems quickly.',
-    url: 'https://vndocs.net/en/tools/casio',
-    siteName: 'VNDocs',
-    locale: 'en_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Online Casio Calculator (Fx-580VN X) | VNDocs',
-    description: 'Free online calculator emulator for Casio fx-580VN X, fx-570VN Plus, fx-880BTG to solve math problems quickly.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/en/tools/casio/page.tsx',
+    'Online Casio Calculator (Fx-580VN X) | VNDocs',
+    'Free online calculator emulator for Casio fx-580VN X, fx-570VN Plus, fx-880BTG to solve math problems quickly.'
+  )
 }
 
 const softwareSchema = {

@@ -1,26 +1,12 @@
-import { Metadata } from 'next'
 import Link from 'next/link'
 import PdfLockUnlockWrapper from '@/app/tools/lock/PdfLockUnlockWrapper'
 
-export const metadata: Metadata = {
-  title: 'Lock / Unlock PDF File (Protect PDF) | VNDocs',
-  description: 'A tool to encrypt PDF files with a password to prevent viewing, printing, or quickly removing PDF password protection.',
-  alternates: {
-    canonical: 'https://vndocs.net/en/tools/lock',
-  },
-  openGraph: {
-    title: 'Lock / Unlock PDF File (Protect PDF) | VNDocs',
-    description: 'A tool to encrypt PDF files with a password to prevent viewing, printing, or quickly removing PDF password protection.',
-    url: 'https://vndocs.net/en/tools/lock',
-    siteName: 'VNDocs',
-    locale: 'en_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Lock / Unlock PDF File (Protect PDF) | VNDocs',
-    description: 'A tool to encrypt PDF files with a password to prevent viewing, printing, or quickly removing PDF password protection.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/en/tools/lock/page.tsx',
+    'Lock / Unlock PDF File (Protect PDF) | VNDocs',
+    'A tool to encrypt PDF files with a password to prevent viewing, printing, or quickly removing PDF password protection.'
+  )
 }
 
 const softwareSchema = {

@@ -1,25 +1,11 @@
-import type { Metadata } from 'next'
 import FileConverterWrapper from '@/app/tools/convert/FileConverterWrapper'
 
-export const metadata: Metadata = {
-  title: 'Image Format Converter | VNDocs',
-  description: 'Convert images between JPG, PNG, WEBP, BMP, GIF, ICO formats for free and quickly.',
-  alternates: {
-    canonical: 'https://vndocs.net/en/tools/convert',
-  },
-  openGraph: {
-    title: 'Image Format Converter | VNDocs',
-    description: 'Convert images between JPG, PNG, WEBP, BMP, GIF, ICO formats for free and quickly.',
-    url: 'https://vndocs.net/en/tools/convert',
-    siteName: 'VNDocs',
-    locale: 'en_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Image Format Converter | VNDocs',
-    description: 'Convert images between JPG, PNG, WEBP, BMP, GIF, ICO formats for free and quickly.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/en/tools/convert/page.tsx',
+    'Image Format Converter | VNDocs',
+    'Convert images between JPG, PNG, WEBP, BMP, GIF, ICO formats for free and quickly.'
+  )
 }
 
 const softwareSchema = {

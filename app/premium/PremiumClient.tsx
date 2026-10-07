@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Check, Crown, Zap, Shield, ChevronRight, X, QrCode, RefreshCcw, Sparkles } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Check, Crown, Zap, Shield, ChevronRight, X, QrCode, RefreshCcw, Sparkles, CheckCircle2 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import confetti from 'canvas-confetti'
 
 type Package = {
   id: string
@@ -63,6 +64,7 @@ export function PremiumClient() {
   const { data: session } = useSession()
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null)
   const [isChecking, setIsChecking] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const BANK_ID = 'MB' 
   const ACCOUNT_NO = '0565683172' 
@@ -74,32 +76,64 @@ export function PremiumClient() {
       return
     }
     setSelectedPkg(pkg)
-    setIsChecking(false)
+    setIsChecking(true)
+    setIsSuccess(false)
   }
 
-  const checkPayment = async () => {
-    setIsChecking(true)
-    try {
-      const expectedContent = `VNDOCS ${selectedPkg?.id.toUpperCase()} ${session?.user?.email?.split('@')[0] || 'USER'}`
-      const res = await fetch('/api/premium/check-transaction', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: selectedPkg?.price, expectedContent })
-      })
-      const data = await res.json()
-      
-      if (data.isPaid) {
-        alert('Thanh toán thành công! Tài khoản của bạn đã được nâng cấp.')
-        setSelectedPkg(null)
-      } else {
-        alert(data.message || 'Chưa tìm thấy giao dịch. Vui lòng đợi trong giây lát hoặc kiểm tra lại thông tin chuyển khoản.')
-      }
-    } catch (e) {
-      alert('Lỗi kết nối khi kiểm tra giao dịch.')
-    } finally {
-      setIsChecking(false)
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    
+    if (selectedPkg && !isSuccess) {
+      interval = setInterval(async () => {
+        try {
+          const expectedContent = `VNDOCS ${selectedPkg.id.toUpperCase()} ${session?.user?.email?.split('@')[0] || 'USER'}`
+          const res = await fetch('/api/premium/check-transaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: selectedPkg.price, expectedContent })
+          })
+          const data = await res.json()
+          
+          if (data.isPaid) {
+            setIsSuccess(true)
+            setIsChecking(false)
+            clearInterval(interval)
+            
+            // Pháo hoa nổ bụp bụp
+            const duration = 3 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 };
+
+            const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+            const intervalConfetti: any = setInterval(function() {
+              const timeLeft = animationEnd - Date.now();
+
+              if (timeLeft <= 0) {
+                return clearInterval(intervalConfetti);
+              }
+
+              const particleCount = 50 * (timeLeft / duration);
+              confetti({
+                ...defaults, particleCount,
+                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+              });
+              confetti({
+                ...defaults, particleCount,
+                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+              });
+            }, 250);
+          }
+        } catch (e) {
+          console.error('Lỗi check transaction', e)
+        }
+      }, 5000) // Poll every 5s
     }
-  }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [selectedPkg, isSuccess, session])
 
   const qrUrl = selectedPkg 
     ? `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${selectedPkg.price}&addInfo=VNDOCS%20${selectedPkg.id.toUpperCase()}%20${session?.user?.email?.split('@')[0] || 'USER'}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`
@@ -246,18 +280,21 @@ export function PremiumClient() {
                   </div>
                 </div>
 
-                <button 
-                  onClick={checkPayment}
-                  disabled={isChecking}
-                  className="w-full py-4 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-2xl font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 disabled:pointer-events-none shadow-xl shadow-slate-900/20 dark:shadow-white/10"
-                >
-                  {isChecking ? (
-                    <><RefreshCcw className="animate-spin w-5 h-5" /> Đang kiểm tra giao dịch...</>
-                  ) : (
-                    'Tôi đã chuyển khoản thành công'
-                  )}
-                </button>
-                <p className="text-xs text-center font-medium text-slate-400">Hệ thống sẽ tự động kích hoạt tài khoản trong vòng 1-3 phút sau khi nhận được chuyển khoản.</p>
+                {isSuccess ? (
+                  <div className="w-full py-4 bg-green-500 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-xl shadow-green-500/30 animate-in zoom-in duration-300">
+                    <CheckCircle2 size={24} /> Thanh toán thành công!
+                  </div>
+                ) : (
+                  <div className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-xl shadow-slate-900/20 dark:shadow-white/10 opacity-80 cursor-not-allowed">
+                    <RefreshCcw className="animate-spin w-5 h-5" /> Đang tự động kiểm tra giao dịch...
+                  </div>
+                )}
+                
+                {!isSuccess && (
+                  <p className="text-xs text-center font-medium text-slate-400">
+                    Hệ thống sẽ tự động kích hoạt tài khoản trong vài giây sau khi nhận được chuyển khoản. Không cần đóng cửa sổ này.
+                  </p>
+                )}
               </div>
             </div>
           </div>

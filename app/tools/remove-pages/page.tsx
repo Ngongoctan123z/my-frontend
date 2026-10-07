@@ -2,26 +2,14 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import RemovePagesWrapper from './RemovePagesWrapper'
 
-export const metadata: Metadata = {
-  title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
-  description: 'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.',
-  alternates: {
-    canonical: 'https://vndocs.net/tools/remove-pages',
-  },
-  openGraph: {
-    title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
-    description: 'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.',
-    url: 'https://vndocs.net/tools/remove-pages',
-    siteName: 'VNDocs',
-    locale: 'vi_VN',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
-    description: 'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/tools/remove-pages',
+    'Cắt Trang & Xóa Trang PDF (Remove Pages) | VNDocs',
+    'Trích xuất, cắt tách và loại bỏ các trang PDF không mong muốn ra khỏi tài liệu một cách dễ dàng và hoàn toàn miễn phí.'
+  )
 }
+
 
 const softwareSchema = {
   "@context": "https://schema.org",

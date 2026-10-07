@@ -7,14 +7,12 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 
-import { SearchBar } from '../search/SearchBar'
 
 import { AuthButton } from '../auth/AuthButton'
 
 export function Header() {
   const pathname = usePathname()
   const isEnRoute = pathname.startsWith('/en/') || pathname === '/en'
-  const isHomePage = pathname === '/' || pathname === '/en'
   const { data: session } = useSession()
 
   const [userPlan, setUserPlan] = useState<string>('free')
@@ -134,38 +132,32 @@ export function Header() {
           <span className="hidden sm:inline text-[18px] font-[900] text-[var(--text-primary)] tracking-tight">VNDocs</span>
         </Link>
 
-        {/* Center: nav (home) or search (inner pages) */}
+        {/* Center: nav (visible on all pages) */}
         <div className="min-w-0 flex-1 flex items-center justify-center">
-          {isHomePage ? (
-            <nav className="hidden md:flex items-center gap-8">
-              {navLinks.map((link) => (
-                <div key={link.href} className="relative group">
-                  <Link prefetch={false} href={link.href}
-                    className="flex items-center gap-1 text-[15px] font-[800] text-[var(--text-primary)] group-hover:text-[var(--color-primary)] transition-colors tracking-wide uppercase py-2"
-                  >
-                    {link.label}
-                  </Link>
-                  {link.dropdown && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white dark:bg-[#161B22] border border-[var(--border-color)] rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
-                      <div className="py-2">
-                        {link.dropdown.map((subItem) => (
-                          <Link key={subItem.href} prefetch={false} href={subItem.href}
-                            className="block px-5 py-2.5 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                          >
-                            {subItem.label}
-                          </Link>
-                        ))}
-                      </div>
+          <nav className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <div key={link.href} className="relative group">
+                <Link prefetch={false} href={link.href}
+                  className="flex items-center gap-1 text-[15px] font-[800] text-[var(--text-primary)] group-hover:text-[var(--color-primary)] transition-colors tracking-wide uppercase py-2"
+                >
+                  {link.label}
+                </Link>
+                {link.dropdown && (
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white dark:bg-[#161B22] border border-[var(--border-color)] rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                    <div className="py-2">
+                      {link.dropdown.map((subItem) => (
+                        <Link key={subItem.href} prefetch={false} href={subItem.href}
+                          className="block px-5 py-2.5 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                        >
+                          {subItem.label}
+                        </Link>
+                      ))}
                     </div>
-                  )}
-                </div>
-              ))}
-            </nav>
-          ) : (
-            <div className="w-full max-w-xl">
-              <SearchBar isEn={isEnRoute} />
-            </div>
-          )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
         </div>
 
         {/* Right actions */}

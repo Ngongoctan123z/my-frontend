@@ -142,3 +142,18 @@ export const essayHistory = sqliteTable("essay_history", {
   result: text("result").notNull(), // JSON string
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
 })
+
+export const bankTransactions = sqliteTable("bank_transaction", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  transactionId: text("transactionId").unique(),
+  bank: text("bank"),
+  direction: text("direction"), // 'IN', 'OUT'
+  amount: integer("amount").notNull(),
+  currency: text("currency").default("VND").notNull(),
+  content: text("content"),
+  referenceCode: text("referenceCode"),
+  receivedAt: integer("receivedAt", { mode: "timestamp_ms" }),
+  syncedAt: integer("syncedAt", { mode: "timestamp_ms" }).notNull(),
+  status: text("status").default("unmatched").notNull(), // 'unmatched', 'matched', 'ignored'
+  matchedUserId: text("matchedUserId"), // To store which user got the upgrade
+})

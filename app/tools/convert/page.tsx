@@ -1,25 +1,11 @@
-import type { Metadata } from 'next'
 import FileConverterWrapper from './FileConverterWrapper'
 
-export const metadata: Metadata = {
-  title: 'Chuyển Đổi Định Dạng Ảnh | VNDocs',
-  description: 'Chuyển đổi ảnh giữa các định dạng JPG, PNG, WEBP, BMP, GIF, ICO miễn phí và nhanh chóng.',
-  alternates: {
-    canonical: 'https://vndocs.net/tools/convert',
-  },
-  openGraph: {
-    title: 'Chuyển Đổi Định Dạng Ảnh | VNDocs',
-    description: 'Chuyển đổi ảnh giữa các định dạng JPG, PNG, WEBP, BMP, GIF, ICO miễn phí và nhanh chóng.',
-    url: 'https://vndocs.net/tools/convert',
-    siteName: 'VNDocs',
-    locale: 'vi_VN',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Chuyển Đổi Định Dạng Ảnh | VNDocs',
-    description: 'Chuyển đổi ảnh giữa các định dạng JPG, PNG, WEBP, BMP, GIF, ICO miễn phí và nhanh chóng.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/tools/convert/page.tsx',
+    'Chuyển Đổi Định Dạng Ảnh | VNDocs',
+    'Chuyển đổi ảnh giữa các định dạng JPG, PNG, WEBP, BMP, GIF, ICO miễn phí và nhanh chóng.'
+  )
 }
 
 const softwareSchema = {

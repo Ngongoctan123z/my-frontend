@@ -2,26 +2,14 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import MergeFilesWrapper from './MergeFilesWrapper'
 
-export const metadata: Metadata = {
-  title: 'Gộp File PDF (Merge PDF) | VNDocs',
-  description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
-  alternates: {
-    canonical: 'https://vndocs.net/tools/merge-files',
-  },
-  openGraph: {
-    title: 'Gộp File PDF (Merge PDF) | VNDocs',
-    description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
-    url: 'https://vndocs.net/tools/merge-files',
-    siteName: 'VNDocs',
-    locale: 'vi_VN',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Gộp File PDF (Merge PDF) | VNDocs',
-    description: 'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/tools/merge-files',
+    'Gộp File PDF (Merge PDF) | VNDocs',
+    'Ghép nối nhiều tài liệu PDF hoặc hình ảnh thành một bản duy nhất. Sắp xếp thứ tự các file bằng thao tác kéo thả siêu nhanh và bảo mật 100%.'
+  )
 }
+
 
 const softwareSchema = {
   "@context": "https://schema.org",

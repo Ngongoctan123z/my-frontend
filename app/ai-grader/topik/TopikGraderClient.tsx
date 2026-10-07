@@ -19,7 +19,7 @@ export function TopikGraderClient() {
 
   const { data: session, status } = useSession()
   const [examType, setExamType] = useState<ExamType>('TOPIK_53')
-  const [feedbackLang, setFeedbackLang] = useState<string>('Tiếng Việt')
+  const [feedbackLang, setFeedbackLang] = useState<string>(isEn ? 'English' : 'Tiếng Việt')
   const [prompt, setPrompt] = useState<PromptObject | null>(null)
   
   const [userPlan, setUserPlan] = useState<string>('free')
@@ -77,7 +77,11 @@ export function TopikGraderClient() {
 
       if (savedEssay) setEssay(savedEssay)
       if (savedPrompt) setPrompt(JSON.parse(savedPrompt))
-      if (savedExamType) setExamType(savedExamType as ExamType)
+      if (savedExamType && ['TOPIK_51_52', 'TOPIK_53', 'TOPIK_54'].includes(savedExamType)) {
+        setExamType(savedExamType as ExamType)
+      } else {
+        localStorage.removeItem('draft_topik_examType')
+      }
     } catch (e) {}
   }, [])
 
@@ -189,7 +193,7 @@ export function TopikGraderClient() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       
-      return `${window.location.origin}/shared/${data.id}`
+      return `${window.location.origin}${isEn ? '/en' : ''}/shared/${data.id}`
     } catch (e: any) {
       alert(e.message || 'Lỗi khi tạo link.')
       throw e
@@ -202,22 +206,19 @@ export function TopikGraderClient() {
       return
     }
 
-    let finalEssay = essay.trim()
+    const finalEssay = essay.trim()
     if (!finalEssay) {
       setError('Vui lòng viết bài trước khi nộp.')
       return
     }
 
-    if (feedbackLang !== 'Tiếng Việt') {
-      finalEssay += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
-    }
 
     setIsGrading(true)
     setError(null)
     setResult(null)
 
     try {
-      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: finalEssay })
+      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: finalEssay, feedbackLang })
       setResult(data)
       setUsageCount(prev => prev + 1)
       

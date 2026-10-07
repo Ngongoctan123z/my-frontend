@@ -565,7 +565,7 @@ Chỉ giữ evidence và corrections trích nguyên văn từ bài làm.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { action, type, prompt, essay, imageDescription } = body
+    const { action, type, prompt, essay, imageDescription, feedbackLang = 'Tiếng Việt' } = body
 
     // Handle prompt batch generation from Database instead of AI
     if (action === 'generate_prompt_batch' || action === 'generate_prompt') {
@@ -783,6 +783,11 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
       if (type === 'TOEIC_RESPOND' || type === 'TOEIC_ESSAY') {
         const max = type === 'TOEIC_ESSAY' ? 5 : 4
         systemPrompt += `\nThêm trường holisticScore là số nguyên 0-${max} ở cấp JSON ngoài cùng. Chấm toàn bộ nhiệm vụ theo rubric holistic, KHÔNG lấy trung bình ba tiêu chí. Các tiêu chí chỉ là phân tích luyện tập. Không quy đổi một bài sang tổng TOEIC Writing /200.`
+      }
+
+      if (feedbackLang && feedbackLang !== 'Tiếng Việt') {
+        systemPrompt = systemPrompt.replace(/tiếng việt/gi, feedbackLang)
+        systemPrompt += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
       }
 
       // Chấm bằng model mạnh cố định, temperature thấp. Tự thử lại 1 lần nếu JSON/schema hỏng.

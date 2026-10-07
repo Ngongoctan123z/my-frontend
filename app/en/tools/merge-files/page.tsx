@@ -1,26 +1,12 @@
-import { Metadata } from 'next'
 import Link from 'next/link'
 import MergeFilesWrapper from '@/app/tools/merge-files/MergeFilesWrapper'
 
-export const metadata: Metadata = {
-  title: 'Merge PDF Files | VNDocs',
-  description: 'Combine multiple PDF documents or images into a single file. Reorder files with blazing fast drag and drop, 100% secure.',
-  alternates: {
-    canonical: 'https://vndocs.net/en/tools/merge-files',
-  },
-  openGraph: {
-    title: 'Merge PDF Files | VNDocs',
-    description: 'Combine multiple PDF documents or images into a single file. Reorder files with blazing fast drag and drop, 100% secure.',
-    url: 'https://vndocs.net/en/tools/merge-files',
-    siteName: 'VNDocs',
-    locale: 'en_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Merge PDF Files | VNDocs',
-    description: 'Combine multiple PDF documents or images into a single file. Reorder files with blazing fast drag and drop, 100% secure.',
-  }
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/en/tools/merge-files/page.tsx',
+    'Merge PDF Files | VNDocs',
+    'Combine multiple PDF documents or images into a single file. Reorder files with blazing fast drag and drop, 100% secure.'
+  )
 }
 
 const softwareSchema = {

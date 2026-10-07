@@ -1,11 +1,13 @@
 const fs = require('fs');
-
-// Fix route.ts
-let route = fs.readFileSync('app/api/ai-grader/route.ts', 'utf8');
-route = route.replace(/    \}\r?\n      \)\r?\n    \}\r?\n\r?\n    if \(action === 'grade_essay'\) \{/, "    }\n\n    if (action === 'grade_essay') {");
-fs.writeFileSync('app/api/ai-grader/route.ts', route);
-
-// Fix ProfileClient.tsx (if any syntax error)
-let profile = fs.readFileSync('app/profile/ProfileClient.tsx', 'utf8');
-// Check if the closing tag or brackets are correct.
-fs.writeFileSync('app/profile/ProfileClient.tsx', profile);
+const files = [
+  'd:/khodeVN/exam-web-frontend/app/tools/casio/page.tsx',
+  'd:/khodeVN/exam-web-frontend/app/tools/lock/page.tsx',
+  'd:/khodeVN/exam-web-frontend/app/tools/merge-files/page.tsx',
+  'd:/khodeVN/exam-web-frontend/app/tools/remove-pages/page.tsx'
+];
+for(const f of files) {
+  let c = fs.readFileSync(f, 'utf8');
+  c = c.replace(/,\r?\n\s*openGraph: \{[\s\S]*?\}\r?\n\}/, '');
+  c = c.replace(/'\/tools\/(.*?)\/page.tsx'/, "'/tools/$1'");
+  fs.writeFileSync(f, c, 'utf8');
+}
