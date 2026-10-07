@@ -12,7 +12,8 @@ type Package = {
   priceStr: string
   period: string
   color: string
-  shadow: string
+  badgeColor: string
+  buttonClass: string
   icon: React.ReactNode
   features: string[]
   isPopular?: boolean
@@ -26,9 +27,10 @@ const packages: Package[] = [
     price: 50000,
     priceStr: '50.000đ',
     period: '/ tháng',
-    color: 'from-blue-500 via-indigo-500 to-purple-500',
-    shadow: 'shadow-blue-500/20',
-    icon: <Shield className="w-6 h-6 text-white" />,
+    color: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30',
+    badgeColor: 'text-blue-500',
+    buttonClass: 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 hover:border-blue-500/50 dark:bg-slate-900 dark:text-white dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:border-blue-500/50',
+    icon: <Shield className="w-5 h-5 text-blue-500 dark:text-blue-400" />,
     description: 'Tuyệt vời cho học sinh tự học hàng ngày.',
     features: [
       '1000 lượt chấm bài / tháng',
@@ -44,9 +46,10 @@ const packages: Package[] = [
     price: 149000,
     priceStr: '149.000đ',
     period: '/ tháng',
-    color: 'from-amber-300 via-orange-500 to-rose-500',
-    shadow: 'shadow-orange-500/30',
-    icon: <Crown className="w-6 h-6 text-white" />,
+    color: 'from-amber-500/20 to-orange-500/20 border-orange-500/50',
+    badgeColor: 'text-orange-500',
+    buttonClass: 'bg-slate-900 text-white hover:bg-slate-800 hover:shadow-lg hover:shadow-orange-500/20 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100',
+    icon: <Crown className="w-5 h-5 text-orange-500 dark:text-orange-400" />,
     description: 'Dành cho giáo viên và trung tâm luyện thi.',
     isPopular: true,
     features: [
@@ -99,7 +102,6 @@ export function PremiumClient() {
             setIsChecking(false)
             clearInterval(interval)
             
-            // Pháo hoa nổ bụp bụp
             const duration = 3 * 1000;
             const animationEnd = Date.now() + duration;
             const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 };
@@ -108,31 +110,18 @@ export function PremiumClient() {
 
             const intervalConfetti: any = setInterval(function() {
               const timeLeft = animationEnd - Date.now();
-
-              if (timeLeft <= 0) {
-                return clearInterval(intervalConfetti);
-              }
-
+              if (timeLeft <= 0) return clearInterval(intervalConfetti);
               const particleCount = 50 * (timeLeft / duration);
-              confetti({
-                ...defaults, particleCount,
-                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-              });
-              confetti({
-                ...defaults, particleCount,
-                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-              });
+              confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+              confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
             }, 250);
           }
         } catch (e) {
           console.error('Lỗi check transaction', e)
         }
-      }, 5000) // Poll every 5s
+      }, 5000)
     }
-
-    return () => {
-      if (interval) clearInterval(interval)
-    }
+    return () => { if (interval) clearInterval(interval) }
   }, [selectedPkg, isSuccess, session])
 
   const qrUrl = selectedPkg 
@@ -140,163 +129,164 @@ export function PremiumClient() {
     : ''
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] py-16 px-4 font-sans text-slate-800 dark:text-slate-200 relative overflow-hidden flex items-center justify-center">
-      {/* Dynamic Background Elements */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-500/20 dark:bg-purple-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-multiply dark:mix-blend-screen animate-pulse duration-10000" />
-      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-orange-500/20 dark:bg-orange-600/20 rounded-full blur-[150px] pointer-events-none mix-blend-multiply dark:mix-blend-screen animate-pulse duration-10000 delay-1000" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-16 px-4 font-sans text-slate-800 dark:text-slate-200 relative overflow-hidden flex items-center justify-center">
+      {/* Sleek, minimal background effects */}
+      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-blue-500/10 dark:bg-blue-600/10 rounded-full blur-[100px] pointer-events-none mix-blend-multiply dark:mix-blend-screen animate-pulse duration-[8000ms]" />
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-orange-500/10 dark:bg-orange-600/10 rounded-full blur-[100px] pointer-events-none mix-blend-multiply dark:mix-blend-screen animate-pulse duration-[8000ms] delay-1000" />
+      
+      {/* Grain overlay for texture */}
+      <div className="absolute inset-0 bg-[url(''https://grainy-gradients.vercel.app/noise.svg'')] opacity-[0.03] pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto space-y-20 relative z-10 w-full">
+      <div className="max-w-5xl mx-auto relative z-10 w-full flex flex-col items-center">
         {/* Header */}
-        <div className="text-center space-y-6 mt-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-200/50 dark:bg-white/5 border border-slate-300/50 dark:border-white/10 backdrop-blur-md mb-4 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-sm">
-            <Sparkles size={16} className="text-amber-500" /> Nâng cấp trải nghiệm AI của bạn
+        <div className="text-center space-y-5 mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-xs font-semibold text-slate-600 dark:text-slate-300 transition-colors hover:border-slate-300 dark:hover:border-slate-700">
+            <Sparkles size={14} className="text-orange-500" /> 
+            <span>Nâng cấp trải nghiệm AI</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter">
-            Trở thành <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 drop-shadow-sm">Premium</span>
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Trở thành <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">Premium</span>
           </h1>
-          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
+          <p className="text-base text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium">
             Đầu tư nhỏ, bứt phá lớn. Mở khoá công nghệ AI chấm điểm độc quyền và các công cụ giáo dục đỉnh cao nhất dành riêng cho bạn.
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
+        <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl">
           {packages.map((pkg) => (
             <div 
               key={pkg.id} 
-              className={`relative rounded-3xl p-8 transition-all duration-500 flex flex-col ${
+              className={`relative rounded-[2rem] p-8 transition-all duration-300 flex flex-col bg-white dark:bg-slate-900 border shadow-sm hover:shadow-xl ${
                 pkg.isPopular 
-                  ? 'bg-white dark:bg-[#1A202C]/80 border border-orange-500/50 dark:border-orange-500/30 backdrop-blur-xl shadow-2xl shadow-orange-500/20 scale-100 md:scale-105 z-10' 
-                  : 'bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-lg shadow-xl hover:shadow-2xl hover:-translate-y-2'
+                  ? 'border-orange-500/50 shadow-orange-500/5' 
+                  : 'border-slate-200 dark:border-slate-800'
               }`}
             >
-              {/* Popular Badge */}
               {pkg.isPopular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black text-xs px-5 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.4)]">
-                  <Zap size={14} className="fill-white" /> Phổ biến nhất
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-[10px] px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1 shadow-sm">
+                  <Zap size={12} className="fill-white" /> Phổ biến nhất
                 </div>
               )}
               
-              <div className="flex items-center gap-5 mb-6">
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${pkg.color} flex items-center justify-center shadow-lg ${pkg.shadow} shrink-0`}>
+              <div className="flex items-center gap-4 mb-5">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${pkg.color} border flex items-center justify-center shrink-0`}>
                   {pkg.icon}
                 </div>
                 <div>
-                  <h3 className="text-3xl font-black tracking-tight">{pkg.name}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">{pkg.description}</p>
+                  <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">{pkg.name}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{pkg.description}</p>
                 </div>
               </div>
 
-              <div className="mb-8 flex items-end gap-1.5 pb-8 border-b border-slate-200 dark:border-slate-800">
-                <span className="text-5xl font-black tracking-tighter">{pkg.priceStr}</span>
-                <span className="text-slate-500 dark:text-slate-400 font-bold mb-1">{pkg.period}</span>
+              <div className="mb-6 flex items-baseline gap-1 pb-6 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">{pkg.priceStr}</span>
+                <span className="text-slate-500 dark:text-slate-400 font-medium text-sm">{pkg.period}</span>
               </div>
 
-              <ul className="space-y-4 mb-8 flex-1">
+              <ul className="space-y-3.5 mb-8 flex-1">
                 {pkg.features.map((feat, idx) => (
-                  <li key={idx} className="flex items-start gap-3 group">
-                    <div className="mt-0.5 shrink-0 bg-blue-100 dark:bg-blue-500/10 p-1 rounded-full group-hover:scale-110 group-hover:bg-blue-200 dark:group-hover:bg-blue-500/20 transition-all">
-                      <Check size={14} className="text-blue-600 dark:text-blue-400 font-bold" />
+                  <li key={idx} className="flex items-start gap-3 group text-sm">
+                    <div className="mt-0.5 shrink-0">
+                      <Check size={16} className={`${pkg.badgeColor} opacity-80`} />
                     </div>
-                    <span className="text-slate-700 dark:text-slate-300 font-medium leading-snug">{feat}</span>
+                    <span className="text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{feat}</span>
                   </li>
                 ))}
               </ul>
 
               <button
                 onClick={() => handleCheckout(pkg)}
-                className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 ${
-                  pkg.isPopular
-                    ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:scale-[1.02] active:scale-95 text-white shadow-lg shadow-orange-500/30'
-                    : 'bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 hover:scale-[1.02] active:scale-95'
-                }`}
+                className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${pkg.buttonClass}`}
               >
-                Nâng cấp ngay <ChevronRight size={20} />
+                Nâng cấp ngay <ChevronRight size={16} />
               </button>
             </div>
           ))}
         </div>
 
-        <div className="text-center text-sm font-medium text-slate-500 dark:text-slate-400/80 bg-white/50 dark:bg-black/20 backdrop-blur-sm max-w-fit mx-auto px-6 py-3 rounded-full border border-slate-200 dark:border-white/5">
-          * Gói cước sẽ được gia hạn tự động. Bạn có thể huỷ bất cứ lúc nào. Hệ thống thanh toán bảo mật 100%.
+        <div className="mt-12 text-center text-xs font-medium text-slate-400 dark:text-slate-500 max-w-md">
+          * Gói cước sẽ được gia hạn tự động. Bạn có thể huỷ bất cứ lúc nào. Hệ thống thanh toán an toàn 100%.
         </div>
       </div>
 
-      {/* Checkout Modal (Glassmorphism) */}
+      {/* Checkout Modal */}
       {selectedPkg && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white/90 dark:bg-[#161B22]/90 backdrop-blur-xl w-full max-w-2xl rounded-[2rem] shadow-2xl border border-white/20 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 zoom-in-95 duration-400">
-            <div className={`p-8 bg-gradient-to-r ${selectedPkg.color} text-white flex items-center justify-between relative overflow-hidden`}>
-              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-1">
-                  <Crown size={20} className="text-white/80" />
-                  <span className="text-white/80 font-bold uppercase tracking-widest text-sm">Thanh toán an toàn</span>
-                </div>
-                <h3 className="text-3xl font-black">{selectedPkg.name}</h3>
-                <p className="opacity-90 font-medium mt-1 text-lg">{selectedPkg.priceStr} {selectedPkg.period}</p>
-              </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-[850px] rounded-[24px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-300">
+            
+            {/* Left side: QR Code Area */}
+            <div className="md:w-5/12 bg-slate-50 dark:bg-slate-950 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 relative">
               <button 
                 onClick={() => setSelectedPkg(null)} 
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors relative z-10 backdrop-blur-sm"
+                className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors md:hidden"
               >
-                <X size={24} />
+                <X size={20} />
               </button>
+              
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 w-48 h-48 relative group">
+                <img src={qrUrl} alt="VietQR" className="w-full h-full object-contain rounded-xl" />
+                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+                  <QrCode size={32} className="text-slate-900/50" />
+                </div>
+              </div>
+              <p className="text-xs text-center text-slate-500 mt-6 font-medium px-4">
+                Mở ứng dụng ngân hàng và quét mã QR để thanh toán tự động.
+              </p>
             </div>
             
-            <div className="p-8 flex flex-col md:flex-row gap-8 items-center bg-gradient-to-b from-white/50 to-transparent dark:from-white/5">
-              <div className="shrink-0 bg-white p-3 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl relative group">
-                <img src={qrUrl} alt="VietQR" className="w-52 h-52 md:w-60 md:h-60 object-contain rounded-2xl" />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center rounded-3xl pointer-events-none backdrop-blur-sm">
-                  <QrCode size={48} className="text-white drop-shadow-md scale-75 group-hover:scale-100 transition-transform duration-300" />
+            {/* Right side: Payment Details */}
+            <div className="md:w-7/12 p-8 flex flex-col relative">
+              <button 
+                onClick={() => setSelectedPkg(null)} 
+                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors hidden md:block bg-slate-100 dark:bg-slate-800 rounded-full"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield size={16} className={selectedPkg.badgeColor} />
+                  <span className={`text-xs font-bold uppercase tracking-wider ${selectedPkg.badgeColor}`}>Thanh toán an toàn</span>
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{selectedPkg.name}</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{selectedPkg.priceStr} {selectedPkg.period}</p>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-500 text-sm">Ngân hàng</span>
+                  <span className="font-semibold text-slate-900 dark:text-white text-sm">{BANK_ID}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-500 text-sm">Chủ tài khoản</span>
+                  <span className="font-semibold text-slate-900 dark:text-white text-sm">{ACCOUNT_NAME}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800/60">
+                  <span className="text-slate-500 text-sm">Số tiền</span>
+                  <span className={`font-bold text-base ${selectedPkg.badgeColor}`}>{selectedPkg.price.toLocaleString('vi-VN')} đ</span>
+                </div>
+                <div className="flex justify-between items-start py-2">
+                  <span className="text-slate-500 text-sm mt-1">Nội dung</span>
+                  <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg text-xs font-mono font-medium text-slate-800 dark:text-slate-200 break-all max-w-[200px] text-right">
+                    vndocs-{selectedPkg.id.toLowerCase()}-{session?.user?.email || 'user'}
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex-1 space-y-5 w-full">
-                <div className="bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-200 p-4 rounded-2xl border border-amber-200/50 dark:border-amber-500/20 text-sm font-semibold flex items-start gap-3">
-                  <div className="mt-0.5 shrink-0"><Zap size={18} className="text-amber-500" /></div>
-                  <p>Mở ứng dụng Ngân hàng và quét mã QR bên cạnh để thanh toán tự động với độ chính xác 100%.</p>
-                </div>
-                
-                <div className="space-y-4 bg-slate-50 dark:bg-black/20 p-5 rounded-2xl border border-slate-100 dark:border-white/5">
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-white/10">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Ngân hàng</span>
-                    <strong className="dark:text-white font-bold">{BANK_ID}</strong>
-                  </div>
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-white/10">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Chủ tài khoản</span>
-                    <strong className="dark:text-white font-bold">{ACCOUNT_NAME}</strong>
-                  </div>
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-white/10">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Số tiền</span>
-                    <strong className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 font-black text-xl">{selectedPkg.price.toLocaleString('vi-VN')} đ</strong>
-                  </div>
-                  <div className="flex justify-between items-center pt-1">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">Nội dung</span>
-                    <strong className="text-slate-800 dark:text-white bg-slate-200/50 dark:bg-white/10 px-3 py-1.5 rounded-lg text-sm tracking-wider font-mono border border-slate-300/50 dark:border-white/10 shadow-sm">
-                      vndocs-{selectedPkg.id.toLowerCase()}-{session?.user?.email || 'user'}
-                    </strong>
-                  </div>
-                </div>
 
+              <div className="mt-auto">
                 {isSuccess ? (
-                  <div className="w-full py-4 bg-green-500 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-xl shadow-green-500/30 animate-in zoom-in duration-300">
-                    <CheckCircle2 size={24} /> Thanh toán thành công!
+                  <div className="w-full py-3.5 bg-emerald-500 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 animate-in zoom-in duration-300 shadow-sm shadow-emerald-500/20">
+                    <CheckCircle2 size={18} /> Thanh toán thành công!
                   </div>
                 ) : (
-                  <div className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-lg flex items-center justify-center gap-2 shadow-xl shadow-slate-900/20 dark:shadow-white/10 opacity-80 cursor-not-allowed">
-                    <RefreshCcw className="animate-spin w-5 h-5" /> Đang tự động kiểm tra giao dịch...
+                  <div className="w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-sm flex items-center justify-center gap-2">
+                    <RefreshCcw className="animate-spin w-4 h-4 opacity-70" /> Đang kiểm tra giao dịch...
                   </div>
-                )}
-                
-                {!isSuccess && (
-                  <p className="text-xs text-center font-medium text-slate-400">
-                    Hệ thống sẽ tự động kích hoạt tài khoản trong vài giây sau khi nhận được chuyển khoản. Không cần đóng cửa sổ này.
-                  </p>
                 )}
               </div>
             </div>
+
           </div>
         </div>
       )}
