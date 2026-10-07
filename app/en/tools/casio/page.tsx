@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { CasioCalculator } from '@/src/components/tools/CasioCalculator'
+import { getRouteMetadata } from '@/src/utils/serverSeo'
 
 export async function generateMetadata() {
   return getRouteMetadata(

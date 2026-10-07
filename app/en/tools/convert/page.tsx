@@ -1,3 +1,4 @@
+import { getRouteMetadata } from '@/src/utils/serverSeo';
 import FileConverterWrapper from '@/app/tools/convert/FileConverterWrapper'
 
 export async function generateMetadata() {

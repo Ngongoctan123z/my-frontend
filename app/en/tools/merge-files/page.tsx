@@ -1,3 +1,4 @@
+import { getRouteMetadata } from '@/src/utils/serverSeo';
 import Link from 'next/link'
 import MergeFilesWrapper from '@/app/tools/merge-files/MergeFilesWrapper'
 

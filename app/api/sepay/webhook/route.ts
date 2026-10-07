@@ -14,20 +14,19 @@ export async function POST(req: Request) {
     if (transferType === 'in') {
       const memo = (content || '').toUpperCase()
       
-      // Parse username bằng Regex để tránh trường hợp ngân hàng nối thêm chữ
-      // Tìm mẫu: VNDOCS PLUS <username> hoặc VNDOCS PRO <username>
-      const match = memo.match(/VNDOCS\s+(PLUS|PRO)\s+([A-Z0-9_\.\-]+)/)
+      // Parse email bằng Regex để tránh trường hợp ngân hàng nối thêm chữ
+      // Tìm mẫu: vndocs-plus-<email> hoặc vndocs-pro-<email>
+      const match = memo.match(/VNDOCS-(PLUS|PRO)-([A-Z0-9_\.\-]+@[A-Z0-9_\.\-]+)/)
 
       if (match) {
         const plan = match[1].toLowerCase() // "plus" hoặc "pro"
-        const userPrefix = match[2].toLowerCase()
+        const userEmail = match[2].toLowerCase()
         const requiredAmount = plan === 'pro' ? 149000 : 50000
 
         if (transferAmount >= requiredAmount) {
           const db = await getDb()
-          // Tìm user có email bắt đầu bằng userPrefix (case insensitive)
-          // Do SQLite LIKE mặc định case-insensitive với ASCII
-          const userRows = await db.select().from(users).where(like(users.email, `${userPrefix.toLowerCase()}@%`)).limit(1)
+          // Tìm user theo email
+          const userRows = await db.select().from(users).where(eq(users.email, userEmail)).limit(1)
           
           if (userRows.length > 0) {
             const user = userRows[0]

@@ -8,7 +8,7 @@ import { desc } from 'drizzle-orm'
 export async function GET(req: Request) {
   try {
     const session = await auth()
-    if (!session || session.user?.role !== 'admin') {
+    if (!session || (session.user as any)?.role !== 'admin') {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 

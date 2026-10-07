@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card'
-import { Badge } from '@/src/components/ui/badge'
-import { Button } from '@/src/components/ui/button'
+import { Card } from '@/src/components/ui/Card'
+import { Badge } from '@/src/components/ui/Badge'
+import { Button } from '@/src/components/ui/Button'
 import { Loader2, RefreshCw } from 'lucide-react'
 
 export default function BankHookAdminPage() {
@@ -58,10 +58,10 @@ export default function BankHookAdminPage() {
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Lịch sử giao dịch (100 gần nhất)</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <div className="flex flex-col space-y-1.5 p-6 pb-2">
+          <h3 className="font-semibold leading-none tracking-tight">Lịch sử giao dịch (100 gần nhất)</h3>
+        </div>
+        <div className="p-6 pt-0">
           {loading && !syncing ? (
             <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
           ) : (
@@ -100,9 +100,9 @@ export default function BankHookAdminPage() {
                           {tx.status === 'matched' ? (
                             <Badge className="bg-green-100 text-green-800 hover:bg-green-200 border-none">Đã đối soát</Badge>
                           ) : tx.status === 'ignored' ? (
-                            <Badge variant="secondary">Bỏ qua</Badge>
+                            <Badge className="bg-gray-100 text-gray-800 border-none">Bỏ qua</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-yellow-600 border-yellow-600">Chờ xử lý</Badge>
+                            <Badge className="text-yellow-600 border border-yellow-600 bg-transparent">Chờ xử lý</Badge>
                           )}
                         </td>
                       </tr>
@@ -112,7 +112,7 @@ export default function BankHookAdminPage() {
               </table>
             </div>
           )}
-        </CardContent>
+        </div>
       </Card>
     </div>
   )

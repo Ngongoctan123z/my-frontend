@@ -86,7 +86,7 @@ export function PremiumClient() {
     if (selectedPkg && !isSuccess) {
       interval = setInterval(async () => {
         try {
-          const expectedContent = `VNDOCS ${selectedPkg.id.toUpperCase()} ${session?.user?.email?.split('@')[0] || 'USER'}`
+          const expectedContent = `vndocs-${selectedPkg.id.toLowerCase()}-${session?.user?.email || 'user'}`
           const res = await fetch('/api/premium/check-transaction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -136,7 +136,7 @@ export function PremiumClient() {
   }, [selectedPkg, isSuccess, session])
 
   const qrUrl = selectedPkg 
-    ? `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${selectedPkg.price}&addInfo=VNDOCS%20${selectedPkg.id.toUpperCase()}%20${session?.user?.email?.split('@')[0] || 'USER'}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`
+    ? `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${selectedPkg.price}&addInfo=vndocs-${selectedPkg.id.toLowerCase()}-${session?.user?.email || 'user'}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`
     : ''
 
   return (
@@ -275,7 +275,7 @@ export function PremiumClient() {
                   <div className="flex justify-between items-center pt-1">
                     <span className="text-slate-500 dark:text-slate-400 font-medium">Nội dung</span>
                     <strong className="text-slate-800 dark:text-white bg-slate-200/50 dark:bg-white/10 px-3 py-1.5 rounded-lg text-sm tracking-wider font-mono border border-slate-300/50 dark:border-white/10 shadow-sm">
-                      VNDOCS {selectedPkg.id.toUpperCase()} {session?.user?.email?.split('@')[0] || 'USER'}
+                      vndocs-{selectedPkg.id.toLowerCase()}-{session?.user?.email || 'user'}
                     </strong>
                   </div>
                 </div>

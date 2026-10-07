@@ -52,15 +52,15 @@ export async function syncBankTransactions() {
 
     for (const tx of unmatchedTxs) {
       const memo = (tx.content || '').toUpperCase()
-      const match = memo.match(/VNDOCS\s+(PLUS|PRO)\s+([A-Z0-9_\.\-]+)/)
+      const match = memo.match(/VNDOCS-(PLUS|PRO)-([A-Z0-9_\.\-]+@[A-Z0-9_\.\-]+)/)
 
       if (match) {
         const plan = match[1].toLowerCase() // "plus" hoặc "pro"
-        const userPrefix = match[2].toLowerCase()
+        const userEmail = match[2].toLowerCase()
         const requiredAmount = plan === 'pro' ? 149000 : 50000
 
         if (tx.amount >= requiredAmount) {
-          const userRows = await db.select().from(users).where(like(users.email, `${userPrefix}%`)).limit(1)
+          const userRows = await db.select().from(users).where(eq(users.email, userEmail)).limit(1)
           
           if (userRows.length > 0) {
             const user = userRows[0]

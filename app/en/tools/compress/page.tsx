@@ -1,3 +1,4 @@
+import { getRouteMetadata } from '@/src/utils/serverSeo';
 import { CompressClient } from '@/app/tools/compress/CompressClient'
 
 export async function generateMetadata() {
