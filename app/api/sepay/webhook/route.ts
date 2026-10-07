@@ -43,7 +43,7 @@ export async function POST(req: Request) {
             
             console.log(`=> Cấp gói ${plan.toUpperCase()} thành công cho user:`, user.email)
           } else {
-            console.error('=> Không tìm thấy user nào khớp với prefix:', userPrefix)
+            console.error('=> Không tìm thấy user nào khớp với email:', userEmail)
           }
         } else {
           console.error(`=> Số tiền không đủ. Yêu cầu: ${requiredAmount}, nhận được: ${transferAmount}`)
