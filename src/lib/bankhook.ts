@@ -52,18 +52,24 @@ export async function syncBankTransactions() {
 
     for (const tx of unmatchedTxs) {
       const memo = (tx.content || '').toUpperCase()
-      const match = memo.match(/VNDOCS-(PLUS|PRO)-([A-Z0-9_\.\-]+@[A-Z0-9_\.\-]+)/)
+      const match = memo.match(/VNDOCS[\s\-\.]*(PLUS|PRO)[\s\-\.]*([A-Z0-9_\.\-@]+)/)
 
       if (match) {
         const plan = match[1].toLowerCase() // "plus" hoặc "pro"
-        const userEmail = match[2].toLowerCase()
+        const userIdentifier = match[2].toLowerCase()
+        const normId = userIdentifier.replace(/[^a-z0-9]/ig, '')
         const requiredAmount = plan === 'pro' ? 149000 : 50000
 
-        if (tx.amount >= requiredAmount) {
-          const userRows = await db.select().from(users).where(eq(users.email, userEmail)).limit(1)
+        if (tx.amount >= requiredAmount && normId.length >= 5) {
+          const allUsers = await db.select().from(users)
+          const matchedUser = allUsers.find(u => {
+            if (!u.email) return false
+            const normEmail = u.email.replace(/[^a-z0-9]/ig, '').toLowerCase()
+            return normId.includes(normEmail) || normEmail.startsWith(normId)
+          })
           
-          if (userRows.length > 0) {
-            const user = userRows[0]
+          if (matchedUser) {
+            const user = matchedUser
             const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
 
             await db.update(users)

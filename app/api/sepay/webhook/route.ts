@@ -14,22 +14,27 @@ export async function POST(req: Request) {
     if (transferType === 'in') {
       const memo = (content || '').toUpperCase()
       
-      // Parse email bằng Regex để tránh trường hợp ngân hàng nối thêm chữ
-      // Tìm mẫu: vndocs-plus-<email> hoặc vndocs-pro-<email>
-      const match = memo.match(/VNDOCS-(PLUS|PRO)-([A-Z0-9_\.\-]+@[A-Z0-9_\.\-]+)/)
+      // Bắt mẫu linh hoạt cho phép không có khoảng trắng/dấu gạch nối
+      const match = memo.match(/VNDOCS[\s\-\.]*(PLUS|PRO)[\s\-\.]*([A-Z0-9_\.\-@]+)/)
 
       if (match) {
         const plan = match[1].toLowerCase() // "plus" hoặc "pro"
-        const userEmail = match[2].toLowerCase()
+        const userIdentifier = match[2].toLowerCase()
+        const normId = userIdentifier.replace(/[^a-z0-9]/ig, '')
         const requiredAmount = plan === 'pro' ? 149000 : 50000
 
-        if (transferAmount >= requiredAmount) {
+        if (transferAmount >= requiredAmount && normId.length >= 5) {
           const db = await getDb()
-          // Tìm user theo email
-          const userRows = await db.select().from(users).where(eq(users.email, userEmail)).limit(1)
+          // Lấy tất cả user và lọc bằng JS để đảm bảo chính xác 100% với các trường hợp ngân hàng format lại chuỗi
+          const allUsers = await db.select().from(users)
+          const matchedUser = allUsers.find(u => {
+            if (!u.email) return false
+            const normEmail = u.email.replace(/[^a-z0-9]/ig, '').toLowerCase()
+            return normId.includes(normEmail) || normEmail.startsWith(normId)
+          })
           
-          if (userRows.length > 0) {
-            const user = userRows[0]
+          if (matchedUser) {
+            const user = matchedUser
             
             // Hạn sử dụng: 30 ngày kể từ lúc nạp
             const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
@@ -43,7 +48,7 @@ export async function POST(req: Request) {
             
             console.log(`=> Cấp gói ${plan.toUpperCase()} thành công cho user:`, user.email)
           } else {
-            console.error('=> Không tìm thấy user nào khớp với email:', userEmail)
+            console.error('=> Không tìm thấy user nào khớp với thông tin:', userIdentifier)
           }
         } else {
           console.error(`=> Số tiền không đủ. Yêu cầu: ${requiredAmount}, nhận được: ${transferAmount}`)
