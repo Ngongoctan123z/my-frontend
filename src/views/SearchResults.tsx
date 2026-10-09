@@ -310,7 +310,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       </div>
 
       {/* Main Content Layout: Filters + Results + Ad Banner */}
-      <div className={`grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr_300px] md:grid-cols-[280px_1fr] pb-12 md:pb-16`}>
+      <div className={`grid grid-cols-1 gap-8 md:grid-cols-[280px_1fr] pb-12 md:pb-16`}>
         {/* Sidebar Filters */}
         <div className={`${filtersOpen ? 'block' : 'hidden'} md:block md:sticky md:top-24 h-max`}>
           <ExamFilter
@@ -384,8 +384,8 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-12 mb-6 flex flex-col items-center">
-              <nav aria-label="Pagination" className="inline-flex items-center p-1.5 bg-surface/80 backdrop-blur-xl border border-line/80 rounded-2xl shadow-sm">
+            <div className="mt-16 mb-8 flex flex-col items-center">
+              <nav aria-label="Pagination" className="inline-flex items-center gap-2">
                 {/* Nút Trước */}
                 <button
                   type="button"
@@ -394,17 +394,15 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                     setPage((p) => Math.max(0, p - 1))
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
-                  className="flex h-10 px-3 sm:px-4 items-center gap-1.5 justify-center rounded-xl text-ink-muted hover:bg-page hover:text-[var(--color-primary)] disabled:opacity-30 disabled:hover:bg-transparent transition-all group"
+                  className="flex h-11 px-4 items-center gap-2 justify-center rounded-xl bg-surface border border-line text-ink-muted hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-muted disabled:cursor-not-allowed shadow-sm transition-all group"
                   aria-label="Trang trước"
                 >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                  <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
                   <span className="text-sm font-semibold hidden sm:block">Trước</span>
                 </button>
 
-                <div className="h-6 w-px bg-line mx-1"></div>
-
                 {/* Smart page numbers */}
-                <div className="flex items-center gap-1 px-1">
+                <div className="flex items-center gap-2">
                   {(() => {
                     const delta = 2
                     const range: (number | '...')[] = []
@@ -423,7 +421,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
 
                     return range.map((item, idx) =>
                       item === '...' ? (
-                        <span key={`dot-${idx}`} className="flex h-10 w-8 items-center justify-center text-ink-muted text-sm font-medium">…</span>
+                        <span key={`dot-${idx}`} className="flex h-11 w-8 items-center justify-center text-ink-muted text-lg tracking-widest font-medium">…</span>
                       ) : (
                         <button
                           key={item}
@@ -432,10 +430,10 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                             setPage(item as number)
                             window.scrollTo({ top: 0, behavior: 'smooth' })
                           }}
-                          className={`flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl text-sm font-semibold transition-all duration-300 ${
+                          className={`flex h-11 w-11 items-center justify-center rounded-xl text-sm font-bold transition-all duration-300 ${
                             page === item
-                              ? 'bg-[var(--color-primary)] text-white shadow-md shadow-[var(--color-primary)]/20 scale-105'
-                              : 'text-ink-muted hover:bg-page hover:text-ink hover:scale-105'
+                              ? 'bg-[var(--color-primary)] text-white shadow-[0_4px_14px_0_rgba(var(--color-primary-rgb),0.39)] ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-page)] -translate-y-0.5'
+                              : 'bg-surface border border-line text-ink-muted hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:-translate-y-0.5 shadow-sm'
                           }`}
                         >
                           {(item as number) + 1}
@@ -445,8 +443,6 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                   })()}
                 </div>
 
-                <div className="h-6 w-px bg-line mx-1"></div>
-
                 {/* Nút Sau */}
                 <button
                   type="button"
@@ -455,11 +451,11 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
                     setPage((p) => Math.min(totalPages - 1, p + 1))
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
-                  className="flex h-10 px-3 sm:px-4 items-center gap-1.5 justify-center rounded-xl text-ink-muted hover:bg-page hover:text-[var(--color-primary)] disabled:opacity-30 disabled:hover:bg-transparent transition-all group"
+                  className="flex h-11 px-4 items-center gap-2 justify-center rounded-xl bg-surface border border-line text-ink-muted hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-muted disabled:cursor-not-allowed shadow-sm transition-all group"
                   aria-label="Trang sau"
                 >
-                  <span className="text-sm font-semibold hidden sm:block">Tiếp</span>
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+                  <span className="text-sm font-semibold hidden sm:block">Sau</span>
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </button>
               </nav>
             </div>
