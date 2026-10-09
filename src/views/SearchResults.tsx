@@ -38,7 +38,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       : 'VNDocs tuyển sinh vào lớp 10 và thi tốt nghiệp THPT của các tỉnh thành. Tải đề và xem online.',
   )
 
-  const PAGE_SIZE = 6
+  const PAGE_SIZE = 8
 
   const filters = useMemo(
     () => ({
@@ -71,7 +71,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       nextParams.delete(key)
     }
     setPage(0)
-    window.history.pushState(null, '', `${pathname}?${nextParams.toString()}`)
+    router.push(`${pathname}?${nextParams.toString()}`, { scroll: false })
   }
 
   const applyFilters = (next: {
@@ -98,12 +98,12 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
     else nextParams.delete('sort')
 
     setPage(0)
-    window.history.pushState(null, '', `${pathname}?${nextParams.toString()}`)
+    router.push(`${pathname}?${nextParams.toString()}`, { scroll: false })
   }
 
   const handleResetFilters = () => {
     setPage(0)
-    window.history.pushState(null, '', pathname || '/')
+    router.push(pathname || '/', { scroll: false })
   }
 
   const hasActiveFilters = Boolean(q || examType || subject || province || year || sort !== 'recent')
