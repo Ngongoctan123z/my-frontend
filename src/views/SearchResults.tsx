@@ -38,7 +38,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
       : 'VNDocs tuyển sinh vào lớp 10 và thi tốt nghiệp THPT của các tỉnh thành. Tải đề và xem online.',
   )
 
-  const PAGE_SIZE = 8
+  const PAGE_SIZE = 6
 
   const filters = useMemo(
     () => ({
@@ -384,77 +384,84 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-1.5 pt-4 border-t border-line">
-              {/* Nút Trước */}
-              <button
-                type="button"
-                disabled={page === 0}
-                onClick={() => {
-                  setPage((p) => Math.max(0, p - 1))
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
-                }}
-                className="min-h-9 rounded-lg px-3 border border-line bg-surface text-xs font-medium disabled:opacity-40 hover:bg-page transition-colors"
-              >
-                ← Trước
-              </button>
+            <div className="mt-12 mb-6 flex flex-col items-center">
+              <nav aria-label="Pagination" className="inline-flex items-center p-1.5 bg-surface/80 backdrop-blur-xl border border-line/80 rounded-2xl shadow-sm">
+                {/* Nút Trước */}
+                <button
+                  type="button"
+                  disabled={page === 0}
+                  onClick={() => {
+                    setPage((p) => Math.max(0, p - 1))
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  className="flex h-10 px-3 sm:px-4 items-center gap-1.5 justify-center rounded-xl text-ink-muted hover:bg-page hover:text-[var(--color-primary)] disabled:opacity-30 disabled:hover:bg-transparent transition-all group"
+                  aria-label="Trang trước"
+                >
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                  <span className="text-sm font-semibold hidden sm:block">Trước</span>
+                </button>
 
-              {/* Smart page numbers */}
-              {(() => {
-                const delta = 2
-                const range: (number | '...')[] = []
-                const left = Math.max(0, page - delta)
-                const right = Math.min(totalPages - 1, page + delta)
+                <div className="h-6 w-px bg-line mx-1"></div>
 
-                if (left > 0) {
-                  range.push(0)
-                  if (left > 1) range.push('...')
-                }
-                for (let i = left; i <= right; i++) range.push(i)
-                if (right < totalPages - 1) {
-                  if (right < totalPages - 2) range.push('...')
-                  range.push(totalPages - 1)
-                }
+                {/* Smart page numbers */}
+                <div className="flex items-center gap-1 px-1">
+                  {(() => {
+                    const delta = 2
+                    const range: (number | '...')[] = []
+                    const left = Math.max(0, page - delta)
+                    const right = Math.min(totalPages - 1, page + delta)
 
-                return range.map((item, idx) =>
-                  item === '...' ? (
-                    <span key={`dot-${idx}`} className="px-1 text-ink-muted text-xs">…</span>
-                  ) : (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => {
-                        setPage(item as number)
-                        window.scrollTo({ top: 0, behavior: 'smooth' })
-                      }}
-                      className={`min-h-9 min-w-9 rounded-lg px-2.5 text-xs font-semibold transition-colors ${
-                        page === item
-                          ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                          : 'border border-line bg-surface hover:bg-page text-ink'
-                      }`}
-                    >
-                      {(item as number) + 1}
-                    </button>
-                  )
-                )
-              })()}
+                    if (left > 0) {
+                      range.push(0)
+                      if (left > 1) range.push('...')
+                    }
+                    for (let i = left; i <= right; i++) range.push(i)
+                    if (right < totalPages - 1) {
+                      if (right < totalPages - 2) range.push('...')
+                      range.push(totalPages - 1)
+                    }
 
-              {/* Nút Sau */}
-              <button
-                type="button"
-                disabled={page >= totalPages - 1}
-                onClick={() => {
-                  setPage((p) => Math.min(totalPages - 1, p + 1))
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
-                }}
-                className="min-h-9 rounded-lg px-3 border border-line bg-surface text-xs font-medium disabled:opacity-40 hover:bg-page transition-colors"
-              >
-                Sau →
-              </button>
+                    return range.map((item, idx) =>
+                      item === '...' ? (
+                        <span key={`dot-${idx}`} className="flex h-10 w-8 items-center justify-center text-ink-muted text-sm font-medium">…</span>
+                      ) : (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            setPage(item as number)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                          className={`flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl text-sm font-semibold transition-all duration-300 ${
+                            page === item
+                              ? 'bg-[var(--color-primary)] text-white shadow-md shadow-[var(--color-primary)]/20 scale-105'
+                              : 'text-ink-muted hover:bg-page hover:text-ink hover:scale-105'
+                          }`}
+                        >
+                          {(item as number) + 1}
+                        </button>
+                      )
+                    )
+                  })()}
+                </div>
 
-              {/* Hiển thị trang hiện tại */}
-              <span className="w-full text-center text-xs text-ink-muted mt-1">
-                Trang {page + 1} / {totalPages}
-              </span>
+                <div className="h-6 w-px bg-line mx-1"></div>
+
+                {/* Nút Sau */}
+                <button
+                  type="button"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => {
+                    setPage((p) => Math.min(totalPages - 1, p + 1))
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  className="flex h-10 px-3 sm:px-4 items-center gap-1.5 justify-center rounded-xl text-ink-muted hover:bg-page hover:text-[var(--color-primary)] disabled:opacity-30 disabled:hover:bg-transparent transition-all group"
+                  aria-label="Trang sau"
+                >
+                  <span className="text-sm font-semibold hidden sm:block">Tiếp</span>
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+              </nav>
             </div>
           )}
         </div>

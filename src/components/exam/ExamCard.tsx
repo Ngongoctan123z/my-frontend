@@ -32,8 +32,8 @@ export function ExamCard({ exam, highlight = false, compact = false }: { exam: E
 
   return (
     <article
-      className={`group flex items-start ${compact ? 'gap-3 py-3' : 'gap-4 py-4'} border-b border-[var(--border-color)] last:border-b-0 transition-colors duration-200 ${
-        highlight ? 'bg-blue-50/50 dark:bg-blue-950/20 -mx-3 px-3 rounded-[6px]' : ''
+      className={`group flex items-start ${compact ? 'gap-3 p-3' : 'gap-4 p-4'} border border-[var(--border-color)] bg-surface rounded-xl transition-all duration-300 hover:border-[var(--color-primary)] hover:shadow-md hover:-translate-y-0.5 h-full ${
+        highlight ? 'ring-2 ring-[var(--color-primary)]/50 bg-[var(--color-primary)]/5' : ''
       }`}
     >
       {/* Thumbnail */}

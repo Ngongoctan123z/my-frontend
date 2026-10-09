@@ -3,12 +3,13 @@ import { ExamCard } from './ExamCard'
 
 function SkeletonCard({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={`flex items-start ${compact ? 'gap-3 py-3' : 'gap-4 py-5'} border-b border-line border-dashed last:border-b-0`}>
-      <div className={`skeleton shrink-0 ${compact ? 'w-[70px] h-[99px]' : 'w-[90px] h-[127px] md:w-[130px] md:h-[184px]'} rounded bg-surface`} />
-      <div className="flex-1 space-y-3 pt-1 md:pt-2 w-full">
-        <div className="skeleton h-5 md:h-6 w-full rounded" />
-        <div className="skeleton h-5 md:h-6 w-3/4 rounded" />
-        <div className="skeleton h-4 w-32 rounded mt-2" />
+    <div className={`flex items-start ${compact ? 'gap-3 p-3' : 'gap-4 p-4'} border border-line rounded-xl bg-surface h-full`}>
+      <div className={`skeleton shrink-0 ${compact ? 'w-[80px] h-[113px]' : 'w-[100px] h-[141px]'} rounded-lg bg-page`} />
+      <div className="flex-1 space-y-3 pt-1 w-full">
+        <div className="skeleton h-4 w-16 rounded-md bg-page mb-2" />
+        <div className="skeleton h-5 md:h-6 w-full rounded-md bg-page" />
+        <div className="skeleton h-5 md:h-6 w-3/4 rounded-md bg-page" />
+        <div className="skeleton h-4 w-32 rounded-md bg-page mt-4" />
       </div>
     </div>
   )
@@ -29,7 +30,7 @@ export function ExamList({
 }) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
         {Array.from({ length: skeletonCount }, (_, i) => (
           <SkeletonCard key={i} compact={compact} />
         ))}
@@ -48,9 +49,9 @@ export function ExamList({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
       {exams.map((exam, index) => (
-        <div key={exam.id} className="fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+        <div key={exam.id} className="fade-in flex flex-col h-full" style={{ animationDelay: `${index * 50}ms` }}>
           <ExamCard
             exam={exam}
             compact={compact}
