@@ -51,13 +51,17 @@ export async function syncBankTransactions() {
     )
 
     for (const tx of unmatchedTxs) {
-      const memo = (tx.content || '').toUpperCase()
-      const match = memo.match(/VNDOCS[\s\-\.]*(PLUS|PRO)[\s\-\.]*([A-Z0-9_\.\-@]+)/)
+      const memo = (tx.content || '').toLowerCase()
+      // Lọc bỏ toàn bộ ký tự đặc biệt, khoảng trắng để tránh lỗi (vd: vndocsprongongoctangmailcom- Ma GD -> vndocsprongongoctangmailcommagd)
+      const cleanMemo = memo.replace(/[^a-z0-9]/g, '')
+      
+      // Bắt chính xác từ vndocs -> plus/pro -> phần tử bất kỳ -> com. 
+      // Phần rác đằng sau chữ com sẽ bị vứt bỏ, bill nào không có com sẽ bị bỏ qua
+      const match = cleanMemo.match(/vndocs(plus|pro)(.*?com)/)
 
       if (match) {
-        const plan = match[1].toLowerCase() // "plus" hoặc "pro"
-        const userIdentifier = match[2].toLowerCase()
-        const normId = userIdentifier.replace(/[^a-z0-9]/ig, '')
+        const plan = match[1] // "plus" hoặc "pro"
+        const normId = match[2] // vd: ngongoctangmailcom
         const requiredAmount = plan === 'pro' ? 149000 : 50000
 
         if (tx.amount >= requiredAmount && normId.length >= 5) {
@@ -65,7 +69,7 @@ export async function syncBankTransactions() {
           const matchedUser = allUsers.find(u => {
             if (!u.email) return false
             const normEmail = u.email.replace(/[^a-z0-9]/ig, '').toLowerCase()
-            return normId.includes(normEmail) || normEmail.startsWith(normId)
+            return normEmail === normId || normId.includes(normEmail) || normEmail.startsWith(normId)
           })
           
           if (matchedUser) {
