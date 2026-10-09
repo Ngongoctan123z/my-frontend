@@ -1,4 +1,4 @@
-import { postProcessResult, buildUserContent } from '../app/api/ai-grader/route'
+import { postProcessResult, buildUserContent } from '../app/api/ai-grader/scoring'
 import assert from 'assert'
 
 console.log('Running Tests for AI Grader...')
