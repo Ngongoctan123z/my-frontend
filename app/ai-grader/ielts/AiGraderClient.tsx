@@ -67,6 +67,8 @@ export function AiGraderClient() {
     }
   }
 
+  const [hasLoadedDraft, setHasLoadedDraft] = useState(false)
+
   // Load draft on mount
   useEffect(() => {
     try {
@@ -76,20 +78,25 @@ export function AiGraderClient() {
 
       if (savedEssay) setEssay(savedEssay)
       if (savedPrompt) setPrompt(JSON.parse(savedPrompt))
-      if (savedExamType && ['IELTS_WRITING_TASK1', 'IELTS_WRITING_TASK2'].includes(savedExamType)) {
+      if (savedExamType && ['IELTS_TASK_1', 'IELTS_TASK_2'].includes(savedExamType)) {
         setExamType(savedExamType as ExamType)
       } else {
         localStorage.removeItem('draft_ielts_examType')
       }
-    } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
+    setHasLoadedDraft(true)
   }, [])
 
-  // Save draft on change
+    // Save draft on change
   useEffect(() => {
-    localStorage.setItem('draft_ielts_essay', essay)
-    if (prompt) localStorage.setItem('draft_ielts_prompt', JSON.stringify(prompt))
-    localStorage.setItem('draft_ielts_examType', examType)
-  }, [essay, prompt, examType])
+    if (hasLoadedDraft) {
+      localStorage.setItem('draft_ielts_essay', essay);
+      if (prompt) localStorage.setItem('draft_ielts_prompt', JSON.stringify(prompt));
+      localStorage.setItem('draft_ielts_examType', examType);
+    }
+  }, [essay, prompt, examType, hasLoadedDraft])
 
   const loadHistory = async () => {
     const email = session?.user?.email || 'anonymous';
@@ -253,11 +260,11 @@ export function AiGraderClient() {
         {/* Left Column: Editor */}
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                 <FileEdit className="w-5 h-5 text-blue-600" /> {isEn ? 'Exam Setup' : 'Thiết lập đề thi'}
               </h2>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {(userPlan === 'plus' || userPlan === 'pro') && (
                   <button 
                     onClick={() => { setShowStudentsModal(true); loadStudentsData(); }}
@@ -272,15 +279,15 @@ export function AiGraderClient() {
                   className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
                 >
                   <History className="w-4 h-4" />
-                  {isEn ? 'History' : 'Lịch sử'} ({history.length})
+                  <span className="hidden sm:inline">{isEn ? 'History' : 'Lịch sử'} ({history.length})</span><span className="sm:hidden">{history.length}</span>
                 </button>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-5">
               <button
                 onClick={() => { setExamType('IELTS_TASK_1'); setResult(null); setPrompt(null); }}
-                className={`px-4 py-2 rounded text-sm font-semibold transition-all border ${
+                className={`w-full px-4 py-2 rounded text-sm font-semibold transition-all border ${
                   examType === 'IELTS_TASK_1' ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                 }`}
               >
@@ -288,7 +295,7 @@ export function AiGraderClient() {
               </button>
               <button
                 onClick={() => { setExamType('IELTS_TASK_2'); setResult(null); setPrompt(null); }}
-                className={`px-4 py-2 rounded text-sm font-semibold transition-all border ${
+                className={`w-full px-4 py-2 rounded text-sm font-semibold transition-all border ${
                   examType === 'IELTS_TASK_2' ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                 }`}
               >
@@ -314,9 +321,9 @@ export function AiGraderClient() {
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="font-medium text-slate-700 text-sm">{isEn ? 'Prompt Content:' : 'Nội dung đề bài:'}</label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   
                   
                   {(userPlan === 'plus' || userPlan === 'pro') && prompt?.content && (
@@ -401,6 +408,13 @@ export function AiGraderClient() {
                   title={isEditorExpanded ? (isEn ? 'Minimize' : 'Thu nhỏ') : (isEn ? 'Expand' : 'Phóng to')}
                 >
                   {isEditorExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                </button>
+                <button 
+                  onClick={() => { if(confirm(isEn ? 'Are you sure you want to clear your essay?' : 'Bạn có chắc chắn muốn xóa toàn bộ bài làm?')) setEssay('') }}
+                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                  title={isEn ? 'Clear essay' : 'Xóa bài làm'}
+                >
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </div>
             </div>
