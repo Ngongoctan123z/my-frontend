@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
-import { createHash } from 'node:crypto'
+// Web Crypto API will be used instead of node:crypto
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
 import { systemConfigs, prompts as promptsTable, apiUsages, users } from '@/src/db/schema'
@@ -34,6 +34,13 @@ async function checkAndIncrementRateLimit(userId: string): Promise<{ allowed: bo
   return { allowed: true, limit }
 }
 
+async function sha256Hex(text: string) {
+  const msgBuffer = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function incrementGlobalCounter(usedKey?: string) {
   try {
     const db = await getDb()
@@ -47,7 +54,8 @@ async function incrementGlobalCounter(usedKey?: string) {
     }
 
     if (usedKey) {
-      const keyUsageKey = `KEY_USAGE_${createHash('sha256').update(usedKey).digest('hex').slice(0, 16)}`
+      const hash = await sha256Hex(usedKey)
+      const keyUsageKey = `KEY_USAGE_${hash.slice(0, 16)}`
       const keyConfig = configs.find(c => c.key === keyUsageKey)
       if (keyConfig) {
         await db.update(systemConfigs).set({ value: (parseInt(keyConfig.value) + 1).toString() }).where(eq(systemConfigs.key, keyUsageKey))
@@ -149,9 +157,9 @@ async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = f
     const now = Date.now()
     let availableKeys = shuffledKeys.filter(k => !keyCooldowns[k] || now > keyCooldowns[k])
 
-    // Nếu tất cả các key đều đang bị cooldown, thử vận may nghiệm thu lại tất cả
+    // Nếu tất cả các key đều đang bị cooldown, đừng cố thử lại (gây 1102 CPU time limit và tốn subrequests)
     if (availableKeys.length === 0) {
-      availableKeys = shuffledKeys
+      throw new Error('Hệ thống đang quá tải do giới hạn của Groq API. Vui lòng đợi 1 phút và thử lại.')
     }
 
     for (const apiKey of availableKeys) {
@@ -190,8 +198,8 @@ async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = f
       }
     }
 
-    // Nếu chạy hết toàn bộ Key và Model mà vẫn xịt (hết Rate Limit chung), 
-    // đợi 2 giây rồi xoay vòng lại từ đầu không báo lỗi
+    // Hết key ở lượt này, đợi 2 giây rồi thử lại. 
+    // Tuy nhiên nếu availableKeys = 0 ở trên nó đã throw Error, nên vòng lặp sẽ không quay cuồng lãng phí CPU.
     await delay(2000)
     retryCount++
   }
