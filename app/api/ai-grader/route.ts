@@ -455,19 +455,7 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
       }
 
       // Kiểm tra nguồn theo task
-      let hasSource = true;
-      let missingSourceMsg = '';
-      if (type === 'IELTS_TASK_1' && !imageDescription) {
-        hasSource = false; missingSourceMsg = 'Thiếu mô tả biểu đồ/hình ảnh gốc.';
-      } else if (type === 'TOPIK_53' && !imageDescription && !prompt.includes('biểu đồ')) {
-        hasSource = false; missingSourceMsg = 'Thiếu số liệu biểu đồ gốc.';
-      } else if (type === 'HSK_5' && prompt.includes('bức tranh') && !imageDescription) {
-        hasSource = false; missingSourceMsg = 'Thiếu mô tả bức tranh gốc.';
-      } else if (type === 'HSK_6' && !prompt.includes('Bài đọc:')) {
-        hasSource = false; missingSourceMsg = 'Thiếu bài đọc gốc.';
-      } else if (type === 'TOPIK_51_52' && !prompt.includes('ngữ cảnh')) {
-        hasSource = false; missingSourceMsg = 'Thiếu ngữ cảnh xung quanh chỗ trống.';
-      }
+      // Bỏ logic CẢNH BÁO thiếu hình ảnh/đoạn văn gốc do user yêu cầu
 
       // Retry loop
       let lastError: any = null
@@ -490,11 +478,7 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
           const finalResult = postProcessResult(parsed, type, essay, gradingSettings.calibration)
           
           // Metadata
-          finalResult.assessmentStatus = hasSource ? 'verified' : 'provisional'
-          if (!hasSource) {
-            finalResult.detailedFeedback = '[CẢNH BÁO: ' + missingSourceMsg + ' Điểm số chỉ mang tính tham khảo ngôn ngữ] ' + finalResult.detailedFeedback
-            finalResult.overallBand = null // Không chấm điểm tổng nếu thiếu nguồn
-          }
+          finalResult.assessmentStatus = 'verified'
           finalResult.modelUsed = textRes.model
           finalResult.rubricVersion = '1.0'
           finalResult.scoreKind = type.includes('IELTS') ? 'band' : 'score'
