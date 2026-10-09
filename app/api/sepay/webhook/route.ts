@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/src/db'
-import { users } from '@/src/db/schema'
-import { like, eq } from 'drizzle-orm'
+// import { getDb } from '@/src/db'
+// import { users } from '@/src/db/schema'
+// import { like, eq } from 'drizzle-orm'
 
 export async function POST(req: Request) {
   try {
+    // Đã đóng băng không sử dụng SePay nữa
+    console.log('[SePay Webhook] Đã bị vô hiệu hóa, bỏ qua giao dịch.')
+    
+    /*
     const data = await req.json()
     console.log('[SePay Webhook] Nhận được giao dịch mới:', data)
 
@@ -57,8 +61,9 @@ export async function POST(req: Request) {
          console.error('=> Nội dung không đúng cú pháp:', memo)
       }
     }
+    */
 
-    return NextResponse.json({ success: true, message: 'Webhook processed' })
+    return NextResponse.json({ success: false, message: 'SePay webhook is disabled' })
   } catch (error) {
     console.error('[SePay Webhook] Lỗi:', error)
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 })
