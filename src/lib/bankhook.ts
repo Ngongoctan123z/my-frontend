@@ -5,20 +5,23 @@ import { eq, like, and } from 'drizzle-orm'
 export async function syncBankTransactions() {
   try {
     const bankhookUrl = process.env.BANKHOOK_BASE_URL || 'https://bankhook-backend.onrender.com'
-    const res = await fetch(`${bankhookUrl}/api/transactions?limit=50`, {
+    const res = await fetch(`${bankhookUrl}/api/transactions?limit=50&t=${Date.now()}`, {
       headers: {
         'x-api-key': process.env.BANKHOOK_API_KEY || ''
       },
-      next: { revalidate: 15 }
+      cache: 'no-store'
     })
+    
+    let transactions = []
     
     if (!res.ok) {
       console.error('[BankHook] Sync failed with status:', res.status)
-      return { success: false, error: 'Failed to fetch from BankHook' }
+      // Don't return early! Proceed to process unmatched transactions from DB
+    } else {
+      const data = await res.json()
+      transactions = data.transactions || []
+      console.log('[BankHook] Fetched transactions:', transactions.length)
     }
-
-    const data = await res.json()
-    const transactions = data.transactions || []
 
     const db = await getDb()
 
@@ -55,9 +58,9 @@ export async function syncBankTransactions() {
       // Lọc bỏ toàn bộ ký tự đặc biệt, khoảng trắng để tránh lỗi (vd: vndocsprongongoctangmailcom- Ma GD -> vndocsprongongoctangmailcommagd)
       const cleanMemo = memo.replace(/[^a-z0-9]/g, '')
       
-      // Bắt chính xác từ vndocs -> plus/pro -> phần tử bất kỳ -> com. 
-      // Phần rác đằng sau chữ com sẽ bị vứt bỏ, bill nào không có com sẽ bị bỏ qua
-      const match = cleanMemo.match(/vndocs(plus|pro)(.*?com)/)
+      // Bắt chính xác từ vndocs -> plus/pro -> phần còn lại
+      // Bỏ chữ com cứng để hỗ trợ các email khác như .vn, .edu
+      const match = cleanMemo.match(/vndocs(plus|pro)(.*)/)
 
       if (match) {
         const plan = match[1] // "plus" hoặc "pro"

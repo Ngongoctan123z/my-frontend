@@ -141,11 +141,17 @@ export default async function ExamPage({ params }: Props) {
   
   let relatedExams: import('../../../src/types/exam').Exam[] = []
   try {
-    relatedExams = await getRelatedExams(exam.id)
-    if (!relatedExams || relatedExams.length === 0) {
-      const fallback = await getExams({ examType: exam.examType, subject: exam.subject, limit: 4 })
-      relatedExams = fallback.data.filter(e => e.id !== exam.id).slice(0, 3)
-    }
+    const p1 = await getExams({ examType: exam.examType, subject: exam.subject, year: exam.year, limit: 5 });
+    const p2 = await getExams({ examType: exam.examType, year: exam.year, limit: 5 });
+    const p3 = await getExams({ examType: exam.examType, limit: 5 });
+    
+    const combined = [...p1.data, ...p2.data, ...p3.data].filter(e => e.id !== exam.id);
+    const seen = new Set();
+    relatedExams = combined.filter(e => {
+      if (seen.has(e.id)) return false;
+      seen.add(e.id);
+      return true;
+    }).slice(0, 6);
   } catch (e) {}
 
   let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`

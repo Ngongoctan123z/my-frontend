@@ -163,7 +163,7 @@ export function Header() {
         {/* Right actions */}
         <div className="flex items-center gap-2 shrink-0">
           {userPlan === 'free' ? (
-            <Link prefetch={false} href="/premium"
+            <Link prefetch={false} href={isEnRoute ? '/en/premium' : '/premium'}
               className="inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
               aria-label="Premium"
             >
@@ -171,7 +171,7 @@ export function Header() {
               <span className="hidden sm:inline">{isEnRoute ? 'Upgrade' : 'Nâng cấp'}</span>
             </Link>
           ) : userPlan === 'plus' ? (
-            <Link prefetch={false} href="/profile"
+            <Link prefetch={false} href={isEnRoute ? '/en/profile' : '/profile'}
               className="inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
               aria-label="Plus"
             >
@@ -179,7 +179,7 @@ export function Header() {
               <span className="hidden sm:inline">PLUS</span>
             </Link>
           ) : (
-            <Link prefetch={false} href="/profile"
+            <Link prefetch={false} href={isEnRoute ? '/en/profile' : '/profile'}
               className="inline-flex h-9 items-center justify-center rounded-[6px] bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 hover:opacity-90 transition-all font-bold text-sm shadow-sm gap-1 mr-1"
               aria-label="Pro"
             >

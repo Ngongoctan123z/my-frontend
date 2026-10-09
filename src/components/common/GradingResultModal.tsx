@@ -1,5 +1,5 @@
-import React from 'react'
-import { Loader2, XCircle, CheckCircle2 } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Loader2, XCircle, CheckCircle2, Sparkles, Activity } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
 interface GradingResultModalProps {
@@ -14,6 +14,62 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
   const pathname = usePathname()
   const isEn = pathname.startsWith('/en/') || pathname === '/en'
 
+  const [progress, setProgress] = useState(0)
+  const [activeStep, setActiveStep] = useState(0)
+  const [internalResult, setInternalResult] = useState<any>(null)
+  const [isFinishing, setIsFinishing] = useState(false)
+  const wasGradingRef = useRef(false)
+
+  useEffect(() => {
+    if (isGrading) {
+      wasGradingRef.current = true
+      setProgress(0)
+      setActiveStep(0)
+      setInternalResult(null)
+      setIsFinishing(false)
+      
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 98) return 98;
+          // random increment, slightly faster
+          const inc = Math.random() * 3.5 + 1.5;
+          const next = prev + inc;
+          
+          if (next > 75) setActiveStep(3);
+          else if (next > 50) setActiveStep(2);
+          else if (next > 25) setActiveStep(1);
+          
+          return next > 98 ? 98 : next;
+        })
+      }, 250)
+      
+      return () => clearInterval(interval)
+    }
+  }, [isGrading])
+
+  useEffect(() => {
+    if (result) {
+      if (wasGradingRef.current) {
+        // Fast finish animation
+        setIsFinishing(true)
+        setProgress(100)
+        setActiveStep(4) // All complete
+        
+        const timer = setTimeout(() => {
+          setInternalResult(result)
+          setIsFinishing(false)
+          wasGradingRef.current = false
+        }, 1200)
+        
+        return () => clearTimeout(timer)
+      } else {
+        setInternalResult(result)
+      }
+    } else {
+      setInternalResult(null)
+    }
+  }, [result])
+
   if (!isOpen) return null;
 
   return (
@@ -27,27 +83,103 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
         </button>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
-          {isGrading && !result ? (
-            <div className="min-h-[400px] flex flex-col items-center justify-center text-center">
-              <div className="relative w-24 h-24 mb-8">
-                <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 text-indigo-600 animate-pulse" />
+          {!internalResult ? (
+            <div className="min-h-[450px] flex flex-col items-center justify-center text-center animate-in zoom-in duration-500">
+              <div className="relative w-40 h-40 mb-10 flex items-center justify-center group">
+                {/* Glowing aura */}
+                <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-2xl animate-pulse"></div>
+                
+                {/* Outer spinning dashed ring */}
+                <div className="absolute inset-2 border-4 border-dashed border-[var(--color-primary)]/30 rounded-full animate-[spin_15s_linear_infinite]"></div>
+                
+                {/* Background track */}
+                <div className="absolute inset-4 border-[6px] border-slate-100 dark:border-slate-800 rounded-full shadow-inner"></div>
+                
+                {/* SVG Progress Circle */}
+                <svg className="absolute inset-4 w-[calc(100%-2rem)] h-[calc(100%-2rem)] -rotate-90 transform drop-shadow-md" viewBox="0 0 100 100">
+                  <defs>
+                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="var(--color-primary)" />
+                      <stop offset="100%" stopColor="#3b82f6" />
+                    </linearGradient>
+                  </defs>
+                  <circle 
+                    cx="50" cy="50" r="44" 
+                    fill="none" 
+                    stroke="url(#grad1)" 
+                    strokeWidth="8" 
+                    className="transition-all duration-300 ease-out"
+                    strokeDasharray="276.46"
+                    strokeDashoffset={276.46 - (276.46 * progress) / 100}
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+                {/* Center Content */}
+                <div className="absolute inset-6 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full shadow-[0_0_20px_rgba(0,0,0,0.06)] border border-white/50">
+                  <Sparkles className="w-5 h-5 text-blue-400 absolute top-4 right-4 animate-bounce" />
+                  <span className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-br from-[var(--color-primary)] to-blue-500 tracking-tighter">
+                    {Math.floor(progress)}%
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1 flex items-center gap-1">
+                    <Activity className="w-3 h-3 text-[var(--color-primary)] animate-pulse" />
+                    AI AI
+                  </span>
                 </div>
               </div>
-              <h3 className="text-2xl font-black text-slate-800 mb-3">{isEn ? 'AI is grading...' : 'AI đang phân tích và chấm điểm...'}</h3>
-              <p className="text-slate-500 max-w-md mx-auto text-sm">
-                {isEn ? 'This may take 10-30 seconds depending on essay length. Please do not close this window.' : 'Quá trình này có thể mất từ 10-30 giây tùy thuộc vào độ dài bài viết của bạn. Vui lòng không đóng cửa sổ này.'}
+
+              <h3 className="text-2xl font-black text-slate-800 bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500 mb-3">
+                {isEn ? 'AI is analyzing & grading...' : 'AI đang phân tích và chấm điểm...'}
+              </h3>
+              <p className="text-slate-500 max-w-md mx-auto text-sm font-medium">
+                {isEn ? 'This process involves deep neural networks and may take 10-30 seconds. Please wait.' : 'Quá trình này sử dụng AI chuyên sâu và có thể mất 10-30 giây. Vui lòng chờ.'}
               </p>
               
-              <div className="mt-12 w-full max-w-md mx-auto grid grid-cols-2 gap-4">
-                {(isEn ? ['Content Analysis', 'Grammar Check', 'Vocabulary Eval', 'Result Synthesis'] : ['Phân tích nội dung', 'Kiểm tra ngữ pháp', 'Đánh giá từ vựng', 'Tổng hợp kết quả']).map((step, idx) => (
-                  <div key={idx} className="bg-slate-50 rounded-lg p-3 flex items-center gap-3 animate-pulse" style={{ animationDelay: `${idx * 200}ms` }}>
-                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                    <span className="text-xs font-semibold text-slate-600">{step}</span>
-                  </div>
-                ))}
+              <div className="mt-12 w-full max-w-xl mx-auto grid grid-cols-2 gap-4">
+                {(isEn ? ['Context Analysis', 'Grammar Check', 'Vocabulary Eval', 'Result Synthesis'] : ['Phân tích ngữ cảnh', 'Kiểm tra ngữ pháp', 'Đánh giá từ vựng', 'Tổng hợp kết quả']).map((step, idx) => {
+                  const isActive = activeStep === idx;
+                  const isDone = activeStep > idx;
+                  
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`relative rounded-2xl p-4 flex flex-col gap-2.5 transition-all duration-500 overflow-hidden ${
+                        isActive 
+                          ? 'bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-2 border-[var(--color-primary)]/40 scale-[1.02] z-10 transform-gpu' 
+                          : isDone
+                            ? 'bg-emerald-50/50 border border-emerald-100/60 opacity-80'
+                            : 'bg-slate-50/60 border border-slate-100 opacity-60'
+                      }`} 
+                    >
+                      {isActive && (
+                         <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/5 to-transparent"></div>
+                      )}
+                      
+                      <div className="flex items-center gap-3 relative z-10">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                          isActive 
+                            ? 'bg-[var(--color-primary)] text-white shadow-[0_0_15px_var(--color-primary)] animate-pulse' 
+                            : isDone
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-slate-200 text-slate-400'
+                        }`}>
+                           {isDone ? <CheckCircle2 className="w-4 h-4" /> : (idx + 1)}
+                        </div>
+                        <span className={`text-[13px] font-bold tracking-wide transition-colors ${
+                          isActive ? 'text-[var(--color-primary)]' : isDone ? 'text-emerald-700' : 'text-slate-500'
+                        }`}>
+                          {step}
+                        </span>
+                      </div>
+                      
+                      {isActive && (
+                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1 relative z-10">
+                            <div className="h-full bg-gradient-to-r from-[var(--color-primary)] to-blue-400 w-1/2 rounded-full animate-pulse shadow-[0_0_10px_var(--color-primary)]"></div>
+                         </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           ) : result ? (

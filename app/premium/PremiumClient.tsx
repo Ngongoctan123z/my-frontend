@@ -20,19 +20,25 @@ type Package = {
   description: string
 }
 
-const packages: Package[] = [
+const getPackages = (isEn: boolean): Package[] => [
   {
     id: 'plus',
     name: 'VNDocs Plus',
     price: 50000,
     priceStr: '50.000đ',
-    period: '/ tháng',
+    period: isEn ? '/ month' : '/ tháng',
     color: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30',
     badgeColor: 'text-blue-500',
     buttonClass: 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 hover:border-blue-500/50 dark:bg-slate-900 dark:text-white dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:border-blue-500/50',
     icon: <Shield className="w-5 h-5 text-blue-500 dark:text-blue-400" />,
-    description: 'Tuyệt vời cho học sinh tự học hàng ngày.',
-    features: [
+    description: isEn ? 'Great for daily self-study.' : 'Tuyệt vời cho học sinh tự học hàng ngày.',
+    features: isEn ? [
+      '1000 AI grading requests / month',
+      'Up to 50 requests / day',
+      'Share exam links with others',
+      'View detailed results from shared links',
+      'Priority customer support',
+    ] : [
       '1000 lượt chấm bài / tháng',
       'Tối đa 50 lượt chấm / ngày',
       'Chia sẻ link đề thi cho người khác',
@@ -45,14 +51,21 @@ const packages: Package[] = [
     name: 'VNDocs Pro',
     price: 149000,
     priceStr: '149.000đ',
-    period: '/ tháng',
+    period: isEn ? '/ month' : '/ tháng',
     color: 'from-amber-500/20 to-orange-500/20 border-orange-500/50',
     badgeColor: 'text-orange-500',
     buttonClass: 'bg-slate-900 text-white hover:bg-slate-800 hover:shadow-lg hover:shadow-orange-500/20 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100',
     icon: <Crown className="w-5 h-5 text-orange-500 dark:text-orange-400" />,
-    description: 'Dành cho giáo viên và trung tâm luyện thi.',
+    description: isEn ? 'For teachers and exam centers.' : 'Dành cho giáo viên và trung tâm luyện thi.',
     isPopular: true,
-    features: [
+    features: isEn ? [
+      '3000 AI grading requests / month',
+      'Up to 200 requests / day',
+      'Create custom exams',
+      'Share exam links with others',
+      'View detailed results from shared links',
+      'Early access to newest AI features',
+    ] : [
       '3000 lượt chấm bài / tháng',
       'Lên đến 200 lượt chấm / ngày',
       'Tự tạo đề thi tuỳ chỉnh (Custom Exam)',
@@ -63,7 +76,7 @@ const packages: Package[] = [
   }
 ]
 
-export function PremiumClient() {
+export function PremiumClient({ isEn = false }: { isEn?: boolean }) {
   const { data: session } = useSession()
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null)
   const [isChecking, setIsChecking] = useState(false)
@@ -75,7 +88,7 @@ export function PremiumClient() {
 
   const handleCheckout = (pkg: Package) => {
     if (!session?.user) {
-      alert('Vui lòng đăng nhập để tiến hành mua gói!')
+      alert(isEn ? 'Please log in to proceed with the payment!' : 'Vui lòng đăng nhập để tiến hành mua gói!')
       return
     }
     setSelectedPkg(pkg)
@@ -142,19 +155,28 @@ export function PremiumClient() {
         <div className="text-center space-y-5 mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-xs font-semibold text-slate-600 dark:text-slate-300 transition-colors hover:border-slate-300 dark:hover:border-slate-700">
             <Sparkles size={14} className="text-orange-500" /> 
-            <span>Nâng cấp trải nghiệm AI</span>
+            <span>{isEn ? 'Upgrade your AI experience' : 'Nâng cấp trải nghiệm AI'}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Trở thành <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">Premium</span>
+            {isEn ? 'Become ' : 'Trở thành '}<span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">Premium</span>
           </h1>
           <p className="text-base text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium">
-            Đầu tư nhỏ, bứt phá lớn. Mở khoá công nghệ AI chấm điểm độc quyền và các công cụ giáo dục đỉnh cao nhất dành riêng cho bạn.
+            {isEn 
+              ? 'A small investment for a big breakthrough. Unlock exclusive AI grading technologies and ultimate educational tools.' 
+              : 'Đầu tư nhỏ, bứt phá lớn. Mở khoá công nghệ AI chấm điểm độc quyền và các công cụ giáo dục đỉnh cao nhất dành riêng cho bạn.'}
           </p>
+          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl inline-block">
+            <p className="text-sm text-amber-700 dark:text-amber-500 font-medium">
+              ⚠️ {isEn 
+                ? 'Note: We currently only support payments via Vietnamese bank accounts (VietQR). International payments are not yet supported.' 
+                : 'Lưu ý: Hiện tại hệ thống chỉ hỗ trợ thanh toán tự động qua tài khoản ngân hàng Việt Nam (Quét mã VietQR).'}
+            </p>
+          </div>
         </div>
 
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl">
-          {packages.map((pkg) => (
+          {getPackages(isEn).map((pkg) => (
             <div 
               key={pkg.id} 
               className={`relative rounded-[2rem] p-8 transition-all duration-300 flex flex-col bg-white dark:bg-slate-900 border shadow-sm hover:shadow-xl ${
@@ -165,7 +187,7 @@ export function PremiumClient() {
             >
               {pkg.isPopular && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-[10px] px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1 shadow-sm">
-                  <Zap size={12} className="fill-white" /> Phổ biến nhất
+                  <Zap size={12} className="fill-white" /> {isEn ? 'Most Popular' : 'Phổ biến nhất'}
                 </div>
               )}
               
@@ -199,14 +221,14 @@ export function PremiumClient() {
                 onClick={() => handleCheckout(pkg)}
                 className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${pkg.buttonClass}`}
               >
-                Nâng cấp ngay <ChevronRight size={16} />
+                {isEn ? 'Upgrade Now' : 'Nâng cấp ngay'} <ChevronRight size={16} />
               </button>
             </div>
           ))}
         </div>
 
         <div className="mt-12 text-center text-xs font-medium text-slate-400 dark:text-slate-500 max-w-md">
-          * Gói cước sẽ được gia hạn tự động. Bạn có thể huỷ bất cứ lúc nào. Hệ thống thanh toán an toàn 100%.
+          * {isEn ? 'Plans will auto-renew (soon). You can cancel anytime. 100% secure payment.' : 'Gói cước sẽ được gia hạn tự động. Bạn có thể huỷ bất cứ lúc nào. Hệ thống thanh toán an toàn 100%.'}
         </div>
       </div>
 

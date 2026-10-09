@@ -15,7 +15,7 @@ type ProfileData = {
   limit: number
 }
 
-export function ProfileClient() {
+export function ProfileClient({ isEn = false }: { isEn?: boolean }) {
   const { data: session, status } = useSession()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,7 +72,7 @@ export function ProfileClient() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0D1117] py-12 px-4 font-sans">
       <div className="max-w-3xl mx-auto space-y-8">
-        <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white mb-8">Hồ sơ cá nhân</h1>
+        <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white mb-8">{isEn ? 'Personal Profile' : 'Hồ sơ cá nhân'}</h1>
 
         {/* User Card */}
         <div className="bg-white dark:bg-[#161B22] rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center gap-6">
@@ -99,31 +99,31 @@ export function ProfileClient() {
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-[#161B22] rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Gói cước hiện tại</h3>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">{isEn ? 'Current Plan' : 'Gói cước hiện tại'}</h3>
               <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold bg-gradient-to-r ${getPlanColor(profile.plan)} mb-4`}>
                 {getPlanIcon(profile.plan)} {getPlanName(profile.plan)}
               </div>
               {profile.plan !== 'free' && profile.planExpiresAt && (
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Ngày hết hạn: <strong className="text-slate-700 dark:text-slate-200">{new Date(profile.planExpiresAt).toLocaleDateString('vi-VN')}</strong>
+                  {isEn ? 'Expires on: ' : 'Ngày hết hạn: '}<strong className="text-slate-700 dark:text-slate-200">{new Date(profile.planExpiresAt).toLocaleDateString(isEn ? 'en-US' : 'vi-VN')}</strong>
                 </p>
               )}
             </div>
             
             {profile.plan === 'free' && (
-              <Link href="/premium" className="mt-6 w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/20">
-                Nâng cấp Premium <ArrowRight size={18} />
+              <Link href={isEn ? "/en/premium" : "/premium"} className="mt-6 w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/20">
+                {isEn ? 'Upgrade to Premium' : 'Nâng cấp Premium'} <ArrowRight size={18} />
               </Link>
             )}
           </div>
 
           <div className="bg-white dark:bg-[#161B22] rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">Mức sử dụng AI trong ngày</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">{isEn ? 'Daily AI Usage' : 'Mức sử dụng AI trong ngày'}</h3>
             
             <div className="space-y-3">
               <div className="flex justify-between text-sm font-medium">
-                <span className="text-slate-500 dark:text-slate-400">Đã dùng: {profile.usageCount} lượt</span>
-                <span className="text-slate-700 dark:text-slate-300">{profile.limit} lượt</span>
+                <span className="text-slate-500 dark:text-slate-400">{isEn ? 'Used: ' : 'Đã dùng: '}{profile.usageCount} {isEn ? 'requests' : 'lượt'}</span>
+                <span className="text-slate-700 dark:text-slate-300">{profile.limit} {isEn ? 'requests' : 'lượt'}</span>
               </div>
               <div className="w-full h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div 
@@ -134,7 +134,7 @@ export function ProfileClient() {
                 />
               </div>
               <p className="text-xs text-slate-400 text-right">
-                {profile.limit - profile.usageCount} lượt còn lại hôm nay
+                {profile.limit - profile.usageCount} {isEn ? 'requests remaining today' : 'lượt còn lại hôm nay'}
               </p>
             </div>
           </div>

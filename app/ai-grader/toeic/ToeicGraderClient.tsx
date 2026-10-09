@@ -115,7 +115,7 @@ export function ToeicGraderClient() {
     promptQueue.current = []
     isFetchingQueue.current = false
     currentExamType.current = examType
-    setPrompt(null)
+    // setPrompt(null) removed to preserve restored state
   }, [examType])
 
   const callApi = async (body: object) => {

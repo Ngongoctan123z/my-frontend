@@ -30,7 +30,7 @@ export function ExamList({
 }) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+      <div className={compact ? "flex flex-col gap-3" : "grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"}>
         {Array.from({ length: skeletonCount }, (_, i) => (
           <SkeletonCard key={i} compact={compact} />
         ))}
@@ -49,7 +49,7 @@ export function ExamList({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+    <div className={compact ? "flex flex-col gap-3" : "grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"}>
       {exams.map((exam, index) => (
         <div key={exam.id} className="fade-in flex flex-col h-full" style={{ animationDelay: `${index * 50}ms` }}>
           <ExamCard

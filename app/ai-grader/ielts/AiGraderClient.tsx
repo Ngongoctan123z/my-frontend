@@ -12,6 +12,59 @@ import { StudentManagementModal } from '@/src/components/common/StudentManagemen
 type ExamType = 'IELTS_TASK_1' | 'IELTS_TASK_2'
 type PromptObject = { content: string, imageUrl?: string | null }
 
+const ImageWithProgress = ({ src, onClick, isEn }: { src: string, onClick: () => void, isEn: boolean }) => {
+  const [loading, setLoading] = useState(true)
+  const [progress, setProgress] = useState(0)
+  
+  useEffect(() => {
+    setLoading(true)
+    setProgress(0)
+    
+    const interval = setInterval(() => {
+      setProgress(p => {
+        if (p >= 90) return 90;
+        return p + Math.random() * 10 + 5;
+      })
+    }, 150)
+    
+    return () => clearInterval(interval)
+  }, [src])
+
+  return (
+    <div className="relative group cursor-pointer w-full min-h-[250px] flex items-center justify-center bg-slate-50/50 rounded-lg overflow-hidden border border-slate-100" onClick={onClick}>
+      {loading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10 p-4">
+          <div className="w-full max-w-[200px] space-y-3">
+             <div className="flex justify-between text-xs font-bold text-slate-600">
+               <span>{isEn ? 'Loading chart...' : 'Đang tải biểu đồ...'}</span>
+               <span>{Math.floor(progress)}%</span>
+             </div>
+             <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+               <div className="h-full bg-blue-500 transition-all duration-200 ease-out" style={{ width: `${progress}%` }}></div>
+             </div>
+          </div>
+        </div>
+      )}
+      <img 
+        src={src} 
+        alt="Chart/Graph" 
+        className={`w-full h-auto max-h-[500px] object-contain transition-all duration-500 group-hover:opacity-90 ${loading ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}
+        onLoad={() => {
+          setProgress(100)
+          setTimeout(() => setLoading(false), 200)
+        }}
+      />
+      {!loading && (
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/10 transition-opacity">
+          <div className="bg-white/90 p-3 rounded-full shadow-lg text-slate-700 transform group-hover:scale-110 transition-all">
+            <Maximize2 className="w-6 h-6" />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AiGraderClient() {
   const pathname = usePathname()
   const isEn = pathname.startsWith('/en/') || pathname === '/en'
@@ -93,7 +146,11 @@ export function AiGraderClient() {
   useEffect(() => {
     if (hasLoadedDraft) {
       localStorage.setItem('draft_ielts_essay', essay);
-      if (prompt) localStorage.setItem('draft_ielts_prompt', JSON.stringify(prompt));
+      if (prompt) {
+        localStorage.setItem('draft_ielts_prompt', JSON.stringify(prompt));
+      } else {
+        localStorage.removeItem('draft_ielts_prompt');
+      }
       localStorage.setItem('draft_ielts_examType', examType);
     }
   }, [essay, prompt, examType, hasLoadedDraft])
@@ -119,7 +176,7 @@ export function AiGraderClient() {
     promptQueue.current = []
     isFetchingQueue.current = false
     currentExamType.current = examType
-    setPrompt(null)
+    // setPrompt(null) removed to preserve restored state
   }, [examType])
 
   const callApi = async (body: object) => {
@@ -367,14 +424,14 @@ export function AiGraderClient() {
 
               {prompt?.imageUrl && (
                 <div className="mt-4 space-y-2 border border-gray-200 rounded-lg overflow-hidden bg-white p-2">
-                  <div className="relative group cursor-pointer" onClick={() => setExpandedImage(prompt.imageUrl!)}>
-                    <img src={prompt.imageUrl} alt="Chart/Graph" className="w-full h-auto object-contain bg-white transition-opacity group-hover:opacity-90" />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/10 transition-opacity">
-                      <div className="bg-white/90 p-2 rounded-full shadow-sm text-slate-700">
-                        <Maximize2 className="w-6 h-6" />
-                      </div>
-                    </div>
-                  </div>
+
+                    <ImageWithProgress src={prompt.imageUrl} onClick={() => setExpandedImage(prompt.imageUrl!)} isEn={isEn} />
+
+
+
+
+
+
                 </div>
               )}
 
