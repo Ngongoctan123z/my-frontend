@@ -104,6 +104,7 @@ export function ToeicGraderClient() {
     if (status !== 'loading') {
       loadHistory()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session])
 
   const promptQueue = useRef<PromptObject[]>([])

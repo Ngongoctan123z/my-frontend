@@ -166,7 +166,7 @@ async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = f
     }
 
     const now = Date.now()
-    let availableKeys = shuffledKeys.filter(k => !keyCooldowns[k] || now > keyCooldowns[k])
+    const availableKeys = shuffledKeys.filter(k => !keyCooldowns[k] || now > keyCooldowns[k])
 
     // Nếu tất cả các key đều đang bị cooldown, đừng cố thử lại (gây 1102 CPU time limit và tốn subrequests)
     if (availableKeys.length === 0) {
