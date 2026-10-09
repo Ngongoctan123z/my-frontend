@@ -508,7 +508,7 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
       }
       console.error('[AI-Grader] Parse/validate failed:', lastError?.message)
       return NextResponse.json(
-        { error: 'Kết quả trả về không đúng định dạng JSON. Vui lòng thử lại.' },
+        { error: `Kết quả trả về không đúng định dạng JSON (${lastError?.message || 'Lỗi phân tích cú pháp'}). Vui lòng thử lại.` },
         { status: 500 }
       )
     }

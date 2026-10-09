@@ -41,11 +41,19 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
   const requireKeys = (keys: string[]) => {
     for (const k of keys) {
       const item = c[k]
-      if (!item || typeof item !== 'object' || typeof item.score !== 'number' || !Number.isFinite(item.score)
-        || !Array.isArray(item.evidence) || !item.evidence.every((v: unknown) => typeof v === 'string')
-        || typeof item.reasoning !== 'string' || typeof item.feedback !== 'string') {
-        throw new Error('invalid_schema')
+      if (!item || typeof item !== 'object') throw new Error(`invalid_schema: missing or invalid object for key ${k}`)
+      if (item.score === undefined || item.score === null) throw new Error(`invalid_schema: missing score for key ${k}`)
+      item.score = Number(item.score)
+      if (!Number.isFinite(item.score)) throw new Error(`invalid_schema: score is not a number for key ${k}`)
+      
+      if (!Array.isArray(item.evidence)) {
+        if (typeof item.evidence === 'string') item.evidence = [item.evidence]
+        else item.evidence = []
       }
+      
+      if (!item.reasoning) item.reasoning = ''
+      if (!item.feedback) item.feedback = ''
+
       item.evidence = item.evidence.filter((v: string) => v.trim()).slice(0, 2)
       // Optional: Try to find loosely matching evidence, but don't strictly throw error if it fails
       // if (essay.trim() && item.evidence.length === 0) throw new Error('invalid_evidence')
@@ -56,11 +64,18 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
     const first = type === 'IELTS_TASK_2' ? 'taskResponse' : 'taskAchievement'
     const keys = [first, 'coherenceCohesion', 'lexicalResource', 'grammaticalRange']
     requireKeys(keys)
-    for (const k of keys) c[k].score = validateRange(roundHalf(validateRange(c[k].score, 0, 9, 0.5)), 0, 9)
+    for (const k of keys) {
+      if (c[k].score > 9 && c[k].score <= 100) c[k].score = c[k].score / 10; // handle percentages like 80 instead of 8.0
+      if (c[k].score > 9) c[k].score = 9; // clamp to 9
+      if (c[k].score < 0) c[k].score = 0; // clamp to 0
+      c[k].score = roundHalf(c[k].score)
+    }
 
     const wc = countWords(essay)
     const avg = keys.reduce((s, k) => s + Number(c[k].score), 0) / keys.length
-    parsed.overallBand = validateRange(roundHalf(avg + calib), 0, 9)
+    parsed.overallBand = roundHalf(avg + calib)
+    if (parsed.overallBand > 9) parsed.overallBand = 9
+    if (parsed.overallBand < 0) parsed.overallBand = 0
     parsed.wordCount = wc
   } else if (type === 'TOEIC_RESPOND' || type === 'TOEIC_ESSAY') {
     const isEssay = type === 'TOEIC_ESSAY'
@@ -69,22 +84,36 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
       : ['grammarAndVocabulary', 'organization', 'taskFulfillment']
     const maxScore = isEssay ? 5 : 4
     requireKeys(keys)
-    for (const k of keys) c[k].score = validateRange(c[k].score, 0, maxScore, 1)
+    for (const k of keys) {
+      if (c[k].score > maxScore) c[k].score = maxScore
+      if (c[k].score < 0) c[k].score = 0
+      c[k].score = Math.round(c[k].score)
+    }
 
     const wc = countWords(essay)
-    if (typeof parsed.holisticScore !== 'number' || !Number.isInteger(parsed.holisticScore)
-      || parsed.holisticScore < 0 || parsed.holisticScore > maxScore) throw new Error('invalid_schema')
-    parsed.overallBand = validateRange(parsed.holisticScore + calib, 0, maxScore, 1)
+    if (typeof parsed.holisticScore !== 'number' || !Number.isInteger(parsed.holisticScore)) {
+      parsed.holisticScore = 0
+    }
+    
+    parsed.overallBand = parsed.holisticScore + calib
+    if (parsed.overallBand > maxScore) parsed.overallBand = maxScore
+    if (parsed.overallBand < 0) parsed.overallBand = 0
+    
     delete parsed.holisticScore
     parsed.wordCount = wc
   } else if (type === 'HSK_5' || type === 'HSK_6') {
     const keys = ['grammar', 'vocabulary', 'taskFulfillment']
     requireKeys(keys)
-    for (const k of keys) c[k].score = validateRange(c[k].score, 0, 100, 1)
+    for (const k of keys) {
+      if (c[k].score > 100) c[k].score = 100
+      if (c[k].score < 0) c[k].score = 0
+    }
 
     const hz = countHanzi(essay)
     const total = c.grammar.score * 0.4 + c.vocabulary.score * 0.3 + c.taskFulfillment.score * 0.3
-    parsed.overallBand = validateRange(total + calib, 0, 100, 1)
+    parsed.overallBand = Math.round(total + calib)
+    if (parsed.overallBand > 100) parsed.overallBand = 100
+    if (parsed.overallBand < 0) parsed.overallBand = 0
     parsed.wordCount = hz
   } else if (type.startsWith('TOPIK_')) {
     let keys: string[] = []
@@ -93,7 +122,10 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
     else if (type === 'TOPIK_54') keys = ['taskCompletion', 'organization', 'grammarAndVocabulary']
     
     requireKeys(keys)
-    for (const k of keys) c[k].score = validateRange(c[k].score, 0, 100, 1)
+    for (const k of keys) {
+      if (c[k].score > 100) c[k].score = 100
+      if (c[k].score < 0) c[k].score = 0
+    }
 
     const chars = countKoreanChars(essay)
     
@@ -102,7 +134,9 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
     else if (type === 'TOPIK_53') total = (c.taskCompletion.score * 7 + c.organization.score * 7 + c.grammarAndVocabulary.score * 16) / 30
     else if (type === 'TOPIK_54') total = (c.taskCompletion.score * 24 + c.organization.score * 24 + c.grammarAndVocabulary.score * 52) / 100
     
-    parsed.overallBand = validateRange(total + calib, 0, 100, 1)
+    parsed.overallBand = Math.round(total + calib)
+    if (parsed.overallBand > 100) parsed.overallBand = 100
+    if (parsed.overallBand < 0) parsed.overallBand = 0
     parsed.wordCount = chars
   } else {
     throw new Error('unsupported_type')
