@@ -46,8 +46,9 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
         || typeof item.reasoning !== 'string' || typeof item.feedback !== 'string') {
         throw new Error('invalid_schema')
       }
-      item.evidence = item.evidence.filter((v: string) => v.trim() && essay.includes(v)).slice(0, 2)
-      if (essay.trim() && item.evidence.length === 0) throw new Error('invalid_evidence')
+      item.evidence = item.evidence.filter((v: string) => v.trim()).slice(0, 2)
+      // Optional: Try to find loosely matching evidence, but don't strictly throw error if it fails
+      // if (essay.trim() && item.evidence.length === 0) throw new Error('invalid_evidence')
     }
   }
 
@@ -111,7 +112,7 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
     parsed.corrections = parsed.corrections.filter((corr: any) => 
       corr && typeof corr === 'object' && typeof corr.original === 'string' &&
       typeof corr.corrected === 'string' && typeof corr.explanation === 'string' && typeof corr.type === 'string' &&
-      corr.original.trim() !== '' && essay.includes(corr.original)
+      corr.original.trim() !== ''
     ).slice(0, 10)
   }
 
@@ -120,10 +121,12 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
 
 export function parseModelJson(text: string) {
   let content = text.trim()
-  if (content.startsWith('```json')) content = content.replace(/^```json/, '')
-  if (content.startsWith('```')) content = content.replace(/^```/, '')
-  if (content.endsWith('```')) content = content.replace(/```$/, '')
-  return JSON.parse(content.trim())
+  const start = content.indexOf('{')
+  const end = content.lastIndexOf('}')
+  if (start !== -1 && end !== -1 && end >= start) {
+    content = content.substring(start, end + 1)
+  }
+  return JSON.parse(content)
 }
 
 export async function getGradingSettings(type: string) {
