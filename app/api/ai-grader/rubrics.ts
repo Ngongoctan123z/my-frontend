@@ -96,54 +96,304 @@ QUY TẮC NHẬN XÉT & SỬA LỖI (Mục "corrections"):
 `
 
 
+
 export const IELTS_COMMON_RUBRIC = `
-THANG ĐIỂM THAM CHIẾU (rút gọn từ band descriptors công khai của IELTS Writing, bám sát, không tự suy diễn):
+# IELTS WRITING — COMMON BAND DESCRIPTORS
 
-Lexical Resource (LR):
-- 1: vốn từ hầu như không có, hoàn toàn sao chép từ đề bài.
-- 2: vốn từ cực kỳ hạn chế, chỉ vài từ đơn lẻ, hầu như không thể truyền đạt.
-- 3: từ vựng rất sơ sài, lặp từ nghiêm trọng, không đủ để diễn đạt ý cơ bản.
-- 4: vốn từ rất hạn chế, lặp từ liên tục, sai chính tả/word formation nhiều, gây khó hiểu.
-- 5: vốn từ hạn chế nhưng đủ dùng, lặp nhiều, cố dùng từ khó thì sai, lỗi chính tả/form từ gây khó chịu cho người đọc.
-- 6: vốn từ đủ dùng cho nhiệm vụ, có cố dùng từ ít phổ biến nhưng còn thiếu chính xác, lỗi không cản trở hiểu.
-- 7: linh hoạt, có từ ít phổ biến và collocation tự nhiên, có lỗi nhỏ trong chọn từ/chính tả.
-- 8: dùng từ trôi chảy, tinh tế, collocation chuẩn xác, lỗi rất hiếm.
-- 9: hoàn toàn tự nhiên, chính xác, làm chủ ngôn ngữ tinh tế, gần như không lỗi.
+MỤC TIÊU:
+Đánh giá năng lực viết thực tế theo IELTS Writing Band
+Descriptors. Chấm công bằng trên toàn thang 1–9.
+Không tự động cho Band 5 đối với bài yếu.
+Không cố ý hạ điểm bài có chất lượng tốt.
 
-Grammatical Range and Accuracy (GRA):
-- 1: không có cấu trúc câu có thể đánh giá, chỉ có từ rời rạc hoặc chép đề.
-- 2: hầu như không thể viết câu hoàn chỉnh, sai ngữ pháp toàn bộ.
-- 3: cấu trúc câu rất hạn chế, lỗi ngữ pháp dày đặc cản trở hầu hết ý nghĩa.
-- 4: chủ yếu câu đơn, câu phức rất ít và sai nhiều, lỗi ngữ pháp thường xuyên gây khó hiểu.
-- 5: dùng câu phức nhưng thường có lỗi, lỗi dấu câu/ngữ pháp xuất hiện thường xuyên, có thể gây khó đọc.
-- 6: trộn câu đơn và phức, lỗi vẫn có nhưng hiếm khi cản trở hiểu.
-- 7: nhiều cấu trúc phức, đa số câu không lỗi, kiểm soát ngữ pháp tốt.
-- 8: đa dạng các cấu trúc phức tạp, đa số câu hoàn toàn không lỗi.
-- 9: đa dạng hoàn toàn tự nhiên, kiểm soát linh hoạt tuyệt đối, gần như không lỗi.
+Chấm từng tiêu chí độc lập, dựa trên bằng chứng
+trong toàn bộ bài viết.
 
-Coherence and Cohesion (CC):
-- 1: hoàn toàn không có liên kết, ý rời rạc không thể hiểu.
-- 2: liên kết hầu như không tồn tại, các câu không tạo thành đoạn văn mạch lạc.
-- 3: liên kết rất kém, sắp xếp ý lộn xộn, chuyển ý không kiểm soát được.
-- 4: ý sắp xếp thiếu logic, liên kết hạn chế hoặc sai, không chia đoạn rõ.
-- 5: có tổ chức nhưng liên kết máy móc/lặp lại hoặc thiếu, ý trong đoạn thiếu tiến triển, phân đoạn chưa đều.
-- 6: tổ chức rõ ràng, dùng được từ nối nhưng không đều (quá ít hoặc quá máy móc), tham chiếu đôi khi chưa rõ.
-- 7: tiến triển logic, dùng cohesive devices linh hoạt, mỗi đoạn có ý chính rõ ràng.
-- 8: sắp xếp ý theo trình tự logic tự nhiên, liên kết khéo léo, phân đoạn tinh tế.
-- 9: liên kết liền mạch tự nhiên, cấu trúc bài hoàn hảo.
+==================================================
+1. LEXICAL RESOURCE (LR) — TỪ VỰNG
+==================================================
 
-NGUYÊN TẮC GIÁM KHẢO CHẤM IELTS QUỐC TẾ (IELTS EXAMINER PRINCIPLES):
-- **BAND LIMITERS (Khống chế trần Band 6.0 - 6.5)**:
-  * Lạm dụng văn mẫu học vẹt (Overused memorized templates): "It can be seen clearly from the chart that", "A similar pattern was witnessed", "In this modern era...", "This essay will delve into...".
-  * Lỗi dịch thô Việt-Anh & Sai cụm Collocation (Unnatural phrasing / L1 translation & Collocation errors): "stood at the first place", "most favorite", "data of females", "equal to [as a verb]", "increase about", "make money", "big problem".
-  * Lạm dụng từ nối máy móc đầu mọi câu (Mechanical linker overuse): Firstly, Secondly, Moreover, Furthermore, In addition, In a nutshell...
-  * Gượng ép nhồi nhét từ C2 sai ngữ cảnh (Forced, awkward C2 vocabulary) HOẶC dùng khẩu ngữ suồng sã (kids, stuff, a lot of, gonna).
-  * Bịa đặt số liệu nghiên cứu giả tạo (Fake, overly specific statistics): "According to a 2022 Harvard study, 87.5%...".
-- **BAND BOOSTERS (7.0 - 8.5+)**:
-  * Academic hedging (sử dụng ngôn ngữ học thuật thận trọng: tend to, be likely to, can be attributed to, it is plausible that...).
-  * Cohesive referencing (tham chiếu tự nhiên: this trend, such developments, the former/the latter) thay vì lạm dụng từ nối cơ học.
-  * Nominalization (danh từ hóa) để nén thông tin học thuật chặt chẽ, trang trọng.
+BAND 1:
+- Hầu như không có ngôn ngữ có thể đánh giá.
+- Nội dung phần lớn không phải ngôn ngữ tự viết.
+
+BAND 2:
+- Vốn từ cực kỳ hạn chế.
+- Chủ yếu là từ đơn lẻ hoặc cụm từ học thuộc.
+- Không đủ khả năng truyền đạt nhiệm vụ.
+
+BAND 3:
+- Vốn từ không đủ để thực hiện nhiệm vụ.
+- Có thể phụ thuộc vào từ của đề bài.
+- Lỗi lựa chọn từ và cấu tạo từ chiếm ưu thế.
+- Ý nghĩa có thể bị cản trở nghiêm trọng.
+
+BAND 4:
+- Chỉ sử dụng vốn từ cơ bản và hạn chế.
+- Vốn từ không đủ đáp ứng tốt nhiệm vụ.
+- Có thể sử dụng từ không phù hợp, lặp lại.
+- Lỗi chính tả hoặc cấu tạo từ thường xuyên.
+- Lỗi có thể gây khó hiểu cho người đọc.
+
+BAND 5:
+- Vốn từ hạn chế nhưng tối thiểu đủ để
+  thực hiện nhiệm vụ.
+- Phạm vi từ vựng hẹp, thiếu linh hoạt.
+- Có thể lặp từ, diễn đạt thiếu chính xác.
+- Lỗi chính tả và cấu tạo từ có thể xuất hiện
+  và gây khó khăn cho người đọc.
+
+BAND 6:
+- Vốn từ nhìn chung đủ để thực hiện nhiệm vụ.
+- Ý nghĩa nhìn chung rõ ràng.
+- Có thể thử dùng từ ít phổ biến.
+- Còn lỗi chọn từ hoặc kết hợp từ.
+- Lỗi hiếm khi cản trở việc truyền đạt ý nghĩa.
+
+BAND 7:
+- Vốn từ đủ rộng để diễn đạt tương đối
+  linh hoạt và chính xác.
+- Có một số từ ít phổ biến phù hợp.
+- Nhận thức được phong cách và collocation.
+- Có thể còn lỗi nhỏ trong lựa chọn từ,
+  chính tả hoặc cấu tạo từ.
+
+BAND 8:
+- Vốn từ rộng và được sử dụng linh hoạt.
+- Diễn đạt ý nghĩa chính xác.
+- Sử dụng khéo léo từ vựng ít phổ biến.
+- Lỗi lựa chọn từ hoặc cấu tạo từ rất ít.
+
+BAND 9:
+- Sử dụng vốn từ rất rộng, chính xác
+  và tự nhiên với khả năng kiểm soát cao.
+- Chỉ có thể xuất hiện lỗi nhỏ hiếm gặp.
+
+==================================================
+2. GRAMMATICAL RANGE AND ACCURACY (GRA)
+==================================================
+
+BAND 1:
+- Hầu như không có cấu trúc ngữ pháp
+  có thể đánh giá.
+
+BAND 2:
+- Có rất ít bằng chứng về khả năng
+  hình thành cấu trúc câu.
+- Hầu như không thể truyền đạt ý nghĩa.
+
+BAND 3:
+- Có thử sử dụng câu nhưng cấu trúc
+  cực kỳ hạn chế.
+- Lỗi ngữ pháp và dấu câu chiếm ưu thế.
+- Phần lớn ý nghĩa không được truyền đạt.
+
+BAND 4:
+- Sử dụng phạm vi cấu trúc rất hạn chế.
+- Chủ yếu sử dụng câu đơn.
+- Câu ghép hoặc câu phức rất ít.
+- Một số câu có thể đúng.
+- Lỗi ngữ pháp xuất hiện thường xuyên.
+- Lỗi có thể cản trở việc truyền đạt ý nghĩa.
+
+BAND 5:
+- Phạm vi cấu trúc ngữ pháp hạn chế
+  và có tính lặp lại.
+- Có thử sử dụng câu phức nhưng thường sai.
+- Có thể viết được một số câu chính xác.
+- Lỗi ngữ pháp xuất hiện thường xuyên.
+- Lỗi có thể gây khó khăn cho người đọc.
+
+BAND 6:
+- Có kết hợp câu đơn và câu phức.
+- Có một số cấu trúc được sử dụng linh hoạt.
+- Lỗi vẫn xuất hiện ở ngữ pháp và dấu câu.
+- Lỗi hiếm khi cản trở truyền đạt ý nghĩa.
+
+BAND 7:
+- Sử dụng nhiều cấu trúc phức tạp.
+- Có khả năng kiểm soát ngữ pháp tốt.
+- Câu không lỗi xuất hiện thường xuyên.
+- Một số lỗi nhỏ vẫn có thể tồn tại.
+
+BAND 8:
+- Sử dụng đa dạng cấu trúc câu.
+- Phần lớn câu được viết chính xác.
+- Có thể xuất hiện lỗi nhỏ không hệ thống.
+- Dấu câu nhìn chung được kiểm soát tốt.
+
+BAND 9:
+- Sử dụng đa dạng cấu trúc ngữ pháp
+  linh hoạt, tự nhiên và chính xác.
+- Kiểm soát ngữ pháp và dấu câu hoàn toàn.
+- Chỉ có lỗi nhỏ cực kỳ hiếm gặp.
+
+==================================================
+3. COHERENCE AND COHESION (CC)
+==================================================
+
+BAND 1:
+- Không truyền đạt được thông điệp rõ ràng.
+- Không có tổ chức bài viết có thể đánh giá.
+
+BAND 2:
+- Nội dung có rất ít sự tổ chức.
+- Các ý hầu như không có liên kết rõ ràng.
+
+BAND 3:
+- Không có tổ chức logic rõ ràng.
+- Ý tưởng sắp xếp rất rời rạc.
+- Có rất ít sự tiến triển trong bài viết.
+- Từ nối có thể rất hạn chế hoặc không hiệu quả.
+
+BAND 4:
+- Các ý có thể nhận diện nhưng không có
+  sự tiến triển rõ ràng.
+- Liên kết giữa các câu thiếu hoặc sai.
+- Tham chiếu có thể thiếu rõ ràng hoặc lặp lại.
+- Việc chia đoạn có thể không phù hợp.
+
+BAND 5:
+- Có tổ chức bài viết ở mức cơ bản.
+- Có thể nhận thấy tiến triển ý,
+  nhưng không phải lúc nào cũng logic.
+- Từ nối có thể thiếu, sai hoặc máy móc.
+- Tham chiếu và thay thế từ còn hạn chế.
+- Chia đoạn có thể chưa hợp lý.
+
+BAND 6:
+- Bài viết nhìn chung có tổ chức mạch lạc.
+- Có sự tiến triển ý rõ ràng.
+- Sử dụng được các phương tiện liên kết.
+- Liên kết đôi khi máy móc hoặc chưa phù hợp.
+- Việc tham chiếu đôi khi thiếu rõ ràng.
+- Cách chia đoạn nhìn chung phù hợp.
+
+BAND 7:
+- Thông tin và ý tưởng được tổ chức logic.
+- Có tiến triển ý rõ ràng xuyên suốt.
+- Sử dụng nhiều phương tiện liên kết
+  tương đối linh hoạt và phù hợp.
+- Các đoạn văn có chức năng rõ ràng.
+
+BAND 8:
+- Ý tưởng được sắp xếp và phát triển logic.
+- Thông điệp dễ theo dõi xuyên suốt.
+- Liên kết được sử dụng hiệu quả.
+- Chia đoạn hợp lý và hỗ trợ lập luận tốt.
+
+BAND 9:
+- Bài viết có sự liên kết tự nhiên,
+  thông suốt và dễ theo dõi.
+- Tổ chức ý và chia đoạn được kiểm soát tốt.
+- Hiếm khi có thiếu sót đáng kể.
+
+==================================================
+4. NGUYÊN TẮC CHẤM ĐIỂM
+==================================================
+
+QUY TẮC 1 — KHÔNG NEO ĐIỂM BAND 5
+
+- Band 5 không phải mức điểm mặc định.
+- Không được mặc định bài viết có mở bài,
+  thân bài và kết luận sẽ đạt Band 5.
+- Không thưởng điểm chỉ vì đủ số từ.
+- Không thưởng điểm chỉ vì sử dụng từ nối.
+- Không thưởng điểm chỉ vì câu dài.
+- Cho Band 3, 4, 5, 6 hoặc mức khác
+  theo bằng chứng thực tế của từng tiêu chí.
+
+QUY TẮC 2 — PHÂN BIỆT BAND 3, 4, 5
+
+Khi đánh giá GRA:
+- Nếu lỗi chiếm ưu thế và phần lớn ý nghĩa
+  không được truyền đạt: xem xét Band 3.
+- Nếu cấu trúc rất hạn chế, chủ yếu câu đơn,
+  lỗi thường xuyên và có thể cản trở ý nghĩa:
+  xem xét Band 4.
+- Nếu cấu trúc hạn chế nhưng có thử dùng
+  câu phức, thường sai, và có một số câu đúng:
+  xem xét Band 5.
+
+Khi đánh giá LR:
+- Nếu từ vựng không đủ thực hiện nhiệm vụ,
+  lỗi chọn từ chiếm ưu thế: xem xét Band 3.
+- Nếu vốn từ chỉ cơ bản, hạn chế, không đủ
+  đáp ứng tốt nhiệm vụ: xem xét Band 4.
+- Nếu vốn từ hạn chế nhưng tối thiểu đủ
+  thực hiện nhiệm vụ: xem xét Band 5.
+
+Không được dùng mức độ lỗi ngữ pháp để
+tự động quyết định điểm LR hoặc ngược lại.
+
+QUY TẮC 3 — ĐÁNH GIÁ LỖI TRÊN TOÀN BÀI
+
+Trước khi quyết định GRA:
+- Đọc toàn bộ các câu.
+- Xác định các câu đúng hoàn toàn.
+- Xác định các câu chứa lỗi.
+- Phân biệt lỗi nhẹ và lỗi nghiêm trọng.
+- Xác định các lỗi lặp lại có hệ thống.
+- Đánh giá mức độ ảnh hưởng đến ý nghĩa.
+- Xem xét sự đa dạng của cấu trúc câu.
+
+Trước khi quyết định LR:
+- Đánh giá phạm vi từ vựng.
+- Đánh giá lựa chọn từ đúng ngữ cảnh.
+- Đánh giá tính chính xác của collocation.
+- Phân biệt lỗi từ vựng với lỗi ngữ pháp.
+- Đánh giá mức độ truyền đạt ý nghĩa.
+
+Số lỗi chỉ là bằng chứng hỗ trợ.
+Không sử dụng công thức số lỗi = Band.
+
+QUY TẮC 4 — KHÔNG BẮT LỖI GIẢ
+
+- Chỉ gọi là lỗi khi cách diễn đạt thực sự sai.
+- Từ đơn giản không tự động là lỗi.
+- Câu ngắn không tự động là lỗi.
+- Từ vựng A1/A2 không tự động bị trừ điểm.
+- Không bắt buộc sử dụng từ vựng C1/C2.
+- "make money", "big problem", "a lot of"
+  không mặc định là sai.
+- Không bắt buộc dùng nominalization.
+- Không bắt buộc dùng cấu trúc đảo ngữ.
+- Không bắt buộc dùng academic hedging
+  trong tất cả các câu.
+
+QUY TẮC 5 — CHẤM ĐIỂM ĐỘC LẬP
+
+- Chấm LR chỉ theo khả năng dùng từ.
+- Chấm GRA theo cấu trúc và độ chính xác.
+- Chấm CC theo tổ chức và liên kết ý.
+- Chấm TR hoặc TA theo rubric riêng
+  phù hợp với Task 1 hoặc Task 2.
+- Không tự động nâng điểm tiêu chí yếu
+  để gần bằng những tiêu chí khác.
+- Không tự động hạ điểm tiêu chí tốt
+  chỉ vì một tiêu chí khác yếu.
+
+QUY TẮC 6 — KIỂM TRA TRƯỚC KHI TRẢ ĐIỂM
+
+Với mỗi tiêu chí:
+1. Tìm bằng chứng từ toàn bộ bài.
+2. So sánh các mô tả band liền kề.
+3. Chọn band phù hợp nhất.
+4. Giải thích vì sao đạt band đó.
+5. Không thay điểm vì muốn tổng đẹp.
+
+Không áp đặt điểm sàn 5.0.
+Không áp đặt điểm trần theo từ khóa.
+Không dùng văn phong học thuật cao
+làm điều kiện bắt buộc cho Band 6–7.
+
+LƯU Ý:
+Đây là bản diễn giải để AI tham chiếu,
+không thay thế IELTS Writing Band
+Descriptors chính thức.
 `
+
+
 
 export const IELTS_T1_RUBRIC = `
 TIÊU CHÍ TASK ACHIEVEMENT (TA) CHO IELTS TASK 1:
