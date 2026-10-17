@@ -1,5 +1,4 @@
 import { Metadata } from 'next'
-import Script from 'next/script'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '../src/components/Providers'
@@ -94,15 +93,13 @@ export default function RootLayout({
         {/* Preconnect đến Google Fonts CDN để giảm DNS lookup time */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body suppressHydrationWarning className={inter.className}>
-        {/* lazyOnload: chỉ tải AdSense sau khi trang đã interactive — không block LCP */}
-        <Script
+        <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7200108977294233"
           crossOrigin="anonymous"
-          strategy="lazyOnload"
         />
+      </head>
+      <body suppressHydrationWarning className={inter.className}>
         <Providers>
           <AppLayout>{children}</AppLayout>
           <ChatWidget />
@@ -111,4 +108,3 @@ export default function RootLayout({
     </html>
   )
 }
-
