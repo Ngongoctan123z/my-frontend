@@ -126,7 +126,7 @@ export function CasioCalculator() {
       </div>
 
       {/* Casing */}
-      <div className={`w-[380px] max-w-[95vw] scale-[0.9] sm:scale-100 origin-top sm:origin-center rounded-[2.5rem] p-4 sm:p-5 shadow-2xl border-4 relative overflow-hidden shrink-0 ${model === '580' ? 'bg-gradient-to-b from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-b from-gray-300 to-gray-400 border-gray-400'}`} style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255,255,255,0.1)' }}>
+      <div className={`w-full max-w-[380px] rounded-[2.5rem] p-3 sm:p-5 shadow-2xl border-4 relative overflow-hidden shrink-0 mx-auto ${model === '580' ? 'bg-gradient-to-b from-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-b from-gray-300 to-gray-400 border-gray-400'}`} style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255,255,255,0.1)' }}>
         
         {/* Brand Name */}
         <div className="flex justify-between items-end mb-4 px-2">
@@ -158,53 +158,53 @@ export function CasioCalculator() {
 
         <div className="space-y-4 relative z-10">
           {/* Top special row */}
-          <div className="flex justify-between px-2 mb-2">
-            <div className="flex gap-4">
-              <button onClick={() => onBtnClick('SHIFT', '')} className={`w-10 h-7 rounded-full text-[9px] font-bold shadow-md transition-transform active:scale-95 ${isShift ? 'bg-yellow-400 text-gray-900' : 'bg-gray-700 text-yellow-500'}`}>SHIFT</button>
-              <button onClick={() => onBtnClick('ALPHA', '')} className={`w-10 h-7 rounded-full text-[9px] font-bold shadow-md transition-transform active:scale-95 ${isAlpha ? 'bg-red-400 text-white' : 'bg-gray-700 text-red-400'}`}>ALPHA</button>
+          <div className="flex justify-between items-center px-1 mb-2">
+            <div className="flex gap-2 sm:gap-4">
+              <button onClick={() => onBtnClick('SHIFT', '')} className={`w-9 sm:w-10 h-7 rounded-full text-[9px] font-bold shadow-md transition-transform active:scale-95 ${isShift ? 'bg-yellow-400 text-gray-900' : 'bg-gray-700 text-yellow-500'}`}>SHIFT</button>
+              <button onClick={() => onBtnClick('ALPHA', '')} className={`w-9 sm:w-10 h-7 rounded-full text-[9px] font-bold shadow-md transition-transform active:scale-95 ${isAlpha ? 'bg-red-400 text-white' : 'bg-gray-700 text-red-400'}`}>ALPHA</button>
             </div>
             
             {/* D-PAD */}
-            <div className="w-24 h-16 bg-gradient-to-br from-gray-600 to-gray-800 rounded-[2rem] relative shadow-lg flex items-center justify-center border-2 border-gray-700 shrink-0 mx-2">
+            <div className="w-20 sm:w-24 h-14 sm:h-16 bg-gradient-to-br from-gray-600 to-gray-800 rounded-[2rem] relative shadow-lg flex items-center justify-center border-2 border-gray-700 shrink-0 mx-1 sm:mx-2">
               <div className="w-6 h-6 absolute top-0 text-gray-400 flex justify-center items-start text-xs cursor-pointer active:text-white">▲</div>
               <div className="w-6 h-6 absolute bottom-0 text-gray-400 flex justify-center items-end text-xs cursor-pointer active:text-white">▼</div>
               <div className="w-6 h-6 absolute left-1 text-gray-400 flex justify-start items-center text-xs cursor-pointer active:text-white">◀</div>
               <div className="w-6 h-6 absolute right-1 text-gray-400 flex justify-end items-center text-xs cursor-pointer active:text-white">▶</div>
-              <div className="w-8 h-8 rounded-full bg-gray-700 shadow-inner"></div>
+              <div className="w-7 sm:w-8 h-7 sm:h-8 rounded-full bg-gray-700 shadow-inner"></div>
             </div>
 
-            <div className="flex gap-4">
-              <button className="w-10 h-7 rounded-full bg-gray-700 text-white text-[9px] font-bold shadow-md">SETUP</button>
-              <button onClick={() => onBtnClick('AC', '')} className="w-10 h-7 rounded-full bg-blue-600 text-white text-[10px] font-bold shadow-md active:scale-95">ON</button>
+            <div className="flex gap-2 sm:gap-4">
+              <button className="w-9 sm:w-10 h-7 rounded-full bg-gray-700 text-white text-[9px] font-bold shadow-md">SETUP</button>
+              <button onClick={() => onBtnClick('AC', '')} className="w-9 sm:w-10 h-7 rounded-full bg-blue-600 text-white text-[10px] font-bold shadow-md active:scale-95">ON</button>
             </div>
           </div>
 
           {/* Scientific buttons */}
-          <div className="space-y-3 px-1 mt-6">
-            <div className="flex justify-between gap-2">
+          <div className="space-y-2 sm:space-y-3 px-1 mt-6">
+            <div className="grid grid-cols-6 gap-1 sm:gap-2">
               {sciButtonsRow1.map(b => (
-                <button key={b.label} onClick={() => onBtnClick(b.val, b.disp)} className="w-10 h-7 bg-gray-800 hover:bg-gray-700 text-white text-[10px] font-semibold rounded shadow-sm border-b-2 border-gray-900 active:scale-95 active:border-b-0 transition-all">{b.label}</button>
+                <button key={b.label} onClick={() => onBtnClick(b.val, b.disp)} className="w-full h-7 bg-gray-800 hover:bg-gray-700 text-white text-[9px] sm:text-[10px] font-semibold rounded shadow-sm border-b-2 border-gray-900 active:scale-95 active:border-b-0 transition-all flex items-center justify-center">{b.label}</button>
               ))}
             </div>
-            <div className="flex justify-between gap-2">
+            <div className="grid grid-cols-6 gap-1 sm:gap-2">
               {sciButtonsRow2.map(b => (
-                <button key={b.label} onClick={() => onBtnClick(b.val, b.disp)} className="w-10 h-7 bg-gray-800 hover:bg-gray-700 text-white text-[11px] font-semibold rounded shadow-sm border-b-2 border-gray-900 active:scale-95 active:border-b-0 transition-all">{b.label}</button>
+                <button key={b.label} onClick={() => onBtnClick(b.val, b.disp)} className="w-full h-7 bg-gray-800 hover:bg-gray-700 text-white text-[10px] sm:text-[11px] font-semibold rounded shadow-sm border-b-2 border-gray-900 active:scale-95 active:border-b-0 transition-all flex items-center justify-center">{b.label}</button>
               ))}
             </div>
-            <div className="flex justify-between gap-2">
+            <div className="grid grid-cols-6 gap-1 sm:gap-2">
               {sciButtonsRow3.map(b => (
-                <button key={b.label} onClick={() => onBtnClick(b.val, b.disp)} className="w-10 h-7 bg-gray-800 hover:bg-gray-700 text-white text-[11px] font-semibold rounded shadow-sm border-b-2 border-gray-900 active:scale-95 active:border-b-0 transition-all">{b.label}</button>
+                <button key={b.label} onClick={() => onBtnClick(b.val, b.disp)} className="w-full h-7 bg-gray-800 hover:bg-gray-700 text-white text-[10px] sm:text-[11px] font-semibold rounded shadow-sm border-b-2 border-gray-900 active:scale-95 active:border-b-0 transition-all flex items-center justify-center">{b.label}</button>
               ))}
             </div>
-            <div className="flex justify-between gap-2">
+            <div className="grid grid-cols-6 gap-1 sm:gap-2">
               {sciButtonsRow4.map(b => (
-                <button key={b.label} onClick={() => onBtnClick(b.val, b.disp)} className="w-10 h-7 bg-gray-800 hover:bg-gray-700 text-white text-[11px] font-semibold rounded shadow-sm border-b-2 border-gray-900 active:scale-95 active:border-b-0 transition-all">{b.label}</button>
+                <button key={b.label} onClick={() => onBtnClick(b.val, b.disp)} className="w-full h-7 bg-gray-800 hover:bg-gray-700 text-white text-[10px] sm:text-[11px] font-semibold rounded shadow-sm border-b-2 border-gray-900 active:scale-95 active:border-b-0 transition-all flex items-center justify-center">{b.label}</button>
               ))}
             </div>
           </div>
 
           {/* Numpad */}
-          <div className="grid grid-cols-5 gap-y-3 gap-x-2 pt-4 px-1">
+          <div className="grid grid-cols-5 gap-y-2.5 sm:gap-y-3 gap-x-1.5 sm:gap-x-2 pt-4 px-1">
             {numpad.map((row, rIdx) => 
               row.map((btn, cIdx) => {
                 let bgColor = 'bg-gray-300 text-gray-900'
@@ -218,7 +218,7 @@ export function CasioCalculator() {
                   <button 
                     key={`${rIdx}-${cIdx}`}
                     onClick={() => onBtnClick(mathVal, btn === 'x10^x' ? 'x10^' : btn)}
-                    className={`w-12 h-9 rounded shadow border-b-4 active:scale-95 active:border-b-0 transition-all flex items-center justify-center font-bold text-sm ${bgColor} ${btn === 'AC' || btn === 'DEL' ? 'border-red-700 hover:bg-red-400' : btn === '=' ? 'border-blue-800 hover:bg-blue-500' : ['+', '-', '×', '÷'].includes(btn) ? 'border-gray-900' : 'border-gray-400 hover:bg-gray-200'}`}
+                    className={`w-full h-8 sm:h-9 rounded shadow border-b-4 active:scale-95 active:border-b-0 transition-all flex items-center justify-center font-bold text-xs sm:text-sm ${bgColor} ${btn === 'AC' || btn === 'DEL' ? 'border-red-700 hover:bg-red-400' : btn === '=' ? 'border-blue-800 hover:bg-blue-500' : ['+', '-', '×', '÷'].includes(btn) ? 'border-gray-900' : 'border-gray-400 hover:bg-gray-200'}`}
                   >
                     {btn}
                   </button>

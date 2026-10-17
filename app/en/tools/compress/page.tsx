@@ -3,9 +3,9 @@ import { CompressClient } from '@/app/tools/compress/CompressClient'
 
 export async function generateMetadata() {
   return getRouteMetadata(
-    '/en/tools/compress/page.tsx',
-    'Free Image & File Compression (ZIP)',
-    'Image compression tool (reduce file size) and compress multiple files into a .zip file entirely in the browser, no server upload required, 100% secure.'
+    '/en/tools/compress',
+    'Compress Images & Create ZIP Archives Online Free | VNDocs',
+    'Reduce JPG, PNG, and WebP image file sizes without quality loss. Compress multiple files into .zip directly in your browser with zero server uploads.'
   )
 }
 

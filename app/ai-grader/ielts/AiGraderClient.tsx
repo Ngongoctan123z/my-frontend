@@ -1,16 +1,24 @@
 'use client'
 
 import { GradingResultModal } from '@/src/components/common/GradingResultModal'
-import React, { useState, useRef, useEffect } from 'react'
-import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight, Share2, Copy, Users, Maximize2, Minimize2 } from 'lucide-react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight, Share2, Copy, Users, Maximize2, Minimize2, Play, Pause, Square, Layers, Lock, LogIn } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
 import { ShareExamModal } from '@/src/components/common/ShareExamModal'
 import { StudentManagementModal } from '@/src/components/common/StudentManagementModal'
+import { IELTS_PAIRED_SETS, IELTS_TASK_1_FALLBACKS, IELTS_TASK_2_FALLBACKS } from '@/src/data/fallbackPrompts'
 
-type ExamType = 'IELTS_TASK_1' | 'IELTS_TASK_2'
+type ExamType = 'IELTS_TASK_1' | 'IELTS_TASK_2' | 'IELTS_FULL'
 type PromptObject = { content: string, imageUrl?: string | null }
+
+interface PairedIeltsSet {
+  id: number
+  title: string
+  part1: PromptObject
+  part2: PromptObject
+}
 
 const ImageWithProgress = ({ src, onClick, isEn }: { src: string, onClick: () => void, isEn: boolean }) => {
   const [loading, setLoading] = useState(true)
@@ -72,25 +80,85 @@ export function AiGraderClient() {
   const { data: session, status } = useSession()
   const [examType, setExamType] = useState<ExamType>('IELTS_TASK_2')
   const [feedbackLang, setFeedbackLang] = useState<string>(isEn ? 'English' : 'Tiếng Việt')
-  const [prompt, setPrompt] = useState<PromptObject | null>(null)
-  
-  // States for Task 1 and Task 2
+
+  // Paired full test sets (Task 1 and Task 2 linked by set ID 1-1, 2-2...)
+  const [pairedSets, setPairedSets] = useState<PairedIeltsSet[]>([])
+  const [currentSetIdx, setCurrentSetIdx] = useState<number>(0)
+  const [isLoadingSets, setIsLoadingSets] = useState(false)
+
+  // Per-task prompts and essays
+  const [task1Prompt, setTask1Prompt] = useState<PromptObject | null>(null)
+  const [task1Essay, setTask1Essay] = useState('')
+  const [task2Prompt, setTask2Prompt] = useState<PromptObject | null>(null)
+  const [task2Essay, setTask2Essay] = useState('')
+
+  // Full Test active step (1 = Task 1, 2 = Task 2)
+  const [fullStep, setFullStep] = useState<1 | 2>(1)
+
+  // General UI States
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-  const [essay, setEssay] = useState('')
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
   const [isEditorExpanded, setIsEditorExpanded] = useState(false)
   
+  // Timer states
+  const [examPhase, setExamPhase] = useState<'setup' | 'reading' | 'writing' | 'finished'>('setup')
+  const [timeLeft, setTimeLeft] = useState<number>(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    if (examPhase === 'setup' || examPhase === 'finished' || isPaused) {
+      if (timerRef.current) clearInterval(timerRef.current)
+      return
+    }
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!)
+          handleTimeUp()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examPhase, isPaused])
+
+  const handleTimeUp = () => {
+    alert(isEn ? 'Time is up! Please submit your work.' : 'Đã hết giờ làm bài! Vui lòng nộp bài.')
+    setExamPhase('finished')
+  }
+
+  const startExam = () => {
+    const currentActivePrompt = (examType === 'IELTS_TASK_1' || (examType === 'IELTS_FULL' && fullStep === 1)) ? task1Prompt : task2Prompt
+    if (!currentActivePrompt?.content) {
+      alert(isEn ? 'Please generate or input a prompt first.' : 'Vui lòng bốc đề hoặc nhập đề trước.')
+      return
+    }
+    setExamPhase('writing')
+    if (examType === 'IELTS_TASK_1') setTimeLeft(20 * 60)
+    else if (examType === 'IELTS_TASK_2') setTimeLeft(40 * 60)
+    else setTimeLeft(60 * 60) // Full test: 60 minutes
+    setIsPaused(false)
+  }
+
   const [isGenerating, setIsGenerating] = useState(false)
   const [isGrading, setIsGrading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
   const [usageCount, setUsageCount] = useState(0)
-  const [usageLimit, setUsageLimit] = useState(15)
+  const [usageLimit, setUsageLimit] = useState(7)
   const [userPlan, setUserPlan] = useState<string>('free')
+
   useEffect(() => {
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
       setUsageCount(data.count || 0)
-      setUsageLimit(data.limit || 2)
+      setUsageLimit(data.limit || 7)
     }).catch(() => {})
 
     if (session?.user) {
@@ -120,45 +188,74 @@ export function AiGraderClient() {
     }
   }
 
-  const [hasLoadedDraft, setHasLoadedDraft] = useState(false)
-
-  // Load draft on mount
+  // Dọn dẹp bộ nhớ tạm draft trên trình duyệt (chỉ lưu kết quả vào database)
   useEffect(() => {
     try {
-      const savedEssay = localStorage.getItem('draft_ielts_essay')
-      const savedPrompt = localStorage.getItem('draft_ielts_prompt')
-      const savedExamType = localStorage.getItem('draft_ielts_examType')
-
-      if (savedEssay) setEssay(savedEssay)
-      if (savedPrompt) setPrompt(JSON.parse(savedPrompt))
-      if (savedExamType && ['IELTS_TASK_1', 'IELTS_TASK_2'].includes(savedExamType)) {
-        setExamType(savedExamType as ExamType)
-      } else {
-        localStorage.removeItem('draft_ielts_examType')
-      }
-    } catch (e) {
-      // ignore
-    }
-    setHasLoadedDraft(true)
+      localStorage.removeItem('draft_ielts_t1_essay')
+      localStorage.removeItem('draft_ielts_t1_prompt')
+      localStorage.removeItem('draft_ielts_t2_essay')
+      localStorage.removeItem('draft_ielts_t2_prompt')
+      localStorage.removeItem('draft_ielts_examType')
+      localStorage.removeItem('draft_ielts_essay')
+      localStorage.removeItem('draft_ielts_prompt')
+    } catch {}
+    fetchPairedSets()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-    // Save draft on change
+  // Auto-load prompt when switching to single task mode if prompt is missing
   useEffect(() => {
-    if (hasLoadedDraft) {
-      localStorage.setItem('draft_ielts_essay', essay);
-      if (prompt) {
-        localStorage.setItem('draft_ielts_prompt', JSON.stringify(prompt));
-      } else {
-        localStorage.removeItem('draft_ielts_prompt');
-      }
-      localStorage.setItem('draft_ielts_examType', examType);
+    if (examType === 'IELTS_TASK_1' && !task1Prompt) {
+      generatePrompt('IELTS_TASK_1')
+    } else if (examType === 'IELTS_TASK_2' && !task2Prompt) {
+      generatePrompt('IELTS_TASK_2')
     }
-  }, [essay, prompt, examType, hasLoadedDraft])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examType])
+
+  const isSetAlreadyDone = (set: { title?: string; id?: number; part1?: any; part2?: any }, historyList = history) => {
+    return historyList.some(h => {
+      const p = (h.prompt || '').toLowerCase()
+      if (set.title && p.includes(set.title.toLowerCase())) return true
+      if (set.id && (p.includes(`bộ đề số #${set.id}`) || p.includes(`số #${set.id}`))) return true
+      if (set.part1?.content && p.includes(set.part1.content.slice(0, 60).toLowerCase())) return true
+      if (set.part2?.content && p.includes(set.part2.content.slice(0, 60).toLowerCase())) return true
+      return false
+    })
+  }
+
+  const isPromptDone = (content?: string, historyList = history) => {
+    if (!content) return false
+    const snippet = content.slice(0, 50).trim().toLowerCase()
+    const contentLower = content.toLowerCase()
+    return historyList.some(h => {
+      if (!h.prompt) return false
+      const p = h.prompt.toLowerCase()
+      return p === contentLower || p.includes(contentLower) || contentLower.includes(p) || (snippet.length >= 15 && p.includes(snippet))
+    })
+  }
 
   const loadHistory = async () => {
-    const email = session?.user?.email || 'anonymous';
-    const data = await getEssayHistory(email)
-    setHistory(data.filter(h => h.examType.startsWith('IELTS')))
+    const email = session?.user?.email || 'anonymous'
+    const data = await getEssayHistory(email, 'IELTS')
+    setHistory(data)
+
+    // Tự động kiểm tra: Nếu đề đang hiển thị đã làm rồi, bốc ngay đề mới chưa làm
+    if (data.length > 0) {
+      if (examType === 'IELTS_FULL') {
+        const currentSet = pairedSets[currentSetIdx]
+        if (currentSet && isSetAlreadyDone(currentSet, data)) {
+          fetchPairedSets(data)
+        }
+      } else {
+        if (task1Prompt && isPromptDone(task1Prompt.content, data)) {
+          generatePrompt('IELTS_TASK_1')
+        }
+        if (task2Prompt && isPromptDone(task2Prompt.content, data)) {
+          generatePrompt('IELTS_TASK_2')
+        }
+      }
+    }
   }
 
   useEffect(() => {
@@ -168,79 +265,143 @@ export function AiGraderClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session])
 
-  const promptQueue = useRef<PromptObject[]>([])
-  const isFetchingQueue = useRef(false)
-  const currentExamType = useRef<ExamType>('IELTS_TASK_2')
-
-  useEffect(() => {
-    promptQueue.current = []
-    isFetchingQueue.current = false
-    currentExamType.current = examType
-    // setPrompt(null) removed to preserve restored state
-  }, [examType])
+  const promptQueueT1 = useRef<PromptObject[]>([])
+  const promptQueueT2 = useRef<PromptObject[]>([])
+  const isFetchingT1 = useRef(false)
+  const isFetchingT2 = useRef(false)
+  const lastClickTimeRef = useRef(0)
 
   const callApi = async (body: object) => {
     const res = await fetch('/api/ai-grader', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Đã có lỗi xảy ra.');
-    }
-    return data;
-  }
-
-  const fetchPromptsBatch = async (type: ExamType) => {
-    if (isFetchingQueue.current) return
-    isFetchingQueue.current = true
-    try {
-      const data = await callApi({ action: 'generate_prompt_batch', type })
-      if (currentExamType.current === type) {
-        promptQueue.current = [...promptQueue.current, ...data.prompts]
+    })
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      const text = await res.text()
+      if (text.includes('1102') || text.includes('Worker exceeded CPU')) {
+        throw new Error(isEn
+          ? 'Cloudflare Worker exceeded CPU resources (Error 1102). Please slow down and try again shortly.'
+          : 'Máy chủ Cloudflare tạm thời quá tải CPU (Error 1102). Vui lòng thao tác chậm lại một chút và thử lại.')
       }
-    } catch (err) {
-      console.error("Background fetch failed:", err)
+      if (res.status === 403 || res.status === 429 || text.includes('Just a moment') || text.includes('<!DOCTYPE')) {
+        throw new Error(isEn 
+          ? 'AI Service is currently busy or rate-limited. Please try again shortly.' 
+          : 'Dịch vụ AI đang tạm thời bận hoặc chạm giới hạn gọi. Vui lòng thử lại sau ít phút.')
+      }
+      throw new Error(isEn ? `Server error (${res.status}).` : `Máy chủ phản hồi mã lỗi (${res.status}).`)
+    }
+    const data = await res.json()
+    if (!res.ok) {
+      throw new Error(data.error || (isEn ? 'An error occurred.' : 'Đã có lỗi xảy ra.'))
+    }
+    return data
+  }
+
+  // Fetch Paired Sets for Full Test (Links Task 1 and Task 2 together by set ID 1-1, 2-2...)
+  const fetchPairedSets = async (customHistory?: GradedEssayHistory[]) => {
+    setIsLoadingSets(true)
+    setError(null)
+    try {
+      const hList = customHistory || history
+      const donePrompts = hList.map(h => h.prompt)
+      const data = await callApi({ action: 'get_paired_full_test', exam: 'IELTS', donePrompts })
+      if (Array.isArray(data.sets) && data.sets.length > 0) {
+        setPairedSets(data.sets)
+        // Tìm bộ đề đầu tiên chưa làm trong lịch sử
+        const uncompletedIdx = data.sets.findIndex((s: any) => !isSetAlreadyDone(s, hList))
+        const chosenIdx = uncompletedIdx >= 0 ? uncompletedIdx : 0
+        setCurrentSetIdx(chosenIdx)
+        setTask1Prompt(data.sets[chosenIdx].part1)
+        setTask2Prompt(data.sets[chosenIdx].part2)
+      } else {
+        setPairedSets(IELTS_PAIRED_SETS)
+        setCurrentSetIdx(0)
+        setTask1Prompt(IELTS_PAIRED_SETS[0].part1)
+        setTask2Prompt(IELTS_PAIRED_SETS[0].part2)
+      }
+    } catch (err: any) {
+      console.warn('Could not load paired IELTS sets, fallback to local official sets:', err)
+      setPairedSets(IELTS_PAIRED_SETS)
+      setCurrentSetIdx(0)
+      setTask1Prompt(IELTS_PAIRED_SETS[0].part1)
+      setTask2Prompt(IELTS_PAIRED_SETS[0].part2)
     } finally {
-      isFetchingQueue.current = false
+      setIsLoadingSets(false)
     }
   }
 
-  const generatePrompt = async () => {
-    setError(null)
+  // Switch to next paired set (changes both Task 1 and Task 2 simultaneously and resets to Task 1)
+  const switchPairedSet = async (idx?: number) => {
+    setFullStep(1)
+    setTask1Essay('')
+    setTask2Essay('')
     setResult(null)
-    setEssay('')
+    setError(null)
 
-    if (promptQueue.current.length === 0) {
+    if (pairedSets.length === 0) {
+      await fetchPairedSets()
+      setFullStep(1)
+      return
+    }
+    const nextIdx = typeof idx === 'number' ? idx : (currentSetIdx + 1) % pairedSets.length
+    setCurrentSetIdx(nextIdx)
+    setTask1Prompt(pairedSets[nextIdx].part1)
+    setTask2Prompt(pairedSets[nextIdx].part2)
+  }
+
+  const generatePrompt = async (targetType?: 'IELTS_TASK_1' | 'IELTS_TASK_2', force = false) => {
+    const now = Date.now()
+    if (!force && (isGenerating || isGrading || now - lastClickTimeRef.current < 200)) return
+    lastClickTimeRef.current = now
+    setError(null)
+
+    const reqType = targetType || (examType === 'IELTS_TASK_1' || (examType === 'IELTS_FULL' && fullStep === 1) ? 'IELTS_TASK_1' : 'IELTS_TASK_2')
+    const qRef = reqType === 'IELTS_TASK_1' ? promptQueueT1 : promptQueueT2
+
+    if (qRef.current.length === 0) {
       setIsGenerating(true)
       try {
-        const data = await callApi({ action: 'generate_prompt_batch', type: examType })
-        promptQueue.current = data.prompts
+        const donePrompts = history.map(h => h.prompt)
+        const data = await callApi({ action: 'generate_prompt_batch', type: reqType, donePrompts })
+        qRef.current = data.prompts || []
       } catch (err: any) {
-        setError(err.message)
-        setIsGenerating(false)
-        return
+        console.warn('generatePrompt error, using fallback:', err)
+        const fb = reqType === 'IELTS_TASK_1' ? IELTS_TASK_1_FALLBACKS[0] : IELTS_TASK_2_FALLBACKS[0]
+        qRef.current = [fb]
       }
       setIsGenerating(false)
     }
 
-    const nextPrompt = promptQueue.current.shift()
-    if (nextPrompt) {
-      setPrompt(nextPrompt)
+    // Bỏ qua đề đã làm nếu còn đề chưa làm trong queue
+    while (qRef.current.length > 1 && isPromptDone(qRef.current[0].content, history)) {
+      qRef.current.shift()
     }
 
-    if (promptQueue.current.length <= 1 && !isFetchingQueue.current) {
-      fetchPromptsBatch(examType)
+    const nextPrompt = qRef.current.shift()
+    if (nextPrompt) {
+      if (reqType === 'IELTS_TASK_1') setTask1Prompt(nextPrompt)
+      else setTask2Prompt(nextPrompt)
+    } else {
+      const fb = reqType === 'IELTS_TASK_1' ? IELTS_TASK_1_FALLBACKS[0] : IELTS_TASK_2_FALLBACKS[0]
+      if (reqType === 'IELTS_TASK_1') setTask1Prompt(fb)
+      else setTask2Prompt(fb)
     }
   }
 
-  
+  // Active prompt and essay based on current mode and step
+  const isViewingTask1 = examType === 'IELTS_TASK_1' || (examType === 'IELTS_FULL' && fullStep === 1)
+  const activePrompt = isViewingTask1 ? task1Prompt : task2Prompt
+  const activeEssay = isViewingTask1 ? task1Essay : task2Essay
+  const setActiveEssay = isViewingTask1 ? setTask1Essay : setTask2Essay
 
-  
+  const wordCount = activeEssay.trim() ? activeEssay.trim().split(/\s+/).filter(Boolean).length : 0
+  const minWords = isViewingTask1 ? 150 : 250
+
   const handleCreateSharedLink = async (reqPhone: boolean, reqEmail: boolean): Promise<string | void> => {
-    if (!prompt?.content?.trim()) {
-      alert('Vui lòng tạo hoặc nhập đề trước.')
+    if (!activePrompt?.content?.trim()) {
+      alert(isEn ? 'Please generate a prompt first.' : 'Vui lòng tạo hoặc nhập đề trước.')
       return
     }
     
@@ -249,57 +410,221 @@ export function AiGraderClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          examType,
-          content: prompt.content,
-          imageUrl: prompt.imageUrl,
-          imageDescription: (prompt as any).imageDescription,
+          examType: isViewingTask1 ? 'IELTS_TASK_1' : 'IELTS_TASK_2',
+          content: activePrompt.content,
+          imageUrl: activePrompt.imageUrl,
+          imageDescription: (activePrompt as any).imageDescription,
           requirePhone: reqPhone,
           requireEmail: reqEmail
         })
       })
       const data = await res.json()
       if (res.ok) {
-        alert('Đã tạo link chia sẻ thành công! Link có hiệu lực 24h.\nBạn có thể gửi link này cho học sinh.')
+        alert(isEn ? 'Share link generated! Valid for 24h.' : 'Đã tạo link chia sẻ thành công! Link có hiệu lực 24h.\nBạn có thể gửi link này cho học sinh.')
         return `${window.location.origin}${isEn ? '/en' : ''}/shared/${data.id}`
       } else {
-        alert(data.error || 'Lỗi hệ thống')
+        alert(data.error || (isEn ? 'Failed to create link' : 'Không thể tạo liên kết, vui lòng thử lại sau.'))
       }
     } catch (e) {
-      alert('Lỗi tạo link')
+      alert(isEn ? 'Error creating link' : 'Không thể tạo liên kết, vui lòng thử lại sau.')
     }
   }
 
+  // Submit and Grade
   const gradeEssay = async () => {
-    if (!prompt?.content?.trim()) {
-      setError('Vui lòng tạo đề trước khi chấm.')
+    const now = Date.now()
+    if (isGrading || isGenerating || now - lastClickTimeRef.current < 1200) return
+    lastClickTimeRef.current = now
+
+    // FULL TEST MODE GRADING
+    if (examType === 'IELTS_FULL') {
+      if (!task1Prompt?.content || !task2Prompt?.content) {
+        setError(isEn ? 'Please ensure prompts for both tasks are loaded.' : 'Vui lòng đảm bảo cả 2 đề thi đã được tải.')
+        return
+      }
+      if (!task1Essay.trim() && !task2Essay.trim()) {
+        setError(isEn ? 'Please write your response for at least one task before submitting.' : 'Vui lòng làm ít nhất một Task trước khi nộp bài.')
+        return
+      }
+
+      setIsGrading(true)
+      setError(null)
+      setResult(null)
+
+      try {
+        const promises: Promise<any>[] = []
+
+        // Grade Task 1
+        promises.push(
+          task1Essay.trim()
+            ? callApi({
+                action: 'grade_essay',
+                type: 'IELTS_TASK_1',
+                prompt: task1Prompt.content,
+                essay: task1Essay.trim(),
+                imageUrl: task1Prompt.imageUrl,
+                imageDescription: (task1Prompt as any).imageDescription,
+                feedbackLang
+              })
+            : Promise.resolve({
+                overallBand: 0,
+                scoreScale: 9,
+                wordCount: 0,
+                criteria: {
+                  taskAchievement: { score: 0, feedback: isEn ? 'Task 1 was left blank' : 'Task 1 chưa làm bài' },
+                  coherenceCohesion: { score: 0, feedback: '' },
+                  lexicalResource: { score: 0, feedback: '' },
+                  grammaticalRange: { score: 0, feedback: '' }
+                },
+                detailedFeedback: isEn ? 'Task 1 was left unattempted.' : 'Thí sinh không làm bài Task 1.',
+                corrections: []
+              })
+        )
+
+        // Grade Task 2
+        promises.push(
+          task2Essay.trim()
+            ? callApi({
+                action: 'grade_essay',
+                type: 'IELTS_TASK_2',
+                prompt: task2Prompt.content,
+                essay: task2Essay.trim(),
+                feedbackLang
+              })
+            : Promise.resolve({
+                overallBand: 0,
+                scoreScale: 9,
+                wordCount: 0,
+                criteria: {
+                  taskResponse: { score: 0, feedback: isEn ? 'Task 2 was left blank' : 'Task 2 chưa làm bài' },
+                  coherenceCohesion: { score: 0, feedback: '' },
+                  lexicalResource: { score: 0, feedback: '' },
+                  grammaticalRange: { score: 0, feedback: '' }
+                },
+                detailedFeedback: isEn ? 'Task 2 was left unattempted.' : 'Thí sinh không làm bài Task 2.',
+                corrections: []
+              })
+        )
+
+        const [t1Res, t2Res] = await Promise.all(promises)
+        
+        // Official IELTS formula: (Task 1 * 1 + Task 2 * 2) / 3, rounded to nearest 0.5
+        const combinedBand = Math.round(((t1Res.overallBand * 1 + t2Res.overallBand * 2) / 3) * 2) / 2
+
+        const currentSetName = pairedSets[currentSetIdx]?.title || 'Bộ đề số #1'
+
+        const fullResult = {
+          isFullTest: true,
+          fullTestType: 'IELTS',
+          overallBand: combinedBand,
+          overallBandFormatted: `${combinedBand}/9`,
+          scoreScale: 9,
+          task1: { ...t1Res, examType: 'IELTS_TASK_1', scoreScale: 9 },
+          task2: { ...t2Res, examType: 'IELTS_TASK_2', scoreScale: 9 },
+          criteria: t2Res.criteria,
+          formula: isEn
+            ? `Official IELTS formula (${currentSetName}): (Task 1 × 1 + Task 2 × 2) / 3 = Band ${combinedBand}`
+            : `Barem chính thức (${currentSetName}): (Task 1 × 1 + Task 2 × 2) / 3 = Band ${combinedBand}`,
+          detailedFeedback: `Task 1 (Band ${t1Res.overallBand}):\n${t1Res.detailedFeedback}\n\nTask 2 (Band ${t2Res.overallBand}):\n${t2Res.detailedFeedback}`,
+          corrections: [...(t1Res.corrections || []), ...(t2Res.corrections || [])]
+        }
+
+        setResult(fullResult)
+        setUsageCount(prev => prev + 2)
+
+        await saveEssayHistory({
+          email: session?.user?.email || 'anonymous',
+          examType: 'IELTS_FULL',
+          prompt: `IELTS Full Test (${currentSetName})\n[Task 1]: ${task1Prompt?.content || ''}\n[Task 2]: ${task2Prompt?.content || ''}`,
+          essay: `=== TASK 1 (Academic) ===\n${task1Essay.trim()}\n\n=== TASK 2 (Essay) ===\n${task2Essay.trim()}`,
+          result: fullResult
+        })
+        setIsGrading(false)
+
+        // Tự động xóa bài làm và reset bước làm bài về bước 1
+        setTask1Essay('')
+        setTask2Essay('')
+        setFullStep(1)
+
+        try {
+          localStorage.removeItem('draft_ielts_t1_essay')
+          localStorage.removeItem('draft_ielts_t1_prompt')
+          localStorage.removeItem('draft_ielts_t2_essay')
+          localStorage.removeItem('draft_ielts_t2_prompt')
+          localStorage.removeItem('draft_ielts_essay')
+          localStorage.removeItem('draft_ielts_prompt')
+        } catch {}
+
+        // Tự động bốc bộ đề mới chưa từng làm
+        await fetchPairedSets()
+        await loadHistory()
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setIsGrading(false)
+      }
       return
     }
 
-    const finalEssay = essay.trim()
+    // SINGLE TASK GRADING
+    if (!activePrompt?.content?.trim()) {
+      setError(isEn ? 'Please generate a prompt before grading.' : 'Vui lòng tạo đề trước khi chấm.')
+      return
+    }
+
+    const finalEssay = activeEssay.trim()
     if (!finalEssay) {
-      setError('Vui lòng viết bài trước khi nộp.')
+      setError(isEn ? 'Please write your essay before submitting.' : 'Vui lòng viết bài trước khi nộp.')
       return
     }
-
-    const essayForApi = finalEssay
 
     setIsGrading(true)
     setError(null)
     setResult(null)
 
     try {
-      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: essayForApi, imageDescription: (prompt as any).imageDescription || undefined, feedbackLang })
+      const data = await callApi({
+        action: 'grade_essay',
+        type: examType,
+        prompt: activePrompt.content,
+        essay: finalEssay,
+        imageUrl: activePrompt.imageUrl,
+        imageDescription: (activePrompt as any).imageDescription || undefined,
+        feedbackLang
+      })
       setResult(data)
       setUsageCount(prev => prev + 1)
       
       await saveEssayHistory({
         email: session?.user?.email || 'anonymous',
         examType,
-        prompt: prompt.content,
+        prompt: activePrompt.content,
         essay: finalEssay,
         result: data
       })
-      loadHistory()
+
+      setIsGrading(false)
+
+      // Tự động xóa bài làm
+      if (examType === 'IELTS_TASK_1') {
+        setTask1Essay('')
+      } else {
+        setTask2Essay('')
+      }
+
+      try {
+        if (examType === 'IELTS_TASK_1') {
+          localStorage.removeItem('draft_ielts_t1_essay')
+          localStorage.removeItem('draft_ielts_t1_prompt')
+        } else {
+          localStorage.removeItem('draft_ielts_t2_essay')
+          localStorage.removeItem('draft_ielts_t2_prompt')
+        }
+      } catch {}
+
+      // Tự động load đề mới chưa từng làm
+      await generatePrompt(examType, true)
+      await loadHistory()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -307,193 +632,415 @@ export function AiGraderClient() {
     }
   }
 
-  const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0
-
-  const minWords = examType === 'IELTS_TASK_1' ? 150 : 250
-
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 items-start">
-        {/* Left Column: Editor */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                <FileEdit className="w-5 h-5 text-blue-600" /> {isEn ? 'Exam Setup' : 'Thiết lập đề thi'}
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {(userPlan === 'plus' || userPlan === 'pro') && (
-                  <button 
-                    onClick={() => { setShowStudentsModal(true); loadStudentsData(); }}
-                    className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-                  >
-                    <Users className="w-4 h-4" />
-                    {isEn ? 'Students' : 'Học viên'}
-                  </button>
-                )}
-                <button 
-                  onClick={() => setShowHistoryModal(true)}
-                  className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
-                >
-                  <History className="w-4 h-4" />
-                  <span className="hidden sm:inline">{isEn ? 'History' : 'Lịch sử'} ({history.length})</span><span className="sm:hidden">{history.length}</span>
-                </button>
-              </div>
-            </div>
+    <div className="w-full space-y-3 sm:space-y-6">
+      {/* Top Header & Modes Card - Matching TOEIC Luxury Design */}
+      <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-slate-100">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+              {isEn ? 'IELTS Writing Studio' : 'Phòng Luyện Viết IELTS Writing'}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              {isEn
+                ? 'Official Cambridge IELTS standard: Academic Task 1 (Charts & Reports) & Task 2 (Discursive Essay).'
+                : 'Luyện tập chuẩn khảo thí Cambridge IELTS: Task 1 (Phân tích biểu đồ/bản đồ) & Task 2 (Nghị luận xã hội).'}
+            </p>
+          </div>
 
-            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-5">
-              <button
-                onClick={() => { setExamType('IELTS_TASK_1'); setResult(null); setPrompt(null); }}
-                className={`w-full px-4 py-2 rounded text-sm font-semibold transition-all border ${
-                  examType === 'IELTS_TASK_1' ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                IELTS Writing Task 1
-              </button>
-              <button
-                onClick={() => { setExamType('IELTS_TASK_2'); setResult(null); setPrompt(null); }}
-                className={`w-full px-4 py-2 rounded text-sm font-semibold transition-all border ${
-                  examType === 'IELTS_TASK_2' ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                IELTS Writing Task 2
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
-              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
-                {isEn ? 'Feedback Language:' : 'Ngôn ngữ nhận xét:'}
-              </label>
-              <select 
-                value={feedbackLang} 
+          {/* Action buttons - shown on upper row when screen touches edge (< xl) */}
+          <div className="flex xl:hidden items-center gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 text-xs shrink-0">
+              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
+              <select
+                value={feedbackLang}
                 onChange={e => setFeedbackLang(e.target.value)}
-                className="w-full text-sm bg-white border border-slate-300 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer text-xs"
               >
                 <option value="Tiếng Việt">Tiếng Việt</option>
                 <option value="English">English</option>
-                <option value="한국어">한국어 (Korean)</option>
-                <option value="中文">中文 (Chinese)</option>
-                <option value="日本語">日本語 (Japanese)</option>
+                <option value="한국어">한국어</option>
+                <option value="中文">中文</option>
+                <option value="日本語">日本語</option>
               </select>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <label className="font-medium text-slate-700 text-sm">{isEn ? 'Prompt Content:' : 'Nội dung đề bài:'}</label>
-                <div className="flex flex-wrap items-center gap-2">
-                  
-                  
-                  {(userPlan === 'plus' || userPlan === 'pro') && prompt?.content && (
-                    <button
-                      onClick={() => setIsShareModalOpen(true)}
-                      className="text-sm text-indigo-600 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      {isEn ? 'Share Link' : 'Tạo link chia sẻ'}
-                    </button>
-                  )}
-                  <button
-                    onClick={generatePrompt}
-                    disabled={isGenerating || isGrading}
-                    className="text-sm text-blue-600 font-medium hover:bg-blue-50 px-2 py-1 rounded transition-colors flex items-center gap-1 disabled:opacity-50"
-                  >
-                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    {isEn ? 'Random Prompt' : 'Bốc đề ngẫu nhiên'}
-                  </button>
-                </div>
-              </div>
-              
-              {userPlan === 'pro' && !prompt?.imageUrl ? (
-                <div className="space-y-1">
-                  <textarea 
-                    value={prompt?.content || ''}
-                    onChange={(e) => setPrompt(prompt ? { ...prompt, content: e.target.value } : { content: e.target.value })}
-                    placeholder={isEn ? "Enter custom prompt or click 'Random Prompt'..." : "Nhập đề thi tùy chỉnh hoặc bấm 'Bốc đề ngẫu nhiên'..."}
-                    className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 text-sm whitespace-pre-wrap resize-y"
-                  />
-                </div>
-              ) : (
-                !prompt?.imageUrl && (
-                  <div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
-                    {prompt ? prompt.content : (isEn ? "Click 'Random Prompt' to begin..." : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu...")}
+            <button 
+              onClick={() => { 
+                if (!session) return signIn('google')
+                setShowStudentsModal(true)
+                loadStudentsData()
+              }}
+              className="text-xs font-semibold flex items-center gap-1 px-2 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 shrink-0 whitespace-nowrap active:scale-95 duration-75"
+            >
+              <Users className="w-3 h-3" />
+              <span>{isEn ? 'Students' : 'Học viên'}</span>
+            </button>
+
+            <button 
+              onClick={() => setShowHistoryModal(true)}
+              className="text-xs font-semibold flex items-center gap-1 px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors border border-slate-200 shrink-0 whitespace-nowrap active:scale-95 duration-75"
+            >
+              <History className="w-3 h-3 text-blue-600" />
+              <span>{isEn ? 'History' : 'Lịch sử'} ({history.length})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Selection & Desktop Action Buttons */}
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+          {/* Tabs - enlarged on desktop */}
+          <div className="flex items-center gap-2 md:gap-3 overflow-x-auto xl:overflow-x-visible pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {[
+              { 
+                key: 'IELTS_FULL', 
+                title: isEn ? 'Trọn bộ' : 'Trọn bộ', 
+                subtitle: isEn ? 'Task 1+2' : 'Task 1+2', 
+                max: '9.0' 
+              },
+              { 
+                key: 'IELTS_TASK_1', 
+                title: 'Task 1', 
+                subtitle: isEn ? 'Academic' : 'Biểu đồ', 
+                max: '1/3' 
+              },
+              { 
+                key: 'IELTS_TASK_2', 
+                title: 'Task 2', 
+                subtitle: isEn ? 'Essay' : 'Nghị luận', 
+                max: '2/3' 
+              },
+            ].map(t => {
+              const isActive = examType === t.key
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => {
+                    setExamType(t.key as any)
+                    if (t.key === 'IELTS_FULL') {
+                      setFullStep(1)
+                    }
+                    setResult(null)
+                    setExamPhase('setup')
+                    setError(null)
+                  }}
+                  className={`shrink-0 flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all active:scale-98 duration-75 min-w-[80px] md:min-w-[120px] ${
+                    isActive
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <span className="font-bold text-xs md:text-sm whitespace-nowrap">{t.title}</span>
+                    <span className={`text-[9px] md:text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {t.max}
+                    </span>
                   </div>
-                )
+                  <span className={`text-[10px] md:text-xs whitespace-nowrap mt-0.5 ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>
+                    {t.subtitle}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Desktop action buttons - same row as tabs only on large screen (>= xl) */}
+          <div className="hidden xl:flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs">
+              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
+              <select
+                value={feedbackLang}
+                onChange={e => setFeedbackLang(e.target.value)}
+                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer text-xs"
+              >
+                <option value="Tiếng Việt">Tiếng Việt</option>
+                <option value="English">English</option>
+                <option value="한국어">한국어</option>
+                <option value="中文">中文</option>
+                <option value="日本語">日本語</option>
+              </select>
+            </div>
+
+            <button 
+              onClick={() => { 
+                if (!session) return signIn('google')
+                setShowStudentsModal(true)
+                loadStudentsData()
+              }}
+              className="text-xs font-semibold flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 whitespace-nowrap active:scale-95 duration-75"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>{isEn ? 'Students' : 'Học viên'}</span>
+            </button>
+
+            <button 
+              onClick={() => setShowHistoryModal(true)}
+              className="text-xs font-semibold flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors border border-slate-200 whitespace-nowrap active:scale-95 duration-75"
+            >
+              <History className="w-3.5 h-3.5 text-blue-600" />
+              <span>{isEn ? 'History' : 'Lịch sử'} ({history.length})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Full test step indicator */}
+        {examType === 'IELTS_FULL' && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+            <span className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-blue-600" />
+              {isEn ? 'Full Test Flow:' : 'Tiến trình thi trọn bộ:'}
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFullStep(1)}
+                className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-colors active:scale-95 duration-75 ${
+                  fullStep === 1 ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                1. Task 1 (Academic) {task1Essay.trim().length > 0 && '✓'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFullStep(2)}
+                className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-colors active:scale-95 duration-75 ${
+                  fullStep === 2 ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                2. Task 2 (Essay) {task2Essay.trim().length > 0 && '✓'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 items-start">
+        {/* Left Column: Prompt */}
+        <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded border border-blue-100 shrink-0">
+              {examType === 'IELTS_FULL' 
+                ? (fullStep === 1 ? 'Task 1 (Academic)' : 'Task 2 (Essay)')
+                : (examType === 'IELTS_TASK_1' ? 'Task 1 (Academic)' : 'Task 2 (Essay)')}
+            </span>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {activePrompt?.content && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!session) return signIn('google')
+                    setIsShareModalOpen(true)
+                  }}
+                  className="text-xs text-blue-600 font-semibold hover:bg-blue-50 px-2.5 py-1 rounded border border-blue-200 transition-colors flex items-center gap-1 shrink-0 whitespace-nowrap active:scale-95 duration-75"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>{isEn ? 'Share' : 'Chia sẻ'}</span>
+                </button>
               )}
-
-              
-
-              {prompt?.imageUrl && (
-                <div className="mt-4 space-y-2 border border-gray-200 rounded-lg overflow-hidden bg-white p-2">
-
-                    <ImageWithProgress src={prompt.imageUrl} onClick={() => setExpandedImage(prompt.imageUrl!)} isEn={isEn} />
-
-
-
-
-
-
-                </div>
-              )}
-
-
+              <button
+                type="button"
+                onClick={() => {
+                  if (examType === 'IELTS_FULL') {
+                    switchPairedSet()
+                  } else {
+                    generatePrompt()
+                  }
+                }}
+                disabled={isLoadingSets || isGenerating || isGrading}
+                className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded border border-blue-200 hover:bg-blue-50 disabled:opacity-50 transition-colors shrink-0 whitespace-nowrap active:scale-95 duration-75"
+              >
+                {(isLoadingSets || isGenerating) ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                <span>{examType === 'IELTS_FULL' 
+                  ? (isEn ? 'Change Set' : 'Đổi bộ đề')
+                  : (isEn ? 'New Prompt' : 'Đổi đề')}</span>
+              </button>
             </div>
           </div>
 
-          
+          <div className="flex-1 space-y-3">
+            {!session ? (
+              <div className="w-full min-h-[160px] p-6 rounded-xl border border-blue-100 bg-linear-to-b from-blue-50/70 to-white flex flex-col items-center justify-center text-center shadow-xs">
+                <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2.5 shadow-xs">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <h4 className="font-extrabold text-slate-800 text-sm">
+                  {isEn ? 'Sign in to view exam prompt' : 'Đăng nhập để xem đề thi'}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-sm mt-1 mb-3.5 leading-relaxed">
+                  {isEn 
+                    ? 'Please sign in with Google to view the official prompt, write your response, and receive detailed AI evaluation.' 
+                    : 'Vui lòng đăng nhập bằng Google để mở khóa đề thi, điền bài làm và nhận điểm số đánh giá từ AI.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => signIn('google')}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 flex items-center gap-1.5"
+                >
+                  <LogIn className="w-4 h-4" />
+                  {isEn ? 'Sign in with Google' : 'Đăng nhập bằng Google'}
+                </button>
+              </div>
+            ) : (
+              <>
+                {userPlan === 'pro' && !activePrompt?.imageUrl ? (
+                  <div className="space-y-1">
+                    <textarea 
+                      value={activePrompt?.content || ''}
+                      onChange={(e) => {
+                        const updated = activePrompt ? { ...activePrompt, content: e.target.value } : { content: e.target.value }
+                        if (isViewingTask1) setTask1Prompt(updated)
+                        else setTask2Prompt(updated)
+                      }}
+                      placeholder={isEn ? "Enter custom prompt..." : "Nhập đề thi tùy chỉnh hoặc bấm 'Bốc đề ngẫu nhiên'..."}
+                      className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 text-sm whitespace-pre-wrap resize-y"
+                    />
+                  </div>
+                ) : (
+                  !activePrompt?.imageUrl && (
+                    <div className="w-full min-h-[120px] p-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm whitespace-pre-wrap leading-relaxed select-text">
+                      {activePrompt ? activePrompt.content : (isEn ? "Loading prompt..." : "Đang tải đề thi...")}
+                    </div>
+                  )
+                )}
+
+                {/* Chart Image Display */}
+                {activePrompt?.imageUrl && (
+                  <div className="mt-4 space-y-2 border border-slate-200 rounded-lg overflow-hidden bg-white p-2 shadow-xs">
+                    <ImageWithProgress src={activePrompt.imageUrl} onClick={() => setExpandedImage(activePrompt.imageUrl!)} isEn={isEn} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Right Column: Editor */}
-        <div className={`h-full ${isEditorExpanded ? 'fixed inset-0 z-50 bg-slate-100 p-4 sm:p-8 flex flex-col' : ''}`}>
+        <div className={`h-full ${isEditorExpanded ? 'fixed inset-0 z-50 bg-slate-100 p-4 sm:p-8 flex flex-col overflow-y-auto' : ''}`}>
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 text-red-600 text-sm">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <p className="font-medium">{error}</p>
             </div>
           )}
-          <div className={`bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col ${isEditorExpanded ? 'flex-1 p-6' : 'p-6 min-h-[480px]'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                {isEn ? 'Your Essay' : 'Bài làm của bạn'}
-              </h2>
-              <div className="flex items-center gap-3">
-                <div className={`text-xs font-semibold px-2 py-1 rounded ${wordCount >= minWords ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+          <div className={`bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 shadow-xs flex flex-col ${isEditorExpanded ? 'flex-1 p-4 sm:p-6' : 'p-4 sm:p-6'}`}>
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800">
+                {isEn 
+                  ? (isViewingTask1 ? 'Task 1 Response' : 'Task 2 Response') 
+                  : (isViewingTask1 ? 'Bài làm Task 1 (Academic)' : 'Bài làm Task 2 (Essay)')}
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${wordCount >= minWords ? 'bg-emerald-100 text-emerald-700 font-bold' : 'bg-slate-100 text-slate-700'}`}>
                   {wordCount} / {minWords} {isEn ? 'words' : 'từ'}
-                </div>
+                </span>
                 <button 
                   onClick={() => setIsEditorExpanded(!isEditorExpanded)}
-                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors"
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
                   title={isEditorExpanded ? (isEn ? 'Minimize' : 'Thu nhỏ') : (isEn ? 'Expand' : 'Phóng to')}
                 >
-                  {isEditorExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                  {isEditorExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
                 <button 
-                  onClick={() => { if(confirm(isEn ? 'Are you sure you want to clear your essay?' : 'Bạn có chắc chắn muốn xóa toàn bộ bài làm?')) setEssay('') }}
-                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                  onClick={() => { if(confirm(isEn ? 'Clear current essay?' : 'Bạn có chắc chắn muốn xóa bài làm hiện tại?')) setActiveEssay('') }}
+                  className="p-1 text-red-400 hover:text-red-700 rounded transition-colors"
                   title={isEn ? 'Clear essay' : 'Xóa bài làm'}
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <textarea
-              value={essay}
-              onChange={(e) => setEssay(e.target.value)}
-              placeholder={isEn ? "Write your essay here..." : "Viết bài làm của bạn vào đây..."}
-              className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none text-base leading-relaxed font-sans"
-            />
+            <div className="relative flex-1 flex flex-col">
+              {!session && (
+                <div 
+                  onClick={() => signIn('google')}
+                  className="absolute inset-0 z-10 bg-white/75 backdrop-blur-[2px] rounded-lg flex flex-col items-center justify-center cursor-pointer p-4 transition-all hover:bg-white/65"
+                >
+                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mb-2 shadow-xs">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-800 mb-2.5">
+                    {isEn ? 'Sign in to write and type your essay' : 'Đăng nhập để điền vào ô làm bài và nộp chấm điểm'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => signIn('google')}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    {isEn ? 'Sign in with Google' : 'Đăng nhập Google ngay'}
+                  </button>
+                </div>
+              )}
+              <textarea
+                value={activeEssay}
+                onChange={(e) => setActiveEssay(e.target.value)}
+                placeholder={!session ? (isEn ? "Please sign in to write your essay..." : "Vui lòng đăng nhập để bắt đầu làm bài...") : (isEn ? "Write your essay here..." : "Viết bài làm của bạn vào đây...")}
+                disabled={!session || isGrading}
+                className="flex-1 w-full min-h-[220px] sm:min-h-[280px] p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-y text-base leading-relaxed font-sans disabled:bg-gray-50 disabled:text-gray-500"
+              />
+            </div>
 
-            <button
-              onClick={() => {
-                if (!session) return signIn('google')
-                gradeEssay()
-              }}
-              disabled={isGrading || isGenerating}
-              className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isGrading ? (isEn ? 'Grading...' : 'Đang chấm điểm...') : (session ? (isEn ? 'Submit & Grade' : 'Nộp bài & Chấm điểm') : (isEn ? 'Login to Grade' : 'Đăng nhập để Chấm điểm'))}
-            </button>
+            {/* Action buttons depending on mode */}
+            {examType === 'IELTS_FULL' ? (
+              fullStep === 1 ? (
+                <button
+                  onClick={() => {
+                    if (!session) return signIn('google')
+                    if (!task1Essay.trim()) {
+                      const proceed = confirm(isEn ? 'Task 1 is empty. Are you sure you want to proceed to Task 2?' : 'Bài làm Task 1 đang để trống. Bạn có chắc muốn chuyển sang Task 2?')
+                      if (!proceed) return
+                    }
+                    setFullStep(2)
+                  }}
+                  className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <span>{isEn ? 'Next to Task 2 →' : 'Chuyển sang Task 2 →'}</span>
+                </button>
+              ) : (
+                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setFullStep(1)}
+                    className="py-3 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                  >
+                    <span>{isEn ? '← Back to Task 1' : '← Quay lại Task 1'}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!session) return signIn('google')
+                      gradeEssay()
+                    }}
+                    disabled={isGrading || isGenerating}
+                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 shadow-md"
+                  >
+                    {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : (!session ? <LogIn className="w-5 h-5" /> : <Send className="w-5 h-5" />)}
+                    {isGrading ? (isEn ? 'Grading Both Tasks...' : 'Đang chấm trọn bộ 2 Task...') : (session ? (isEn ? 'Submit & Grade Full Test' : 'Nộp bài & Chấm trọn bộ') : (isEn ? 'Sign in with Google to Grade' : 'Đăng nhập Google để Chấm điểm'))}
+                  </button>
+                </div>
+              )
+            ) : (
+              <button
+                onClick={() => {
+                  if (!session) return signIn('google')
+                  gradeEssay()
+                }}
+                disabled={isGrading || isGenerating}
+                className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : (!session ? <LogIn className="w-5 h-5" /> : <Send className="w-5 h-5" />)}
+                {isGrading ? (isEn ? 'Grading...' : 'Đang chấm điểm...') : (session ? (isEn ? 'Submit & Grade' : 'Nộp bài & Chấm điểm') : (isEn ? 'Sign in with Google to Grade' : 'Đăng nhập Google để Chấm điểm'))}
+              </button>
+            )}
+
             {session && (
               <p className="text-center text-xs text-slate-500 mt-2">
                 {isEn ? 'Usage today:' : 'Lượt chấm hôm nay:'} <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
@@ -507,10 +1054,22 @@ export function AiGraderClient() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-slate-50/50">
-              <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                <History className="w-5 h-5 text-indigo-600" /> 
-                {isEn ? 'Grading History (Secure offline storage)' : 'Lịch sử chấm bài (Lưu trữ ngoại tuyến an toàn)'}
-              </h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                  <History className="w-5 h-5 text-indigo-600" /> 
+                  {isEn ? 'Grading History' : 'Lịch Sử Chấm Bài'}
+                </h3>
+                {session?.user?.email ? (
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    {session.user.email}
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-200">
+                    Khách (Chưa đăng nhập)
+                  </span>
+                )}
+              </div>
               <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-700">
                 <XCircle className="w-6 h-6" />
               </button>
@@ -518,17 +1077,31 @@ export function AiGraderClient() {
             
             <div className="flex-1 overflow-y-auto p-5">
               {history.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
-                  <Clock className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                  <p>{isEn ? 'You have no grading history.' : 'Bạn chưa chấm bài nào.'}</p>
-                  <p className="text-sm mt-1">{isEn ? 'Data will be saved automatically on your browser without an account!' : 'Dữ liệu sẽ được lưu tự động trên trình duyệt mà không cần tài khoản!'}</p>
-                </div>
+                session ? (
+                  <div className="text-center py-12 text-slate-500">
+                    <Clock className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                    <p className="font-semibold text-slate-700">{isEn ? 'No essay history found for this account.' : 'Bạn chưa có bài làm nào được lưu trong tài khoản này.'}</p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">{isEn ? 'All submissions and grading results will be safely saved to your account.' : 'Mỗi lần hoàn thành nộp bài, bài viết và kết quả chấm điểm sẽ được tự động lưu vào tài khoản của bạn.'}</p>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-slate-500">
+                    <Clock className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                    <p className="font-semibold text-slate-700">{isEn ? 'You are not logged in.' : 'Bạn chưa đăng nhập tài khoản.'}</p>
+                    <p className="text-xs text-slate-500 mt-1 mb-4 max-w-md mx-auto">{isEn ? 'Please log in with Google to save your grading history to your account!' : 'Vui lòng đăng nhập bằng Google để lưu trữ lịch sử chấm bài vào tài khoản của bạn!'}</p>
+                    <button 
+                      onClick={() => signIn('google')} 
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                    >
+                      {isEn ? 'Sign in with Google' : 'Đăng nhập Google ngay'}
+                    </button>
+                  </div>
+                )
               ) : (
                 <div className="space-y-4">
                   {history.map((item) => (
                     <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-4 hover:border-indigo-300 transition-colors shadow-sm">
                       <div className="flex justify-between items-start mb-3">
-                         <span className={`inline-block px-2 py-1 text-xs font-bold rounded ${item.examType === 'IELTS_TASK_1' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                         <span className={`inline-block px-2 py-1 text-xs font-bold rounded ${item.examType === 'IELTS_TASK_1' ? 'bg-purple-100 text-purple-700' : item.examType === 'IELTS_FULL' ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'}`}>
                           {item.examType.replace('_', ' ')}
                         </span>
                         <span className="text-xs text-slate-500 font-medium">
@@ -540,13 +1113,11 @@ export function AiGraderClient() {
                       </p>
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                         <div className="font-bold text-indigo-600">
-                          {isEn ? 'Score:' : 'Điểm số:'} <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
+                          {isEn ? 'Score:' : 'Điểm số:'} <span className="text-lg">{item.result?.overallBandFormatted || (item.result?.overallBand ? (String(item.result.overallBand).includes('/') ? item.result.overallBand : `${item.result.overallBand}/9`) : 'N/A')}</span>
                         </div>
                         <button 
                           onClick={() => {
                             setExamType(item.examType as ExamType)
-                            setPrompt({ content: item.prompt })
-                            setEssay(item.essay)
                             setResult(item.result)
                             setShowHistoryModal(false)
                           }}
@@ -564,7 +1135,7 @@ export function AiGraderClient() {
             {history.length > 0 && (
               <div className="p-4 border-t border-gray-100 bg-slate-50 flex justify-between items-center">
                 <p className="text-xs text-slate-500 max-w-[60%]">
-                  {isEn ? 'Data is stored securely on your browser (IndexedDB), ensuring 100% privacy.' : 'Dữ liệu được lưu trữ an toàn ngay trên trình duyệt (IndexedDB), đảm bảo quyền riêng tư 100%.'}
+                  {isEn ? 'Your history is securely saved to your account.' : 'Dữ liệu làm bài được lưu trữ an toàn và bảo mật theo tài khoản của bạn.'}
                 </p>
                 <button 
                   onClick={async () => {
@@ -584,152 +1155,16 @@ export function AiGraderClient() {
         </div>
       )}
 
-      {/* SEO Content Section */}
-      {!isEn && (
-      <section className="mt-12 pt-8 border-t border-gray-200">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn & Tiêu Chí Chấm Điểm IELTS Writing Bằng AI</h2>
-          <p className="mb-6 text-slate-600 text-center leading-relaxed">
-            Hệ thống <strong>Chấm thi IELTS Writing AI</strong> của VNDocs là công cụ miễn phí giúp bạn luyện tập và cải thiện kỹ năng viết chuẩn quốc tế. Sử dụng mô hình Trí Tuệ Nhân Tạo hiện đại, công cụ tự động phân tích và đưa ra điểm số mô phỏng chính xác kỳ thi thật.
-          </p>
-          
-          <div className="space-y-4">
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
-              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                1. 4 Tiêu Chí Chấm Điểm (IELTS Grading Criteria)
-                <span className="transition group-open:rotate-180">
-                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
-                </span>
-              </summary>
-              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
-                <p className="mb-3">Bài viết của bạn được AI đánh giá cực kỳ khắt khe dựa trên 4 tiêu chí chính thức của IDP và Hội đồng Anh (British Council):</p>
-                <ul className="list-disc pl-5 space-y-3">
-                  <li><strong>Task Response (TR) - Đáp ứng yêu cầu đề bài:</strong> AI sẽ kiểm tra xem bạn đã trả lời đầy đủ các vế của câu hỏi chưa? Lập luận có rõ ràng, nhất quán và có ví dụ chứng minh cụ thể không. Nếu viết lạc đề (off-topic), điểm TR sẽ rất thấp.</li>
-                  <li><strong>Coherence and Cohesion (CC) - Tính mạch lạc và liên kết:</strong> Đánh giá cách bạn sắp xếp các đoạn văn (Mở bài, Thân bài, Kết bài). Bạn có sử dụng đa dạng và chính xác các từ nối (Linking words) như <em>Furthermore, Nevertheless, On the other hand</em> hay không.</li>
-                  <li><strong>Lexical Resource (LR) - Vốn từ vựng:</strong> Kiểm tra mức độ đa dạng từ vựng. Trí tuệ nhân tạo có khả năng phát hiện bạn đang dùng từ vựng cơ bản hay nâng cao (Less common vocabulary), việc sử dụng các cụm từ (Collocations) có chuẩn tự nhiên (Native-like) hay không.</li>
-                  <li><strong>Grammatical Range and Accuracy (GRA) - Sự đa dạng và chính xác ngữ pháp:</strong> Bài viết phải có sự kết hợp nhuần nhuyễn giữa câu đơn, câu ghép và câu phức. AI sẽ rà soát từng lỗi chính tả, sai thì (Tense), mạo từ (a/an/the) và đưa ra gợi ý sửa lỗi hoàn hảo nhất.</li>
-                </ul>
-              </div>
-            </details>
-
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
-              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                2. Mẹo Đạt Band 7.0+ Cho IELTS Task 2
-                <span className="transition group-open:rotate-180">
-                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
-                </span>
-              </summary>
-              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
-                <p className="mb-3">Để đạt điểm cao trong bài thi IELTS Writing Task 2, bạn cần áp dụng chiến lược rõ ràng thay vì chỉ nhồi nhét từ khó:</p>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li><strong>Lập dàn ý (Outline):</strong> Dành ít nhất 3-5 phút đầu tiên để gạch đầu dòng ý tưởng cho Thân bài 1 và Thân bài 2. Điều này giúp bài không bị cụt ý hay thiếu logic giữa chừng.</li>
-                  <li><strong>Công thức P.I.E cho Thân Bài:</strong> Mỗi đoạn thân bài nên tuân theo cấu trúc: <strong>P</strong>oint (Luận điểm chính) - <strong>I</strong>llustration (Giải thích/Ví dụ) - <strong>E</strong>ffect (Hậu quả/Kết quả).</li>
-                  <li><strong>Tránh sử dụng từ ngữ tuyệt đối:</strong> Hãy dùng các từ chỉ mức độ (Hedging words) như <em>tend to, likely, often, majority</em> thay vì <em>always, all, everyone</em> để lập luận chặt chẽ và học thuật hơn.</li>
-                  <li><strong>Luyện tập thường xuyên với AI Grader:</strong> Dùng công cụ VNDocs để liên tục chấm lỗi sai. Quan sát các phần từ vựng màu đỏ bị gạch đi và học thuộc cách diễn đạt màu xanh để tự cải thiện.</li>
-                </ol>
-              </div>
-            </details>
-
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-blue-50/30 transition-colors">
-              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                3. Cách Sử Dụng Công Cụ Chấm Bài AI
-                <span className="transition group-open:rotate-180">
-                  <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
-                </span>
-              </summary>
-              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
-                <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>Bước 1:</strong> Bấm nút "Bốc đề ngẫu nhiên" để hệ thống chọn một đề IELTS từ kho dữ liệu thi thật. Hoặc bạn có thể tự copy một đề bên ngoài và dán vào.</li>
-                  <li><strong>Bước 2:</strong> Viết bài vào các ô tương ứng. Hệ thống chia sẵn Mở bài, Thân bài, Kết bài để rèn luyện thói quen tách đoạn. Nhìn đồng hồ bộ đếm từ (Word count) để đảm bảo tối thiểu 250 từ.</li>
-                  <li><strong>Bước 3:</strong> Bấm "Nộp bài & Chấm điểm". Hệ thống AI của chúng tôi sẽ phân tích trong 10-15 giây và trả ra bảng điểm Overall cùng các góp ý siêu chi tiết. Dữ liệu của bạn sẽ được lưu tự động lên trình duyệt để xem lại.</li>
-                </ul>
-              </div>
-            </details>
-          </div>
-        </div>
-      </section>
-      )}
-
-      {/* Students Modal */}
-      {showStudentsModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-emerald-50/50">
-              <h3 className="font-bold text-lg flex items-center gap-2 text-emerald-800">
-                <Users className="w-5 h-5" /> {isEn ? 'Student Management' : 'Quản lý học viên'}
-              </h3>
-              <button 
-                onClick={() => setShowStudentsModal(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
-              {loadingStudents ? (
-                <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>
-              ) : studentsData.length === 0 ? (
-                <div className="text-center p-12 bg-white rounded-xl border border-dashed border-gray-200">
-                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-medium">{isEn ? 'No student submissions yet.' : 'Chưa có học viên nào làm bài.'}</p>
-                </div>
-              ) : (
-                studentsData.map((sub) => (
-                  <div key={sub.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 transition-all hover:border-emerald-300">
-                    <div 
-                      className="flex justify-between items-center cursor-pointer"
-                      onClick={() => setExpandedStudentId(expandedStudentId === sub.id ? null : sub.id)}
-                    >
-                      <div>
-                        <h4 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                          {sub.studentName}
-                          {sub.studentPhone && <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{sub.studentPhone}</span>}
-                          {sub.studentEmail && <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{sub.studentEmail}</span>}
-                        </h4>
-                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                          <Clock className="w-3 h-3" />
-                          {new Date(sub.createdAt).toLocaleString('vi-VN')}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-bold text-lg">
-                          Band {sub.gradingResult.overall_band || sub.gradingResult.band_score}
-                        </div>
-                        <div className="text-gray-400">
-                          {expandedStudentId === sub.id ? (isEn ? 'Collapse' : 'Thu gọn') : (isEn ? 'Details' : 'Chi tiết')}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {expandedStudentId === sub.id && (
-                      <div className="space-y-4 mt-6 pt-4 border-t border-gray-100">
-                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm">
-                          <strong className="text-gray-700 block mb-1">{isEn ? 'Prompt:' : 'Đề bài:'}</strong>
-                          <p className="text-gray-600 line-clamp-2">{sub.examContent}</p>
-                        </div>
-                        
-                        <div>
-                          <strong className="text-gray-700 text-sm block mb-1">{isEn ? 'Essay:' : 'Bài làm:'}</strong>
-                          <div className="p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 whitespace-pre-wrap max-h-40 overflow-y-auto">
-                            {sub.studentEssay}
-                          </div>
-                        </div>
-
-                        <div>
-                          <strong className="text-gray-700 text-sm block mb-1">{isEn ? 'Feedback:' : 'Nhận xét:'}</strong>
-                          <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800 whitespace-pre-wrap">
-                            {sub.gradingResult.feedback}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Student Management Modal */}
+      <StudentManagementModal 
+        isOpen={showStudentsModal}
+        onClose={() => setShowStudentsModal(false)}
+        loading={loadingStudents}
+        studentsData={studentsData}
+        expandedStudentId={expandedStudentId}
+        setExpandedStudentId={setExpandedStudentId}
+        examTypePrefix="IELTS"
+      />
 
       <ShareExamModal 
         isOpen={isShareModalOpen} 
@@ -744,6 +1179,7 @@ export function AiGraderClient() {
         result={result} 
         examType={examType || 'IELTS'} 
       />
+
       {/* Expanded Image Modal */}
       {expandedImage && (
         <div 

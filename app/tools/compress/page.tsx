@@ -24,7 +24,7 @@ const softwareSchema = {
 
 export default function CompressPage() {
   return (
-    <main className="min-h-screen bg-surface p-4 md:p-10 font-sans">
+    <div className="py-6 sm:py-8 font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
@@ -100,6 +100,6 @@ export default function CompressPage() {
           </div>
         </section>
       </div>
-    </main>
+    </div>
   )
 }

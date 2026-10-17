@@ -22,6 +22,13 @@ export function ModelsTab() {
   const [usages, setUsages] = useState<Record<string, string>>({})
   const [newKey, setNewKey] = useState('')
 
+  const formatKey = (key: string) => {
+    if (!key) return ''
+    if (key.includes('***') || key.includes('...')) return key
+    if (key.length <= 14) return key
+    return `${key.substring(0, 8)}...${key.substring(key.length - 4)}`
+  }
+
   useEffect(() => {
     fetch('/api/admin?type=configs')
       .then(res => res.json())
@@ -192,7 +199,7 @@ export function ModelsTab() {
                     </div>
                     <div>
                       <div className="font-mono text-sm text-gray-800 font-medium">
-                        {keyStr.substring(0, 10)}...{keyStr.substring(keyStr.length - 4)}
+                        {formatKey(keyStr)}
                       </div>
                       <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                         <Activity size={12} className="text-blue-500" /> Đã gọi: <span className="font-bold text-gray-700">{usages[keyStr] || 0}</span> lần
@@ -224,7 +231,7 @@ export function ModelsTab() {
                 {keyTestResults.map((res, i) => (
                   <li key={i} className="px-3 py-2 flex items-center justify-between bg-white">
                     <span className="font-mono text-xs text-gray-600 truncate max-w-[200px]" title={res.key}>
-                      {res.key.substring(0, 10)}...{res.key.substring(res.key.length - 4)}
+                      {formatKey(res.key)}
                     </span>
                     <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${res.success ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`} title={res.msg}>
                       {res.success ? <><CheckCircle size={12}/> OK</> : <><XCircle size={12}/> Lỗi: {res.msg}</>}

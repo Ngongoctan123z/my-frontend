@@ -9,7 +9,7 @@ export default function AiGraderLayout({
   return (
     <>
       <AiBanner />
-      <div className="pb-6 md:pb-10">
+      <div className="-mx-4 sm:mx-0 pb-6 md:pb-10">
         {children}
       </div>
     </>

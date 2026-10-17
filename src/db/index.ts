@@ -3,12 +3,12 @@ import * as schema from './schema';
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-let cachedDb: ReturnType<typeof drizzle> | null = null;
+// NOTE: Không cache cachedDb ở module scope trên Cloudflare Workers.
+// getCloudflareContext() phải được gọi per-request để nhận đúng D1 binding.
+// drizzle() chỉ là thin wrapper, không có connection pool — tạo mới mỗi request là OK.
 
 // Helper to get D1 database instance
 export async function getDb() {
-  if (cachedDb) return cachedDb;
-
   let dbBinding = process.env.DB as any;
   
   if (!dbBinding) {
@@ -16,7 +16,7 @@ export async function getDb() {
       const { env } = await getCloudflareContext();
       dbBinding = (env as any).DB;
     } catch (e) {
-      // ignore
+      // ignore — đang chạy local dev không có CF context
     }
   }
 
@@ -24,6 +24,5 @@ export async function getDb() {
     throw new Error('Database binding "DB" not found');
   }
   
-  cachedDb = drizzle(dbBinding, { schema });
-  return cachedDb;
+  return drizzle(dbBinding, { schema });
 }

@@ -1,22 +1,26 @@
 import { Metadata } from 'next'
+import Link from 'next/link'
 import Script from 'next/script'
 import { ToeicGraderClient } from '@/app/ai-grader/toeic/ToeicGraderClient'
-import { getRouteMetadata } from '@/src/utils/serverSeo'
+import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
-export async function generateMetadata() {
+export async function generateMetadata(): Promise<Metadata> {
   return getRouteMetadata(
     '/en/ai-grader/toeic',
-    'AI TOEIC Writing Grader & Practice Online | VNDocs',
-    'Practice TOEIC Writing (Respond to a written request, Write an opinion essay) with an instant AI grading system. Detect errors, suggest sentence structures, and score high vocabulary.'
+    'TOEIC Writing Practice & Evaluation Online | VNDocs',
+    'Practice TOEIC Writing (Email responses & Opinion essays) online with rubric evaluation. Detect grammar errors and score high-level business vocabulary.'
   )
 }
 
-export default function EnToeicPage() {
+export default async function EnToeicPage() {
+  const customSeo = await getCustomRouteSeo('/en/ai-grader/toeic')
+  const h1Title = customSeo?.h1 || 'TOEIC Writing Online Practice'
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'AI TOEIC Writing Grader Tool',
+    name: 'TOEIC Writing Practice & Evaluation Tool VNDocs',
     operatingSystem: 'Web',
     applicationCategory: 'EducationalApplication',
     offers: {
@@ -24,7 +28,7 @@ export default function EnToeicPage() {
       price: '0',
       priceCurrency: 'USD',
     },
-    description: 'Practice TOEIC Writing with instant AI grading. Detect errors, suggest structures and vocabulary to achieve high scores.',
+    description: 'Practice TOEIC Writing online with instant evaluation. Refine sentence structures and expand business vocabulary.',
     url: `${FRONTEND_URL}/en/ai-grader/toeic`
   }
 
@@ -41,7 +45,7 @@ export default function EnToeicPage() {
       {
         '@type': 'ListItem',
         position: 2,
-        name: 'AI Grader',
+        name: 'Writing Grader',
         item: `${FRONTEND_URL}/en/ai-grader`,
       },
       {
@@ -53,8 +57,47 @@ export default function EnToeicPage() {
     ]
   }
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'Which tasks are covered in the TOEIC Writing studio?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'The studio covers official ETS task types: Respond to a Written Request (Email questions 6-7) and Write an Opinion Essay (Question 8).'
+        }
+      },
+      {
+        '@type': 'Question',
+        name: 'How does the system grade my TOEIC essay?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Your response is scored against ETS criteria: relevance to the prompt, logical reasoning, diversity of Business English vocabulary, and grammatical accuracy.'
+        }
+      },
+      {
+        '@type': 'Question',
+        name: 'Are my practice responses saved?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. Once logged into your account, all submitted writing tasks and feedback are automatically saved in your personal history for convenient revision.'
+        }
+      },
+      {
+        '@type': 'Question',
+        name: 'Is my workplace writing secure?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'All responses are encrypted in transit and stored privately within your account without third-party sharing.'
+        }
+      }
+    ]
+  }
+
   return (
-    <div className="py-8">
+    <div className="py-8 md:px-16 lg:px-20 max-w-[1248px] mx-auto">
       <Script
         id="software-jsonld-ToeicGraderClient-en"
         type="application/ld+json"
@@ -65,32 +108,127 @@ export default function EnToeicPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
+      <Script
+        id="faq-jsonld-ToeicGraderClient-en"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
+      />
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <h1 className="text-3xl font-black text-slate-800 mb-2">TOEIC Writing Online Grader by AI</h1>
-        <p className="text-slate-600 font-medium">Practice TOEIC Writing formats (Respond, Essay) with lightning-fast AI grading. Analyze errors and suggest high-scoring vocabulary and structures to optimize your test time.</p>
+        {/* Breadcrumb Navigation UI */}
+        <nav aria-label="Breadcrumb" className="mb-4 text-sm text-slate-500 font-medium">
+          <ol className="flex items-center gap-2">
+            <li>
+              <Link href="/en" className="hover:text-blue-600 transition-colors">Home</Link>
+            </li>
+            <li className="text-slate-300">/</li>
+            <li>
+              <Link href="/en/ai-grader" className="hover:text-blue-600 transition-colors">Writing Grader</Link>
+            </li>
+            <li className="text-slate-300">/</li>
+            <li className="text-slate-900 font-semibold" aria-current="page">TOEIC Writing</li>
+          </ol>
+        </nav>
+
+        <h1 className="text-3xl font-black text-slate-800 mb-2">{h1Title}</h1>
+        <p className="text-slate-600 font-medium">
+          Practice official ETS tasks: Respond to written requests (Email Q6-7) and Opinion essays (Q8). Detect grammatical slips, learn business expressions, and improve workplace communication skills.
+        </p>
       </div>
+
       <div className="px-4 sm:px-6 lg:px-8">
         <ToeicGraderClient />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-12 border-t border-gray-100">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-12 border-t border-slate-200">
         <article className="prose prose-slate max-w-none text-justify">
-          <h2 className="text-2xl font-bold text-slate-800 mb-4">How to self-study & Grade TOEIC Writing with AI</h2>
-          <p>The Writing section in the TOEIC test (TOEIC Writing) often confuses many candidates because of its high practicality in the workplace environment. VNDocs's <strong>AI TOEIC Writing grading tool</strong> is specifically designed to help you conquer this test format easily.</p>
-          
-          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">1. Evaluation criteria close to the real test</h3>
-          <p>The AI system evaluates your essay based on the standard criteria of ETS (the TOEIC test creator):</p>
-          <ul>
-            <li><strong>Quality and logic of the answer:</strong> Did you answer the question directly? Do the arguments provided strongly support your opinion?</li>
-            <li><strong>Vocabulary diversity:</strong> Checks the use of workplace vocabulary (Business English) and the richness of your vocabulary.</li>
-            <li><strong>Grammar & Syntax:</strong> Ability to use complex sentence structures, conditional sentences, and accuracy in tenses and articles.</li>
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">
+            How to Master TOEIC Writing Online
+          </h2>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            The TOEIC Writing section evaluates functional, communicative English required in international corporate environments. Follow this structured approach to prepare effectively:
+          </p>
+
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
+            1. Core Test Components
+          </h3>
+          <ul className="text-slate-600 space-y-2 mb-6">
+            <li>
+              <strong>Email Responses (Questions 6-7):</strong> Read incoming inquiries from colleagues or clients and compose professional replies within 10 minutes per task. Address all required points with appropriate business register.
+            </li>
+            <li>
+              <strong>Opinion Essay (Question 8):</strong> Formulate a 300-word persuasive essay in 30 minutes, presenting logical justifications and concrete workplace examples.
+            </li>
           </ul>
 
-          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">2. Benefits</h3>
-          <p>Using the AI tool to practice TOEIC Writing helps you shorten your study time significantly. After submitting each essay, you will receive immediate results including: Estimated score, Grammar errors to fix, and a <strong>Sample Answer</strong> to reference for high-scoring writing styles.</p>
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
+            2. Official ETS Scoring Rubric
+          </h3>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Responses are assessed on communicative competence and structural precision:
+          </p>
+          <ul className="text-slate-600 space-y-2 mb-6">
+            <li>
+              <strong>Prompt Fulfillment:</strong> Did you address all questions with relevant supporting reasons?
+            </li>
+            <li>
+              <strong>Business Lexicon:</strong> Appropriate use of formal collocations, industry terms, and clear phrasing.
+            </li>
+            <li>
+              <strong>Grammatical Accuracy:</strong> Sound control over complex sentence patterns, conditionals, and transitions.
+            </li>
+          </ul>
 
-          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">3. Absolute Security</h3>
-          <p>We understand that some of the exercises you do may relate to real work emails. Therefore, the system does not store any of your text after grading. End-to-end encryption ensures that 100% of your data is safe.</p>
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
+            3. Account History & Progress Tracking
+          </h3>
+          <p className="text-slate-600 leading-relaxed mb-6">
+            When logged in, your submissions and benchmark sample responses are organized in your private <strong>Essay History</strong>. You can review past feedback, avoid recurring errors, and witness measurable improvements across your practice sessions.
+          </p>
+
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
+            Explore Other Writing Studios
+          </h3>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Prepare for other official certification exams:
+          </p>
+          <ul className="text-slate-600 space-y-2 mb-8">
+            <li>
+              Practice academic writing at{' '}
+              <Link href="/en/ai-grader/ielts" className="text-blue-600 font-semibold hover:underline">
+                IELTS Writing Studio
+              </Link>.
+            </li>
+            <li>
+              Prepare for Korean proficiency at{' '}
+              <Link href="/en/ai-grader/topik" className="text-blue-600 font-semibold hover:underline">
+                TOPIK II Writing Studio (쓰기)
+              </Link>.
+            </li>
+            <li>
+              Practice Chinese composition at{' '}
+              <Link href="/en/ai-grader/hsk" className="text-blue-600 font-semibold hover:underline">
+                HSK Writing Studio
+              </Link>.
+            </li>
+          </ul>
+
+          {/* Visible FAQ Section */}
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-4">
+            Frequently Asked Questions
+          </h3>
+          <div className="space-y-4 not-prose">
+            {faqJsonLd.mainEntity.map((item, idx) => (
+              <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <h4 className="font-bold text-slate-800 text-sm sm:text-base mb-1.5">
+                  {item.name}
+                </h4>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  {item.acceptedAnswer.text}
+                </p>
+              </div>
+            ))}
+          </div>
         </article>
       </div>
     </div>

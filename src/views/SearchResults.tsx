@@ -130,7 +130,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
   return (
     <div className="space-y-6">
       {/* Quick Filters Banner */}
-      <section className="sticky top-[76px] z-30 -mx-6 mb-6 bg-surface/95 px-6 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm md:-mx-10 md:px-10">
+      <section className="sticky top-[66px] z-30 -mx-3 sm:-mx-6 md:-mx-8 mb-6 bg-surface/95 px-3 sm:px-6 md:px-8 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm">
         <div className="mx-auto max-w-5xl relative">
 
           {/* Scrolling Fade Hint */}
@@ -143,7 +143,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
               Using flex-wrap causes the pills to break into multiple lines which breaks the UI on mobile devices. 
               Always use: overflow-x-auto with snap-x and hide scrollbars. */}
           <div className={`flex items-center gap-2 pt-1 relative z-10 overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${
-            (subjectDropdownOpen || toolkitDropdownOpen) ? 'pb-[320px] -mb-[320px]' : 'pb-2 -mb-2'
+            (subjectDropdownOpen || toolkitDropdownOpen) ? 'pb-48 -mb-48' : 'pb-2 -mb-2'
           }`}>
             {/* Home button */}
             <Link prefetch={false} href="/"

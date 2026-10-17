@@ -1,22 +1,26 @@
 import { Metadata } from 'next'
+import Link from 'next/link'
 import Script from 'next/script'
 import { HskGraderClient } from './HskGraderClient'
-import { getRouteMetadata } from '@/src/utils/serverSeo'
+import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
-export async function generateMetadata() {
+export async function generateMetadata(): Promise<Metadata> {
   return getRouteMetadata(
     '/ai-grader/hsk',
-    'Chấm Điểm Writing HSK Bằng AI & Luyện Viết Tiếng Trung | VNDocs',
-    'Trợ lý AI chấm điểm bài viết HSK (cấp 4, 5, 6) nhanh chóng, chính xác. Kiểm tra ngữ pháp, lỗi dùng từ, thức tỉnh nét chữ Hán và đưa ra nhận xét chuyên sâu giúp cải thiện kỹ năng Viết tiếng Trung.'
+    'Luyện Viết Tiếng Trung HSK 5 & HSK 6 Online | VNDocs',
+    'Luyện viết phần thi HSK 5 đoạn văn 80 chữ và HSK 6 tóm tắt 400 chữ. Rà soát ngữ pháp, lỗi dùng từ và gợi ý diễn đạt tự nhiên chuẩn bản xứ.'
   )
 }
 
-export default function HskPage() {
+export default async function HskPage() {
+  const customSeo = await getCustomRouteSeo('/ai-grader/hsk')
+  const h1Title = customSeo?.h1 || 'Phòng Luyện HSK Writing Online'
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'Công cụ Chấm điểm HSK Writing bằng AI',
+    name: 'Phòng Luyện Viết HSK Writing Trực Tuyến VNDocs',
     operatingSystem: 'Web',
     applicationCategory: 'EducationalApplication',
     offers: {
@@ -24,7 +28,7 @@ export default function HskPage() {
       price: '0',
       priceCurrency: 'VND',
     },
-    description: 'Trợ lý AI chấm điểm bài viết HSK (cấp 4, 5, 6) nhanh chóng, chính xác. Kiểm tra ngữ pháp, lỗi dùng từ, thức tỉnh nét chữ Hán và đưa ra nhận xét chuyên sâu giúp cải thiện kỹ năng Viết tiếng Trung.',
+    description: 'Luyện viết phần thi HSK 5 đoạn văn 80 chữ và HSK 6 tóm tắt 400 chữ. Rà soát ngữ pháp, lỗi dùng từ và gợi ý diễn đạt tự nhiên chuẩn bản xứ.',
     url: `${FRONTEND_URL}/ai-grader/hsk`
   }
 
@@ -41,7 +45,7 @@ export default function HskPage() {
       {
         '@type': 'ListItem',
         position: 2,
-        name: 'AI Chấm điểm',
+        name: 'Luyện Writing',
         item: `${FRONTEND_URL}/ai-grader`,
       },
       {
@@ -53,44 +57,165 @@ export default function HskPage() {
     ]
   }
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'Phòng thi hỗ trợ luyện viết những cấp độ HSK nào?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Hệ thống hỗ trợ chuyên sâu cho các cấp độ thi Viết chính: HSK 4, HSK 5 (viết đoạn văn kết hợp từ khóa cho sẵn hoặc dựa trên tranh ảnh ~80 chữ) và HSK 6 (đọc hiểu và tóm tắt văn bản ~400 chữ).'
+        }
+      },
+      {
+        '@type': 'Question',
+        name: 'Hệ thống kiểm tra những lỗi sai ngữ pháp nào trong tiếng Trung?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Hệ thống phân tích trật tự từ trong câu, cách sử dụng các trợ từ động thái (了, 着, 过), cấu trúc câu đặc biệt (câu chữ 把, câu chữ 被), cách dùng liên từ nối câu và phát hiện chữ Hán viết sai ngữ cảnh.'
+        }
+      },
+      {
+        '@type': 'Question',
+        name: 'Bài viết và điểm số của tôi có được lưu lại không?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Có. Khi bạn đăng nhập tài khoản, mọi bài viết cùng kết quả đánh giá và gợi ý sửa lỗi sẽ được lưu trữ an toàn trong mục Lịch sử bài viết riêng tư để bạn tiện ôn tập lại bất cứ khi nào.'
+        }
+      },
+      {
+        '@type': 'Question',
+        name: 'Thông tin bài làm của tôi có được bảo mật không?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Dữ liệu làm bài được bảo mật an toàn, chỉ hiển thị trong tài khoản của bạn và cam kết không chia sẻ ra bên ngoài.'
+        }
+      }
+    ]
+  }
+
   return (
-    <div className="py-8">
+    <div className="py-2.5 sm:py-6 md:px-16 lg:px-20 max-w-[1248px] mx-auto">
       <Script
-        id="software-jsonld-HskGraderClient"
+        id="software-jsonld-hsk"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
       <Script
-        id="breadcrumb-jsonld-HskGraderClient"
+        id="breadcrumb-jsonld-hsk"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <h1 className="text-3xl font-black text-slate-800 mb-2">Chấm Điểm HSK Writing Online Bằng AI</h1>
-        <p className="text-slate-600 font-medium">Tự động sửa lỗi ngữ pháp, từ vựng tiếng Trung, phân tích cấu trúc câu và gợi ý cách hành văn tự nhiên chuẩn người bản xứ cho các cấp độ HSK.</p>
-      </div>
-      <div className="px-4 sm:px-6 lg:px-8">
+      <Script
+        id="faq-jsonld-hsk"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
+      />
+
+      <div className="w-full">
         <HskGraderClient />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-12 border-t border-gray-100">
+      {/* H1 + Description moved below the grader tool */}
+      <div className="w-full mt-6 sm:mt-8 px-4 sm:px-0">
+        <h1 className="text-2xl font-black text-slate-800 mb-2">{h1Title}</h1>
+        <p className="text-slate-600 font-medium text-sm">
+          Rà soát ngữ pháp, từ vựng tiếng Trung, phân tích cấu trúc câu và gợi ý cách hành văn tự nhiên chuẩn người bản ngữ cho các cấp độ thi HSK.
+        </p>
+      </div>
+
+      {/* Educational Article & Internal Links */}
+      <div className="w-full mt-8 sm:mt-10 pt-8 sm:pt-10 border-t border-slate-200 px-4 sm:px-0">
         <article className="prose prose-slate max-w-none text-justify">
-          <h2 className="text-2xl font-bold text-slate-800 mb-4">Bí quyết chinh phục HSK Writing với Công cụ chấm bài AI</h2>
-          <p>Kỹ năng Viết (书写) trong kỳ thi năng lực Hán ngữ HSK, đặc biệt từ cấp 4 đến cấp 6, đòi hỏi sự chính xác cao về ngữ pháp và tư duy mạch lạc. Trợ lý AI của VNDocs ra đời giúp bạn <strong>chấm điểm và sửa lỗi HSK Writing</strong> một cách toàn diện nhất.</p>
-          
-          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">1. Tiêu chuẩn đánh giá chuẩn HSK</h3>
-          <p>Hệ thống AI mô phỏng cách chấm điểm của giám khảo Trung Quốc, tập trung vào các khía cạnh:</p>
-          <ul>
-            <li><strong>Độ chính xác của từ vựng và chữ Hán:</strong> Sửa các lỗi dùng sai từ (từ gần nghĩa, sai ngữ cảnh) và lỗi chính tả chữ Hán (nếu gõ pinyin sai).</li>
-            <li><strong>Ngữ pháp (语法):</strong> Phát hiện các lỗi sai trật tự từ, sử dụng sai các trợ từ động thái (了, 着, 过) hay các cấu trúc câu đặc biệt (câu chữ 把, câu chữ 被).</li>
-            <li><strong>Cấu trúc bài viết:</strong> Đánh giá tính mạch lạc, cách sử dụng các từ nối (liên từ) để đoạn văn tự nhiên và logic.</li>
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">
+            Bí quyết nâng cao điểm số phần thi Viết HSK (书写)
+          </h2>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Phần thi Viết trong kỳ thi năng lực Hán ngữ (HSK) luôn đòi hỏi thí sinh phải kết hợp giữa vốn chữ Hán chuẩn xác, cấu trúc ngữ pháp chặt chẽ và khả năng biểu đạt tư tưởng một cách mạch lạc. Khi luyện tập tại phòng viết VNDocs, bạn có thể áp dụng các kinh nghiệm sau:
+          </p>
+
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
+            1. Trọng tâm ôn luyện theo từng cấp độ
+          </h3>
+          <ul className="text-slate-600 space-y-2 mb-6">
+            <li>
+              <strong>HSK 5 (Phần viết đoạn văn ~80 chữ):</strong> Bạn sẽ gặp 2 dạng: hoàn thành đoạn văn dựa trên 5 từ vựng cho sẵn hoặc viết đoạn văn dựa trên tranh ảnh minh họa. Yêu cầu quan trọng là dùng đúng ngữ cảnh của các từ khóa, câu văn liên kết tự nhiên và không viết sai chữ Hán.
+            </li>
+            <li>
+              <strong>HSK 6 (Tóm tắt văn bản ~400 chữ):</strong> Thí sinh đọc một văn bản khoảng 1000 chữ trong 10 phút, sau đó viết lại bài tóm tắt khoảng 400 chữ mà không được mang theo tài liệu. Điểm cốt lõi là ghi nhớ đúng cốt truyện, nhân vật, diễn biến thời gian và rút ngắn câu chữ súc tích.
+            </li>
           </ul>
 
-          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">2. Lợi ích khi sử dụng tiện ích AI</h3>
-          <p>Bạn có thể chủ động luyện viết bất kỳ lúc nào. Sau khi nộp bài, AI sẽ chỉ ra những điểm còn hạn chế, giải thích chi tiết lý do sai bằng tiếng Việt và đề xuất cách sửa lại cho giống với văn phong người bản ngữ nhất. Đây là phương pháp tối ưu giúp bạn đạt điểm cao trong kỳ thi HSK sắp tới.</p>
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
+            2. Tiêu chuẩn đánh giá chuẩn khảo thí
+          </h3>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Hệ thống chấm chữa bài viết mô phỏng cách đánh giá của giám khảo khảo thí tiếng Trung:
+          </p>
+          <ul className="text-slate-600 space-y-2 mb-6">
+            <li>
+              <strong>Độ chính xác của từ vựng và chữ Hán:</strong> Nhận diện và sửa các lỗi sai do dùng nhầm từ gần nghĩa (近义词), lỗi dùng sai ngữ cảnh hoặc gõ sai pinyin.
+            </li>
+            <li>
+              <strong>Ngữ pháp câu (语法):</strong> Sửa các lỗi trật tự từ (định ngữ, trạng ngữ, bổ ngữ), cách đặt câu chữ 把 / câu chữ 被 và cách dùng trợ từ kết cấu (的, 地, 得).
+            </li>
+            <li>
+              <strong>Tính mạch lạc của bài viết:</strong> Đánh giá việc sử dụng liên từ nối ý (不但...而且..., 虽然...但是..., 从而) giúp đoạn văn tự nhiên và logic.
+            </li>
+          </ul>
 
-          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">3. An toàn thông tin tuyệt đối</h3>
-          <p>Chúng tôi cam kết hệ thống không thu thập hay chia sẻ bài viết của bạn với bất kỳ bên thứ ba nào. Quá trình trao đổi dữ liệu được mã hóa SSL, đảm bảo quyền riêng tư và an toàn thông tin ở mức cao nhất.</p>
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
+            3. Đồng bộ lịch sử học tập & Bảo mật
+          </h3>
+          <p className="text-slate-600 leading-relaxed mb-6">
+            Khi đăng nhập tài khoản, mọi bài viết của bạn sẽ được lưu giữ an toàn trong mục <strong>Lịch sử bài viết</strong>. Bạn có thể mở lại bài làm bất kỳ lúc nào để học theo bài mẫu chuẩn bản xứ, xem lại lời giải thích sửa lỗi chi tiết và tự tin hơn trước ngày thi thực tế.
+          </p>
+
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
+            Tài liệu ôn thi và các phòng thực hành bổ trợ
+          </h3>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Để mở rộng vốn từ vựng và ngữ pháp, bạn có thể tham khảo thêm các tài nguyên học tập hữu ích tại VNDocs:
+          </p>
+          <ul className="text-slate-600 space-y-2 mb-8">
+            <li>
+              Tải miễn phí các bộ tài liệu từ vựng HSK và đề thi thử chọn lọc tại{' '}
+              <Link href="/ai-grader/tai-lieu-tong-hop" className="text-blue-600 font-semibold hover:underline">
+                Kho tài liệu luyện thi tổng hợp
+              </Link>.
+            </li>
+            <li>
+              Thực hành thêm kỹ năng viết cho các chứng chỉ ngoại ngữ khác: phòng thi{' '}
+              <Link href="/ai-grader/ielts" className="text-blue-600 font-semibold hover:underline">
+                IELTS Writing chuẩn band
+              </Link>, phòng thi{' '}
+              <Link href="/ai-grader/toeic" className="text-blue-600 font-semibold hover:underline">
+                TOEIC Writing chuẩn ETS
+              </Link>, và phòng luyện{' '}
+              <Link href="/ai-grader/topik" className="text-blue-600 font-semibold hover:underline">
+                TOPIK II 쓰기 tiếng Hàn
+              </Link>.
+            </li>
+          </ul>
+
+          {/* Visible FAQ Section */}
+          <h3 className="text-xl font-bold text-slate-800 mt-8 mb-4">
+            Câu hỏi thường gặp về phòng luyện viết HSK
+          </h3>
+          <div className="space-y-4 not-prose">
+            {faqJsonLd.mainEntity.map((item, idx) => (
+              <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <h4 className="font-bold text-slate-800 text-sm sm:text-base mb-1.5">
+                  {item.name}
+                </h4>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  {item.acceptedAnswer.text}
+                </p>
+              </div>
+            ))}
+          </div>
         </article>
       </div>
     </div>

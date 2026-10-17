@@ -5,8 +5,8 @@ import { getRouteMetadata } from '@/src/utils/serverSeo'
 export async function generateMetadata() {
   return getRouteMetadata(
     '/en/ai-grader',
-    'AI Language Grader | IELTS, TOEIC, TOPIK, HSK | VNDocs',
-    'Free AI grading tool for IELTS, TOEIC, TOPIK, and HSK Writing. Receive instant detailed feedback, grammar corrections, and scoring based on official standards.'
+    'Writing Grader & Practice Hub — IELTS, TOEIC, TOPIK, HSK | VNDocs',
+    'Free online writing practice platform for IELTS, TOEIC, TOPIK, and HSK. Receive instant band score estimation, detailed rubric feedback, and grammar corrections.'
   )
 }
 
@@ -14,9 +14,9 @@ export default function EnAiGraderIndexPage() {
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-12">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-extrabold tracking-tight">AI Language Grader</h1>
+        <h1 className="text-4xl font-extrabold tracking-tight">Writing Grader & Practice Hub</h1>
         <p className="text-ink-muted text-lg">
-          Master your language exams with our advanced AI writing evaluator. Completely free.
+          Master your language exams with our instant writing evaluator. Completely free.
         </p>
         <p className="text-slate-500 font-medium max-w-2xl mx-auto">
           Practice writing for IELTS, TOEIC, TOPIK, and HSK. Get instant feedback on grammar, vocabulary, and structure directly aligned with official grading criteria.

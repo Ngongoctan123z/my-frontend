@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import React from 'react'
 import { ShieldAlert } from 'lucide-react'
+import { CloudflareSystemGate } from '@/src/components/admin/CloudflareSystemGate'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   let session = null;
@@ -13,7 +14,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
   
   // Danh sách Admin có quyền tối cao (Master Admin)
-  const rootAdmins = ['ngongoctan282005@gmail.com']
+  const rootAdmins = [
+    'ngongoctan282005@gmail.com',
+    'ngotan1911@gmail.com',
+    'ngongoctan432005@gmail.com',
+    'admin@vndocs.net'
+  ]
 
   if (authError) {
     return (
@@ -24,9 +30,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     )
   }
 
-  // Yêu cầu đăng nhập nếu chưa có session
+  // Yêu cầu đăng nhập nếu chưa có session (chỉ dẫn đến trang đăng nhập người dùng)
   if (!session?.user?.email) {
-    redirect('/api/auth/signin?callbackUrl=/quan-ly-he-thong-123')
+    redirect('/login?callbackUrl=/quan-ly-he-thong-123')
   }
 
   // Khóa hoàn toàn với những email không nằm trong danh sách
@@ -63,6 +69,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     )
   }
 
-  // Nếu là ngongoctan282005@gmail.com, cho phép render trang Admin
-  return <>{children}</>
+  // Nếu là rootAdmin, yêu cầu xác thực Cloudflare Bot Protection trước khi mở giao diện
+  return (
+    <CloudflareSystemGate systemName="Quản Trị Người Dùng & Hệ Thống">
+      {children}
+    </CloudflareSystemGate>
+  )
 }

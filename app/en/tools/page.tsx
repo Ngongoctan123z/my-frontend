@@ -6,8 +6,8 @@ import { getRouteMetadata } from '@/src/utils/serverSeo'
 export async function generateMetadata() {
   return getRouteMetadata(
     '/en/tools',
-    'Free PDF & Educational Utility Tools | VNDocs',
-    '100% Free tools to merge PDF, remove PDF pages, lock PDF, convert formats, and an advanced online scientific calculator.'
+    'Free PDF & Productivity Tools Online | VNDocs',
+    '100% Free browser-based tools: merge PDF, remove PDF pages, protect PDF, compress images, and use the online scientific calculator emulator.'
   )
 }
 

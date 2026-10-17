@@ -141,9 +141,11 @@ export default async function ExamPage({ params }: Props) {
   
   let relatedExams: import('../../../src/types/exam').Exam[] = []
   try {
-    const p1 = await getExams({ examType: exam.examType, subject: exam.subject, year: exam.year, limit: 5 });
-    const p2 = await getExams({ examType: exam.examType, year: exam.year, limit: 5 });
-    const p3 = await getExams({ examType: exam.examType, limit: 5 });
+    const [p1, p2, p3] = await Promise.all([
+      getExams({ examType: exam.examType, subject: exam.subject, year: exam.year, limit: 5 }),
+      getExams({ examType: exam.examType, year: exam.year, limit: 5 }),
+      getExams({ examType: exam.examType, limit: 5 }),
+    ]);
     
     const combined = [...p1.data, ...p2.data, ...p3.data].filter(e => e.id !== exam.id);
     const seen = new Set();

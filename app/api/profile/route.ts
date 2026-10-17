@@ -21,11 +21,11 @@ export async function GET(_req: NextRequest) {
     
     const user = userRows[0]
     
-    const today = new Date().toLocaleDateString('en-CA')
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })
     const usages = await db.select().from(apiUsages).where(sql`userId = ${userId} AND date = ${today}`)
     const usageCount = usages[0]?.count || 0
     
-    let limit = 2
+    let limit = 7
     if (user.plan === 'pro') limit = 200
     else if (user.plan === 'plus') limit = 50
 

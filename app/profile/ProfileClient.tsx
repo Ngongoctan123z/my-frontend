@@ -118,7 +118,7 @@ export function ProfileClient({ isEn = false }: { isEn?: boolean }) {
           </div>
 
           <div className="bg-white dark:bg-[#161B22] rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">{isEn ? 'Daily AI Usage' : 'Mức sử dụng AI trong ngày'}</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6">{isEn ? 'Daily Grading Quota' : 'Lượt chấm bài trong ngày'}</h3>
             
             <div className="space-y-3">
               <div className="flex justify-between text-sm font-medium">

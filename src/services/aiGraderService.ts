@@ -42,11 +42,18 @@ async function getGroqConfigFromDb(): Promise<{ apiKeys: string[], models: strin
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+async function sha256Hex(text: string) {
+  const msgBuffer = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function incrementGlobalCounter(apiKey: string) {
   try {
     const db = await getDb()
-    const prefix = apiKey.substring(0, 8)
-    const keyUsageKey = `groq_usage_${prefix}`
+    const hash = await sha256Hex(apiKey)
+    const keyUsageKey = `groq_usage_${hash.slice(0, 16)}`
     const configs = await db.select().from(systemConfigs)
     const keyConfig = configs.find(c => c.key === keyUsageKey)
     if (keyConfig) {
@@ -59,7 +66,7 @@ async function incrementGlobalCounter(apiKey: string) {
   }
 }
 
-export async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = false): Promise<{ text: string, usedKey: string }> {
+export async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = false, maxTokens: number = 8192): Promise<{ text: string, usedKey: string }> {
   const { apiKeys, models: modelsToTry } = await getGroqConfigFromDb()
   
   if (!apiKeys || apiKeys.length === 0) {
@@ -99,6 +106,7 @@ export async function tryGenerateWithFallback(systemPrompt: string, isJson: bool
             messages: [{ role: 'system', content: systemPrompt }],
             model: modelName,
             temperature: 0.2,
+            max_tokens: maxTokens,
             response_format: isJson ? { type: 'json_object' } : { type: 'text' },
           })
           return { text: response.choices[0]?.message?.content || '', usedKey: apiKey }
@@ -130,8 +138,8 @@ export async function tryGenerateWithFallback(systemPrompt: string, isJson: bool
   throw new Error('model_exhausted')
 }
 
-export async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: boolean = false): Promise<string> {
-  const result = await tryGenerateWithFallback(systemPrompt, isJson)
+export async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: boolean = false, maxTokens: number = 8192): Promise<string> {
+  const result = await tryGenerateWithFallback(systemPrompt, isJson, maxTokens)
   await incrementGlobalCounter(result.usedKey)
   return result.text
 }
@@ -209,15 +217,20 @@ export async function gradeAnyExam(type: string, promptData: { content: string, 
 QUY TẮC BẮT BUỘC:
 1. KHÔNG ĐƯỢC nói chuyện phiếm. KHÔNG ĐƯỢC thêm lời chào hỏi hay dẫn nhập.
 2. KHÔNG ĐƯỢC thêm các câu như "Đây là kết quả", "Được rồi", "Tôi sẽ đánh giá". KHÔNG ĐƯỢC xuất bất kỳ văn bản ngoài object JSON.
-3. Chấm điểm công bằng, chính xác theo chuẩn quốc tế. Nhận xét phải xây dựng, ngắn gọn và khách quan.
+3. Chấm điểm công bằng, chính xác theo chuẩn quốc tế. Nhận xét phải xây dựng và khách quan.
 4. Kết quả đầu ra PHẢI là JSON hợp lệ theo đúng schema.
 5. Tiếng Việt phải được sử dụng cho feedback.
 
-QUY TẮC PHÂN TÍCH LỖI (Mục "corrections"):
-- CHỈ đánh dấu 'type' là "Lỗi" nếu: sai ngữ pháp, sai chính tả, sai dùng từ, sai collocation nghiêm trọng, sai thông tin biểu đồ, hoặc câu khó hiểu/không tự nhiên ảnh hưởng đến giao tiếp.
-- KHÔNG đánh dấu là lỗi nếu: chỉ là cách diễn đạt khác, lựa chọn từ vựng khác, phiên bản học thuật hơn của cùng một ý (Cả hai đều đúng). Ví dụ: pure water -> potable water là KHÔNG PHẢI lỗi.
-- Nếu câu ĐÚNG nhưng có thể viết HAY HƠN: Đánh dấu 'type' là "Gợi ý nâng cao".
-- KHÔNG tạo lỗi giả chỉ để sửa câu. Chỉ sửa khi thực sự sai hoặc làm giảm điểm rõ rệt. Không hạ điểm vì các từ vựng/cấu trúc vẫn được chấp nhận trong tiếng Anh học thuật.`;
+QUY TẮC NHẬN XÉT & SỬA LỖI (Mục "corrections"):
+1. NẾU BÀI VIẾT ĐÃ TỐT (câu văn chuẩn xác, tự nhiên, ngữ pháp đúng): TUYỆT ĐỐI KHÔNG CẦN NHẬN XÉT SỬA CÂU, trả về "corrections": []. Không được cố tình tìm lỗi vặt khi bài đã tốt.
+2. CHỈ đưa ra nhận xét sửa khi thực sự cần thiết, phân loại chính xác:
+   - 'type': "Lỗi" -> CHỈ dùng cho lỗi sai ngữ pháp, chính tả, cấu trúc câu hoặc dùng từ sai nghĩa nghiêm trọng.
+   - 'type': "Gợi ý" -> Dùng khi câu không sai ngữ pháp nhưng diễn đạt còn gượng hoặc lặp từ, gợi ý cách viết tự nhiên hơn.
+   - 'type': "Nâng cao" -> Dùng khi câu thí sinh đã đúng và tốt, gợi ý cách viết xuất sắc C1-C2 / từ vựng học thuật đỉnh cao (VIP).
+3. "original" PHẢI là nguyên văn chính xác từ bài làm. Không tự bịa.
+4. Rà toàn bộ từng câu/đơn vị diễn đạt, liệt kê TẤT CẢ lỗi có thật, không giới hạn số mục corrections và không chỉ chọn lỗi tiêu biểu. Mỗi vị trí lỗi riêng biệt là một mục; không gộp lỗi độc lập hoặc bỏ lỗi lặp ở câu khác.
+5. Nếu output dài, rút gọn explanation và bỏ gợi ý "Nâng cao" không thiết yếu trước; không lược bỏ lỗi thật. Nếu bài không có lỗi cần sửa, trả về corrections: [].
+6. Chấm ngữ pháp và từ vựng theo mật độ, mức độ nghiêm trọng và tính lặp lại của lỗi so với độ dài bài; đánh giá riêng độ tự nhiên, trôi chảy, độ đa dạng và phù hợp của từ vựng. Hai bài tương đương nhưng một bài có khoảng 40 lỗi thay vì 10 lỗi phải có điểm ngôn ngữ thấp hơn, theo rubric chứ không quy đổi máy móc.`;
 
   let systemPrompt = '';
   const prompt = promptData.content;
@@ -262,8 +275,8 @@ Hãy chấm điểm IELTS Task 1. Thang 0-9. Cấu trúc JSON bắt buộc:
 ${prompt}
 BÀI VIẾT:
 ${essay}
-Hãy chấm TOEIC Writing câu 6-7. Thang 0-5. JSON:
-{ "overallBand": 0, "criteria": { "grammarAndVocabulary": { "score": 0, "feedback": "" }, "organization": { "score": 0, "feedback": "" }, "taskFulfillment": { "score": 0, "feedback": "" } }, "detailedFeedback": "", "corrections": [
+Hãy chấm điểm TOEIC Writing câu 6-7 theo 4 tiêu chí chuẩn ETS (thang 0-4): taskFulfillment, organization, grammar, vocabulary. Nếu lạc đề hoặc chép đề, taskFulfillment = 0 và overallBand = 0. JSON:
+{ "overallBand": 0, "criteria": { "taskFulfillment": { "score": 0, "feedback": "" }, "organization": { "score": 0, "feedback": "" }, "grammar": { "score": 0, "feedback": "" }, "vocabulary": { "score": 0, "feedback": "" } }, "detailedFeedback": "", "corrections": [
     { 
       "type": "Lỗi",
       "original": "câu sai", 
@@ -278,8 +291,8 @@ Hãy chấm TOEIC Writing câu 6-7. Thang 0-5. JSON:
 ${prompt}
 BÀI VIẾT:
 ${essay}
-Hãy chấm TOEIC Writing câu 8. Thang 0-5. JSON:
-{ "overallBand": 0, "criteria": { "reasonsAndExamples": { "score": 0, "feedback": "" }, "organization": { "score": 0, "feedback": "" }, "grammarAndVocabulary": { "score": 0, "feedback": "" } }, "detailedFeedback": "", "corrections": [
+Hãy chấm điểm TOEIC Writing câu 8 theo 4 tiêu chí chuẩn ETS (thang 0-5): reasonsAndExamples, organization, grammar, vocabulary. Nếu lạc đề hoặc chép đề, reasonsAndExamples = 0 và overallBand = 0. JSON:
+{ "overallBand": 0, "criteria": { "reasonsAndExamples": { "score": 0, "feedback": "" }, "organization": { "score": 0, "feedback": "" }, "grammar": { "score": 0, "feedback": "" }, "vocabulary": { "score": 0, "feedback": "" } }, "detailedFeedback": "", "corrections": [
     { 
       "type": "Lỗi",
       "original": "câu sai", 
@@ -288,7 +301,7 @@ Hãy chấm TOEIC Writing câu 8. Thang 0-5. JSON:
       "impact": "Ngữ pháp | Từ vựng | Cấu trúc | Yêu cầu đề bài | Không ảnh hưởng"
     }
   ] }`;
-  } else if (type === 'TOPIK_51_52') {
+  } else if (type === 'TOPIK_51_52' || type === 'TOPIK_51' || type === 'TOPIK_52') {
     systemPrompt = basePrompt + `
 ĐỀ BÀI:
 ${prompt}

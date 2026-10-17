@@ -16,6 +16,7 @@ const inter = Inter({
 
 import { getDb } from '@/src/db'
 import { systemConfigs } from '@/src/db/schema'
+import { inArray } from 'drizzle-orm'
 
 export async function generateMetadata(): Promise<Metadata> {
   let title = 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí';
@@ -25,9 +26,15 @@ export async function generateMetadata(): Promise<Metadata> {
   try {
     const db = await getDb()
     if (db) {
-      const configs = await db.select().from(systemConfigs)
-      const configMap = configs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
-      
+      // Chỉ lấy 3 key cần thiết thay vì full table scan
+      const SEO_KEYS = ['SEO_TITLE', 'SEO_DESCRIPTION', 'SEO_OG_IMAGE'] as const
+      const rows = await db
+        .select()
+        .from(systemConfigs)
+        .where(inArray(systemConfigs.key, SEO_KEYS as unknown as string[]))
+      const configMap: Record<string, string> = {}
+      for (const row of rows) configMap[row.key] = row.value
+
       if (configMap.SEO_TITLE) title = configMap.SEO_TITLE;
       if (configMap.SEO_DESCRIPTION) description = configMap.SEO_DESCRIPTION;
       if (configMap.SEO_OG_IMAGE) ogImage = configMap.SEO_OG_IMAGE;
@@ -47,11 +54,11 @@ export async function generateMetadata(): Promise<Metadata> {
     // luôn được render ra HTML cho Googlebot nhận diện được logo trên kết quả tìm kiếm.
     icons: {
       icon: [
-        { url: '/icon.png' },
-        new URL('/icon.png', 'https://vndocs.net').href
+        { url: '/icon.png', type: 'image/png', sizes: '192x192' },
+        { url: '/icon-512.png', type: 'image/png', sizes: '512x512' },
       ],
       shortcut: '/icon.png',
-      apple: '/icon.png',
+      apple: [{ url: '/icon-512.png', sizes: '512x512', type: 'image/png' }],
     },
     openGraph: {
       title: title,

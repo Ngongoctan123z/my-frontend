@@ -3,8 +3,9 @@ import Groq from 'groq-sdk'
 // Web Crypto API will be used instead of node:crypto
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
-import { systemConfigs, prompts as promptsTable, apiUsages, users } from '@/src/db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { checkRateLimit } from '@/src/lib/rateLimit'
+import { systemConfigs, prompts as promptsTable, apiUsages, users, essayHistory } from '@/src/db/schema'
+import { eq, sql, and } from 'drizzle-orm'
 import {
   basePrompt, CRIT, correctionsSchema,
   IELTS_COMMON_RUBRIC, IELTS_T2_RUBRIC, IELTS_T1_RUBRIC,
@@ -16,12 +17,32 @@ import {
   MAX_ESSAY_LENGTH, buildUserContent, postProcessResult, parseModelJson,
   getGradingSettings, GRADING_CONTRACT, CALIBRATION, countWords, countHanzi, countKoreanChars
 } from './scoring'
+import {
+  TOEIC_RESPOND_FALLBACKS, TOEIC_ESSAY_FALLBACKS, TOEIC_PAIRED_SETS,
+  TOPIK_51_FALLBACKS, TOPIK_52_FALLBACKS, TOPIK_53_FALLBACKS, TOPIK_54_FALLBACKS,
+  IELTS_TASK_1_FALLBACKS, IELTS_TASK_2_FALLBACKS, IELTS_PAIRED_SETS,
+  HSK_5_FALLBACKS, HSK_6_FALLBACKS, FallbackPromptItem
+} from '@/src/data/fallbackPrompts'
+
+function getFallbackPromptsForType(type: string): FallbackPromptItem[] {
+  if (type === 'TOEIC_RESPOND') return TOEIC_RESPOND_FALLBACKS
+  if (type === 'TOEIC_ESSAY') return TOEIC_ESSAY_FALLBACKS
+  if (type === 'TOPIK_51') return TOPIK_51_FALLBACKS
+  if (type === 'TOPIK_52') return TOPIK_52_FALLBACKS
+  if (type === 'TOPIK_53') return TOPIK_53_FALLBACKS
+  if (type === 'TOPIK_54') return TOPIK_54_FALLBACKS
+  if (type === 'HSK_5') return HSK_5_FALLBACKS
+  if (type === 'HSK_6') return HSK_6_FALLBACKS
+  if (type === 'IELTS_TASK_1') return IELTS_TASK_1_FALLBACKS
+  if (type === 'IELTS_TASK_2') return IELTS_TASK_2_FALLBACKS
+  return []
+}
 
 async function checkAndIncrementRateLimit(userId: string): Promise<{ allowed: boolean, limit: number }> {
   const db = await getDb()
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })
 
-  let limit = 2
+  let limit = 7
   const userRows = await db.select().from(users).where(eq(users.email, userId))
   if (userRows.length > 0) {
     const plan = userRows[0].plan
@@ -230,38 +251,255 @@ async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: bool
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { action, type, prompt, essay, imageDescription, feedbackLang = 'Tiếng Việt' } = body
+    // 1. Kiểm tra kích thước payload sơ bộ trước khi đọc body để bảo vệ Worker CPU & Memory
+    const contentLength = req.headers.get('content-length')
+    if (contentLength && parseInt(contentLength, 10) > 200000) {
+      return NextResponse.json(
+        { error: 'Dữ liệu gửi lên vượt quá giới hạn cho phép (tối đa 200KB).' },
+        { status: 413 }
+      )
+    }
 
-    // Handle prompt batch generation from Database instead of AI
-    if (action === 'generate_prompt_batch' || action === 'generate_prompt') {
+    const contentType = req.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      return NextResponse.json(
+        { error: 'Content-Type không hợp lệ, yêu cầu application/json.' },
+        { status: 415 }
+      )
+    }
+
+    const body = await req.json()
+    const { action, type, prompt, essay, imageDescription, feedbackLang } = body
+
+    const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'anon'
+    // Phân loại: Chấm bài (grade_essay) tốn tài nguyên AI thì giới hạn chặt,
+    // còn lấy đề thi / chuyển tab (get_paired_full_test, generate_prompt_batch) thì thả lỏng để người dùng thao tác nhanh không bị chặn
+    const isHeavyAction = action === 'grade_essay'
+    const maxReqs = isHeavyAction ? 6 : 40
+    const windowMs = isHeavyAction ? 10000 : 5000
+    const rl = checkRateLimit(`grader:${isHeavyAction ? 'heavy' : 'light'}:${ip}`, maxReqs, windowMs)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Thao tác quá nhanh. Vui lòng chờ ${rl.retryAfterSeconds} giây trước khi gửi tiếp.` },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rl.retryAfterSeconds)
+          }
+        }
+      )
+    }
+
+    // Ghép cặp trọn bộ đề thi (IELTS Task 1 + Task 2 hoặc TOEIC Part 1 + Part 2)
+    if (action === 'get_paired_full_test') {
+      const exam = body.exam // 'IELTS' hoặc 'TOEIC'
+      const fallbackSets = exam === 'TOEIC' ? TOEIC_PAIRED_SETS : IELTS_PAIRED_SETS
+
       try {
         const db = await getDb()
-        // SQLite RANDOM() order by
-        const randomPrompts = await db.select()
+        
+        let type1 = ''
+        let type2 = ''
+        if (exam === 'IELTS') {
+          type1 = 'IELTS_TASK_1'
+          type2 = 'IELTS_TASK_2'
+        } else if (exam === 'TOEIC') {
+          type1 = 'TOEIC_RESPOND'
+          type2 = 'TOEIC_ESSAY'
+        } else {
+          return NextResponse.json({ error: 'Loại bài thi không hợp lệ.' }, { status: 400 })
+        }
+
+        const [prompts1, prompts2] = await Promise.all([
+          db.select().from(promptsTable).where(eq(promptsTable.type, type1)).orderBy(promptsTable.createdAt).limit(30),
+          db.select().from(promptsTable).where(eq(promptsTable.type, type2)).orderBy(promptsTable.createdAt).limit(30)
+        ])
+
+        if (prompts1.length === 0 || prompts2.length === 0) {
+          return NextResponse.json({ sets: fallbackSets })
+        }
+
+        const maxLen = Math.max(prompts1.length, prompts2.length)
+        type PairedSet = {
+          id: number
+          title: string
+          part1: { content: string; imageUrl?: string | null }
+          part2: { content: string; imageUrl?: string | null }
+        }
+        let pairedSets: PairedSet[] = []
+
+        for (let i = 0; i < maxLen; i++) {
+          const p1 = i < prompts1.length 
+            ? prompts1[i] 
+            : prompts1[Math.floor(Math.random() * prompts1.length)]
+          
+          const p2 = i < prompts2.length 
+            ? prompts2[i] 
+            : prompts2[Math.floor(Math.random() * prompts2.length)]
+
+          pairedSets.push({
+            id: i + 1,
+            title: `Bộ đề số #${i + 1}`,
+            part1: { content: p1.content, imageUrl: p1.imageUrl },
+            part2: { content: p2.content, imageUrl: p2.imageUrl },
+          })
+        }
+
+        // Ưu tiên 100% các bộ đề người dùng CHƯA LÀM (tỷ lệ lặp lại 0%)
+        const doneList: string[] = []
+        const session = await auth()
+        if (session?.user?.email) {
+          const userEmail = session.user.email.toLowerCase().trim()
+          const doneRecords = await db.select({ prompt: essayHistory.prompt })
+            .from(essayHistory)
+            .where(sql`LOWER(${essayHistory.email}) = ${userEmail}`)
+          doneList.push(...doneRecords.map(r => r.prompt))
+        }
+        if (Array.isArray(body.donePrompts)) {
+          doneList.push(...body.donePrompts)
+        }
+
+        const isSetDone = (s: typeof pairedSets[0]) => {
+          return doneList.some(done => {
+            if (!done) return false
+            const d = done.toLowerCase()
+            const sTitle = s.title.toLowerCase()
+            if (d.includes(sTitle) || d.includes(`bộ đề số #${s.id}`) || d.includes(`số #${s.id}`)) return true
+            const p1 = s.part1?.content?.toLowerCase()
+            const p2 = s.part2?.content?.toLowerCase()
+            if (p1 && (d.includes(p1) || p1.includes(d))) return true
+            if (p2 && (d.includes(p2) || p2.includes(d))) return true
+            const snip1 = p1?.slice(0, 50).trim()
+            if (snip1 && snip1.length >= 15 && d.includes(snip1)) return true
+            const snip2 = p2?.slice(0, 50).trim()
+            if (snip2 && snip2.length >= 15 && d.includes(snip2)) return true
+            return false
+          })
+        }
+
+        const uncompletedSets = pairedSets.filter(s => !isSetDone(s))
+        const completedSets = pairedSets.filter(s => isSetDone(s))
+
+        // TUYỆT ĐỐI không hiển thị đề cũ nếu còn đề chưa làm:
+        // Chỉ khi đã làm hết 100% toàn bộ các bộ đề (uncompletedSets.length === 0) mới random lại đề cũ
+        if (uncompletedSets.length > 0) {
+          pairedSets = uncompletedSets
+        } else {
+          pairedSets = completedSets
+        }
+
+        return NextResponse.json({ sets: pairedSets.length > 0 ? pairedSets : fallbackSets })
+      } catch (e: any) {
+        console.warn('[AI-Grader] get_paired_full_test DB error, using fallback sets:', e.message)
+        return NextResponse.json({ sets: fallbackSets })
+      }
+    }
+
+    // Handle prompt batch generation from Database with intelligent random weighting (0% chance for completed prompts until all done)
+    if (action === 'generate_prompt_batch' || action === 'generate_prompt') {
+      const fallbacks = getFallbackPromptsForType(type)
+
+      try {
+        const db = await getDb()
+        const session = await auth()
+
+        const allPrompts = await db.select()
           .from(promptsTable)
           .where(eq(promptsTable.type, type))
-          .orderBy(sql`RANDOM()`)
-          .limit(3)
+          .limit(40)
 
-        if (randomPrompts.length === 0) {
-          // Trả về lỗi nếu chưa có đề thi thay vì tự tạo
+        if (allPrompts.length === 0) {
+          if (fallbacks.length > 0) {
+            return NextResponse.json({
+              text: fallbacks[0].content,
+              prompts: fallbacks
+            })
+          }
           return NextResponse.json(
             { error: 'Chưa có đề thi nào trong kho dữ liệu cho phần này.' },
-            { status: 404 }
+            { status: 200 }
           )
         }
 
+        // Lấy danh sách đề người dùng đã làm
+        const donePromptTexts: string[] = []
+        if (session?.user?.email) {
+          const userEmail = session.user.email.toLowerCase().trim()
+          const historyRows = await db.select({ prompt: essayHistory.prompt, essay: essayHistory.essay })
+            .from(essayHistory)
+            .where(sql`LOWER(${essayHistory.email}) = ${userEmail}`)
+            .limit(50)
+          donePromptTexts.push(...historyRows.map(r => r.prompt))
+          donePromptTexts.push(...historyRows.map(r => r.essay).filter(Boolean) as string[])
+        }
+        if (Array.isArray(body.donePrompts)) {
+          donePromptTexts.push(...body.donePrompts)
+        }
+
+        const isDone = (p: typeof allPrompts[0]) => {
+          const pContent = (p.content || '').trim()
+          if (!pContent) return false
+          const pContentLower = pContent.toLowerCase()
+          const snippet = pContentLower.slice(0, 50).trim()
+
+          // Parse JSON chỉ 1 lần duy nhất cho mỗi prompt, tránh gọi JSON.parse lặp lại trong vòng lặp lồng
+          let parsedTitle = ''
+          let parsedTopic = ''
+          let parsedSnippet = ''
+          if (pContent.startsWith('{')) {
+            try {
+              const parsed = JSON.parse(pContent)
+              if (parsed.title) parsedTitle = String(parsed.title).toLowerCase()
+              if (parsed.topic) parsedTopic = String(parsed.topic).toLowerCase()
+              if (parsed.text) parsedSnippet = String(parsed.text).slice(0, 40).toLowerCase()
+            } catch {}
+          }
+
+          return donePromptTexts.some(done => {
+            if (!done) return false
+            const d = done.trim().toLowerCase()
+            if (d === pContentLower || d.includes(pContentLower) || pContentLower.includes(d)) return true
+            if (snippet.length >= 15 && d.includes(snippet)) return true
+            if (parsedTitle && d.includes(parsedTitle)) return true
+            if (parsedTopic && d.includes(parsedTopic)) return true
+            if (parsedSnippet && d.includes(parsedSnippet)) return true
+            return false
+          })
+        }
+
+        const uncompletedPrompts = allPrompts.filter(p => !isDone(p))
+        const completedPrompts = allPrompts.filter(p => isDone(p))
+
+        // TUYỆT ĐỐI không hiển thị đề cũ khi vẫn còn đề chưa làm:
+        // Chỉ khi uncompletedPrompts.length === 0 (đã hoàn thành 100% đề) mới được phép lấy từ completedPrompts
+        const pool = uncompletedPrompts.length > 0 ? [...uncompletedPrompts] : [...completedPrompts]
+        const chosenPrompts: typeof allPrompts = []
+        const needed = Math.min(3, pool.length)
+
+        for (let i = 0; i < needed; i++) {
+          if (pool.length > 0) {
+            const randIdx = Math.floor(Math.random() * pool.length)
+            chosenPrompts.push(pool.splice(randIdx, 1)[0])
+          }
+        }
+
         // Return array of objects containing content and imageUrl
-        const promptObjects = randomPrompts.map(p => ({
+        const promptObjects = chosenPrompts.map(p => ({
           content: p.content,
           imageUrl: p.imageUrl
         }))
         return NextResponse.json({
-          text: promptObjects[0].content, // for legacy single prompt
-          prompts: promptObjects  // for new batch prompt
+          text: promptObjects[0]?.content || fallbacks[0]?.content || '',
+          prompts: promptObjects.length > 0 ? promptObjects : fallbacks
         })
       } catch (e: any) {
+        console.warn('[AI-Grader] generate_prompt_batch DB error, using fallbacks:', e.message)
+        if (fallbacks.length > 0) {
+          return NextResponse.json({
+            text: fallbacks[0].content,
+            prompts: fallbacks
+          })
+        }
         return NextResponse.json({ error: 'Lỗi khi lấy đề thi: ' + e.message }, { status: 500 })
       }
     }
@@ -312,11 +550,12 @@ export async function POST(req: NextRequest) {
 
       if (type === 'IELTS_TASK_2') {
         systemPrompt = basePrompt + IELTS_COMMON_RUBRIC + IELTS_T2_RUBRIC + `
-Hãy chấm điểm khách quan theo 4 tiêu chí IELTS Task 2:
-1. Task Response (TR) - Mức độ đáp ứng yêu cầu đề bài
-2. Coherence and Cohesion (CC) - Tính mạch lạc và liên kết
-3. Lexical Resource (LR) - Vốn từ vựng
-4. Grammatical Range and Accuracy (GRA) - Độ phong phú và chính xác ngữ pháp
+ĐÁNH GIÁ VỚI BẢN LĨNH GIÁM KHẢO KHẢO THÍ CHÍNH THỨC (IELTS EXAMINER EVALUATION):
+Chấm điểm khách quan theo 4 tiêu chí chuẩn Cambridge cho IELTS Task 2:
+1. Task Response (TR): Trả lời trọn vẹn mọi vế của đề; quan điểm rõ ràng xuyên suốt; lập luận sâu theo PEEL; kiểm tra nghiêm ngặt lỗi liệt kê ý và khái quát hóa thái quá.
+2. Coherence and Cohesion (CC): Tiến triển ý logic; dùng cohesive referencing (this trend, such issues) thay vì lạm dụng từ nối cơ học (Firstly, Secondly...).
+3. Lexical Resource (LR): Độ tự nhiên bản xứ và collocation chuẩn xác; phát hiện và phạt nặng lỗi dịch thô Việt-Anh (L1) và văn mẫu học vẹt rập khuôn.
+4. Grammatical Range and Accuracy (GRA): Độ đa dạng và chính xác của cú pháp (câu phức, đảo ngữ, câu điều kiện, danh từ hóa).
 
 Mỗi tiêu chí chấm từ 0 đến 9, theo thang 0.5. Không cần tính điểm tổng, hệ thống sẽ tự tính.
 
@@ -328,8 +567,8 @@ Cấu trúc JSON bắt buộc:
     "lexicalResource": ${CRIT},
     "grammaticalRange": ${CRIT}
   },
-  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt, tập trung vào các yếu tố ảnh hưởng trực tiếp đến band điểm và 2-3 việc cần làm để lên band.",
-  ${correctionsSchema('Ngữ pháp | Từ vựng | Cấu trúc | Yêu cầu đề bài | Nâng cấp từ vựng')}
+  "detailedFeedback": "Trình bày nhận xét khảo thí súc tích bằng tiếng Việt theo 3 phần rõ rệt:\\n1. [Đánh giá tổng quan]: Tóm tắt điểm mạnh và mức độ đáp ứng bài thi theo barem.\\n2. [Fatal Errors & Limiters Detected]: Trích dẫn NGUYÊN VĂN các cụm từ/câu từ bài viết của thí sinh và phân tích vì sao chúng hạ band điểm (đặc biệt: dịch thô L1 Việt-Anh, văn mẫu sáo rỗng, lạm dụng từ nối, câu thiếu ví dụ thực tế).\\n3. [Chiến lược nâng band lên 8.0+]: Hướng dẫn cụ thể, mang tính hành động cao.",
+  ${correctionsSchema('L1 Translation | Văn mẫu học vẹt | Ngữ pháp & Cú pháp | Nâng cấp Band 8.0+')}
 }
 Viết toàn bộ nhận xét bằng tiếng Việt.
 `
@@ -337,11 +576,12 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
       } else if (type === 'IELTS_TASK_1') {
         const imageDescAddon = imageDescription ? `\nTHÔNG SỐ CỦA HÌNH ẢNH BIỂU ĐỒ (do người ra đề cung cấp để hỗ trợ chấm thi, dùng làm chuẩn kiểm tra số liệu):\n${imageDescription}\n` : ''
         systemPrompt = basePrompt + IELTS_COMMON_RUBRIC + IELTS_T1_RUBRIC + `
-Hãy chấm điểm khách quan theo 4 tiêu chí IELTS Task 1:
-1. Task Achievement (TA) - Mức độ hoàn thành nhiệm vụ
-2. Coherence and Cohesion (CC) - Tính mạch lạc và liên kết
-3. Lexical Resource (LR) - Vốn từ vựng
-4. Grammatical Range and Accuracy (GRA) - Độ phong phú và chính xác ngữ pháp
+ĐÁNH GIÁ VỚI BẢN LĨNH GIÁM KHẢO KHẢO THÍ CHÍNH THỨC (IELTS EXAMINER EVALUATION):
+Chấm điểm khách quan theo 4 tiêu chí chuẩn Cambridge cho IELTS Task 1:
+1. Task Achievement (TA): Báo cáo dữ liệu khách quan; bắt buộc có Overview rõ ràng không chứa số liệu; phân nhóm dữ liệu thông minh; TUYỆT ĐỐI XỬ PHẠT NẶNG nếu có suy diễn chủ quan (Subjective Speculation), liệt kê cơ học hoặc so sánh sai bản chất.
+2. Coherence and Cohesion (CC): Tổ chức bài mạch lạc theo nhóm xu hướng/tương phản; liên kết tự nhiên.
+3. Lexical Resource (LR): Từ vựng mô tả xu hướng và số liệu chuẩn xác; phạt lỗi dịch thô L1 và văn mẫu rập khuôn.
+4. Grammatical Range and Accuracy (GRA): Cú pháp đa dạng (mệnh đề phân từ: accounting for, standing at; cấu trúc so sánh hơn/nhất; đúng thì thời gian).
 
 Mỗi tiêu chí chấm từ 0 đến 9, theo thang 0.5. Không cần tính điểm tổng, hệ thống sẽ tự tính.
 
@@ -353,33 +593,48 @@ Cấu trúc JSON bắt buộc:
     "lexicalResource": ${CRIT},
     "grammaticalRange": ${CRIT}
   },
-  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt, tập trung vào các yếu tố ảnh hưởng trực tiếp đến band điểm và 2-3 việc cần làm để lên band.",
-  ${correctionsSchema('Ngữ pháp | Từ vựng | Phân tích số liệu | Nâng cấp từ vựng')}
+  "detailedFeedback": "Trình bày nhận xét khảo thí súc tích bằng tiếng Việt theo 3 phần rõ rệt:\\n1. [Đánh giá tổng quan]: Tóm tắt điểm mạnh và mức độ đáp ứng bài thi theo barem.\\n2. [Fatal Errors & Limiters Detected]: Trích dẫn NGUYÊN VĂN các cụm từ/câu từ bài viết của thí sinh và phân tích vì sao chúng hạ band điểm (đặc biệt: suy diễn chủ quan ngoài biểu đồ, số liệu trong Overview, lỗi L1 translation, so sánh sai bản chất).\\n3. [Chiến lược nâng band lên 8.0+]: Hướng dẫn phân nhóm số liệu và tích hợp dữ liệu linh hoạt.",
+  ${correctionsSchema('L1 Translation | Suy diễn ngoài biểu đồ | Phân tích số liệu | Nâng cấp Band 8.0+')}
 }
 Viết toàn bộ nhận xét bằng tiếng Việt.
 `
         userContent = buildUserContent(prompt, essay, `Số từ: ${countWords(essay)} (yêu cầu tối thiểu 150 từ)`, imageDescAddon)
       } else if (type === 'TOEIC_RESPOND') {
         systemPrompt = basePrompt + TOEIC_67_RUBRIC + `
-Hãy chấm điểm khách quan theo tiêu chí TOEIC Writing câu 6-7 (Phản hồi yêu cầu bằng văn bản). Mỗi tiêu chí chấm số nguyên 0-4. KHÔNG lấy trung bình ba tiêu chí.
+ĐÁNH GIÁ VỚI BẢN LĨNH GIÁM KHẢO ETS CHÍNH THỨC (ETS TOEIC EXAMINER EVALUATION):
+Chấm điểm theo 4 tiêu chí chuẩn ETS cho TOEIC Writing câu 6-7 (Phản hồi email công sở):
+1. taskFulfillment (0-4): Kiểm tra 100% các chỉ thị trong "Directions"; thí sinh phải đáp ứng đủ số lượng và đúng loại yêu cầu; không được copy nguyên văn từ đề bài; giọng điệu chuyên nghiệp, lịch sự.
+2. organization (0-4): Bố cục email hoàn chỉnh (Lời chào, Mục đích, Thân bài, Kêu gọi hành động, Ký tên).
+3. grammar (0-4): Cấu trúc câu đa dạng, chia thì và hòa hợp chủ-vị chuẩn xác.
+4. vocabulary (0-4): Tiếng Anh thương mại chuẩn mực (Polite Business English), đúng ngữ cảnh công sở.
+
+Mỗi tiêu chí chấm số nguyên 0-4. Điểm tổng holisticScore chấm số nguyên 0-4 (Nếu thiếu 1 yêu cầu trong Directions hoặc sai register: trần điểm tối đa 3, không được chấm 4).
 
 Cấu trúc JSON bắt buộc:
 {
   "holisticScore": 0,
   "criteria": {
-    "grammarAndVocabulary": ${CRIT},
+    "taskFulfillment": ${CRIT},
     "organization": ${CRIT},
-    "taskFulfillment": ${CRIT}
+    "grammar": ${CRIT},
+    "vocabulary": ${CRIT}
   },
-  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt, tập trung vào các yếu tố ảnh hưởng trực tiếp đến điểm.",
-  ${correctionsSchema('Ngữ pháp | Từ vựng | Phù hợp ngữ cảnh | Nâng cấp từ vựng')}
+  "detailedFeedback": "Trình bày nhận xét súc tích bằng tiếng Việt theo 3 phần rõ rệt:\\n1. [Đánh giá tổng quan]: Đối chiếu từng chỉ thị trong Directions xem thí sinh đã hoàn thành đầy đủ chưa.\\n2. [Fatal Errors & Score Limiters]: Trích dẫn NGUYÊN VĂN các cụm từ/câu từ bài viết có giọng điệu cộc lốc/thiếu lịch sự, câu copy từ đề bài hoặc chỉ thị bị bỏ sót.\\n3. [Hướng dẫn đạt điểm tối đa 4/4]: Mẫu câu tiếng Anh thương mại lịch sự (Polite Business English) phù hợp bối cảnh.",
+  ${correctionsSchema('Giọng điệu công sở | Chỉ thị đề bài | Ngữ pháp | Nâng cấp tiếng Anh thương mại')}
 }
 Viết toàn bộ nhận xét bằng tiếng Việt.
 `
-        userContent = buildUserContent(prompt, essay, `Số từ: ${countWords(essay)}`)
+        userContent = buildUserContent(prompt, essay, `Số từ: ${countWords(essay)} (Độ dài chuẩn ETS TOEIC Email: 60-120 từ. Tuyệt đối không phạt vì ngắn nếu đã trả lời đầy đủ các yêu cầu trong Directions)`)
       } else if (type === 'TOEIC_ESSAY') {
         systemPrompt = basePrompt + TOEIC_8_RUBRIC + `
-Hãy chấm điểm khách quan theo tiêu chí TOEIC Writing câu 8 (Bài luận nêu quan điểm). Mỗi tiêu chí chấm số nguyên 0-5. KHÔNG lấy trung bình ba tiêu chí.
+ĐÁNH GIÁ VỚI BẢN LĨNH GIÁM KHẢO ETS CHÍNH THỨC (ETS TOEIC EXAMINER EVALUATION):
+Chấm điểm theo 4 tiêu chí chuẩn ETS cho TOEIC Writing câu 8 (Bài luận quan điểm):
+1. reasonsAndExamples (0-5): Lập trường rõ ràng, không nước đôi; phát triển sâu theo cấu trúc PEEL; BẮT BUỘC có ví dụ thực tế cụ thể từ đời sống hoặc môi trường công việc.
+2. organization (0-5): Bố cục Mở - Thân - Kết chặt chẽ, câu chủ đề rõ ràng, tiến triển ý mạch lạc.
+3. grammar (0-5): Đa dạng cú pháp ở mức cao (câu điều kiện, đảo ngữ, mệnh đề nhượng bộ); không mắc lỗi ngữ pháp cơ bản lặp lại.
+4. vocabulary (0-5): Vốn từ phong phú, collocation chuẩn xác trong ngữ cảnh công sở/học thuật.
+
+Mỗi tiêu chí chấm số nguyên 0-5. Điểm tổng holisticScore chấm số nguyên 0-5. Dưới 250 từ là Fatal Error, trần điểm tối đa 3/5.
 
 Cấu trúc JSON bắt buộc:
 {
@@ -387,20 +642,87 @@ Cấu trúc JSON bắt buộc:
   "criteria": {
     "reasonsAndExamples": ${CRIT},
     "organization": ${CRIT},
-    "grammarAndVocabulary": ${CRIT}
+    "grammar": ${CRIT},
+    "vocabulary": ${CRIT}
   },
-  "detailedFeedback": "Nhận xét tổng thể bằng tiếng Việt, tập trung vào các yếu tố ảnh hưởng trực tiếp đến điểm.",
+  "detailedFeedback": "Trình bày nhận xét súc tích bằng tiếng Việt theo 3 phần rõ rệt:\\n1. [Đánh giá tổng quan]: Tóm tắt điểm số theo barem ETS, đánh giá luận điểm và ví dụ dẫn chứng.\\n2. [Fatal Errors & Score Limiters]: Trích dẫn NGUYÊN VĂN các câu thiếu dẫn chứng cụ thể, lỗi ngữ pháp cơ bản lặp lại, hoặc quan điểm chưa dứt khoát.\\n3. [Chiến lược đạt điểm tối đa 5/5]: Hướng dẫn viết ví dụ thực tế sắc bén và nâng cấp cú pháp nâng cao (đảo ngữ, câu điều kiện).",
+  ${correctionsSchema('Lập luận & Dẫn chứng | Cú pháp nâng cao | Ngữ pháp | Nâng cấp từ vựng')}
+}
+Viết toàn bộ nhận xét bằng tiếng Việt.
+`
+        userContent = buildUserContent(prompt, essay, `Số từ: ${countWords(essay)} (chuẩn ETS: tối thiểu 250 từ, tối ưu 300-350 từ)`)
+      } else if (type === 'HSK_5') {
+        systemPrompt = basePrompt + HSK5_RUBRIC + `
+Hãy chấm điểm khách quan, chuẩn xác toàn diện cả 3 phần của bài thi viết HSK 5:
+1. part1_ordering: Sắp xếp 8 câu (Câu 91 - 98) (tối đa 40 điểm, mỗi câu 5 điểm)
+2. part2_keywords: Đoạn văn theo 5 từ khóa (Câu 99) (tối đa 30 điểm)
+3. part3_picture: Đoạn văn theo tranh (Câu 100) (tối đa 30 điểm)
+
+Trong "evidence" và "original" giữ nguyên chữ Hán trích từ bài làm.
+
+Cấu trúc JSON bắt buộc:
+{
+  "criteria": {
+    "part1_ordering": {
+      "evidence": ["trích dẫn câu làm ở phần 1"],
+      "reasoning": "giải thích điểm phần 1 (thang 0-40)",
+      "score": 0,
+      "feedback": "nhận xét phần sắp xếp 8 câu"
+    },
+    "part2_keywords": {
+      "evidence": ["trích dẫn câu làm ở phần 2"],
+      "reasoning": "giải thích điểm phần 2 (thang 0-30)",
+      "score": 0,
+      "feedback": "nhận xét phần viết đoạn theo từ khóa"
+    },
+    "part3_picture": {
+      "evidence": ["trích dẫn câu làm ở phần 3"],
+      "reasoning": "giải thích điểm phần 3 (thang 0-30)",
+      "score": 0,
+      "feedback": "nhận xét phần viết đoạn theo tranh"
+    }
+  },
+  "hsk5Parts": {
+    "part1": {
+      "score": 0,
+      "maxScore": 40,
+      "feedback": "nhận xét tổng quan phần 1",
+      "items": [
+        {
+          "q": 91,
+          "userAnswer": "câu của thí sinh hoặc Chưa làm",
+          "correctAnswer": "đáp án chuẩn ngữ pháp tiếng Trung",
+          "isCorrect": true,
+          "score": 5,
+          "explanation": "giải thích ngữ pháp tiếng Trung ngắn gọn bằng tiếng Việt"
+        }
+      ]
+    },
+    "part2": {
+      "score": 0,
+      "maxScore": 30,
+      "feedback": "nhận xét đoạn văn từ khóa",
+      "usedKeywords": ["các từ thí sinh đã sử dụng"],
+      "missingKeywords": ["các từ thí sinh còn thiếu nếu có"]
+    },
+    "part3": {
+      "score": 0,
+      "maxScore": 30,
+      "feedback": "nhận xét đoạn văn theo tranh"
+    }
+  },
+  "detailedFeedback": "Nhận xét tổng thể cả 3 phần bằng tiếng Việt, hướng dẫn chi tiết cách cải thiện ngữ pháp và từ vựng.",
   ${correctionsSchema('Ngữ pháp | Từ vựng | Cấu trúc | Nâng cấp từ vựng')}
 }
 Viết toàn bộ nhận xét bằng tiếng Việt.
 `
-        userContent = buildUserContent(prompt, essay, `Số từ: ${countWords(essay)} (khuyến nghị tối thiểu 300 từ)`)
-      } else if (type === 'HSK_5' || type === 'HSK_6') {
-        systemPrompt = basePrompt + (type === 'HSK_5' ? HSK5_RUBRIC : HSK6_RUBRIC) + `
+        userContent = buildUserContent(prompt, essay, `Số chữ Hán toàn bài: ${countHanzi(essay)}`)
+      } else if (type === 'HSK_6') {
+        systemPrompt = basePrompt + HSK6_RUBRIC + `
 Hãy chấm điểm khách quan theo tiêu chí thi viết HSK:
 1. grammar: độ chính xác về ngữ pháp và cú pháp
 2. vocabulary: sự đa dạng và chính xác của từ vựng
-3. taskFulfillment: tính mạch lạc và mức độ hoàn thành nhiệm vụ (${type === 'HSK_5' ? 'HSK 5: dùng hết từ gợi ý hoặc mô tả đúng ảnh' : 'HSK 6: tóm tắt chính xác nội dung bài đọc, có tiêu đề, không nêu ý kiến cá nhân'})
+3. taskFulfillment: tính mạch lạc và mức độ hoàn thành nhiệm vụ (HSK 6: tóm tắt chính xác nội dung bài đọc, có tiêu đề, không nêu ý kiến cá nhân)
 
 Mỗi tiêu chí chấm 0-100. Không cần tính điểm tổng, hệ thống sẽ tự tính.
 Trong "evidence" và "original" giữ nguyên chữ Hán trích từ bài làm.
@@ -417,10 +739,23 @@ Cấu trúc JSON bắt buộc:
 }
 Viết toàn bộ nhận xét bằng tiếng Việt.
 `
-        userContent = buildUserContent(prompt, essay, `Số chữ Hán: ${countHanzi(essay)} (mục tiêu khoảng ${type === 'HSK_5' ? 80 : 400} chữ)`)
-      } else if (type === 'TOPIK_51_52' || type === 'TOPIK_53' || type === 'TOPIK_54') {
-        const topikRubric = type === 'TOPIK_51_52' ? TOPIK_5152_RUBRIC : type === 'TOPIK_53' ? TOPIK_53_RUBRIC : TOPIK_54_RUBRIC
-        const lengthHint = type === 'TOPIK_53' ? ' (yêu cầu 200-300 ký tự)' : type === 'TOPIK_54' ? ' (yêu cầu 600-700 ký tự)' : ''
+        userContent = buildUserContent(prompt, essay, `Số chữ Hán: ${countHanzi(essay)} (mục tiêu khoảng 400 chữ)`)
+      } else if (type === 'TOPIK_51_52' || type === 'TOPIK_51' || type === 'TOPIK_52' || type === 'TOPIK_53' || type === 'TOPIK_54') {
+        const topikRubric = (type === 'TOPIK_51_52' || type === 'TOPIK_51' || type === 'TOPIK_52')
+          ? TOPIK_5152_RUBRIC
+          : type === 'TOPIK_53'
+            ? TOPIK_53_RUBRIC
+            : TOPIK_54_RUBRIC
+        const lengthHint = type === 'TOPIK_53'
+          ? ' (yêu cầu 200-300 ký tự tính cả khoảng trắng)'
+          : type === 'TOPIK_54'
+            ? ' (yêu cầu 600-700 ký tự tính cả khoảng trắng)'
+            : ' (hoàn thành 2 chỗ trống ㉠ và ㉡, không giới hạn độ dài)'
+
+        const chartExtra = (type === 'TOPIK_53' && (imageDescription || prompt))
+          ? `\nTHÔNG TIN DỮ LIỆU & SỐ LIỆU GỐC CỦA BIỂU ĐỒ (Dùng làm cơ sở chuẩn để đối chiếu số liệu khi chấm Câu 53, thí sinh chỉ nhìn hình biểu đồ để viết bài nên hãy đối chiếu với số liệu chuẩn này, tránh chấm sai nếu thí sinh viết đúng số liệu):\n${imageDescription || prompt}\n`
+          : ''
+
         systemPrompt = basePrompt + topikRubric + `
 Hãy chấm điểm khách quan theo tiêu chí thi viết TOPIK II:
 1. grammarAndVocabulary: ngữ pháp và từ vựng (độ chính xác trong diễn đạt và ngữ pháp)
@@ -442,12 +777,19 @@ Cấu trúc JSON bắt buộc:
 }
 Viết toàn bộ nhận xét bằng tiếng Việt.
 `
-        userContent = buildUserContent(prompt, essay, `Số ký tự (tính cả khoảng trắng): ${countKoreanChars(essay)}${lengthHint}`)
+        userContent = buildUserContent(prompt, essay, `Số ký tự (tính cả khoảng trắng): ${countKoreanChars(essay)}${lengthHint}`, chartExtra)
       } else {
         return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
       }
 
-      systemPrompt += '\nHƯỚNG DẪN BỔ SUNG TỪ QUẢN TRỊ:\n' + gradingSettings.prompt + '\n' + GRADING_CONTRACT
+      systemPrompt += '\nHƯỚNG DẪN BỔ SUNG TỪ QUẢN TRỊ:\n' + gradingSettings.prompt + '\n' + GRADING_CONTRACT + `
+
+YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
+- corrections phải là một mảng JSON, kể cả khi không có lỗi (khi đó dùng []).
+- Rà toàn bộ từng câu và liệt kê mọi lỗi thật, không giới hạn số mục, không chỉ chọn lỗi tiêu biểu. Mỗi vị trí lỗi riêng biệt phải có một mục với original trích nguyên văn chính xác.
+- Không bỏ lỗi vì muốn giữ output ngắn. Nếu output dài, rút ngắn explanation và bỏ gợi ý nâng cao không thiết yếu trước; giữ đầy đủ các lỗi.
+- Điểm Grammar/Language và Vocabulary phải phản ánh mật độ, mức độ nghiêm trọng và tính lặp lại của lỗi so với độ dài bài, đồng thời đánh giá riêng độ tự nhiên/trôi chảy và độ phù hợp của từ vựng theo rubric.
+`
 
       if (feedbackLang && feedbackLang !== 'Tiếng Việt') {
         systemPrompt = systemPrompt.replace(/tiếng việt/gi, feedbackLang)
@@ -465,17 +807,18 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
           userContent,
           temperature: 0,
           forGrading: true,
-          maxTokens: 4096,
+          maxTokens: 8192,
         })
         
         if (textRes.finishReason === 'length') {
-          validationErrorMsg = 'Output bị cắt do quá dài. Hãy tóm tắt lại và xuất JSON đầy đủ.'
+          validationErrorMsg = 'Output bị cắt do quá dài. Hãy rút gọn detailedFeedback và explanation, bỏ các gợi ý Nâng cao không thiết yếu, nhưng phải giữ mọi lỗi thật trong corrections và xuất JSON đầy đủ.'
           continue;
         }
 
         try {
           const parsed = parseModelJson(textRes.text)
-          const finalResult = postProcessResult(parsed, type, essay, gradingSettings.calibration)
+          const calibValue = gradingSettings.calibration[type] || 0
+          const finalResult = postProcessResult(parsed, type, essay, calibValue)
           
           // Metadata
           finalResult.assessmentStatus = 'verified'
@@ -483,6 +826,7 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
           finalResult.rubricVersion = '1.0'
           finalResult.scoreKind = type.includes('IELTS') ? 'band' : 'score'
           finalResult.scoreScale = type.includes('IELTS') ? 9 : (type.includes('TOEIC') ? (type === 'TOEIC_ESSAY' ? 5 : 4) : 100)
+          finalResult.overallBandFormatted = `${finalResult.overallBand}/${finalResult.scoreScale}`
 
           return NextResponse.json(finalResult)
         } catch (e: any) {
@@ -532,7 +876,7 @@ export async function GET(_req: NextRequest) {
   try {
     const session = await auth()
     if (!session || !session.user || !session.user.email) {
-      return NextResponse.json({ count: 0, limit: 2, plan: 'free' })
+      return NextResponse.json({ count: 0, limit: 7, plan: 'free' })
     }
 
     const userId = session.user.email
@@ -540,7 +884,7 @@ export async function GET(_req: NextRequest) {
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })
 
     const userRows = await db.select().from(users).where(eq(users.email, userId))
-    let limit = 2
+    let limit = 7
     let plan = 'free'
     if (userRows.length > 0) {
       plan = userRows[0].plan
@@ -554,6 +898,6 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ count, limit, plan })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ count: 0, limit: 2, plan: 'free' })
+    return NextResponse.json({ count: 0, limit: 7, plan: 'free' })
   }
 }

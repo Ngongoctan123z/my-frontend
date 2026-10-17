@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/src/db'
 import { sharedExams, sharedExamSubmissions } from '@/src/db/schema'
 import { auth } from '@/auth'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, inArray } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,12 +24,12 @@ export async function GET(req: NextRequest) {
 
     const examIds = exams.map(e => e.id)
     
-    // Find all submissions for these exams
-    // Drizzle ORM 'inArray' can be used, but for simplicity with sqlite, we can just fetch all and filter, or use an inArray clause if we import it.
-    // Let's just do a join or fetch all and filter since sqlite is fast.
-    const allSubmissions = await db.select().from(sharedExamSubmissions).orderBy(desc(sharedExamSubmissions.createdAt))
-    
-    const mySubmissions = allSubmissions.filter(sub => examIds.includes(sub.sharedExamId))
+    // Find all submissions for these exams using DB-level filtering
+    const mySubmissions = await db
+      .select()
+      .from(sharedExamSubmissions)
+      .where(inArray(sharedExamSubmissions.sharedExamId, examIds))
+      .orderBy(desc(sharedExamSubmissions.createdAt))
 
     // Map to include exam details
     const result = mySubmissions.map(sub => {
@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
         ...sub,
         examType: exam?.examType,
         examContent: exam?.content,
+        imageUrl: exam?.imageUrl || null,
+        imageDescription: exam?.imageDescription || null,
         gradingResult: JSON.parse(sub.gradingResult)
       }
     })

@@ -4,9 +4,9 @@ import MergeFilesWrapper from '@/app/tools/merge-files/MergeFilesWrapper'
 
 export async function generateMetadata() {
   return getRouteMetadata(
-    '/en/tools/merge-files/page.tsx',
-    'Merge PDF Files | VNDocs',
-    'Combine multiple PDF documents or images into a single file. Reorder files with blazing fast drag and drop, 100% secure.'
+    '/en/tools/merge-files',
+    'Merge PDF Online — Combine PDF Files & Images Free | VNDocs',
+    'Combine multiple PDF documents and images into a single file easily. Reorder pages with intuitive drag-and-drop. 100% private, processed directly in your browser.'
   )
 }
 

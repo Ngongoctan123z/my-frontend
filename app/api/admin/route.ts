@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
-import { users, prompts, systemConfigs } from '@/src/db/schema'
+import { users, prompts, systemConfigs, speakingPrompts } from '@/src/db/schema'
 import { desc, eq } from 'drizzle-orm'
 
 async function checkAdmin() {
@@ -10,10 +10,30 @@ async function checkAdmin() {
     throw new Error('Unauthorized')
   }
   
-  const rootAdmins = ['ngongoctan282005@gmail.com']
-  if (!rootAdmins.includes(session.user.email)) {
-    throw new Error('Forbidden')
+  const rootAdmins = [
+    'ngongoctan282005@gmail.com',
+    'ngotan1911@gmail.com',
+    'ngongoctan432005@gmail.com',
+    'admin@vndocs.net'
+  ]
+  if (rootAdmins.includes(session.user.email)) {
+    return true
   }
+
+  const db = await getDb()
+  const userList = await db.select().from(users).where(eq(users.email, session.user.email))
+  if (userList.length > 0 && userList[0].role === 'admin') {
+    return true
+  }
+
+  throw new Error('Forbidden')
+}
+
+async function sha256Hex(text: string) {
+  const msgBuffer = new TextEncoder().encode(text)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 export async function GET(req: NextRequest) {
@@ -32,6 +52,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(allPrompts)
     }
 
+    if (type === 'speaking_prompts') {
+      try {
+        const allSpeaking = await db.select().from(speakingPrompts).orderBy(desc(speakingPrompts.createdAt))
+        return NextResponse.json(allSpeaking)
+      } catch (err: any) {
+        return NextResponse.json([])
+      }
+    }
+
     if (type === 'configs') {
       const allConfigs = await db.select().from(systemConfigs)
       const configMap = allConfigs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
@@ -44,12 +73,33 @@ export async function GET(req: NextRequest) {
         configMap.GROQ_API_KEY = process.env.GROQ_API_KEY
       }
 
+      // Tổng hợp lượt gọi API cho từng key (hỗ trợ gom dữ liệu từ cả raw key, hash sha256 và prefix)
+      if (configMap.GROQ_API_KEY) {
+        const rawKeys = configMap.GROQ_API_KEY.split(',').map((k: string) => k.trim()).filter(Boolean)
+        for (const k of rawKeys) {
+          const hash = (await sha256Hex(k)).slice(0, 16)
+          const prefix8 = k.slice(0, 8)
+          const prefix12 = k.slice(0, 12)
+          let totalUsage = 0
+
+          if (configMap[`KEY_USAGE_${k}`]) totalUsage += parseInt(configMap[`KEY_USAGE_${k}`]) || 0
+          if (configMap[`KEY_USAGE_${hash}`]) totalUsage += parseInt(configMap[`KEY_USAGE_${hash}`]) || 0
+          if (configMap[`groq_usage_${hash}`]) totalUsage += parseInt(configMap[`groq_usage_${hash}`]) || 0
+          if (configMap[`groq_usage_${prefix8}`]) totalUsage += parseInt(configMap[`groq_usage_${prefix8}`]) || 0
+          if (configMap[`groq_usage_${prefix12}`]) totalUsage += parseInt(configMap[`groq_usage_${prefix12}`]) || 0
+
+          configMap[`KEY_USAGE_${k}`] = totalUsage.toString()
+        }
+      }
+
       return NextResponse.json(configMap)
     }
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: error.message === 'Unauthorized' ? 401 : 500 })
+    if (error.message === 'Unauthorized') return NextResponse.json({ error: error.message }, { status: 401 })
+    if (error.message === 'Forbidden') return NextResponse.json({ error: error.message }, { status: 403 })
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
@@ -63,6 +113,10 @@ export async function POST(req: NextRequest) {
     if (action === 'save_configs') {
       for (const [k, v] of Object.entries(payload)) {
         if (v !== undefined && typeof v === 'string') {
+          // Bảo vệ: Nếu GROQ_API_KEY bị gửi lên dưới dạng đã mask (chứa ***), không ghi đè vào DB
+          if (k === 'GROQ_API_KEY' && v.includes('***')) {
+            continue
+          }
           if (v === '') {
             await db.delete(systemConfigs).where(eq(systemConfigs.key, k))
           } else {
@@ -82,15 +136,77 @@ export async function POST(req: NextRequest) {
     if (action === 'add_prompt') {
       const { type, content, imageUrl } = payload
       const newPrompt = await db.insert(prompts).values({
+        id: crypto.randomUUID(),
         type,
         content,
-        imageUrl: imageUrl || null
+        imageUrl: imageUrl || null,
+        createdAt: new Date()
       }).returning()
       return NextResponse.json(newPrompt[0])
     }
 
     if (action === 'delete_prompt') {
       await db.delete(prompts).where(eq(prompts.id, payload.id))
+      return NextResponse.json({ success: true })
+    }
+
+    // ── Speaking Prompts Admin Actions ─────────────────────────────────────────
+    if (action === 'add_speaking_prompt') {
+      const p = payload
+      const inserted = await db.insert(speakingPrompts).values({
+        id: crypto.randomUUID(),
+        examType: p.examType,
+        part: p.part,
+        topic: p.topic || 'General',
+        questionEn: p.questionEn,
+        questionVi: p.questionVi,
+        cueCard: p.cueCard || null,
+        subQuestions: p.subQuestions ? (typeof p.subQuestions === 'string' ? p.subQuestions : JSON.stringify(p.subQuestions)) : null,
+        suggestedVocabulary: p.suggestedVocabulary ? (typeof p.suggestedVocabulary === 'string' ? p.suggestedVocabulary : JSON.stringify(p.suggestedVocabulary)) : null,
+        imageUrl: p.imageUrl || null,
+        prepTimeSec: Number(p.prepTimeSec) || 0,
+        speakTimeSec: Number(p.speakTimeSec) || 45,
+        startGraceSec: Number(p.startGraceSec) || 15,
+        criteria: p.criteria ? (typeof p.criteria === 'string' ? p.criteria : JSON.stringify(p.criteria)) : null,
+        difficulty: p.difficulty || 'medium',
+        setId: p.setId || null,
+        isPublished: p.isPublished !== undefined ? Boolean(p.isPublished) : true,
+        createdAt: new Date(),
+      }).returning()
+      return NextResponse.json(inserted[0] || { success: true })
+    }
+
+    if (action === 'update_speaking_prompt') {
+      const p = payload
+      await db.update(speakingPrompts).set({
+        examType: p.examType,
+        part: p.part,
+        topic: p.topic || 'General',
+        questionEn: p.questionEn,
+        questionVi: p.questionVi,
+        cueCard: p.cueCard || null,
+        subQuestions: p.subQuestions ? (typeof p.subQuestions === 'string' ? p.subQuestions : JSON.stringify(p.subQuestions)) : null,
+        suggestedVocabulary: p.suggestedVocabulary ? (typeof p.suggestedVocabulary === 'string' ? p.suggestedVocabulary : JSON.stringify(p.suggestedVocabulary)) : null,
+        imageUrl: p.imageUrl || null,
+        prepTimeSec: Number(p.prepTimeSec) || 0,
+        speakTimeSec: Number(p.speakTimeSec) || 45,
+        startGraceSec: Number(p.startGraceSec) || 15,
+        criteria: p.criteria ? (typeof p.criteria === 'string' ? p.criteria : JSON.stringify(p.criteria)) : null,
+        difficulty: p.difficulty || 'medium',
+        setId: p.setId || null,
+        isPublished: Boolean(p.isPublished),
+      }).where(eq(speakingPrompts.id, p.id))
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === 'delete_speaking_prompt') {
+      await db.delete(speakingPrompts).where(eq(speakingPrompts.id, payload.id))
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === 'toggle_speaking_prompt_publish') {
+      const { id, isPublished } = payload
+      await db.update(speakingPrompts).set({ isPublished: Boolean(isPublished) }).where(eq(speakingPrompts.id, id))
       return NextResponse.json({ success: true })
     }
 
@@ -153,22 +269,43 @@ export async function POST(req: NextRequest) {
 
     if (action === 'test_api_keys') {
       try {
-        const { apiKeysString } = payload
-        if (!apiKeysString) return NextResponse.json({ results: [] })
-        
-        const keys = apiKeysString.split(',').map((k:string) => k.trim()).filter(Boolean)
-        const results = await Promise.all(keys.map(async (key: string) => {
+        const configRow = await db.select().from(systemConfigs).where(eq(systemConfigs.key, 'GROQ_API_KEY'))
+        const dbKeys = (configRow.length > 0 && configRow[0].value) 
+          ? configRow[0].value.split(',').map((k: string) => k.trim()).filter(Boolean)
+          : (process.env.GROQ_API_KEY || '').split(',').map((k: string) => k.trim()).filter(Boolean)
+
+        let keysToTest: string[] = []
+        const { apiKeysString } = payload || {}
+
+        if (apiKeysString && typeof apiKeysString === 'string') {
+          const rawKeys = apiKeysString.split(',').map((k: string) => k.trim()).filter(Boolean)
+          // Nếu người dùng gửi key có dấu *** (từ màn hình admin mask), dùng key thật từ DB
+          if (rawKeys.some((k: string) => k.includes('***'))) {
+            keysToTest = dbKeys
+          } else {
+            keysToTest = rawKeys
+          }
+        } else {
+          keysToTest = dbKeys
+        }
+
+        if (keysToTest.length === 0) {
+          return NextResponse.json({ results: [] })
+        }
+
+        const results = await Promise.all(keysToTest.map(async (key: string) => {
+          const displayKey = key.length > 12 ? `${key.substring(0, 8)}***${key.slice(-4)}` : key
           try {
             const response = await fetch('https://api.groq.com/openai/v1/models', {
               headers: { 'Authorization': `Bearer ${key}` }
             })
             if (!response.ok) {
-              const err = await response.json()
-              return { key, success: false, msg: err.error?.message || 'Lỗi không xác định' }
+              const err = await response.json().catch(() => ({}))
+              return { key: displayKey, success: false, msg: err.error?.message || 'Lỗi không xác định' }
             }
-            return { key, success: true, msg: 'Hoạt động tốt' }
+            return { key: displayKey, success: true, msg: 'Hoạt động tốt' }
           } catch (e: any) {
-            return { key, success: false, msg: e.message }
+            return { key: displayKey, success: false, msg: e.message }
           }
         }))
 
@@ -185,7 +322,11 @@ export async function POST(req: NextRequest) {
 
     if (action === 'update_user_plan') {
       const { id, plan } = payload
-      let planExpiresAt = null
+      const validPlans = ['free', 'plus', 'pro']
+      if (!validPlans.includes(plan)) {
+        return NextResponse.json({ error: 'Invalid plan value' }, { status: 400 })
+      }
+      let planExpiresAt: Date | null = null
       
       // If upgraded to plus or pro, set expiration to 30 days from now
       if (plan === 'plus' || plan === 'pro') {
@@ -206,6 +347,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error: any) {
+    if (error.message === 'Unauthorized') return NextResponse.json({ error: error.message }, { status: 401 })
+    if (error.message === 'Forbidden') return NextResponse.json({ error: error.message }, { status: 403 })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

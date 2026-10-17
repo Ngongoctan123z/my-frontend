@@ -9,7 +9,7 @@ export function Footer() {
   const isEn = pathname.startsWith('/en/') || pathname === '/en'
 
   const vnContent = {
-    desc: 'Nền tảng đề thi & công cụ học tập miễn phí. Kho tài liệu phong phú cùng AI và bộ công cụ PDF mạnh mẽ.',
+    desc: 'Nền tảng đề thi & công cụ học tập miễn phí. Kho tài liệu phong phú cùng hệ thống luyện thi và bộ công cụ học tập mạnh mẽ.',
     col1: {
       title: 'Học Tập',
       links: [
@@ -20,9 +20,9 @@ export function Footer() {
       ]
     },
     col2: {
-      title: 'Tiện Ích & AI',
+      title: 'Tiện Ích & Luyện Thi',
       links: [
-        { href: '/ai-grader', label: 'Chấm Writing IELTS/TOEIC' },
+        { href: '/ai-grader', label: 'Luyện Writing IELTS/TOEIC' },
         { href: '/tools/merge-files', label: 'Gộp file PDF' },
         { href: '/tools/remove-pages', label: 'Xóa trang PDF' },
         { href: '/tools/lock', label: 'Đặt mật khẩu PDF' },
@@ -45,9 +45,9 @@ export function Footer() {
   }
 
   const enContent = {
-    desc: 'Free learning tools platform. Enhance your language skills with powerful AI and streamline your workflow with our PDF toolset.',
+    desc: 'Free learning tools platform. Enhance your language skills with smart grading and streamline your workflow with our PDF toolset.',
     col1: {
-      title: 'AI Language Grader',
+      title: 'Language Writing Grader',
       links: [
         { href: '/en/ai-grader/ielts', label: 'IELTS Writing Grader' },
         { href: '/en/ai-grader/toeic', label: 'TOEIC Writing Grader' },
@@ -68,10 +68,10 @@ export function Footer() {
     col3: {
       title: 'Support',
       links: [
-        { href: '/about', label: 'About Us' },
-        { href: '/terms', label: 'Terms of Use' },
-        { href: '/privacy', label: 'Privacy Policy' },
-        { href: '/contact', label: 'Contact Us' },
+        { href: '/en/about', label: 'About Us' },
+        { href: '/en/terms', label: 'Terms of Use' },
+        { href: '/en/privacy', label: 'Privacy Policy' },
+        { href: '/en/contact', label: 'Contact Us' },
       ]
     },
     bottom: [
@@ -116,7 +116,7 @@ export function Footer() {
                     </svg>
                   )
                 },
-                { label: 'Email', href: 'vndocsnet@gmail.com', icon: <Mail className="w-3.5 h-3.5" /> }
+                { label: 'Email', href: 'https://mail.google.com/mail/?view=cm&fs=1&to=vndocsnet@gmail.com', icon: <Mail className="w-3.5 h-3.5" /> }
               ].map((s) => (
                 <a
                   key={s.label}

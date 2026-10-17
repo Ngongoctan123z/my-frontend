@@ -4,9 +4,9 @@ import { getRouteMetadata } from '@/src/utils/serverSeo'
 
 export async function generateMetadata() {
   return getRouteMetadata(
-    '/en/tools/casio/page.tsx',
-    'Online Casio Calculator (Fx-580VN X) | VNDocs',
-    'Free online calculator emulator for Casio fx-580VN X, fx-570VN Plus, fx-880BTG to solve math problems quickly.'
+    '/en/tools/casio',
+    'Online Scientific Calculator (Casio Fx-580VN X Emulator) | VNDocs',
+    'Free online scientific calculator simulator compatible with Casio fx-580VN X and fx-570VN Plus. Solve equations, fractions, matrices, and statistics instantly in browser.'
   )
 }
 

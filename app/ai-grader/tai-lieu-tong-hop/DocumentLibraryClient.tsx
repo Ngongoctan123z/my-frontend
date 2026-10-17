@@ -267,9 +267,9 @@ export function DocumentLibraryClient() {
             <li><strong>Đại học & Chuyên ngành:</strong> Các tài liệu nghiên cứu, giáo trình đại cương hỗ trợ sinh viên trong quá trình học tập tại giảng đường đại học.</li>
           </ul>
 
-          <h3 className="text-lg font-bold text-[var(--text-primary)] mt-6 mb-3">Tải Xuống Tốc Độ Cao & Trải Nghiệm Mượt Mà</h3>
+          <h3 className="text-lg font-bold text-[var(--text-primary)] mt-6 mb-3">Tải Xuống Nhanh Chóng & Trải Nghiệm Mượt Mà</h3>
           <p className="leading-relaxed">
-            Hệ thống thư viện tài liệu được thiết kế tối ưu, cho phép bạn dễ dàng tìm kiếm theo môn học, cấp độ với tốc độ phản hồi tính bằng mili-giây. Bạn có thể <strong>tải về trực tiếp</strong> (Download) hoặc truy cập nguồn tài liệu gốc (Source) cực kỳ nhanh chóng mà không gặp phải quảng cáo chuyển hướng phiền toái. Kết hợp với kho <em>Đề thi trắc nghiệm trực tuyến</em> và <em>Công cụ AI Grader</em>, VNDocs là nền tảng tất-cả-trong-một (All-in-one) dành riêng cho hành trình tự học của bạn.
+            Thư viện tài liệu được thiết kế tối ưu, cho phép bạn dễ dàng tìm kiếm theo môn học, cấp độ với tốc độ tức thì. Bạn có thể <strong>tải về trực tiếp</strong> hoặc xem tài liệu gốc nhanh chóng mà không gặp phải quảng cáo phiền toái. Kết hợp với kho <em>Đề thi trắc nghiệm trực tuyến</em> và <em>Phòng Luyện Viết</em>, VNDocs là nền tảng toàn diện đồng hành cùng hành trình tự học của bạn.
           </p>
         </div>
       </section>

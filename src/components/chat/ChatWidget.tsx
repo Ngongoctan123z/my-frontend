@@ -1,161 +1,135 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { MessageSquare, X, Send, User, ShieldAlert, Paperclip } from 'lucide-react'
-import { useSession } from 'next-auth/react'
+import React, { useState } from 'react'
+import { MessageSquare, Calculator, Languages, X } from 'lucide-react'
+import { CalculatorBubble } from '../floating/CalculatorBubble'
+import { TranslateBubble } from '../floating/TranslateBubble'
+import { ChatBubble } from '../floating/ChatBubble'
+
+type ActiveWidget = 'calc' | 'translate' | 'chat' | null
 
 export function ChatWidget() {
-  const { data: session } = useSession()
-  const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<any[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [activeWidget, setActiveWidget] = useState<ActiveWidget>(null)
 
-  // Polling for real-time messages
-  useEffect(() => {
-    if (!isOpen || !session?.user) return
-
-    fetchMessages()
-    const interval = setInterval(fetchMessages, 3000)
-    return () => clearInterval(interval)
-  }, [isOpen, session])
-
-  useEffect(() => {
-    // Auto scroll to bottom
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [messages])
-
-  const fetchMessages = async () => {
-    try {
-      const res = await fetch('/api/chat')
-      if (res.ok) {
-        const data = await res.json()
-        setMessages(data)
-      }
-    } catch (e) {
-      console.error(e)
-    }
+  const toggleWidget = (widget: ActiveWidget) => {
+    setActiveWidget(prev => (prev === widget ? null : widget))
   }
-
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || !session?.user) return
-
-    const messageText = input
-    setInput('')
-    setLoading(true)
-    
-    // Optimistic UI
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      userId: session.user?.email,
-      isAdmin: false,
-      content: messageText,
-      createdAt: Date.now()
-    }])
-
-    try {
-      await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: messageText })
-      })
-      await fetchMessages()
-    } catch (e) {
-      alert('Gửi tin nhắn thất bại')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Nếu chưa đăng nhập thì không hiển thị bong bóng chat
-  if (!session?.user) return null
 
   return (
     <>
-      {/* Nút bấm nổi */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 p-4 bg-blue-600 text-white rounded-full shadow-xl hover:bg-blue-700 hover:scale-110 transition-all z-50 flex items-center justify-center ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
-      >
-        <MessageSquare size={24} />
-      </button>
-
-      {/* Cửa sổ chat */}
-      <div className={`fixed bottom-6 right-6 w-[350px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`} style={{ height: '500px', maxHeight: 'calc(100vh - 40px)' }}>
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex justify-between items-center shadow-md z-10">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <ShieldAlert size={20} className="text-white" />
-              </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-indigo-600 rounded-full"></div>
-            </div>
-            <div>
-              <h3 className="font-bold text-sm">Admin</h3>
-              <p className="text-xs text-blue-100 opacity-90">Chúng tôi luôn sẵn sàng hỗ trợ</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setIsOpen(false)}
-            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 space-y-2">
-              <MessageSquare size={48} className="opacity-20" />
-              <p className="text-sm">Hãy gửi tin nhắn nếu bạn cần trợ giúp.<br/>Admin sẽ phản hồi sớm nhất.</p>
-            </div>
-          ) : (
-            messages.map((msg, i) => (
-              <div key={msg.id || i} className={`flex ${msg.isAdmin ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ${msg.isAdmin ? 'bg-white text-gray-800 border border-gray-100 rounded-tl-none' : 'bg-blue-600 text-white rounded-tr-none'}`}>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                </div>
-              </div>
-            ))
+      {/* Cửa sổ widget nổi đang mở */}
+      {activeWidget && (
+        <div className="fixed bottom-4 sm:bottom-6 right-3 sm:right-22 z-50">
+          {activeWidget === 'calc' && (
+            <CalculatorBubble onClose={() => setActiveWidget(null)} />
           )}
-          <div ref={messagesEndRef} />
+          {activeWidget === 'translate' && (
+            <TranslateBubble onClose={() => setActiveWidget(null)} />
+          )}
+          {activeWidget === 'chat' && (
+            <ChatBubble onClose={() => setActiveWidget(null)} />
+          )}
+        </div>
+      )}
+
+      {/* Thanh Dock 3 nút nổi siêu sang phong cách Glassmorphism Dock */}
+      <aside 
+        aria-label="Công cụ tiện ích nổi" 
+        className="fixed bottom-5 sm:bottom-6 right-3 sm:right-5 z-40 flex flex-col items-center gap-2.5 p-2 sm:p-2.5 rounded-full bg-white/85 dark:bg-slate-900/85 backdrop-blur-2xl border border-white/80 dark:border-white/10 shadow-[0_12px_40px_-4px_rgba(0,0,0,0.18),0_2px_8px_-2px_rgba(0,0,0,0.06)] ring-1 ring-black/5 dark:ring-white/5 transition-all duration-300"
+      >
+        {/* Nút 1: Máy tính Casio fx-580 */}
+        <div className="relative group">
+          <button
+            type="button"
+            onClick={() => toggleWidget('calc')}
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white transition-all duration-300 relative overflow-hidden group-hover:scale-108 active:scale-95 cursor-pointer ${
+              activeWidget === 'calc'
+                ? 'bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 ring-4 ring-indigo-300/80 scale-105 shadow-lg shadow-indigo-500/50'
+                : 'bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-600 hover:from-violet-400 hover:to-indigo-500 shadow-md shadow-indigo-500/35 hover:shadow-lg hover:shadow-indigo-500/45'
+            }`}
+            aria-label="Máy tính Casio Online"
+          >
+            {/* Specular sheen phản chiếu ánh sáng */}
+            <span className="absolute inset-0 bg-gradient-to-b from-white/35 via-white/5 to-transparent pointer-events-none rounded-full"></span>
+            
+            {activeWidget === 'calc' ? (
+              <X size={20} className="animate-in spin-in-90 duration-200" />
+            ) : (
+              <Calculator size={20} className="transition-transform duration-300 group-hover:scale-115 group-hover:rotate-6 drop-shadow-xs" />
+            )}
+          </button>
+          
+          {/* Tooltip sang trọng */}
+          <div className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-slate-900/95 backdrop-blur-md text-white text-xs font-semibold rounded-xl shadow-xl border border-white/10 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 pointer-events-none hidden sm:flex items-center gap-1.5">
+            <Calculator size={13} className="text-violet-400" />
+            <span>Máy tính Casio fx-580</span>
+            <div className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-slate-900/95"></div>
+          </div>
         </div>
 
-        {/* Input */}
-        <div className="p-3 bg-white border-t border-gray-100">
-          <form onSubmit={handleSend} className="flex items-center gap-2">
-            <button 
-              type="button"
-              onClick={() => alert('Tính năng gửi file/ảnh đang được nâng cấp! Vui lòng cho mình biết bạn muốn lưu ảnh ở đâu (ví dụ Cloudflare R2, AWS S3...) để mình code tiếp nhé.')}
-              className="p-2 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
-            >
-              <Paperclip size={20} />
-            </button>
-            <input 
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Nhập tin nhắn..."
-              className="flex-1 px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              disabled={loading}
-            />
-            <button 
-              type="submit"
-              disabled={!input.trim() || loading}
-              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 flex items-center justify-center w-10 h-10 flex-shrink-0"
-            >
-              <Send size={18} className="ml-1" />
-            </button>
-          </form>
+        {/* Nút 2: Dịch thuật nhanh */}
+        <div className="relative group">
+          <button
+            type="button"
+            onClick={() => toggleWidget('translate')}
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white transition-all duration-300 relative overflow-hidden group-hover:scale-108 active:scale-95 cursor-pointer ${
+              activeWidget === 'translate'
+                ? 'bg-gradient-to-br from-teal-600 via-emerald-600 to-cyan-700 ring-4 ring-teal-300/80 scale-105 shadow-lg shadow-emerald-500/50'
+                : 'bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 hover:from-emerald-300 hover:to-teal-500 shadow-md shadow-teal-500/35 hover:shadow-lg hover:shadow-teal-500/45'
+            }`}
+            aria-label="Dịch thuật nhanh"
+          >
+            <span className="absolute inset-0 bg-gradient-to-b from-white/35 via-white/5 to-transparent pointer-events-none rounded-full"></span>
+            
+            {activeWidget === 'translate' ? (
+              <X size={20} className="animate-in spin-in-90 duration-200" />
+            ) : (
+              <Languages size={20} className="transition-transform duration-300 group-hover:scale-115 group-hover:-rotate-6 drop-shadow-xs" />
+            )}
+          </button>
+          
+          <div className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-slate-900/95 backdrop-blur-md text-white text-xs font-semibold rounded-xl shadow-xl border border-white/10 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 pointer-events-none hidden sm:flex items-center gap-1.5">
+            <Languages size={13} className="text-emerald-400" />
+            <span>Dịch thuật song ngữ</span>
+            <div className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-slate-900/95"></div>
+          </div>
         </div>
-      </div>
+
+        {/* Nút 3: Hỗ trợ & Chat với Admin */}
+        <div className="relative group">
+          <button
+            type="button"
+            onClick={() => toggleWidget('chat')}
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white transition-all duration-300 relative overflow-hidden group-hover:scale-108 active:scale-95 cursor-pointer ${
+              activeWidget === 'chat'
+                ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-800 ring-4 ring-blue-300/80 scale-105 shadow-lg shadow-blue-500/50'
+                : 'bg-gradient-to-br from-blue-500 via-indigo-600 to-sky-600 hover:from-blue-400 hover:to-indigo-500 shadow-md shadow-blue-500/35 hover:shadow-lg hover:shadow-blue-500/45'
+            }`}
+            aria-label="Hỗ trợ & Chat với Admin"
+          >
+            <span className="absolute inset-0 bg-gradient-to-b from-white/35 via-white/5 to-transparent pointer-events-none rounded-full"></span>
+            
+            {activeWidget === 'chat' ? (
+              <X size={20} className="animate-in spin-in-90 duration-200" />
+            ) : (
+              <>
+                <MessageSquare size={20} className="transition-transform duration-300 group-hover:scale-115 drop-shadow-xs" />
+                {/* Radar beacon online */}
+                <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5 pointer-events-none">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 border border-white shadow-xs"></span>
+                </span>
+              </>
+            )}
+          </button>
+          
+          <div className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-slate-900/95 backdrop-blur-md text-white text-xs font-semibold rounded-xl shadow-xl border border-white/10 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 pointer-events-none hidden sm:flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Hỗ trợ trực tuyến 24/7</span>
+            <div className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-slate-900/95"></div>
+          </div>
+        </div>
+      </aside>
     </>
   )
 }

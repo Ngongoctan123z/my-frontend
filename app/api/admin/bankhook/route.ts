@@ -3,12 +3,13 @@ import { auth } from '@/auth'
 import { getDb } from '@/src/db'
 import { bankTransactions } from '@/src/db/schema'
 import { syncBankTransactions } from '@/src/lib/bankhook'
-import { desc } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 
 export async function GET(req: Request) {
   try {
     const session = await auth()
-    if (!session || (session.user as any)?.role !== 'admin') {
+    const rootAdmins = ['ngongoctan282005@gmail.com']
+    if (!session?.user?.email || !rootAdmins.includes(session.user.email)) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -16,7 +17,11 @@ export async function GET(req: Request) {
     await syncBankTransactions()
 
     const db = await getDb()
-    const txs = await db.select().from(bankTransactions).orderBy(desc(bankTransactions.receivedAt)).limit(100)
+    // Chỉ lấy những giao dịch tiền vào (cộng vào / IN)
+    const txs = await db.select().from(bankTransactions)
+      .where(eq(bankTransactions.direction, 'IN'))
+      .orderBy(desc(bankTransactions.receivedAt))
+      .limit(100)
 
     return NextResponse.json({ success: true, transactions: txs })
   } catch (error: any) {

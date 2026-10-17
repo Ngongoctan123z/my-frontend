@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map, X } from 'lucide-react'
 
 const SEO_ROUTES = [
+  // 1. Cơ bản & Hệ thống
   { 
     path: 'GLOBAL', 
     name: 'SEO Toàn Trang (Mặc định)', 
+    category: 'Cơ bản & Hệ thống',
     icon: Globe,
     defaultTitle: 'VNDocs - Kho tài liệu miễn phí',
     defaultDesc: 'Mô tả ngắn gọn về trang web...'
@@ -12,37 +14,258 @@ const SEO_ROUTES = [
   { 
     path: '/', 
     name: 'Trang Chủ', 
+    category: 'Cơ bản & Hệ thống',
     icon: LayoutTemplate,
     defaultTitle: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
     defaultDesc: 'Nền tảng học tập trực tuyến cung cấp kho đề thi vào 10, đề thi THPT, luyện writing IELTS, TOEIC, cùng bộ công cụ xử lý file hoàn toàn miễn phí.'
   },
   { 
     path: '/tai-lieu', 
-    name: 'Trang Tài Liệu & Đề Thi', 
+    name: 'Kho Đề Thi & Tài Liệu', 
+    category: 'Cơ bản & Hệ thống',
     icon: FileText,
     defaultTitle: 'Thư Viện Đề Thi & Tài Liệu Miễn Phí (PDF) | VNDocs',
     defaultDesc: 'Tải miễn phí hàng ngàn tài liệu luyện thi, đề thi vào 10, đề thi THPT Quốc gia (Toán, Văn, Anh), PDF ôn thi IELTS, TOEIC cập nhật mới nhất có đáp án.'
   },
   { 
+    path: '/premium', 
+    name: 'Nâng Cấp Premium', 
+    category: 'Cơ bản & Hệ thống',
+    icon: Layers,
+    defaultTitle: 'Nâng cấp Premium — Chấm bài Writing không giới hạn | VNDocs',
+    defaultDesc: 'Nâng cấp VNDocs Premium để chấm bài IELTS, TOEIC, TOPIK, HSK không giới hạn, phân tích chi tiết tiêu chí và công cụ học tập cao cấp.'
+  },
+
+  // 2. Luyện Writing Online
+  { 
     path: '/ai-grader', 
-    name: 'Trang Chấm Điểm AI', 
+    name: 'Luyện Writing (Tổng quan)', 
+    category: 'Luyện Writing Online',
     icon: PenTool,
-    defaultTitle: 'Luyện Writing IELTS Bằng AI & Chấm Điểm Chuẩn Band | VNDocs',
-    defaultDesc: 'Trải nghiệm hệ thống luyện Writing IELTS bằng AI miễn phí tốt nhất. Chấm điểm chi tiết 4 tiêu chí (TR, CC, LR, GRA), sửa lỗi ngữ pháp, từ vựng và gợi ý nâng band điểm tự động.'
+    defaultTitle: 'Phòng Luyện Writing Online Chuẩn Barem Quốc Tế | VNDocs',
+    defaultDesc: 'Nền tảng luyện viết trực tuyến cho IELTS, TOEIC, TOPIK và HSK. Đánh giá chi tiết theo tiêu chí chính thức, chỉ ra lỗi ngữ pháp và lưu lịch sử bài viết.',
+    defaultH1: 'Trung Tâm Luyện Viết & Chấm Điểm Writing Online'
   },
   { 
-    path: '/flashcard', 
-    name: 'Trang Học Flashcard', 
-    icon: Layers,
-    defaultTitle: 'Học Từ Vựng Flashcard Thông Minh | VNDocs',
-    defaultDesc: 'Bộ flashcard học từ vựng IELTS, TOEIC, tiếng Anh giao tiếp với thuật toán lặp lại ngắt quãng (Spaced Repetition).'
+    path: '/ai-grader/ielts', 
+    name: 'Writing IELTS (Task 1 & 2)', 
+    category: 'Luyện Writing Online',
+    icon: PenTool,
+    defaultTitle: 'Luyện Viết IELTS Writing Online Chuẩn Barem | VNDocs',
+    defaultDesc: 'Phòng luyện IELTS Writing Task 1 & 2 trực tuyến. Đánh giá chi tiết 4 tiêu chí chuẩn giám khảo, phát hiện lỗi ngữ pháp, từ vựng và lưu bài làm an toàn.',
+    defaultH1: 'Phòng Luyện IELTS Writing Online'
   },
+  { 
+    path: '/ai-grader/toeic', 
+    name: 'Writing TOEIC', 
+    category: 'Luyện Writing Online',
+    icon: PenTool,
+    defaultTitle: 'Luyện Viết TOEIC Writing Online Chuẩn ETS | VNDocs',
+    defaultDesc: 'Thực hành TOEIC Writing dạng phản hồi email và viết luận quan điểm. Chấm điểm chi tiết, gợi ý từ vựng công sở và sửa lỗi ngữ pháp chuẩn cấu trúc ETS.',
+    defaultH1: 'Luyện Thi TOEIC Writing Online Chuẩn ETS'
+  },
+  { 
+    path: '/ai-grader/topik', 
+    name: 'Writing TOPIK II (Câu 51-54)', 
+    category: 'Luyện Writing Online',
+    icon: PenTool,
+    defaultTitle: 'Luyện Viết TOPIK II 쓰기 (Câu 51-54) Online | VNDocs',
+    defaultDesc: 'Luyện thi phần viết TOPIK II câu 51, 52, 53, 54. Nhận xét ngữ pháp, chính tả tiếng Hàn, gợi ý từ vựng nâng cao và tham khảo bài viết mẫu điểm cao.',
+    defaultH1: 'Luyện Viết TOPIK II 쓰기 Trực Tuyến'
+  },
+  { 
+    path: '/ai-grader/hsk', 
+    name: 'Writing HSK (HSK 5 & 6)', 
+    category: 'Luyện Writing Online',
+    icon: PenTool,
+    defaultTitle: 'Luyện Viết Tiếng Trung HSK 5 & HSK 6 Online | VNDocs',
+    defaultDesc: 'Luyện viết phần thi HSK 5 đoạn văn 80 chữ và HSK 6 tóm tắt 400 chữ. Rà soát ngữ pháp, lỗi dùng từ và gợi ý diễn đạt tự nhiên chuẩn bản xứ.',
+    defaultH1: 'Phòng Luyện HSK Writing Online'
+  },
+
+  // 3. Công Cụ & Tiện Ích
   { 
     path: '/tools', 
-    name: 'Trang Tiện Ích PDF & Casio', 
+    name: 'Công Cụ Tiện Ích (Tổng hợp)', 
+    category: 'Công Cụ & Tiện Ích',
     icon: Layers,
     defaultTitle: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
     defaultDesc: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng, và máy tính khoa học ảo miễn phí 100%.'
+  },
+  { 
+    path: '/tools/merge-files', 
+    name: 'Gộp File PDF Online', 
+    category: 'Công Cụ & Tiện Ích',
+    icon: Layers,
+    defaultTitle: 'Gộp File PDF Trực Tuyến Miễn Phí | VNDocs',
+    defaultDesc: 'Ghép nhiều file PDF hoặc ảnh thành một tài liệu duy nhất. Kéo thả sắp xếp thứ tự trang nhanh chóng, bảo mật tuyệt đối trên trình duyệt.'
+  },
+  { 
+    path: '/tools/remove-pages', 
+    name: 'Tách & Xóa Trang PDF', 
+    category: 'Công Cụ & Tiện Ích',
+    icon: Layers,
+    defaultTitle: 'Xóa Trang PDF & Cắt File PDF Trực Tuyến | VNDocs',
+    defaultDesc: 'Tách trang, xóa trang thừa hoặc trích xuất trang cần thiết từ tài liệu PDF dễ dàng, bảo mật và hoàn toàn miễn phí.'
+  },
+  { 
+    path: '/tools/lock', 
+    name: 'Khóa / Mở Khóa PDF', 
+    category: 'Công Cụ & Tiện Ích',
+    icon: Layers,
+    defaultTitle: 'Đặt Mật Khẩu & Mở Khóa File PDF | VNDocs',
+    defaultDesc: 'Mã hóa tài liệu PDF bằng mật khẩu chống sao chép in ấn, hoặc mở khóa bảo vệ file PDF nhanh chóng ngay trên trình duyệt.'
+  },
+  { 
+    path: '/tools/compress', 
+    name: 'Nén Ảnh & File ZIP', 
+    category: 'Công Cụ & Tiện Ích',
+    icon: Layers,
+    defaultTitle: 'Nén Ảnh & Đóng Gói File ZIP Trực Tuyến | VNDocs',
+    defaultDesc: 'Giảm dung lượng ảnh JPG, PNG và nén nhiều file vào tập tin .zip an toàn, xử lý 100% trên trình duyệt không tải lên máy chủ.'
+  },
+  { 
+    path: '/tools/convert', 
+    name: 'Chuyển Đổi Định Dạng Ảnh', 
+    category: 'Công Cụ & Tiện Ích',
+    icon: Layers,
+    defaultTitle: 'Chuyển Đổi Định Dạng Ảnh Trực Tuyến | VNDocs',
+    defaultDesc: 'Chuyển đổi linh hoạt giữa các định dạng ảnh JPG, PNG, WEBP, BMP, GIF, ICO hoàn toàn miễn phí với chất lượng cao.'
+  },
+  { 
+    path: '/tools/casio', 
+    name: 'Máy Tính Casio 580 Online', 
+    category: 'Công Cụ & Tiện Ích',
+    icon: Layers,
+    defaultTitle: 'Giả Lập Máy Tính Casio Fx-580VN X Online | VNDocs',
+    defaultDesc: 'Trình giả lập máy tính khoa học Casio fx-580VN X và fx-570VN Plus trực tuyến, giải toán nhanh, tính phương trình, ma trận miễn phí.'
+  },
+
+  // 4. Quốc Tế & Tiếng Anh (/en)
+  { 
+    path: '/en', 
+    name: 'EN: Homepage', 
+    category: 'English Pages (/en)',
+    icon: Globe,
+    defaultTitle: 'VNDocs — Free Online Exam Prep, Writing Practice & PDF Utilities',
+    defaultDesc: 'All-in-one learning and productivity platform: free exam preparation, automated writing evaluation for IELTS, TOEIC, TOPIK, HSK, and essential PDF utilities.'
+  },
+  { 
+    path: '/en/ai-grader', 
+    name: 'EN: Writing Grader Hub', 
+    category: 'English Pages (/en)',
+    icon: PenTool,
+    defaultTitle: 'Writing Grader & Practice Hub — IELTS, TOEIC, TOPIK, HSK | VNDocs',
+    defaultDesc: 'Free online writing practice platform for IELTS, TOEIC, TOPIK, and HSK. Receive rubric feedback, grammar corrections, and keep your history private.',
+    defaultH1: 'Writing Grader & Practice Hub'
+  },
+  { 
+    path: '/en/ai-grader/ielts', 
+    name: 'EN: IELTS Writing Practice', 
+    category: 'English Pages (/en)',
+    icon: PenTool,
+    defaultTitle: 'IELTS Writing Practice & Rubric Scoring | VNDocs',
+    defaultDesc: 'Practice IELTS Writing Academic & General online with instant scoring across 4 official criteria: TR, CC, LR, and GRA with comprehensive feedback.',
+    defaultH1: 'IELTS Writing Practice & Instant Scoring'
+  },
+  { 
+    path: '/en/ai-grader/toeic', 
+    name: 'EN: TOEIC Writing Practice', 
+    category: 'English Pages (/en)',
+    icon: PenTool,
+    defaultTitle: 'TOEIC Writing Practice & Evaluation Online | VNDocs',
+    defaultDesc: 'Practice TOEIC Writing (Email responses & Opinion essays) online with rubric evaluation. Detect grammar errors and score high-level business vocabulary.',
+    defaultH1: 'TOEIC Writing Online Practice'
+  },
+  { 
+    path: '/en/ai-grader/topik', 
+    name: 'EN: TOPIK II Writing Practice', 
+    category: 'English Pages (/en)',
+    icon: PenTool,
+    defaultTitle: 'TOPIK II Writing Practice & Correction (Questions 51-54) | VNDocs',
+    defaultDesc: 'Practice TOPIK II 쓰기 (Questions 51, 52, 53, 54) online. Automated scoring, Korean grammar corrections, spelling feedback, and advanced expressions.',
+    defaultH1: 'TOPIK II Writing Practice (쓰기)'
+  },
+  { 
+    path: '/en/ai-grader/hsk', 
+    name: 'EN: HSK Writing Practice', 
+    category: 'English Pages (/en)',
+    icon: PenTool,
+    defaultTitle: 'HSK 5 & HSK 6 Writing Practice & Essay Scoring | VNDocs',
+    defaultDesc: 'Practice HSK 5 (80 chars) & HSK 6 (400 chars) Writing online. Automatic scoring, Chinese grammar correction, and vocabulary suggestions based on HSK standards.',
+    defaultH1: 'HSK Online Writing Practice'
+  },
+  { 
+    path: '/en/tools', 
+    name: 'EN: PDF & Productivity Tools', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'Free PDF & Productivity Tools Online | VNDocs',
+    defaultDesc: '100% Free browser-based tools: merge PDF, remove PDF pages, protect PDF, compress images, and use the online scientific calculator emulator.'
+  },
+  { 
+    path: '/en/tools/merge-files', 
+    name: 'EN: Merge PDF Online', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'Merge PDF Online — Combine PDF Files & Images Free | VNDocs',
+    defaultDesc: 'Combine multiple PDF documents and images into a single file easily. Reorder pages with intuitive drag-and-drop. 100% private, processed directly in your browser.'
+  },
+  { 
+    path: '/en/tools/remove-pages', 
+    name: 'EN: Remove PDF Pages', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'Remove PDF Pages — Split & Delete Pages Online Free | VNDocs',
+    defaultDesc: 'Easily delete unwanted pages, extract specific pages, or split PDF documents online. Fast, secure, and entirely processed client-side without server uploads.'
+  },
+  { 
+    path: '/en/tools/lock', 
+    name: 'EN: Protect & Lock PDF', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'Protect PDF — Encrypt & Password Protect PDF Files | VNDocs',
+    defaultDesc: 'Secure sensitive PDF documents with strong AES encryption and password protection. Prevent unauthorized viewing or printing directly in your browser.'
+  },
+  { 
+    path: '/en/tools/compress', 
+    name: 'EN: Compress Images & ZIP', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'Compress Images & Create ZIP Archives Online Free | VNDocs',
+    defaultDesc: 'Reduce JPG, PNG, and WebP image file sizes without quality loss. Compress multiple files into .zip directly in your browser with zero server uploads.'
+  },
+  { 
+    path: '/en/tools/convert', 
+    name: 'EN: Image Format Converter', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'Image Format Converter — Convert JPG, PNG, WEBP, GIF Online | VNDocs',
+    defaultDesc: 'Quickly convert images between JPG, PNG, WEBP, BMP, GIF, and ICO formats in high quality. Free batch conversion processed securely in your browser.'
+  },
+  { 
+    path: '/en/tools/casio', 
+    name: 'EN: Casio Calculator Emulator', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'Online Scientific Calculator (Casio Fx-580VN X Emulator) | VNDocs',
+    defaultDesc: 'Free online scientific calculator simulator compatible with Casio fx-580VN X and fx-570VN Plus. Solve equations, fractions, matrices, and statistics instantly in browser.'
+  },
+  { 
+    path: '/en/premium', 
+    name: 'EN: Premium Upgrade', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'VNDocs Premium — Unlimited Essay Grading & Advanced Features | VNDocs',
+    defaultDesc: 'Upgrade to VNDocs Premium for unlimited essay submissions, comprehensive band score analytics, priority processing, and ad-free educational tools.'
+  },
+  { 
+    path: '/en/profile', 
+    name: 'EN: Account & Profile', 
+    category: 'English Pages (/en)',
+    icon: Layers,
+    defaultTitle: 'Personal Profile & Submission History | VNDocs',
+    defaultDesc: 'Manage your profile, view saved essays, track writing test scores over time, and manage subscription settings.'
   },
 ]
 
@@ -85,7 +308,8 @@ export function SeoTab() {
               loadedConfigs[path] = {
                 SEO_TITLE: parsed.title || '',
                 SEO_DESCRIPTION: parsed.description || '',
-                SEO_OG_IMAGE: parsed.ogImage || ''
+                SEO_OG_IMAGE: parsed.ogImage || '',
+                SEO_H1: parsed.h1 || ''
               }
               if (!SEO_ROUTES.some(r => r.path === path)) {
                 extractedCustomRoutes.push(path)
@@ -97,7 +321,7 @@ export function SeoTab() {
         // Ensure static routes exist in loadedConfigs
         SEO_ROUTES.filter(r => r.path !== 'GLOBAL').forEach(r => {
           if (!loadedConfigs[r.path]) {
-            loadedConfigs[r.path] = { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_OG_IMAGE: '' }
+            loadedConfigs[r.path] = { SEO_TITLE: '', SEO_DESCRIPTION: '', SEO_OG_IMAGE: '', SEO_H1: '' }
           }
         })
         
@@ -157,11 +381,12 @@ export function SeoTab() {
 
     allPaths.forEach(path => {
       const rConf = configs[path]
-      if (rConf && (rConf.SEO_TITLE || rConf.SEO_DESCRIPTION || rConf.SEO_OG_IMAGE)) {
+      if (rConf && (rConf.SEO_TITLE || rConf.SEO_DESCRIPTION || rConf.SEO_OG_IMAGE || rConf.SEO_H1)) {
         payload[`SEO_ROUTE_${path}`] = JSON.stringify({
-          title: rConf.SEO_TITLE,
-          description: rConf.SEO_DESCRIPTION,
-          ogImage: rConf.SEO_OG_IMAGE
+          title: rConf.SEO_TITLE || '',
+          description: rConf.SEO_DESCRIPTION || '',
+          ogImage: rConf.SEO_OG_IMAGE || '',
+          h1: rConf.SEO_H1 || ''
         })
       } else {
         payload[`SEO_ROUTE_${path}`] = '' // Xóa nếu rỗng
@@ -190,34 +415,46 @@ export function SeoTab() {
         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Map size={18} className="text-emerald-600" /> Chọn Trang SEO
         </h3>
-        <div className="flex flex-col gap-1.5 mb-6">
-          {SEO_ROUTES.map(route => (
-            <button
-              key={route.path}
-              onClick={() => setActiveRoute(route.path)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeRoute === route.path ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'}`}
-            >
-              <route.icon size={16} />
-              {route.name}
-            </button>
+        <div className="flex flex-col gap-3 mb-6 max-h-[650px] overflow-y-auto pr-1">
+          {Array.from(new Set(SEO_ROUTES.map(r => r.category || 'Mặc định'))).map(cat => (
+            <div key={cat} className="space-y-1">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1">{cat}</p>
+              {SEO_ROUTES.filter(r => (r.category || 'Mặc định') === cat).map(route => (
+                <button
+                  key={route.path}
+                  onClick={() => setActiveRoute(route.path)}
+                  className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    activeRoute === route.path 
+                      ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' 
+                      : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                  }`}
+                >
+                  <route.icon size={14} className="flex-shrink-0" />
+                  <span className="truncate">{route.name}</span>
+                </button>
+              ))}
+            </div>
           ))}
           
           {customRoutes.length > 0 && (
-            <>
-              <div className="h-px bg-gray-200 my-2"></div>
-              <p className="text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Đường dẫn tùy chỉnh</p>
+            <div className="space-y-1 pt-2 border-t border-gray-200">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2">Đường dẫn tùy chỉnh</p>
               {customRoutes.map(path => (
                 <button
                   key={path}
                   onClick={() => setActiveRoute(path)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all truncate ${activeRoute === path ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'}`}
+                  className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all truncate ${
+                    activeRoute === path 
+                      ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' 
+                      : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                  }`}
                   title={path}
                 >
-                  <FileText size={16} className="flex-shrink-0" />
+                  <FileText size={14} className="flex-shrink-0" />
                   <span className="truncate">{path}</span>
                 </button>
               ))}
-            </>
+            </div>
           )}
         </div>
         
@@ -261,6 +498,21 @@ export function SeoTab() {
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-800 text-sm"
             />
           </div>
+
+          {activeRoute !== 'GLOBAL' && (
+            <div>
+              <label className="block font-bold text-slate-700 mb-2">Tiêu đề H1 trên trang (Tùy chọn)</label>
+              <input 
+                type="text"
+                name="SEO_H1"
+                value={currentConf.SEO_H1 || ''}
+                onChange={handleChange}
+                placeholder={(SEO_ROUTES.find(r => r.path === activeRoute) as any)?.defaultH1 || 'Tiêu đề H1 mặc định của trang'}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-800 text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-1">Ghi đè tiêu đề H1 hiển thị trên giao diện trang này. Để trống sẽ dùng tiêu đề mặc định.</p>
+            </div>
+          )}
 
           <div>
             <label className="block font-bold text-slate-700 mb-2">Meta Description (Mô tả nội dung)</label>

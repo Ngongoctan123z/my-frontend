@@ -59,7 +59,7 @@ export function Header() {
       href: '/ai-grader', 
       label: 'Luyện Writing',
       dropdown: [
-        { href: '/ai-grader', label: 'Luyện IELTS' },
+        { href: '/ai-grader/ielts', label: 'Luyện IELTS' },
         { href: '/ai-grader/toeic', label: 'Luyện TOEIC' },
         { href: '/ai-grader/hsk', label: 'Luyện HSK' },
         { href: '/ai-grader/topik', label: 'Luyện TOPIK' },
@@ -82,7 +82,7 @@ export function Header() {
   const enNavLinks = [
     { 
       href: '/en/ai-grader', 
-      label: 'AI Grader',
+      label: 'Writing Grader',
       dropdown: [
         { href: '/en/ai-grader/ielts', label: 'IELTS Grader' },
         { href: '/en/ai-grader/toeic', label: 'TOEIC Grader' },
@@ -108,7 +108,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-[#0D1117] border-b border-[var(--border-color)] transition-colors duration-300">
-      <div className="mx-auto flex max-w-7xl items-center gap-4 sm:gap-6 px-4 md:px-10 h-[66px]">
+      <div className="mx-auto flex max-w-[1440px] items-center gap-4 sm:gap-6 px-3 sm:px-6 md:px-8 h-[66px]">
 
         {/* Hamburger Menu (Visible on all screens) */}
         <button
@@ -198,19 +198,20 @@ export function Header() {
             {supportOpen && (
               <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#161B22] border border-[var(--border-color)] rounded-[8px] shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-2">
                 <div className="px-4 py-1.5 text-[11px] font-[700] text-[var(--text-muted)] uppercase tracking-wider">{isEnRoute ? 'Support' : 'Hỗ trợ'}</div>
-                <Link prefetch={false} href="/about" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">{isEnRoute ? 'About Us' : 'Về chúng tôi'}</Link>
-                <Link prefetch={false} href="/terms" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">{isEnRoute ? 'Terms of Use' : 'Điều khoản sử dụng'}</Link>
-                <Link prefetch={false} href="/privacy" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">{isEnRoute ? 'Privacy Policy' : 'Chính sách bảo mật'}</Link>
-                <Link prefetch={false} href="/contact" onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">{isEnRoute ? 'Contact Us' : 'Liên hệ hợp tác'}</Link>
+                <Link prefetch={false} href={isEnRoute ? '/en/about' : '/about'} onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">{isEnRoute ? 'About Us' : 'Về chúng tôi'}</Link>
+                <Link prefetch={false} href={isEnRoute ? '/en/terms' : '/terms'} onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">{isEnRoute ? 'Terms of Use' : 'Điều khoản sử dụng'}</Link>
+                <Link prefetch={false} href={isEnRoute ? '/en/privacy' : '/privacy'} onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">{isEnRoute ? 'Privacy Policy' : 'Chính sách bảo mật'}</Link>
+                <Link prefetch={false} href={isEnRoute ? '/en/contact' : '/contact'} onClick={() => setSupportOpen(false)} className="block px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">{isEnRoute ? 'Contact Us' : 'Liên hệ hợp tác'}</Link>
               </div>
             )}
           </div>
 
           <Link 
             prefetch={false}
-            href={isEnRoute ? '/' : '/en'} 
+            href={isEnRoute ? (pathname.replace(/^\/en/, '') || '/') : (`/en${pathname === '/' ? '' : pathname}`)} 
             className="flex items-center gap-1.5 h-9 px-2.5 rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all"
             aria-label="Toggle Language"
+            title={isEnRoute ? 'Chuyển sang Tiếng Việt' : 'Switch to English'}
           >
             <span className="text-[13px] font-bold tracking-tight">{isEnRoute ? 'VN' : 'EN'}</span>
           </Link>
@@ -268,23 +269,23 @@ export function Header() {
                 </h3>
                 <div className="space-y-1">
                   {userPlan === 'free' ? (
-                    <Link prefetch={false} href="/premium" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors">
+                    <Link prefetch={false} href={isEnRoute ? '/en/premium' : '/premium'} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors">
                       <Crown size={18} /> {isEnRoute ? 'Upgrade Premium' : 'Nâng cấp Premium'}
                     </Link>
                   ) : userPlan === 'plus' ? (
-                    <Link prefetch={false} href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                    <Link prefetch={false} href={isEnRoute ? '/en/profile' : '/profile'} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                       <Crown size={18} /> {isEnRoute ? 'Your plan: PLUS' : 'Gói của bạn: PLUS'}
                     </Link>
                   ) : (
-                    <Link prefetch={false} href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+                    <Link prefetch={false} href={isEnRoute ? '/en/profile' : '/profile'} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
                       <Crown size={18} /> {isEnRoute ? 'Your plan: PRO' : 'Gói của bạn: PRO'}
                     </Link>
                   )}
-                  <Link prefetch={false} href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                  <Link prefetch={false} href={isEnRoute ? '/en/profile' : '/profile'} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Star size={18} /> {isEnRoute ? 'Profile' : 'Hồ sơ cá nhân'}
                   </Link>
 
-                  <Link prefetch={false} href="/about" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                  <Link prefetch={false} href={isEnRoute ? '/en/about' : '/about'} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Info size={18} /> {isEnRoute ? 'About Us' : 'Về chúng tôi'}
                   </Link>
 

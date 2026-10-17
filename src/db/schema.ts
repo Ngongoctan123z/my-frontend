@@ -157,3 +157,61 @@ export const bankTransactions = sqliteTable("bank_transaction", {
   status: text("status").default("unmatched").notNull(), // 'unmatched', 'matched', 'ignored'
   matchedUserId: text("matchedUserId"), // To store which user got the upgrade
 })
+
+// ─── Speaking Feature ───────────────────────────────────────────────────────
+
+export const speakingSessions = sqliteTable("speaking_session", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  email: text("email").notNull(),
+  examType: text("examType").notNull(), // 'IELTS_SPEAKING' | 'TOEIC_SPEAKING'
+  part: text("part").notNull(), // 'PART_1' | 'PART_2' | 'PART_3' | 'Q1_2' | 'Q3' | 'Q4_6' | 'Q7_9' | 'Q10_11'
+  promptEn: text("promptEn").notNull(),
+  promptVi: text("promptVi").notNull(),
+  transcript: text("transcript"), // raw STT output
+  transcriptWithPauses: text("transcriptWithPauses"), // with ... markers
+  fluencyData: text("fluencyData"), // JSON: wpm, pause_count etc
+  aiResult: text("aiResult"), // JSON: full AI response
+  confirmedWords: text("confirmedWords"), // JSON: user-confirmed mishear corrections
+  audioDurationMs: integer("audioDurationMs"),
+  speechDurationMs: integer("speechDurationMs"),
+  status: text("status").default("pending").notNull(), // 'pending' | 'transcribed' | 'analyzed' | 'error'
+  createdAt: integer("createdAt", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+})
+
+export const speakingPrompts = sqliteTable("speaking_prompt", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  examType: text("examType").notNull(), // 'IELTS_SPEAKING' | 'TOEIC_SPEAKING'
+  part: text("part").notNull(), // 'PART_1' | 'PART_2' | 'PART_3' | 'Q1_2' | 'Q3' | 'Q4_6' | 'Q7_9' | 'Q10_11'
+  topic: text("topic").notNull(),
+  questionEn: text("questionEn").notNull(),
+  questionVi: text("questionVi").notNull(),
+  cueCard: text("cueCard"), // For IELTS Part 2
+  subQuestions: text("subQuestions"), // JSON array
+  suggestedVocabulary: text("suggestedVocabulary"), // JSON array
+  imageUrl: text("imageUrl"), // For TOEIC Q3 picture / Q7-9 chart
+  prepTimeSec: integer("prepTimeSec").default(0).notNull(),
+  speakTimeSec: integer("speakTimeSec").default(45).notNull(),
+  startGraceSec: integer("startGraceSec").default(15).notNull(),
+  criteria: text("criteria"), // JSON array
+  difficulty: text("difficulty").default("medium").notNull(), // 'easy' | 'medium' | 'hard'
+  setId: text("setId"), // For linking Part 2 and Part 3 sets
+  isPublished: integer("isPublished", { mode: "boolean" }).default(true).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+})
+
+export const speakingChats = sqliteTable("speaking_chat", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: text("sessionId").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull(), // 'user' | 'assistant'
+  content: text("content").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+})
+
+

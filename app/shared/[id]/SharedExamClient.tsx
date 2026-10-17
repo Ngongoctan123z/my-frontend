@@ -27,7 +27,7 @@ export function SharedExamClient({ exam }: { exam: any }) {
     minWords = exam.examType === 'IELTS_TASK_2' ? 250 : 150
   } else if (exam.examType.startsWith('TOPIK')) {
     examTitle = isEn ? "TOPIK Writing Exam" : "Bài Thi TOPIK Writing"
-    if (exam.examType === 'TOPIK_51_52') minWords = 50
+    if (exam.examType === 'TOPIK_51_52' || exam.examType === 'TOPIK_51' || exam.examType === 'TOPIK_52') minWords = 20
     if (exam.examType === 'TOPIK_53') minWords = 200
     if (exam.examType === 'TOPIK_54') minWords = 600
   } else if (exam.examType.startsWith('HSK')) {
@@ -200,7 +200,7 @@ export function SharedExamClient({ exam }: { exam: any }) {
           <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4">
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
             <h3 className="text-xl font-bold text-slate-800 text-center">{isEn ? 'Grading...' : 'Đang chấm điểm...'}</h3>
-            <p className="text-slate-500 text-center mt-2 text-sm">{isEn ? 'The AI is analyzing your essay. Please wait a moment.' : 'Hệ thống AI đang phân tích bài làm của bạn. Vui lòng đợi trong giây lát.'}</p>
+            <p className="text-slate-500 text-center mt-2 text-sm">{isEn ? 'Analyzing your essay according to the rubric. Please wait a moment.' : 'Hệ thống đang phân tích bài làm của bạn theo tiêu chuẩn khảo thí. Vui lòng đợi trong giây lát.'}</p>
           </div>
         </div>
       )}

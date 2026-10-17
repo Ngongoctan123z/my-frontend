@@ -1,53 +1,78 @@
 'use client'
 
-import { GradingResultModal } from '@/src/components/common/GradingResultModal'
-import React, { useState, useRef, useEffect } from 'react'
-import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Users, Clock, Trash2, ArrowRight, Share2, Maximize2, Minimize2 } from 'lucide-react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { 
+  FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, 
+  History, Users, Clock, ArrowRight, ArrowLeft, Share2, 
+  Maximize2, Minimize2, Check, Info, Layers, ChevronRight, Lock, LogIn
+} from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
 import { ShareExamModal } from '@/src/components/common/ShareExamModal'
 import { StudentManagementModal } from '@/src/components/common/StudentManagementModal'
-
-type ExamType = 'TOPIK_51_52' | 'TOPIK_53' | 'TOPIK_54'
-type PromptObject = { content: string, imageUrl?: string | null }
-
+import { GradingResultModal } from '@/src/components/common/GradingResultModal'
 import { usePathname } from 'next/navigation'
+import { TOPIK_51_FALLBACKS, TOPIK_52_FALLBACKS, TOPIK_53_FALLBACKS, TOPIK_54_FALLBACKS } from '@/src/data/fallbackPrompts'
+
+export type TopikQuestionKey = 'TOPIK_51' | 'TOPIK_52' | 'TOPIK_53' | 'TOPIK_54'
+export type TopikMode = TopikQuestionKey | 'TOPIK_FULL'
+export type PromptObject = { content: string; imageUrl?: string | null; imageDescription?: string | null }
+
+interface TabMeta {
+  key: TopikMode
+  title: string
+  subtitle: string
+  maxScore: number
+  targetChars?: string
+}
+
+const TOPIK_TABS: TabMeta[] = [
+  { key: 'TOPIK_FULL', title: 'Thi trọn bộ (51–54)', subtitle: 'Toàn bộ bài thi 쓰기', maxScore: 100 },
+  { key: 'TOPIK_51', title: 'Câu 51', subtitle: 'Hoàn thành câu', maxScore: 10 },
+  { key: 'TOPIK_52', title: 'Câu 52', subtitle: 'Hoàn thành câu', maxScore: 10 },
+  { key: 'TOPIK_53', title: 'Câu 53', subtitle: 'Viết theo biểu đồ', maxScore: 30, targetChars: '200–300 ký tự' },
+  { key: 'TOPIK_54', title: 'Câu 54', subtitle: 'Viết văn nghị luận', maxScore: 50, targetChars: '600–700 ký tự' },
+]
 
 export function TopikGraderClient() {
   const pathname = usePathname()
   const isEn = pathname.startsWith('/en/') || pathname === '/en'
 
   const { data: session, status } = useSession()
-  const [examType, setExamType] = useState<ExamType>('TOPIK_53')
+  const [activeTab, setActiveTab] = useState<TopikMode>('TOPIK_FULL')
+  const [fullTestStep, setFullTestStep] = useState<1 | 2 | 3 | 4>(1)
   const [feedbackLang, setFeedbackLang] = useState<string>(isEn ? 'English' : 'Tiếng Việt')
-  const [prompt, setPrompt] = useState<PromptObject | null>(null)
-  
-  const [userPlan, setUserPlan] = useState<string>('free')
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-  const [essay, setEssay] = useState('')
-  const [expandedImage, setExpandedImage] = useState<string | null>(null)
-  const [isEditorExpanded, setIsEditorExpanded] = useState(false)
-  
+
+  // Prompts per question
+  const [prompt51, setPrompt51] = useState<PromptObject | null>(null)
+  const [prompt52, setPrompt52] = useState<PromptObject | null>(null)
+  const [prompt53, setPrompt53] = useState<PromptObject | null>(null)
+  const [prompt54, setPrompt54] = useState<PromptObject | null>(null)
+
+  // Answers per question
+  const [answers51, setAnswers51] = useState<{ a: string; b: string }>({ a: '', b: '' })
+  const [answers52, setAnswers52] = useState<{ a: string; b: string }>({ a: '', b: '' })
+  const [essay53, setEssay53] = useState<string>('')
+  const [essay54, setEssay54] = useState<string>('')
+
+  // Validation
+  const [fieldErrors51, setFieldErrors51] = useState<{ a?: boolean; b?: boolean }>({})
+  const [fieldErrors52, setFieldErrors52] = useState<{ a?: boolean; b?: boolean }>({})
+  const [generalError, setGeneralError] = useState<string | null>(null)
+
+  // State
   const [isGenerating, setIsGenerating] = useState(false)
   const [isGrading, setIsGrading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
+  const [resultExamType, setResultExamType] = useState<string>('TOPIK_FULL')
+  const [userPlan, setUserPlan] = useState<string>('free')
   const [usageCount, setUsageCount] = useState(0)
-  const [usageLimit, setUsageLimit] = useState(15)
+  const [usageLimit, setUsageLimit] = useState(7)
 
-  useEffect(() => {
-    fetch('/api/ai-grader').then(r => r.json()).then(data => {
-      setUsageCount(data.count || 0)
-      setUsageLimit(data.limit || 2)
-    }).catch(() => {})
-  
-    if (session?.user) {
-      fetch('/api/profile').then(r => r.json()).then(data => {
-        if (data && data.plan) setUserPlan(data.plan)
-      }).catch(() => {})
-    }
-}, [session])
-
+  const [expandedImage, setExpandedImage] = useState<string | null>(null)
+  const [isEditorExpanded, setIsEditorExpanded] = useState(false)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [history, setHistory] = useState<GradedEssayHistory[]>([])
 
   const [showStudentsModal, setShowStudentsModal] = useState(false)
@@ -67,34 +92,81 @@ export function TopikGraderClient() {
       setLoadingStudents(false)
     }
   }
-  const [showHistoryModal, setShowHistoryModal] = useState(false)
 
+  // Queues
+  const queue51 = useRef<PromptObject[]>([])
+  const queue52 = useRef<PromptObject[]>([])
+  const queue53 = useRef<PromptObject[]>([])
+  const queue54 = useRef<PromptObject[]>([])
+  const isFetchingQueue = useRef<Record<TopikQuestionKey, boolean>>({
+    TOPIK_51: false, TOPIK_52: false, TOPIK_53: false, TOPIK_54: false
+  })
+  const lastActionTimeRef = useRef(0)
+
+  // Effective question for full test mode or single mode
+  const effectiveQuestionKey: TopikQuestionKey = useMemo(() => {
+    if (activeTab === 'TOPIK_FULL') {
+      if (fullTestStep === 1) return 'TOPIK_51'
+      if (fullTestStep === 2) return 'TOPIK_52'
+      if (fullTestStep === 3) return 'TOPIK_53'
+      return 'TOPIK_54'
+    }
+    return activeTab
+  }, [activeTab, fullTestStep])
+
+  const currentPrompt = useMemo<PromptObject | null>(() => {
+    if (effectiveQuestionKey === 'TOPIK_51') return prompt51
+    if (effectiveQuestionKey === 'TOPIK_52') return prompt52
+    if (effectiveQuestionKey === 'TOPIK_53') return prompt53
+    return prompt54
+  }, [effectiveQuestionKey, prompt51, prompt52, prompt53, prompt54])
+
+  const setCurrentPrompt = (key: TopikQuestionKey, p: PromptObject | null) => {
+    if (key === 'TOPIK_51') setPrompt51(p)
+    else if (key === 'TOPIK_52') setPrompt52(p)
+    else if (key === 'TOPIK_53') setPrompt53(p)
+    else setPrompt54(p)
+  }
+
+  // Load usage & plan
   useEffect(() => {
-    try {
-      const savedEssay = localStorage.getItem('draft_topik_essay')
-      const savedPrompt = localStorage.getItem('draft_topik_prompt')
-      const savedExamType = localStorage.getItem('draft_topik_examType')
+    fetch('/api/ai-grader').then(r => r.json()).then(data => {
+      setUsageCount(data.count || 0)
+      setUsageLimit(data.limit || 7)
+    }).catch(() => {})
 
-      if (savedEssay) setEssay(savedEssay)
-      if (savedPrompt) setPrompt(JSON.parse(savedPrompt))
-      if (savedExamType && ['TOPIK_51_52', 'TOPIK_53', 'TOPIK_54'].includes(savedExamType)) {
-        setExamType(savedExamType as ExamType)
-      } else {
-        localStorage.removeItem('draft_topik_examType')
-      }
-    } catch (e) {}
-  }, [])
+    if (session?.user) {
+      fetch('/api/profile').then(r => r.json()).then(data => {
+        if (data && data.plan) setUserPlan(data.plan)
+      }).catch(() => {})
+    }
+  }, [session])
 
-  useEffect(() => {
-    localStorage.setItem('draft_topik_essay', essay)
-    if (prompt) localStorage.setItem('draft_topik_prompt', JSON.stringify(prompt))
-    localStorage.setItem('draft_topik_examType', examType)
-  }, [essay, prompt, examType])
+  // Load history (Database for logged in, localStorage for guests)
+  const isPromptDone = (content?: string, historyList = history) => {
+    if (!content) return false
+    const snippet = content.slice(0, 50).trim().toLowerCase()
+    const contentLower = content.toLowerCase()
+    return historyList.some(h => {
+      if (!h.prompt) return false
+      const p = h.prompt.toLowerCase()
+      return p === contentLower || p.includes(contentLower) || contentLower.includes(p) || (snippet.length >= 15 && p.includes(snippet))
+    })
+  }
 
+  // Load history (Database for logged in, localStorage for guests)
   const loadHistory = async () => {
-    const email = session?.user?.email || 'anonymous';
-    const data = await getEssayHistory(email)
-    setHistory(data.filter(h => h.examType.startsWith('TOPIK')))
+    const email = session?.user?.email || 'anonymous'
+    const data = await getEssayHistory(email, 'TOPIK')
+    setHistory(data)
+
+    // Tự động kiểm tra: Nếu đề TOPIK đang hiển thị đã có trong lịch sử đã làm -> Đổi ngay sang đề chưa làm
+    if (data.length > 0) {
+      if (prompt51 && isPromptDone(prompt51.content, data)) generatePrompt('TOPIK_51', data)
+      if (prompt52 && isPromptDone(prompt52.content, data)) generatePrompt('TOPIK_52', data)
+      if (prompt53 && isPromptDone(prompt53.content, data)) generatePrompt('TOPIK_53', data)
+      if (prompt54 && isPromptDone(prompt54.content, data)) generatePrompt('TOPIK_54', data)
+    }
   }
 
   useEffect(() => {
@@ -104,392 +176,970 @@ export function TopikGraderClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session])
 
-  const promptQueue = useRef<PromptObject[]>([])
-  const isFetchingQueue = useRef(false)
-  const currentExamType = useRef<ExamType>('TOPIK_53')
-
-  useEffect(() => {
-    promptQueue.current = []
-    isFetchingQueue.current = false
-    currentExamType.current = examType
-    setPrompt(null)
-  }, [examType])
-
+  // Call API with safe content-type checking to prevent HTML parsing errors
   const callApi = async (body: object) => {
     const res = await fetch('/api/ai-grader', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Đã có lỗi xảy ra.');
-    }
-    return data;
-  }
-
-  const fetchPromptsBatch = async (type: ExamType) => {
-    if (isFetchingQueue.current) return
-    isFetchingQueue.current = true
-    try {
-      const data = await callApi({ action: 'generate_prompt_batch', type })
-      if (currentExamType.current === type) {
-        promptQueue.current = [...promptQueue.current, ...data.prompts]
+    })
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      const text = await res.text()
+      if (text.includes('1102') || text.includes('Worker exceeded CPU')) {
+        throw new Error(isEn
+          ? 'Cloudflare Worker exceeded CPU resources (Error 1102). Please slow down and try again shortly.'
+          : 'Máy chủ Cloudflare tạm thời quá tải CPU (Error 1102). Vui lòng thao tác chậm lại một chút và thử lại.')
       }
-    } catch (err) {
-      console.error("Background fetch failed:", err)
+      if (res.status === 403 || res.status === 429 || text.includes('Just a moment') || text.includes('<!DOCTYPE')) {
+        throw new Error(isEn 
+          ? 'AI Service is currently busy or rate-limited. Please try again shortly.' 
+          : 'Dịch vụ AI đang tạm thời bận hoặc chạm giới hạn gọi. Vui lòng thử lại sau ít phút.')
+      }
+      throw new Error(isEn ? `Server error (${res.status}).` : `Máy chủ phản hồi mã lỗi (${res.status}).`)
+    }
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || (isEn ? 'An error occurred.' : 'Đã có lỗi xảy ra.'))
+    return data
+  }
+
+  const getTopikFallback = (k: TopikQuestionKey) => {
+    if (k === 'TOPIK_51') return TOPIK_51_FALLBACKS[0]
+    if (k === 'TOPIK_52') return TOPIK_52_FALLBACKS[0]
+    if (k === 'TOPIK_53') return TOPIK_53_FALLBACKS[0]
+    return TOPIK_54_FALLBACKS[0]
+  }
+
+  // Prefetch prompts
+  const fetchPromptsBatch = async (type: TopikQuestionKey, customHistory?: GradedEssayHistory[]) => {
+    if (isFetchingQueue.current[type]) return
+    isFetchingQueue.current[type] = true
+    try {
+      const hList = customHistory || history
+      const pastPrompts = hList.map(h => h.prompt)
+      const data = await callApi({ action: 'generate_prompt_batch', type, donePrompts: pastPrompts })
+      const q = type === 'TOPIK_51' ? queue51 : type === 'TOPIK_52' ? queue52 : type === 'TOPIK_53' ? queue53 : queue54
+      if (Array.isArray(data.prompts)) {
+        q.current = [...q.current, ...data.prompts]
+      }
+    } catch (e) {
+      console.warn('fetchPromptsBatch error, skipping queue prefetch:', e)
     } finally {
-      isFetchingQueue.current = false
+      isFetchingQueue.current[type] = false
     }
   }
 
-  const generatePrompt = async () => {
-    setError(null)
-    setResult(null)
-    setEssay('')
+  // Generate prompt
+  const generatePrompt = async (targetKey?: TopikQuestionKey, customHistory?: GradedEssayHistory[], force = false) => {
+    const key = targetKey || effectiveQuestionKey
+    const now = Date.now()
+    if (!force && (isGenerating || isGrading || now - lastActionTimeRef.current < 600)) return
+    lastActionTimeRef.current = now
+    setGeneralError(null)
 
-    if (promptQueue.current.length === 0) {
+    const qRef = key === 'TOPIK_51' ? queue51 : key === 'TOPIK_52' ? queue52 : key === 'TOPIK_53' ? queue53 : queue54
+    const hList = customHistory || history
+    const pastPrompts = hList.map(h => h.prompt)
+
+    if (qRef.current.length === 0) {
       setIsGenerating(true)
       try {
-        const data = await callApi({ action: 'generate_prompt_batch', type: examType })
-        promptQueue.current = data.prompts
+        const data = await callApi({ action: 'generate_prompt_batch', type: key, donePrompts: pastPrompts })
+        if (Array.isArray(data.prompts) && data.prompts.length > 0) {
+          qRef.current = data.prompts
+        } else if (data.text) {
+          qRef.current = [{ content: data.text }]
+        }
       } catch (err: any) {
-        setError(err.message)
-        setIsGenerating(false)
-        return
+        console.warn('generatePrompt error, using curated fallback:', err)
+        const fb = getTopikFallback(key)
+        qRef.current = [fb]
       }
       setIsGenerating(false)
     }
 
-    const nextPrompt = promptQueue.current.shift()
-    if (nextPrompt) {
-      setPrompt(nextPrompt)
+    // Bỏ qua đề đã làm nếu còn đề chưa làm trong queue
+    while (qRef.current.length > 1 && isPromptDone(qRef.current[0].content, hList)) {
+      qRef.current.shift()
     }
 
-    if (promptQueue.current.length <= 1 && !isFetchingQueue.current) {
-      fetchPromptsBatch(examType)
+    const nextPrompt = qRef.current.shift()
+    if (nextPrompt) {
+      setCurrentPrompt(key, nextPrompt)
+    } else {
+      const fb = getTopikFallback(key)
+      setCurrentPrompt(key, fb)
     }
   }
 
+  // Auto-load prompt on initial render & step switch if empty
+  useEffect(() => {
+    if (!currentPrompt) {
+      generatePrompt(effectiveQuestionKey)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveQuestionKey, currentPrompt])
+
+  const countKoreanChars = (text: string) => text.replace(/[\r\n]/g, '').length
+  const charsCount53 = countKoreanChars(essay53)
+  const charsCount54 = countKoreanChars(essay54)
+
+  const buildTopik51Answer = (ans: { a: string; b: string }) => `㉠ ${ans.a.trim()}\n㉡ ${ans.b.trim()}`
 
   const handleCreateSharedLink = async (reqPhone: boolean, reqEmail: boolean): Promise<string | void> => {
-    if (!prompt?.content?.trim()) {
-      alert('Vui lòng tạo hoặc nhập đề trước.')
+    if (!currentPrompt?.content?.trim()) {
+      alert(isEn ? 'Please draw a prompt first.' : 'Vui lòng bốc đề thi trước.')
       return
     }
-    
     try {
       const res = await fetch('/api/shared-exams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          examType,
-          content: prompt.content,
-          imageUrl: prompt.imageUrl,
-          imageDescription: (prompt as any).imageDescription,
+          examType: effectiveQuestionKey,
+          content: currentPrompt.content,
+          imageUrl: currentPrompt.imageUrl,
+          imageDescription: currentPrompt.imageDescription,
           requirePhone: reqPhone,
           requireEmail: reqEmail
         })
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      
-      return `${window.location.origin}${isEn ? '/en' : ''}/shared/${data.id}`
-    } catch (e: any) {
-      alert(e.message || 'Lỗi khi tạo link.')
-      throw e
+      if (res.ok) {
+        alert(isEn ? 'Share link generated! Valid for 24h.' : 'Đã tạo link chia sẻ thành công! Link có hiệu lực 24h.\nBạn có thể gửi link này cho học viên.')
+        return `${window.location.origin}${isEn ? '/en' : ''}/shared/${data.id}`
+      } else {
+        alert(data.error || (isEn ? 'Failed to create link' : 'Không thể tạo liên kết, vui lòng thử lại sau.'))
+      }
+    } catch (e) {
+      alert(isEn ? 'Error creating link' : 'Không thể tạo liên kết, vui lòng thử lại sau.')
     }
   }
 
-  const gradeEssay = async () => {
-    if (!prompt?.content.trim()) {
-      setError('Vui lòng tạo đề trước khi chấm.')
+  // Grade Single Question
+  const gradeSingleQuestion = async () => {
+    const key = effectiveQuestionKey
+    const p = currentPrompt
+    if (!p?.content?.trim()) {
+      setGeneralError(isEn ? 'Please draw a prompt first.' : 'Vui lòng bốc đề thi trước khi nộp.')
       return
     }
 
-    const finalEssay = essay.trim()
-    if (!finalEssay) {
-      setError('Vui lòng viết bài trước khi nộp.')
-      return
+    let finalEssay = ''
+    if (key === 'TOPIK_51') {
+      const errs: { a?: boolean; b?: boolean } = {}
+      if (!answers51.a.trim()) errs.a = true
+      if (!answers51.b.trim()) errs.b = true
+      if (errs.a || errs.b) {
+        setFieldErrors51(errs)
+        setGeneralError(isEn ? 'Please fill in both ㉠ and ㉡ blanks.' : 'Vui lòng điền đáp án cho cả hai chỗ trống ㉠ và ㉡.')
+        return
+      }
+      finalEssay = buildTopik51Answer(answers51)
+    } else if (key === 'TOPIK_52') {
+      const errs: { a?: boolean; b?: boolean } = {}
+      if (!answers52.a.trim()) errs.a = true
+      if (!answers52.b.trim()) errs.b = true
+      if (errs.a || errs.b) {
+        setFieldErrors52(errs)
+        setGeneralError(isEn ? 'Please fill in both ㉠ and ㉡ blanks.' : 'Vui lòng điền đáp án cho cả hai chỗ trống ㉠ và ㉡.')
+        return
+      }
+      finalEssay = buildTopik51Answer(answers52)
+    } else if (key === 'TOPIK_53') {
+      if (!essay53.trim()) {
+        setGeneralError(isEn ? 'Please write your response for Question 53.' : 'Vui lòng nhập bài làm cho Câu 53.')
+        return
+      }
+      finalEssay = essay53.trim()
+    } else {
+      if (!essay54.trim()) {
+        setGeneralError(isEn ? 'Please write your essay for Question 54.' : 'Vui lòng nhập bài văn cho Câu 54.')
+        return
+      }
+      finalEssay = essay54.trim()
     }
-
 
     setIsGrading(true)
-    setError(null)
+    setGeneralError(null)
     setResult(null)
 
     try {
-      const data = await callApi({ action: 'grade_essay', type: examType, prompt: prompt.content, essay: finalEssay, feedbackLang })
+      const body: any = {
+        action: 'grade_essay',
+        type: key,
+        prompt: p.content,
+        essay: finalEssay,
+        feedbackLang
+      }
+      if (key === 'TOPIK_53') {
+        body.imageUrl = p.imageUrl
+        body.chartExtra = p.imageDescription
+      }
+      const data = await callApi(body)
       setResult(data)
+      setResultExamType(key)
       setUsageCount(prev => prev + 1)
-      
+
       await saveEssayHistory({
         email: session?.user?.email || 'anonymous',
-        examType,
-        prompt: prompt.content,
+        examType: key,
+        prompt: p.content,
         essay: finalEssay,
         result: data
       })
-      loadHistory()
+
+      setIsGrading(false)
+
+      // Tự động xóa bài làm của câu tương ứng
+      if (key === 'TOPIK_51') setAnswers51({ a: '', b: '' })
+      else if (key === 'TOPIK_52') setAnswers52({ a: '', b: '' })
+      else if (key === 'TOPIK_53') setEssay53('')
+      else if (key === 'TOPIK_54') setEssay54('')
+
+      // Tự động load đề mới chưa từng làm
+      await generatePrompt(key, undefined, true)
+      await loadHistory()
     } catch (err: any) {
-      setError(err.message)
+      setGeneralError(err.message || 'Lỗi khi chấm bài.')
     } finally {
       setIsGrading(false)
     }
   }
 
-  // Tiếng Hàn đếm chữ (characters)
-  const charCount = essay.replace(/\s+/g, '').length
-  let minChars = 0
-  if (examType === 'TOPIK_53') minChars = 200
-  if (examType === 'TOPIK_54') minChars = 600
+  // Grade Full Test (All 4 Questions Simultaneously)
+  const gradeFullTest = async () => {
+    // Validate all 4 questions
+    if (!answers51.a.trim() && !answers51.b.trim()) {
+      setActiveTab('TOPIK_FULL')
+      setFullTestStep(1)
+      setGeneralError(isEn ? 'Please complete Question 51.' : 'Vui lòng hoàn thành Câu 51 trước khi nộp.')
+      return
+    }
+    if (!answers52.a.trim() && !answers52.b.trim()) {
+      setActiveTab('TOPIK_FULL')
+      setFullTestStep(2)
+      setGeneralError(isEn ? 'Please complete Question 52.' : 'Vui lòng hoàn thành Câu 52 trước khi nộp.')
+      return
+    }
+    if (!essay53.trim()) {
+      setActiveTab('TOPIK_FULL')
+      setFullTestStep(3)
+      setGeneralError(isEn ? 'Please complete Question 53.' : 'Vui lòng hoàn thành Câu 53 trước khi nộp.')
+      return
+    }
+    if (!essay54.trim()) {
+      setActiveTab('TOPIK_FULL')
+      setFullTestStep(4)
+      setGeneralError(isEn ? 'Please complete Question 54.' : 'Vui lòng hoàn thành Câu 54 trước khi nộp.')
+      return
+    }
+
+    setIsGrading(true)
+    setGeneralError(null)
+    setResult(null)
+
+    try {
+      const [res51, res52, res53, res54] = await Promise.all([
+        callApi({
+          action: 'grade_essay',
+          type: 'TOPIK_51',
+          prompt: prompt51?.content || 'TOPIK Câu 51',
+          essay: buildTopik51Answer(answers51),
+          feedbackLang
+        }),
+        callApi({
+          action: 'grade_essay',
+          type: 'TOPIK_52',
+          prompt: prompt52?.content || 'TOPIK Câu 52',
+          essay: buildTopik51Answer(answers52),
+          feedbackLang
+        }),
+        callApi({
+          action: 'grade_essay',
+          type: 'TOPIK_53',
+          prompt: prompt53?.content || 'TOPIK Câu 53',
+          essay: essay53,
+          imageUrl: prompt53?.imageUrl,
+          chartExtra: prompt53?.imageDescription,
+          feedbackLang
+        }),
+        callApi({
+          action: 'grade_essay',
+          type: 'TOPIK_54',
+          prompt: prompt54?.content || 'TOPIK Câu 54',
+          essay: essay54,
+          feedbackLang
+        })
+      ])
+
+      const score51 = Number(res51.overallBand) || 0
+      const score52 = Number(res52.overallBand) || 0
+      const score53 = Number(res53.overallBand) || 0
+      const score54 = Number(res54.overallBand) || 0
+      const totalScore = Math.min(100, Math.max(0, Math.round(score51 + score52 + score53 + score54)))
+
+      const fullTestResult = {
+        isFullTest: true,
+        fullTestType: 'TOPIK',
+        overallBand: totalScore,
+        scoreScale: 100,
+        overallBandFormatted: `${totalScore}/100`,
+        formula: isEn
+          ? `Total: Q51 (${score51}/10) + Q52 (${score52}/10) + Q53 (${score53}/30) + Q54 (${score54}/50) = ${totalScore}/100 pts`
+          : `Tổng kết: Câu 51 (${score51}/10) + Câu 52 (${score52}/10) + Câu 53 (${score53}/30) + Câu 54 (${score54}/50) = ${totalScore}/100 điểm`,
+        topik51: { ...res51, examType: 'TOPIK_51', scoreScale: 10 },
+        topik52: { ...res52, examType: 'TOPIK_52', scoreScale: 10 },
+        topik53: { ...res53, examType: 'TOPIK_53', scoreScale: 30 },
+        topik54: { ...res54, examType: 'TOPIK_54', scoreScale: 50 },
+        detailedFeedback: isEn
+          ? `TOPIK II Writing Full Test Results:\n• Question 51: ${score51}/10\n• Question 52: ${score52}/10\n• Question 53: ${score53}/30\n• Question 54: ${score54}/50\n\nOverall Score: ${totalScore}/100.`
+          : `Kết quả toàn diện bài thi TOPIK II Viết (쓰기):\n• Câu 51: ${score51}/10 điểm\n• Câu 52: ${score52}/10 điểm\n• Câu 53: ${score53}/30 điểm\n• Câu 54: ${score54}/50 điểm\n\nTổng điểm toàn bài: ${totalScore}/100 điểm.`
+      }
+
+      setResult(fullTestResult)
+      setResultExamType('TOPIK_FULL')
+      setUsageCount(prev => prev + 1)
+
+      await saveEssayHistory({
+        email: session?.user?.email || 'anonymous',
+        examType: 'TOPIK_FULL',
+        prompt: `TOPIK II Full Test (Câu 51–54)\n51: ${prompt51?.content?.slice(0, 100)}\n52: ${prompt52?.content?.slice(0, 100)}\n53: ${prompt53?.content?.slice(0, 100)}\n54: ${prompt54?.content?.slice(0, 100)}`,
+        essay: `[Câu 51]\n${buildTopik51Answer(answers51)}\n\n[Câu 52]\n${buildTopik51Answer(answers52)}\n\n[Câu 53]\n${essay53}\n\n[Câu 54]\n${essay54}`,
+        result: fullTestResult
+      })
+
+      setIsGrading(false)
+
+      // Tự động xóa tất cả bài làm và reset bước về câu 51 (step 1)
+      setAnswers51({ a: '', b: '' })
+      setAnswers52({ a: '', b: '' })
+      setEssay53('')
+      setEssay54('')
+      setFullTestStep(1)
+
+      // Tự động load đề mới cho cả 4 câu
+      await Promise.all([
+        generatePrompt('TOPIK_51', undefined, true),
+        generatePrompt('TOPIK_52', undefined, true),
+        generatePrompt('TOPIK_53', undefined, true),
+        generatePrompt('TOPIK_54', undefined, true)
+      ])
+      await loadHistory()
+    } catch (err: any) {
+      setGeneralError(err.message || 'Lỗi khi chấm trọn bộ TOPIK.')
+    } finally {
+      setIsGrading(false)
+    }
+  }
+
+  // Restore history
+  const restoreHistoryItem = (item: GradedEssayHistory) => {
+    if (item.result?.isFullTest) {
+      setActiveTab('TOPIK_FULL')
+      setFullTestStep(1)
+      setResult(item.result)
+      setResultExamType('TOPIK_FULL')
+      setShowHistoryModal(false)
+      return
+    }
+
+    const t = item.examType as TopikQuestionKey
+    setActiveTab(t)
+    setCurrentPrompt(t, { content: item.prompt })
+    if (t === 'TOPIK_51' || t === 'TOPIK_52') {
+      const matchA = item.essay.match(/㉠\s*([^\n]+)/)
+      const matchB = item.essay.match(/㉡\s*([^\n]+)/)
+      const a = matchA ? matchA[1].trim() : ''
+      const b = matchB ? matchB[1].trim() : ''
+      if (t === 'TOPIK_51') setAnswers51({ a, b })
+      else setAnswers52({ a, b })
+    } else if (t === 'TOPIK_53') {
+      setEssay53(item.essay)
+    } else {
+      setEssay54(item.essay)
+    }
+
+    setResult(item.result)
+    setResultExamType(t)
+    setShowHistoryModal(false)
+  }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 items-start">
-        {/* Left Column: Editor */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                <FileEdit className="w-5 h-5 text-emerald-600" /> {isEn ? 'Exam Setup' : 'Thiết lập đề thi TOPIK'}
-              </h2>
-              
-              {(userPlan === 'plus' || userPlan === 'pro') && (
-                <button 
-                  onClick={() => { loadStudentsData(); setShowStudentsModal(true); }}
-                  className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                >
-                  <Users className="w-4 h-4" />
-                  {isEn ? 'Students' : 'Quản lý học viên'}
-                </button>
-              )}
-<button 
-                onClick={() => setShowHistoryModal(true)}
-                className="text-sm font-semibold flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-              >
-                <History className="w-4 h-4" />
-                {isEn ? 'History' : 'Lịch sử'} ({history.length})
-              </button>
-            </div>
+    <div className="w-full space-y-3 sm:space-y-6">
+      {/* Top Card: Navigation & Settings */}
+      <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-slate-100">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+              {isEn ? 'TOPIK II Writing Studio (쓰기)' : 'Phòng Luyện Viết TOPIK II (쓰기)'}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              {isEn 
+                ? 'Official TOPIK II standard: Complete blanks (51, 52), data interpretation (53), and essay (54).'
+                : 'Chuẩn format đề thi PBT/IBT: Điền khuyết (51, 52), biểu đồ dữ liệu (53) và nghị luận xã hội (54).'}
+            </p>
+          </div>
 
-            <div className="flex flex-wrap gap-2 mb-6">
-              <button
-                onClick={() => { setExamType('TOPIK_51_52'); setResult(null); setPrompt(null); }}
-                className={`px-4 py-2 rounded text-sm font-semibold transition-all border ${
-                  examType === 'TOPIK_51_52' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                {isEn ? 'Q51-52 (Fill in)' : 'Câu 51-52 (Điền từ)'}
-              </button>
-              <button
-                onClick={() => { setExamType('TOPIK_53'); setResult(null); setPrompt(null); }}
-                className={`px-4 py-2 rounded text-sm font-semibold transition-all border ${
-                  examType === 'TOPIK_53' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                {isEn ? 'Q53 (Chart)' : 'Câu 53 (Biểu đồ)'}
-              </button>
-              <button
-                onClick={() => { setExamType('TOPIK_54'); setResult(null); setPrompt(null); }}
-                className={`px-4 py-2 rounded text-sm font-semibold transition-all border ${
-                  examType === 'TOPIK_54' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                {isEn ? 'Q54 (Essay)' : 'Câu 54 (Nghị luận)'}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200">
-              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
-                {isEn ? 'Feedback Language:' : 'Ngôn ngữ nhận xét:'}
-              </label>
-              <select 
-                value={feedbackLang} 
+          {/* Action buttons - shown on upper row when screen touches edge (< xl) */}
+          <div className="flex xl:hidden items-center gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 text-xs shrink-0">
+              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
+              <select
+                value={feedbackLang}
                 onChange={e => setFeedbackLang(e.target.value)}
-                className="w-full text-sm bg-white border border-slate-300 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
               >
                 <option value="Tiếng Việt">Tiếng Việt</option>
                 <option value="English">English</option>
-                <option value="한국어">한국어 (Korean)</option>
-                <option value="中文">中文 (Chinese)</option>
-                <option value="日本語">日本語 (Japanese)</option>
+                <option value="한국어">한국어</option>
+                <option value="中文">中文</option>
               </select>
             </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="font-medium text-slate-700 text-sm">{isEn ? 'Prompt Content:' : 'Nội dung đề bài:'}</label>
-                
-                  {(userPlan === 'plus' || userPlan === 'pro') && prompt?.content && (
-                    <button
-                      onClick={() => setIsShareModalOpen(true)}
-                      className="text-sm text-indigo-600 font-medium hover:bg-indigo-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      {isEn ? 'Share Link' : 'Tạo link chia sẻ'}
-                    </button>
-                  )}
-                  <button
-                  onClick={generatePrompt}
-                  disabled={isGenerating || isGrading}
-                  className="text-sm text-emerald-600 font-medium hover:underline flex items-center gap-1 disabled:opacity-50"
-                >
-                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  {isEn ? 'Random Prompt' : 'Bốc đề ngẫu nhiên'}
-                </button>
-              </div>
-              
-              {!prompt?.imageUrl && (
-<div className="w-full min-h-[120px] p-4 rounded-lg border border-gray-300 bg-gray-50 text-slate-800 text-sm whitespace-pre-wrap">
-                {prompt ? prompt.content : (isEn ? "Click 'Random Prompt' to begin..." : "Bấm 'Bốc đề ngẫu nhiên' để bắt đầu...")}
-              </div>
-)}
-
-              {prompt?.imageUrl && (
-                <div className="mt-4 space-y-2 border border-gray-200 rounded-lg overflow-hidden bg-white p-2">
-                  <div className="relative group cursor-pointer" onClick={() => setExpandedImage(prompt.imageUrl!)}>
-                    <img src={prompt.imageUrl} alt="Chart/Graph" className="w-full h-auto object-contain bg-white transition-opacity group-hover:opacity-90" />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/10 transition-opacity">
-                      <div className="bg-white/90 p-2 rounded-full shadow-sm text-slate-700">
-                        <Maximize2 className="w-6 h-6" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          
-        </div>
-
-        {/* Right Column: Editor */}
-        <div className={`h-full ${isEditorExpanded ? 'fixed inset-0 z-50 bg-slate-100 p-4 sm:p-8 flex flex-col' : ''}`}>
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 text-red-600 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <p className="font-medium">{error}</p>
-            </div>
-          )}
-          <div className={`bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col ${isEditorExpanded ? 'flex-1 p-6' : 'p-6 min-h-[480px]'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                {isEn ? 'Your Essay' : 'Bài làm của bạn'}
-              </h2>
-              <div className="flex items-center gap-3">
-                {minChars > 0 && (
-                  <div className={`text-xs font-semibold px-2 py-1 rounded ${charCount >= minChars ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                    {charCount} / {minChars} {isEn ? 'chars' : 'chữ'}
-                  </div>
-                )}
-                <button 
-                  onClick={() => setIsEditorExpanded(!isEditorExpanded)}
-                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors"
-                  title={isEditorExpanded ? (isEn ? 'Minimize' : 'Thu nhỏ') : (isEn ? 'Expand' : 'Phóng to')}
-                >
-                  {isEditorExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <textarea
-              value={essay}
-              onChange={(e) => setEssay(e.target.value)}
-              placeholder={isEn ? "Write your essay here (Korean)..." : "Viết bài của bạn bằng Tiếng Hàn vào đây..."}
-              className="flex-1 w-full p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 resize-none text-base leading-relaxed font-sans"
-            />
 
             <button
               onClick={() => {
                 if (!session) return signIn('google')
-                gradeEssay()
+                setShowStudentsModal(true)
+                loadStudentsData()
               }}
-              disabled={isGrading || isGenerating}
-              className="mt-6 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="text-xs font-semibold flex items-center gap-1 px-2 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 shrink-0 whitespace-nowrap"
             >
-              {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isGrading ? (isEn ? 'Grading...' : 'Đang chấm điểm...') : (session ? (isEn ? 'Submit & Grade' : 'Nộp bài & Chấm điểm') : (isEn ? 'Login to Grade' : 'Đăng nhập để Chấm điểm'))}
+              <Users className="w-3 h-3" />
+              <span>{isEn ? 'Students' : 'Học viên'}</span>
             </button>
-            {session && (
-              <p className="text-center text-xs text-slate-500 mt-2">
-                {isEn ? 'Usage today:' : 'Lượt chấm hôm nay:'} <span className="font-bold text-slate-700">{usageCount}/{usageLimit}</span>
-              </p>
+
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="text-xs font-semibold flex items-center gap-1 px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors border border-slate-200 shrink-0 whitespace-nowrap"
+            >
+              <History className="w-3 h-3 text-blue-600" />
+              <span>{isEn ? 'History' : 'Lịch sử'} ({history.length})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Selection & Desktop Action Buttons */}
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+          {/* Tabs - enlarged on desktop with plenty of space */}
+          <div className="flex items-center gap-2 md:gap-3 overflow-x-auto xl:overflow-x-visible pb-1 xl:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {TOPIK_TABS.map(t => {
+              const isActive = activeTab === t.key
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => {
+                    setActiveTab(t.key)
+                    setGeneralError(null)
+                  }}
+                  className={`shrink-0 flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all ${
+                    isActive
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <span className="font-bold text-xs md:text-sm whitespace-nowrap">{t.title}</span>
+                    <span className={`text-[9px] md:text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {t.maxScore}đ
+                    </span>
+                  </div>
+                  <span className={`text-[10px] md:text-xs whitespace-nowrap mt-0.5 ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>
+                    {t.subtitle}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Desktop action buttons - same row as tabs only on large screen (>= xl) */}
+          <div className="hidden xl:flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs">
+              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
+              <select
+                value={feedbackLang}
+                onChange={e => setFeedbackLang(e.target.value)}
+                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
+              >
+                <option value="Tiếng Việt">Tiếng Việt</option>
+                <option value="English">English</option>
+                <option value="한국어">한국어</option>
+                <option value="中文">中文</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => {
+                if (!session) return signIn('google')
+                setShowStudentsModal(true)
+                loadStudentsData()
+              }}
+              className="text-xs font-semibold flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 whitespace-nowrap active:scale-95 duration-75"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>{isEn ? 'Students' : 'Học viên'}</span>
+            </button>
+
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="text-xs font-semibold flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors border border-slate-200 whitespace-nowrap active:scale-95 duration-75"
+            >
+              <History className="w-3.5 h-3.5 text-blue-600" />
+              <span>{isEn ? 'History' : 'Lịch sử'} ({history.length})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Full Test Step Indicator */}
+        {activeTab === 'TOPIK_FULL' && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+            <span className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-blue-600" />
+              {isEn ? 'Full Test Flow:' : 'Tiến trình thi trọn bộ:'}
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              {[
+                { step: 1, label: 'Câu 51 (10đ)', done: !!(answers51.a || answers51.b) },
+                { step: 2, label: 'Câu 52 (10đ)', done: !!(answers52.a || answers52.b) },
+                { step: 3, label: 'Câu 53 (30đ)', done: !!essay53.trim() },
+                { step: 4, label: 'Câu 54 (50đ)', done: !!essay54.trim() },
+              ].map(s => {
+                const isCur = fullTestStep === s.step
+                return (
+                  <button
+                    key={s.step}
+                    onClick={() => setFullTestStep(s.step as any)}
+                    className={`px-2.5 py-1 rounded font-semibold text-xs whitespace-nowrap transition-colors flex items-center gap-1 ${
+                      isCur
+                        ? 'bg-blue-600 text-white'
+                        : s.done
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-white text-slate-600 border border-slate-200'
+                    }`}
+                  >
+                    <span>{s.label}</span>
+                    {s.done && <span className="text-[10px]">✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 items-start">
+        {/* Left Column: Prompt Box */}
+        <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded border border-blue-100 shrink-0">
+              {effectiveQuestionKey === 'TOPIK_51' ? 'Câu 51 (10đ)' :
+               effectiveQuestionKey === 'TOPIK_52' ? 'Câu 52 (10đ)' :
+               effectiveQuestionKey === 'TOPIK_53' ? 'Câu 53 (30đ)' : 'Câu 54 (50đ)'}
+            </span>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {currentPrompt?.content && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!session) return signIn('google')
+                    setIsShareModalOpen(true)
+                  }}
+                  className="text-xs text-blue-600 font-semibold hover:bg-blue-50 px-2.5 py-1 rounded border border-blue-200 transition-colors flex items-center gap-1 shrink-0 whitespace-nowrap active:scale-95 duration-75"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>{isEn ? 'Share' : 'Chia sẻ'}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!session) return signIn('google')
+                  generatePrompt(effectiveQuestionKey)
+                }}
+                disabled={isGenerating || isGrading}
+                className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 px-2.5 py-1 rounded border border-blue-200 hover:bg-blue-50 disabled:opacity-50 transition-all active:scale-95 duration-75 shrink-0 whitespace-nowrap"
+              >
+                {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                <span>{isEn ? 'New Prompt' : 'Đổi đề'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1">
+            {!session ? (
+              <div className="w-full min-h-[260px] p-6 rounded-xl border border-blue-100 bg-linear-to-b from-blue-50/70 to-white flex flex-col items-center justify-center text-center shadow-xs">
+                <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2.5 shadow-xs">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <h4 className="font-extrabold text-slate-800 text-sm">
+                  {isEn ? 'Sign in to view TOPIK prompt' : 'Đăng nhập để xem đề thi TOPIK'}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-sm mt-1 mb-3.5 leading-relaxed">
+                  {isEn 
+                    ? 'Please sign in with Google to view the official prompt, write your answer, and receive AI evaluation.' 
+                    : 'Vui lòng đăng nhập bằng Google để mở khóa xem đề bài, điền câu trả lời và nhận điểm số đánh giá từ AI.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => signIn('google')}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 duration-75 flex items-center gap-1.5"
+                >
+                  <LogIn className="w-4 h-4" />
+                  {isEn ? 'Sign in with Google' : 'Đăng nhập bằng Google'}
+                </button>
+              </div>
+            ) : !currentPrompt ? (
+              <div className="min-h-[280px] flex flex-col items-center justify-center p-6 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-600 mb-2" />
+                <p className="text-xs text-slate-500">{isEn ? 'Drawing official prompt...' : 'Đang tải đề thi...'}</p>
+              </div>
+            ) : effectiveQuestionKey === 'TOPIK_53' ? (
+              <div>
+                {currentPrompt.imageUrl ? (
+                  <div className="border border-slate-200 rounded-lg overflow-hidden bg-white p-2">
+                    <div
+                      className="cursor-pointer group relative"
+                      onClick={() => setExpandedImage(currentPrompt.imageUrl!)}
+                      title={isEn ? 'Click to expand' : 'Bấm để phóng to'}
+                    >
+                      <img
+                        src={currentPrompt.imageUrl}
+                        alt="TOPIK 53 Chart"
+                        className="w-full max-h-[440px] object-contain mx-auto"
+                      />
+                      <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="bg-white/95 text-slate-800 text-xs font-bold px-3 py-1.5 rounded shadow">
+                          <Maximize2 className="w-3.5 h-3.5 inline mr-1" /> {isEn ? 'Expand chart' : 'Phóng to ảnh'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">
+                    {currentPrompt.content}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">
+                  {currentPrompt.content}
+                </div>
+                {currentPrompt.imageUrl && (
+                  <div className="border border-slate-200 rounded-lg p-2 bg-white">
+                    <img
+                      src={currentPrompt.imageUrl}
+                      alt="Prompt visual"
+                      className="w-full max-h-[240px] object-contain cursor-pointer"
+                      onClick={() => setExpandedImage(currentPrompt.imageUrl!)}
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
-      </div>
 
-      {showHistoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-slate-50/50">
-              <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                <History className="w-5 h-5 text-emerald-600" /> 
-                {isEn ? 'TOPIK Grading History' : 'Lịch sử chấm bài TOPIK'}
-              </h3>
-              <button onClick={() => setShowHistoryModal(false)} className="text-gray-400 hover:text-gray-700">
-                <XCircle className="w-6 h-6" />
-              </button>
+        {/* Right Column: Tailored Answer Form */}
+        <div className={`h-full ${isEditorExpanded ? 'fixed inset-0 z-50 bg-slate-100 p-4 sm:p-8 flex flex-col overflow-y-auto' : ''}`}>
+          {generalError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{generalError}</span>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-5">
-              {history.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
-                  <Clock className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-                  <p>{isEn ? 'You have no grading history.' : 'Bạn chưa chấm bài nào.'}</p>
+          )}
+
+          <div className={`bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 shadow-xs flex flex-col ${
+            isEditorExpanded ? 'flex-1 p-4 sm:p-6' : 'p-4 sm:p-5 min-h-0 lg:min-h-[460px]'
+          }`}>
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800">
+                {isEn ? `Your Answer for ${effectiveQuestionKey.replace('_', ' ')}` : `Bài làm ${effectiveQuestionKey.replace('TOPIK_', 'Câu ')}`}
+              </h3>
+
+              <div className="flex items-center gap-2">
+                {effectiveQuestionKey === 'TOPIK_53' && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded border ${
+                    charsCount53 < 200 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    charsCount53 <= 300 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}>
+                    {charsCount53} / 200–300 ký tự
+                  </span>
+                )}
+                {effectiveQuestionKey === 'TOPIK_54' && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded border ${
+                    charsCount54 < 600 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    charsCount54 <= 700 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}>
+                    {charsCount54} / 600–700 ký tự
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsEditorExpanded(!isEditorExpanded)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
+                  title={isEditorExpanded ? 'Thu nhỏ' : 'Phóng to'}
+                >
+                  {isEditorExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Answer Form */}
+            <div className="relative flex-1 flex flex-col">
+              {!session && (
+                <div 
+                  onClick={() => signIn('google')}
+                  className="absolute inset-0 z-10 bg-white/80 backdrop-blur-[2px] rounded-lg flex flex-col items-center justify-center cursor-pointer p-4 transition-all hover:bg-white/70"
+                >
+                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mb-2 shadow-xs">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-800 mb-2.5 text-center">
+                    {isEn ? 'Sign in to write and type your answer' : 'Đăng nhập để điền vào ô làm bài và nộp chấm điểm'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => signIn('google')}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 duration-75 flex items-center gap-1.5"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    {isEn ? 'Sign in with Google' : 'Đăng nhập Google ngay'}
+                  </button>
+                </div>
+              )}
+
+              {(effectiveQuestionKey === 'TOPIK_51' || effectiveQuestionKey === 'TOPIK_52') ? (
+                <div className="flex-1 space-y-4">
+                  <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-lg text-xs text-blue-900 leading-relaxed">
+                    <strong>Hướng dẫn:</strong> Điền phần cụm từ còn thiếu tương ứng vào hai chỗ trống ㉠ và ㉡ (khoảng 1 câu ngắn, đúng kính ngữ và cấu trúc liên kết).
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                      <span>Đáp án chỗ trống ㉠:</span>
+                      <span className="text-[11px] text-slate-400 font-normal">Tối đa 5 điểm</span>
+                    </label>
+                    <textarea
+                      value={effectiveQuestionKey === 'TOPIK_51' ? answers51.a : answers52.a}
+                      onChange={e => {
+                        const v = e.target.value
+                        if (effectiveQuestionKey === 'TOPIK_51') setAnswers51(p => ({ ...p, a: v }))
+                        else setAnswers52(p => ({ ...p, a: v }))
+                      }}
+                      disabled={!session || isGrading}
+                      placeholder={!session ? (isEn ? "Sign in to answer..." : "Đăng nhập để điền đáp án...") : "Nhập câu tiếng Hàn điền vào ㉠..."}
+                      rows={3}
+                      className="w-full min-h-[76px] p-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm outline-none resize-y disabled:bg-slate-50 disabled:text-slate-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                      <span>Đáp án chỗ trống ㉡:</span>
+                      <span className="text-[11px] text-slate-400 font-normal">Tối đa 5 điểm</span>
+                    </label>
+                    <textarea
+                      value={effectiveQuestionKey === 'TOPIK_51' ? answers51.b : answers52.b}
+                      onChange={e => {
+                        const v = e.target.value
+                        if (effectiveQuestionKey === 'TOPIK_51') setAnswers51(p => ({ ...p, b: v }))
+                        else setAnswers52(p => ({ ...p, b: v }))
+                      }}
+                      disabled={!session || isGrading}
+                      placeholder={!session ? (isEn ? "Sign in to answer..." : "Đăng nhập để điền đáp án...") : "Nhập câu tiếng Hàn điền vào ㉡..."}
+                      rows={3}
+                      className="w-full min-h-[76px] p-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm outline-none resize-y disabled:bg-slate-50 disabled:text-slate-400"
+                    />
+                  </div>
+                </div>
+              ) : effectiveQuestionKey === 'TOPIK_53' ? (
+                <div className="flex-1 flex flex-col space-y-2">
+                  <textarea
+                    value={essay53}
+                    onChange={e => setEssay53(e.target.value)}
+                    disabled={!session || isGrading}
+                    placeholder={!session ? (isEn ? "Sign in to write essay..." : "Đăng nhập để nhập bài làm...") : "Nhập bài văn phân tích số liệu biểu đồ (200~300 ký tự, dùng đuôi câu viết -ㄴ/는다)..."}
+                    className="flex-1 w-full min-h-[220px] sm:min-h-[260px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
+                  />
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {history.map((item) => (
-                    <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-4 hover:border-emerald-300 transition-colors shadow-sm">
-                      <div className="flex justify-between items-start mb-3">
-                         <span className="inline-block px-2 py-1 text-xs font-bold rounded bg-emerald-100 text-emerald-700">
-                          {item.examType.replace('_', ' ')}
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium">
-                          {new Date(item.timestamp).toLocaleString('vi-VN')}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-700 font-medium line-clamp-2 mb-3 bg-slate-50 p-2 rounded border border-slate-100">
-                        <span className="font-bold text-slate-900">{isEn ? 'Prompt:' : 'Đề bài:'}</span> {item.prompt}
-                      </p>
-                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-                        <div className="font-bold text-emerald-600">
-                          {isEn ? 'Score:' : 'Điểm số:'} <span className="text-lg">{item.result?.overallBand || 'N/A'}</span>
-                        </div>
-                        <button 
-                          onClick={() => {
-                            setExamType(item.examType as ExamType)
-                            setPrompt({ content: item.prompt })
-                            setEssay(item.essay)
-                            setResult(item.result)
-                            setShowHistoryModal(false)
-                          }}
-                          className="flex items-center gap-1.5 text-sm font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          {isEn ? 'View Details' : 'Xem chi tiết'} <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex-1 flex flex-col space-y-2">
+                  <textarea
+                    value={essay54}
+                    onChange={e => setEssay54(e.target.value)}
+                    disabled={!session || isGrading}
+                    placeholder={!session ? (isEn ? "Sign in to write essay..." : "Đăng nhập để nhập bài làm...") : "Nhập bài văn nghị luận xã hội (600~700 ký tự, bố cục 3 phần, dùng từ vựng cao cấp)..."}
+                    className="flex-1 w-full min-h-[260px] sm:min-h-[320px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
+                  />
                 </div>
               )}
             </div>
 
+            {/* Bottom Actions */}
+            <div className="mt-5 pt-4 border-t border-slate-100">
+              {activeTab === 'TOPIK_FULL' ? (
+                /* Full test step navigation */
+                <div className="flex items-center justify-between gap-3">
+                  {fullTestStep > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setFullTestStep((fullTestStep - 1) as any)}
+                      className="px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 duration-75"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      {isEn ? `Back to Q${50 + fullTestStep - 1}` : `Quay lại Câu ${50 + fullTestStep - 1}`}
+                    </button>
+                  ) : <div />}
+
+                  {fullTestStep < 4 ? (
+                    <button
+                      type="button"
+                      onClick={() => setFullTestStep((fullTestStep + 1) as any)}
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all active:scale-95 duration-75 flex items-center gap-1.5 shadow-xs"
+                    >
+                      {isEn ? `Next to Q${51 + fullTestStep} →` : `Chuyển sang Câu ${51 + fullTestStep} →`}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!session) return signIn('google')
+                        gradeFullTest()
+                      }}
+                      disabled={isGrading}
+                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all active:scale-95 duration-75 flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                    >
+                      {isGrading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      {isGrading 
+                        ? (isEn ? 'Grading full test...' : 'Đang chấm trọn bộ 100đ...') 
+                        : (!session 
+                            ? (isEn ? 'Sign in to Grade Full Test' : 'Đăng nhập để chấm trọn bộ (100đ)')
+                            : (isEn ? 'Submit & Grade Full Test (100 pts)' : 'Nộp bài & Chấm trọn bộ (100đ)'))}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* Single Question Submit */
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!session) return signIn('google')
+                    gradeSingleQuestion()
+                  }}
+                  disabled={Boolean(isGrading || (session && !currentPrompt))}
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all active:scale-95 duration-75 flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
+                >
+                  {isGrading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {isGrading 
+                    ? (isEn ? 'Grading...' : 'Đang chấm điểm...') 
+                    : (!session
+                        ? (isEn ? 'Sign in to Submit & Grade' : 'Đăng nhập để chấm điểm')
+                        : (isEn ? `Submit & Grade ${activeTab.replace('_', ' ')}` : `Nộp bài & Chấm ${activeTab.replace('TOPIK_', 'Câu ')}`))}
+                </button>
+              )}
+
+              {session && (
+                <p className="text-center text-[11px] text-slate-400 mt-2">
+                  {isEn ? 'Daily quota:' : 'Lượt chấm hôm nay:'} <span className="font-semibold text-slate-600">{usageCount}/{usageLimit}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <History className="w-4 h-4 text-blue-600" />
+                  {isEn ? 'TOPIK Grading History' : 'Lịch Sử Chấm Bài TOPIK'}
+                </h3>
+                {session?.user?.email ? (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded border border-emerald-200 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    {session.user.email}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 bg-amber-50 text-amber-700 rounded border border-amber-200">
+                    Khách
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowHistoryModal(false)} className="text-slate-400 hover:text-slate-700">
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {history.length === 0 ? (
+                session ? (
+                  <div className="text-center py-10 text-slate-500 text-xs">
+                    <p className="font-semibold text-slate-700">{isEn ? 'No submissions yet for this account.' : 'Bạn chưa có bài làm nào được lưu trong tài khoản này.'}</p>
+                    <p className="text-slate-400 mt-1">{isEn ? 'Submissions will be automatically saved to your account.' : 'Sau khi nộp bài chấm điểm, toàn bộ kết quả sẽ được lưu tự động vào tài khoản của bạn.'}</p>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-slate-500 text-xs">
+                    <p className="font-semibold text-slate-700">{isEn ? 'You are not logged in.' : 'Bạn chưa đăng nhập tài khoản.'}</p>
+                    <p className="text-slate-400 mt-1 mb-3">{isEn ? 'Log in with Google to save your history to your account.' : 'Vui lòng đăng nhập Google để lưu trữ lịch sử làm bài vào tài khoản của bạn.'}</p>
+                    <button onClick={() => signIn('google')} className="px-3.5 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-xs">
+                      {isEn ? 'Sign in' : 'Đăng nhập Google'}
+                    </button>
+                  </div>
+                )
+              ) : (
+                history.map(item => (
+                  <div key={item.id} className="p-3.5 rounded-lg border border-slate-200 hover:border-blue-300 bg-white transition-colors">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                        {item.examType === 'TOPIK_FULL' ? 'Thi trọn bộ (100đ)' : item.examType.replace('TOPIK_', 'Câu ')}
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        {new Date(item.timestamp).toLocaleString('vi-VN')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 line-clamp-2 mb-2 bg-slate-50 p-2 rounded">
+                      {item.prompt}
+                    </p>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <span className="text-xs font-bold text-slate-800">
+                        {isEn ? 'Score: ' : 'Điểm: '}
+                        <span className="text-blue-600">{item.result?.overallBandFormatted || item.result?.overallBand}</span>
+                      </span>
+                      <button
+                        onClick={() => restoreHistoryItem(item)}
+                        className="text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        {isEn ? 'Review →' : 'Xem lại bài →'}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
             {history.length > 0 && (
-              <div className="p-4 border-t border-gray-100 bg-slate-50 flex justify-end">
-                <button 
+              <div className="p-3 border-t border-slate-100 bg-slate-50 flex justify-between items-center text-xs">
+                <span className="text-[11px] text-slate-500">{isEn ? 'Saved to account' : 'Đã lưu vào tài khoản'}</span>
+                <button
                   onClick={async () => {
-                    if (confirm('Bạn có chắc muốn xoá toàn bộ lịch sử?')) {
+                    if (confirm(isEn ? 'Clear all history?' : 'Bạn có chắc muốn xóa toàn bộ lịch sử?')) {
                       await clearEssayHistory(session?.user?.email || 'anonymous')
                       loadHistory()
                     }
                   }}
-                  className="text-sm font-semibold flex items-center gap-1.5 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                  className="text-red-600 hover:underline font-semibold text-xs"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  {isEn ? 'Clear All' : 'Xóa tất cả'}
+                  {isEn ? 'Clear all' : 'Xóa tất cả'}
                 </button>
               </div>
             )}
@@ -497,82 +1147,46 @@ export function TopikGraderClient() {
         </div>
       )}
 
-      {/* SEO Content Section */}
-      {!isEn && (
-      <section className="mt-12 pt-8 border-t border-gray-200">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Hướng Dẫn Luyện Viết TOPIK Bằng AI</h2>
-          <p className="mb-6 text-slate-600 text-center leading-relaxed">
-            Công cụ chấm điểm TOPIK II Writing tự động bằng AI giúp bạn luyện tập các bài viết TOPIK (câu 51-54), đánh giá chính xác ngữ pháp, từ vựng và cấu trúc theo tiêu chuẩn TOPIK.
-          </p>
-          
-          <div className="space-y-4">
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-emerald-50/30 transition-colors">
-              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                1. Câu 51-52: Dạng bài điền từ
-                <span className="transition group-open:rotate-180">
-                  <svg fill="none" height="24" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path d="M6 9l6 6 6-6"></path></svg>
-                </span>
-              </summary>
-              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
-                <p>Bạn phải điền một câu ngắn (hoặc cụm từ) vào chỗ trống để hoàn thành thông báo, email hoặc bài viết ngắn sao cho phù hợp với ngữ cảnh, kính ngữ và ngữ pháp.</p>
-              </div>
-            </details>
-
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-emerald-50/30 transition-colors">
-              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                2. Câu 53: Viết phân tích biểu đồ
-                <span className="transition group-open:rotate-180">
-                  <svg fill="none" height="24" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path d="M6 9l6 6 6-6"></path></svg>
-                </span>
-              </summary>
-              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
-                <p>Bạn sẽ phải quan sát một biểu đồ cho sẵn và viết đoạn văn (200 - 300 chữ) mô tả lại những thay đổi, nguyên nhân và kết quả. Đây là bài thi đòi hỏi nắm vững mẫu câu (template) biểu đồ.</p>
-              </div>
-            </details>
-
-            <details className="group border border-gray-200 rounded-lg bg-white shadow-sm open:bg-emerald-50/30 transition-colors">
-              <summary className="cursor-pointer font-bold text-lg text-slate-800 p-5 flex justify-between items-center list-none">
-                3. Câu 54: Nghị luận xã hội
-                <span className="transition group-open:rotate-180">
-                  <svg fill="none" height="24" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path d="M6 9l6 6 6-6"></path></svg>
-                </span>
-              </summary>
-              <div className="p-5 border-t border-gray-200 text-slate-700 leading-relaxed">
-                <p>Bài luận dài khoảng 600 - 700 chữ với 1 chủ đề cố định và 3 câu hỏi gợi ý. Bạn phải đảm bảo chia đoạn (Mở, Thân, Kết) rõ ràng và sử dụng từ vựng ở trình độ cao cấp.</p>
-              </div>
-            </details>
-          </div>
-        </div>
-      </section>
-      )}
-
-      <ShareExamModal 
-        isOpen={isShareModalOpen} 
-        onClose={() => setIsShareModalOpen(false)} 
-        onConfirm={handleCreateSharedLink} 
-      />
-    
-      <GradingResultModal 
-        isOpen={isGrading || !!result} 
-        onClose={() => { if (!isGrading) setResult(null) }} 
-        isGrading={isGrading} 
-        result={result} 
-        examType={examType || 'IELTS'} 
-      />
-      {/* Expanded Image Modal */}
+      {/* Expanded Image Viewer */}
       {expandedImage && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
+        <div
+          className="fixed inset-0 z-[120] bg-black/80 flex items-center justify-center p-4"
           onClick={() => setExpandedImage(null)}
         >
-          <img src={expandedImage} alt="Expanded Graph" className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl cursor-default" onClick={e => e.stopPropagation()} />
-          <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2" onClick={() => setExpandedImage(null)}>
-            <XCircle className="w-8 h-8" />
-          </button>
+          <img
+            src={expandedImage}
+            alt="Expanded visual"
+            className="max-w-full max-h-full object-contain rounded"
+          />
         </div>
       )}
 
+      {/* Student Management Modal */}
+      <StudentManagementModal
+        isOpen={showStudentsModal}
+        onClose={() => setShowStudentsModal(false)}
+        loading={loadingStudents}
+        studentsData={studentsData}
+        expandedStudentId={expandedStudentId}
+        setExpandedStudentId={setExpandedStudentId}
+        examTypePrefix="TOPIK"
+      />
+
+      {/* Share Exam Modal */}
+      <ShareExamModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        onConfirm={handleCreateSharedLink}
+      />
+
+      {/* Grading Result Modal */}
+      <GradingResultModal
+        isOpen={isGrading || !!result}
+        onClose={() => setResult(null)}
+        isGrading={isGrading}
+        result={result}
+        examType={resultExamType}
+      />
     </div>
   )
 }

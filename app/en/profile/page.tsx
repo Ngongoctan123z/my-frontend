@@ -1,9 +1,13 @@
 import { Metadata } from 'next'
 import { ProfileClient } from '@/app/profile/ProfileClient'
+import { getRouteMetadata } from '@/src/utils/serverSeo'
 
-export const metadata: Metadata = {
-  title: 'Personal Profile - VNDocs',
-  description: 'Manage account info, plans, and usage history.',
+export async function generateMetadata() {
+  return getRouteMetadata(
+    '/en/profile',
+    'Personal Profile & Submission History | VNDocs',
+    'Manage your profile, view saved essays, track writing test scores over time, and manage subscription settings.'
+  )
 }
 
 export default function ProfilePageEn() {

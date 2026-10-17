@@ -4,9 +4,9 @@ import PdfLockUnlockWrapper from '@/app/tools/lock/PdfLockUnlockWrapper'
 
 export async function generateMetadata() {
   return getRouteMetadata(
-    '/en/tools/lock/page.tsx',
-    'Lock / Unlock PDF File (Protect PDF) | VNDocs',
-    'A tool to encrypt PDF files with a password to prevent viewing, printing, or quickly removing PDF password protection.'
+    '/en/tools/lock',
+    'Protect PDF — Encrypt & Password Protect PDF Files | VNDocs',
+    'Secure sensitive PDF documents with strong AES encryption and password protection. Prevent unauthorized viewing or printing directly in your browser.'
   )
 }
 

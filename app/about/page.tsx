@@ -2,8 +2,9 @@ import React from 'react'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Về chúng tôi | VNDocs',
-  description: 'Tìm hiểu thêm về VNDocs - Nền tảng học tập và chia sẻ tài liệu trực tuyến miễn phí.'
+  title: 'Về VNDocs — Nền tảng đề thi & học tập miễn phí hàng đầu Việt Nam',
+  description: 'VNDocs cung cấp kho đề thi, công cụ chấm bài AI và tiện ích PDF hoàn toàn miễn phí. Tìm hiểu sứ mệnh và đội ngũ đứng sau VNDocs.',
+  robots: { index: false, follow: false }
 }
 
 export default function AboutPage() {

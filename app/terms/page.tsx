@@ -2,8 +2,9 @@ import React from 'react'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Điều khoản sử dụng | VNDocs',
-  description: 'Các điều khoản và điều kiện khi sử dụng dịch vụ tại VNDocs.'
+  title: 'Điều khoản sử dụng dịch vụ | VNDocs',
+  description: 'Các điều khoản và điều kiện sử dụng nền tảng VNDocs. Vui lòng đọc kỹ trước khi đăng ký và sử dụng dịch vụ.',
+  robots: { index: false, follow: false }
 }
 
 export default function TermsPage() {
@@ -22,8 +23,8 @@ export default function TermsPage() {
       <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">3. Sử dụng dịch vụ</h2>
       <ul className="text-[var(--text-secondary)] text-base space-y-2 list-disc pl-5">
         <li>Bạn cam kết không sử dụng VNDocs cho bất kỳ mục đích bất hợp pháp hoặc vi phạm pháp luật nào.</li>
-        <li>Bạn không được thực hiện các hành vi gây quá tải, tấn công từ chối dịch vụ (DDoS) hoặc làm gián đoạn hoạt động của hệ thống.</li>
-        <li>Dịch vụ AI Grader sử dụng API Key cá nhân của bạn; bạn hoàn toàn chịu trách nhiệm về việc bảo mật và sử dụng API Key của mình.</li>
+        <li>Bạn không được thực hiện các hành vi cố ý gây gián đoạn hoặc can thiệp trái phép vào hoạt động của trang web.</li>
+        <li>Bạn cam kết sử dụng các tính năng luyện viết và công cụ học tập đúng mục đích học tập cá nhân.</li>
       </ul>
       
       <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">4. Từ chối trách nhiệm</h2>

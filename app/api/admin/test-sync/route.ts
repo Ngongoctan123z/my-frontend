@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import { syncBankTransactions } from '@/src/lib/bankhook'
 import { getDb } from '@/src/db'
 import { bankTransactions, users } from '@/src/db/schema'
@@ -6,14 +7,21 @@ import { desc, eq, and } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic';
 
+const rootAdmins = ['ngongoctan282005@gmail.com']
+
 export async function GET() {
   try {
+    const session = await auth()
+    if (!session?.user?.email || !rootAdmins.includes(session.user.email)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const syncRes = await syncBankTransactions()
     const db = await getDb()
     const txs = await db.select().from(bankTransactions).orderBy(desc(bankTransactions.receivedAt)).limit(5)
     
     // Also fetch the specific user to see if their plan is updated
-    const userRows = await db.select().from(users).where(eq(users.email, 'ngongoctan282005@gmail.com'))
+    const userRows = await db.select().from(users).where(eq(users.email, session.user.email))
 
     // Fetch unmatched IN transactions
     const unmatchedTxs = await db.select().from(bankTransactions).where(
@@ -61,6 +69,6 @@ export async function GET() {
       user: userRows[0] || null
     })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message, stack: error.stack })
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

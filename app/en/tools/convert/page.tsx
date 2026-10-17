@@ -3,9 +3,9 @@ import FileConverterWrapper from '@/app/tools/convert/FileConverterWrapper'
 
 export async function generateMetadata() {
   return getRouteMetadata(
-    '/en/tools/convert/page.tsx',
-    'Image Format Converter | VNDocs',
-    'Convert images between JPG, PNG, WEBP, BMP, GIF, ICO formats for free and quickly.'
+    '/en/tools/convert',
+    'Image Format Converter — Convert JPG, PNG, WEBP, GIF Online | VNDocs',
+    'Quickly convert images between JPG, PNG, WEBP, BMP, GIF, and ICO formats in high quality. Free batch conversion processed securely in your browser.'
   )
 }
 

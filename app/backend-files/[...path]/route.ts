@@ -11,26 +11,44 @@ export async function GET(
   const targetUrl = `${NORTHFLANK_BASE}/files/${filePath}`
 
   try {
-    const response = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': 'VNDocs-Proxy/1.0',
-      },
-    })
-
-    if (!response.ok) {
-      return new Response(`File not found: ${filePath}`, { status: response.status })
+    // Forward Range header (hỗ trợ byte-range cho PDF viewer, giảm lượng dữ liệu tải)
+    const rangeHeader = request.headers.get('range')
+    const upstreamHeaders: HeadersInit = {
+      'User-Agent': 'VNDocs-Proxy/1.0',
+    }
+    if (rangeHeader) {
+      upstreamHeaders['Range'] = rangeHeader
     }
 
-    const contentType = response.headers.get('content-type') || 'application/octet-stream'
-    const body = await response.arrayBuffer()
+    const response = await fetch(targetUrl, {
+      headers: upstreamHeaders,
+    })
 
-    return new Response(body, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400',
-        'Access-Control-Allow-Origin': '*',
-      },
+    if (!response.ok && response.status !== 206) {
+      return new Response(`Upstream error: ${response.status}`, { status: response.status })
+    }
+
+    // Stream body trực tiếp — không buffer toàn bộ vào RAM Worker
+    const contentType = response.headers.get('content-type') || 'application/octet-stream'
+    const responseHeaders: HeadersInit = {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=86400',
+      'Access-Control-Allow-Origin': '*',
+    }
+
+    // Forward các header quan trọ ng cho client
+    const contentLength = response.headers.get('content-length')
+    if (contentLength) responseHeaders['Content-Length'] = contentLength
+
+    const contentDisposition = response.headers.get('content-disposition')
+    if (contentDisposition) responseHeaders['Content-Disposition'] = contentDisposition
+
+    const contentRange = response.headers.get('content-range')
+    if (contentRange) responseHeaders['Content-Range'] = contentRange
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: responseHeaders,
     })
   } catch (err) {
     return new Response('Proxy error', { status: 502 })

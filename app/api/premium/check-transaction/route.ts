@@ -4,12 +4,22 @@ import { getDb } from '@/src/db'
 import { users } from '@/src/db/schema'
 import { eq } from 'drizzle-orm'
 import { syncBankTransactions } from '@/src/lib/bankhook'
+import { checkRateLimit } from '@/src/lib/rateLimit'
 
 export async function POST(req: Request) {
   try {
     const session = await auth()
     if (!session?.user?.email) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const rl = checkRateLimit(`txcheck:${session.user.email}`, 3, 5000)
+    if (!rl.allowed) {
+      return NextResponse.json({
+        success: true,
+        isPaid: false,
+        message: `Vui lòng đợi ${rl.retryAfterSeconds} giây trước khi bấm kiểm tra tiếp.`
+      })
     }
 
     const { amount, expectedContent } = await req.json()

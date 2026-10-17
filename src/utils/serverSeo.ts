@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { getDb } from '@/src/db'
 import { systemConfigs } from '@/src/db/schema'
+import { inArray, eq } from 'drizzle-orm'
 
 export async function getRouteMetadata(path: string, fallbackTitle: string, fallbackDesc: string): Promise<Metadata> {
   let title = fallbackTitle;
@@ -10,16 +11,24 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
   try {
     const db = await getDb()
     if (db) {
+      // Chỉ fetch đúng các key cần thiết thay vì full table scan
+      const routeKey = `SEO_ROUTE_${path}`
+      const keysToFetch = ['SEO_TITLE', 'SEO_DESCRIPTION', 'SEO_OG_IMAGE', routeKey]
+      const rows = await db
+        .select()
+        .from(systemConfigs)
+        .where(inArray(systemConfigs.key, keysToFetch))
+      const configMap: Record<string, string> = {}
+      for (const row of rows) configMap[row.key] = row.value
+
       // 1. Lấy cấu hình Global trước làm mặc định
-      const configs = await db.select().from(systemConfigs)
-      const configMap = configs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
-      
-      title = configMap.SEO_TITLE || title;
-      description = configMap.SEO_DESCRIPTION || description;
+      if (path === '/' || path === 'GLOBAL') {
+        title = configMap.SEO_TITLE || title;
+        description = configMap.SEO_DESCRIPTION || description;
+      }
       ogImage = configMap.SEO_OG_IMAGE || ogImage;
 
       // 2. Ghi đè bằng cấu hình riêng của từng trang (nếu có)
-      const routeKey = `SEO_ROUTE_${path}`
       if (configMap[routeKey]) {
         try {
           const routeSeo = JSON.parse(configMap[routeKey])
@@ -73,11 +82,15 @@ export async function getCustomRouteSeo(path: string) {
   try {
     const db = await getDb()
     if (db) {
-      const configs = await db.select().from(systemConfigs)
-      const configMap = configs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
+      // Chỉ fetch đúng 1 key thay vì toàn bộ bảng
       const routeKey = `SEO_ROUTE_${path}`
-      if (configMap[routeKey]) {
-        return JSON.parse(configMap[routeKey])
+      const rows = await db
+        .select()
+        .from(systemConfigs)
+        .where(eq(systemConfigs.key, routeKey))
+        .limit(1)
+      if (rows[0]?.value) {
+        return JSON.parse(rows[0].value)
       }
     }
   } catch (e) {}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { auth } from '@/auth'
 
-const rootAdmins = ['ngotandoo@gmail.com']
+const rootAdmins = ['ngongoctan282005@gmail.com']
 
 export async function GET() {
   const session = await auth()

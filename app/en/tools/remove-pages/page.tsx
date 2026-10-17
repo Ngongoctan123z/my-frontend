@@ -4,9 +4,9 @@ import RemovePagesWrapper from '@/app/tools/remove-pages/RemovePagesWrapper'
 
 export async function generateMetadata() {
   return getRouteMetadata(
-    '/en/tools/remove-pages/page.tsx',
-    'Remove PDF Pages (Cut & Extract) | VNDocs',
-    'Extract, split, and remove unwanted PDF pages from your document easily, securely, and completely for free.'
+    '/en/tools/remove-pages',
+    'Remove PDF Pages — Split & Delete Pages Online Free | VNDocs',
+    'Easily delete unwanted pages, extract specific pages, or split PDF documents online. Fast, secure, and entirely processed client-side without server uploads.'
   )
 }
 

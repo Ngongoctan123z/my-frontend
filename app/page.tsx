@@ -51,7 +51,7 @@ export default function HomePage() {
         '@type': 'SiteNavigationElement',
         position: 3,
         name: 'Luyện Writing IELTS, TOEIC',
-        description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS, TOEIC, HSK, TOPIK bằng AI.',
+        description: 'Chấm điểm và sửa lỗi ngữ pháp bài Writing IELTS, TOEIC, HSK, TOPIK chuẩn khảo thí.',
         url: 'https://vndocs.net/ai-grader'
       },
       {
