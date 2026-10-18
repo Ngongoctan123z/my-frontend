@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { 
   FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, 
   History, Users, Clock, ArrowRight, ArrowLeft, Share2, 
-  Maximize2, Minimize2, Check, Info, Layers, ChevronRight, Lock, LogIn
+  Maximize2, Minimize2, Check, Info,  ChevronRight, Lock, LogIn
 } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
@@ -672,41 +672,7 @@ export function TopikGraderClient() {
           </div>
         </div>
 
-        {/* Full Test Step Indicator */}
-        {activeTab === 'TOPIK_FULL' && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-            <span className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-blue-600" />
-              {isEn ? 'Full Test Flow:' : 'Tiến trình thi trọn bộ:'}
-            </span>
-            <div className="flex shrink-0 items-center gap-1.5 text-xs">
-              {[
-                { step: 1, label: 'Câu 51 (10đ)', done: !!(answers51.a || answers51.b) },
-                { step: 2, label: 'Câu 52 (10đ)', done: !!(answers52.a || answers52.b) },
-                { step: 3, label: 'Câu 53 (30đ)', done: !!essay53.trim() },
-                { step: 4, label: 'Câu 54 (50đ)', done: !!essay54.trim() },
-              ].map(s => {
-                const isCur = fullTestStep === s.step
-                return (
-                  <button
-                    key={s.step}
-                    onClick={() => setFullTestStep(s.step as any)}
-                    className={`px-2.5 py-1 rounded font-semibold text-xs whitespace-nowrap transition-colors flex items-center gap-1 ${
-                      isCur
-                        ? 'bg-blue-600 text-white'
-                        : s.done
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-white text-slate-600 border border-slate-200'
-                    }`}
-                  >
-                    <span>{s.label}</span>
-                    {s.done && <span className="text-[10px]">✓</span>}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
+
       </div>
 
       {/* Main Two-Column Layout */}

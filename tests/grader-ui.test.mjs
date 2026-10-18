@@ -18,6 +18,7 @@ import { AiGraderClient } from './app/ai-grader/ielts/AiGraderClient';
 import { ToeicGraderClient } from './app/ai-grader/toeic/ToeicGraderClient';
 import { TopikGraderClient } from './app/ai-grader/topik/TopikGraderClient';
 import { HskGraderClient } from './app/ai-grader/hsk/HskGraderClient';
+import { ChatWidget } from './src/components/chat/ChatWidget';
 import * as fixtures from './src/data/fallbackPrompts';
 window.requests=[];
 window.fetch=async (url,options={})=>{
@@ -30,7 +31,7 @@ window.fetch=async (url,options={})=>{
   return new Response(JSON.stringify(result),{headers:{'content-type':'application/json'}});
 };
 const key=new URL(location.href).searchParams.get('exam');
-createRoot(document.getElementById('root')).render(React.createElement({ielts:AiGraderClient,toeic:ToeicGraderClient,topik:TopikGraderClient,hsk:HskGraderClient}[key]));
+createRoot(document.getElementById('root')).render(React.createElement({ielts:AiGraderClient,toeic:ToeicGraderClient,topik:TopikGraderClient,hsk:HskGraderClient,dock:ChatWidget}[key]));
 `
 const stubs = {
   'next-auth/react': `const session={user:{email:'ui-test@example.invalid'}}; export const useSession=()=>({data:session,status:'authenticated'}); export const signIn=()=>{};`,
@@ -41,11 +42,15 @@ const stubs = {
 for (const name of ['GradingResultModal','ShareExamModal','StudentManagementModal']) {
   stubs['@/src/components/common/'+name] = `export const ${name}=()=>null;`
 }
+for (const name of ['CalculatorBubble','TranslateBubble','ChatBubble']) {
+  stubs[name] = `import React from 'react'; export const ${name}=({onClose})=>React.createElement('div',{role:'dialog','aria-label':'${name}'},React.createElement('button',{onClick:onClose},'Đóng'));`
+}
 const bundle = await build({
   stdin: { contents: entry, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false,
   format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' },
   plugins: [{ name: 'test-fixtures', setup(builder) {
     builder.onResolve({ filter: /^(next-auth\/react|next\/navigation|next\/dynamic|@\/src\/utils\/indexedDB)$/ }, args => ({ path: args.path, namespace: 'fixture' }))
+    builder.onResolve({ filter: /\/(CalculatorBubble|TranslateBubble|ChatBubble)$/ }, args => ({path:args.path.split('/').pop(),namespace:'fixture'}))
     builder.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({ contents: stubs[args.path], loader: 'js', resolveDir: process.cwd() }))
     builder.onResolve({ filter: /^@\// }, args => {
       if(stubs[args.path]) return {path:args.path,namespace:'fixture'}
@@ -73,6 +78,7 @@ try {
       page.on('pageerror',error=>errors.push(error.message))
       await page.goto(`http://127.0.0.1:${server.address().port}/?exam=${exam}`)
       await page.getByRole('heading',{level:2}).waitFor()
+      assert.equal(await page.getByText(/Tiến trình thi trọn bộ:|Full Test Flow:|Các phần thi HSK 5:/).count(),0)
       const assertLayout=async()=>{
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`${exam}/${width}: page overflows`)
         const actions=page.locator('[data-grader-actions]:visible')
@@ -142,6 +148,87 @@ try {
     }
   }
   console.log(`PASS ${checks} field clear interactions; 16 responsive layouts; task switching and language controls`)
+  for(const touch of [false,true]) {
+    const page=await browser.newPage({viewport:{width:touch?375:1280,height:touch?812:900},hasTouch:touch,isMobile:touch})
+    activePage=page
+    const errors=[]
+    page.on('pageerror',error=>errors.push(error.message))
+    await page.goto(`http://127.0.0.1:${server.address().port}/?exam=dock`)
+    const tool=id=>page.locator(`[data-floating-tool="${id}"]`)
+    const trash=page.getByRole('status',{name:'Thùng rác xoá bong bóng',exact:true})
+    const center=async id=>{const box=await tool(id).boundingBox();assert.ok(box);return {x:box.x+box.width/2,y:box.y+box.height/2}}
+    const cdp=touch?await page.context().newCDPSession(page):null
+    const down=async point=>{
+      if(touch) await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...point,id:1}]})
+      else {await page.mouse.move(point.x,point.y);await page.mouse.down()}
+    }
+    const move=async point=>{
+      if(touch) await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{...point,id:1}]})
+      else await page.mouse.move(point.x,point.y,{steps:8})
+    }
+    const up=async()=>{
+      if(touch) await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]})
+      else await page.mouse.up()
+    }
+    const tap=async id=>{if(touch)await tool(id).getByRole('button').tap();else await tool(id).getByRole('button').click()}
+    const drag=async(id,destination)=>{
+      await down(await center(id));await move(destination)
+      await trash.waitFor()
+      await up();await trash.waitFor({state:'hidden'})
+    }
+    await tool('calc').waitFor()
+    assert.equal(await page.getByText('giữ để xoá',{exact:true}).count(),3)
+    assert.equal(await trash.count(),0)
+    await tap('calc');await page.getByRole('dialog',{name:'CalculatorBubble'}).waitFor()
+    await tap('calc');await page.getByRole('dialog').waitFor({state:'hidden'})
+    await drag('calc',{x:90,y:150})
+    const moved=await center('calc')
+    assert.ok(Math.abs(moved.x-90)<=2 && Math.abs(moved.y-150)<=2)
+    assert.equal(await page.getByRole('dialog').count(),0,'drag must not open the tool')
+    await tap('calc');await page.getByRole('dialog').waitFor()
+    await tap('calc');await page.getByRole('dialog').waitFor({state:'hidden'})
+    await down(await center('translate'));await trash.waitFor()
+    const target=await trash.boundingBox()
+    assert.ok(Math.abs(target.x+target.width/2-(touch?375:1280)/2)<=1)
+    assert.ok(Math.abs(target.y+target.height/2-(touch?812:900)/2)<=1)
+    await up();await trash.waitFor({state:'hidden'})
+    assert.equal(await page.getByRole('dialog').count(),0,'hold must not open or remove a tool')
+    assert.equal(await tool('translate').count(),1)
+    await tap('translate');await page.getByRole('dialog',{name:'TranslateBubble'}).waitFor()
+    await tap('translate');await page.getByRole('dialog').waitFor({state:'hidden'})
+    const screenCenter={x:(touch?375:1280)/2,y:(touch?812:900)/2}
+    await drag('chat',screenCenter)
+    assert.equal(await tool('chat').count(),0)
+    assert.equal(await tool('calc').count(),1)
+    assert.equal(await tool('translate').count(),1)
+    const beforeCancel=await center('translate')
+    await down(beforeCancel);await move({x:140,y:220});await trash.waitFor()
+    if(touch) await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]})
+    else {await page.keyboard.press('Escape');await up()}
+    await trash.waitFor({state:'hidden'})
+    const afterCancel=await center('translate')
+    assert.deepEqual(afterCancel,beforeCancel,'cancel must restore the position')
+    await drag('calc',{x:-100,y:-100})
+    const constrained=await tool('calc').boundingBox()
+    assert.ok(constrained.x>=8 && constrained.y>=20)
+    await page.setViewportSize({width:320,height:568})
+    await page.waitForTimeout(50)
+    const resized=await tool('calc').boundingBox()
+    assert.ok(resized.x+resized.width<=320 && resized.y+resized.height<=568)
+    // Holding and then dragging also removes an already detached bubble.
+    await down(await center('calc'));await trash.waitFor();await move({x:160,y:284});await up()
+    await trash.waitFor({state:'hidden'})
+    assert.equal(await tool('calc').count(),0)
+    await tap('translate');await page.getByRole('dialog').waitFor()
+    await drag('translate',{x:160,y:284})
+    assert.equal(await page.locator('[data-floating-tool]').count(),0)
+    assert.equal(await page.getByRole('dialog').count(),0,'removing an active tool closes its window')
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false)
+    assert.deepEqual(errors,[])
+    await page.screenshot({path:`${output}/dock-${touch?'touch':'mouse'}.png`})
+    console.log(`PASS floating tools: ${touch?'touch':'mouse'} tap, drag, hold, trash, cancel, viewport bounds and active window dismissal`)
+    await page.close()
+  }
 } catch(error) {
   if(activePage && !activePage.isClosed()) {
     await activePage.screenshot({path:`${output}/failure.png`,fullPage:true})

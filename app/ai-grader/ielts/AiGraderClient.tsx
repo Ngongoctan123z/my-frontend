@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { AnswerTextarea, GraderActions } from '@/src/components/common/GraderControls'
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight, Share2, Copy, Users, Maximize2, Minimize2, Play, Pause, Square, Layers, Lock, LogIn } from 'lucide-react'
+import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight, Share2, Copy, Users, Maximize2, Minimize2, Play, Pause, Square,  Lock, LogIn } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
@@ -770,35 +770,7 @@ export function AiGraderClient() {
           </div>
         </div>
 
-        {/* Full test step indicator */}
-        {examType === 'IELTS_FULL' && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-            <span className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-blue-600" />
-              {isEn ? 'Full Test Flow:' : 'Tiến trình thi trọn bộ:'}
-            </span>
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setFullStep(1)}
-                className={`shrink-0 snap-start px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-colors active:scale-95 duration-75 ${
-                  fullStep === 1 ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                1. Task 1 (Academic) {task1Essay.trim().length > 0 && '✓'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setFullStep(2)}
-                className={`shrink-0 snap-start px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-colors active:scale-95 duration-75 ${
-                  fullStep === 2 ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                2. Task 2 (Essay) {task2Essay.trim().length > 0 && '✓'}
-              </button>
-            </div>
-          </div>
-        )}
+
       </div>
 
       {/* Main Two-Column Layout */}
