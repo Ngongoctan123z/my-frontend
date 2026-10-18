@@ -13,18 +13,18 @@ type Gesture = {
 const tools = [
   {
     id: 'calc', label: 'Máy tính Casio Online', Icon: Calculator,
-    normal: 'bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-600 hover:from-violet-400 hover:to-indigo-500 shadow-md shadow-indigo-500/35',
-    selected: 'bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 ring-4 ring-indigo-300/80 shadow-lg shadow-indigo-500/50',
+    normal: 'border-slate-200/80 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
+    selected: 'border-blue-200 bg-blue-50 text-blue-600 ring-2 ring-blue-100 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300 dark:ring-blue-900',
   },
   {
     id: 'translate', label: 'Dịch thuật nhanh', Icon: Languages,
-    normal: 'bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 hover:from-emerald-300 hover:to-teal-500 shadow-md shadow-teal-500/35',
-    selected: 'bg-gradient-to-br from-teal-600 via-emerald-600 to-cyan-700 ring-4 ring-teal-300/80 shadow-lg shadow-emerald-500/50',
+    normal: 'border-slate-200/80 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
+    selected: 'border-blue-200 bg-blue-50 text-blue-600 ring-2 ring-blue-100 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300 dark:ring-blue-900',
   },
   {
     id: 'chat', label: 'Hỗ trợ & Chat với Admin', Icon: MessageSquare,
-    normal: 'bg-gradient-to-br from-blue-500 via-indigo-600 to-sky-600 hover:from-blue-400 hover:to-indigo-500 shadow-md shadow-blue-500/35',
-    selected: 'bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-800 ring-4 ring-blue-300/80 shadow-lg shadow-blue-500/50',
+    normal: 'border-blue-600 bg-blue-600 text-white hover:border-blue-700 hover:bg-blue-700',
+    selected: 'border-blue-700 bg-blue-700 text-white ring-2 ring-blue-100 dark:ring-blue-900',
   },
 ] as const
 
@@ -50,7 +50,6 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
   const gesture = useRef<Gesture | null>(null)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const animationFrame = useRef<number | null>(null)
-  const suppressedClick = useRef({ id: '' as string, until: 0 })
 
   const clearScheduled = () => {
     if (holdTimer.current !== null) clearTimeout(holdTimer.current)
@@ -65,7 +64,6 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
     gesture.current = null
     setInteraction(null)
     if (current) {
-      suppressedClick.current = { id: current.id, until: Date.now() + 500 }
       if (current.element.hasPointerCapture(current.pointerId)) current.element.releasePointerCapture(current.pointerId)
     }
   }
@@ -97,7 +95,6 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
 
   const start = (event: React.PointerEvent<HTMLButtonElement>, id: FloatingToolId) => {
     if (!event.isPrimary || event.button !== 0 || gesture.current) return
-    suppressedClick.current = { id: '', until: 0 }
     const rect = event.currentTarget.parentElement!.getBoundingClientRect()
     const current: Gesture = {
       id, pointerId: event.pointerId, element: event.currentTarget,
@@ -144,11 +141,10 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
     clearScheduled()
     gesture.current = null
     setInteraction(null)
-    if (current.active) suppressedClick.current = { id: current.id, until: Date.now() + 500 }
     if (current.moved) {
       if (overTrash(current.point, current.size)) dismiss(current.id)
       else setPositions(previous => ({ ...previous, [current.id]: current.point }))
-    }
+    } else if (!current.active) onToggle(current.id)
     if (current.element.hasPointerCapture(event.pointerId)) current.element.releasePointerCapture(event.pointerId)
   }
 
@@ -157,7 +153,7 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
   return (
     <aside aria-label="Công cụ tiện ích nổi" className={`pointer-events-none fixed inset-0 ${interaction ? 'z-[100]' : 'z-40'} [--bubble-size:2.75rem] [--dock-padding:0.5rem] [--dock-bottom:1.25rem] [--dock-right:0.75rem] sm:[--bubble-size:3rem] sm:[--dock-padding:0.625rem] sm:[--dock-bottom:1.5rem] sm:[--dock-right:1.25rem]`}>
       {docked.length > 0 && (
-        <div aria-hidden="true" className="fixed rounded-full bg-white/85 dark:bg-slate-900/85 backdrop-blur-2xl border border-white/80 dark:border-white/10 shadow-[0_12px_40px_-4px_rgba(0,0,0,0.18),0_2px_8px_-2px_rgba(0,0,0,0.06)] ring-1 ring-black/5 dark:ring-white/5"
+        <div aria-hidden="true" className="fixed rounded-full border border-slate-200/80 bg-white/95 shadow-[0_6px_24px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/95"
           style={{ right: 'var(--dock-right)', bottom: 'var(--dock-bottom)', width: 'calc(var(--bubble-size) + 2 * var(--dock-padding))', height: `calc(${docked.length} * var(--bubble-size) + ${docked.length - 1} * 0.625rem + 2 * var(--dock-padding))` }} />
       )}
       {tools.filter(tool => !hidden.includes(tool.id)).map(tool => {
@@ -166,34 +162,31 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
         const index = docked.findIndex(item => item.id === tool.id)
         return (
           <div key={tool.id} data-floating-tool={tool.id}
-            className={`pointer-events-auto fixed h-11 w-11 sm:h-12 sm:w-12 ${dragging ? 'z-[110]' : ''}`}
+            className={`group pointer-events-auto fixed h-11 w-11 sm:h-12 sm:w-12 ${dragging ? 'z-[110]' : ''}`}
             style={point ? { left: point.x, top: point.y } : { right: 'calc(var(--dock-right) + var(--dock-padding))', bottom: `calc(var(--dock-bottom) + var(--dock-padding) + ${docked.length - 1 - index} * (var(--bubble-size) + 0.625rem))` }}>
-            <span className="pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-white/90 px-1 text-[8px] leading-[10px] text-slate-500 dark:bg-slate-900/90 dark:text-slate-300">giữ để xoá</span>
+            {(point || index === 0) && <span className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200/70 bg-white/95 px-1.5 py-0.5 text-[8px] leading-[10px] text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">giữ để xoá</span>}
             <button type="button" aria-label={tool.label} aria-pressed={activeTool === tool.id}
               title={`${tool.label} · Kéo để di chuyển, giữ để xoá`}
-              className={`relative flex h-full w-full touch-none select-none [-webkit-touch-callout:none] items-center justify-center overflow-hidden rounded-full text-white outline-none transition-[box-shadow,background-color] focus-visible:ring-4 focus-visible:ring-blue-300 ${dragging ? 'cursor-grabbing' : 'cursor-grab'} ${activeTool === tool.id ? tool.selected : tool.normal}`}
+              className={`relative flex h-full w-full touch-none select-none [-webkit-touch-callout:none] items-center justify-center rounded-full border outline-none shadow-[0_2px_6px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-blue-300 motion-reduce:transition-none ${dragging ? 'cursor-grabbing shadow-lg' : 'cursor-grab active:scale-95'} ${activeTool === tool.id ? tool.selected : tool.normal}`}
               onPointerDown={event => start(event, tool.id)} onPointerMove={move} onPointerUp={finish}
-              onPointerCancel={event => { if (gesture.current?.pointerId === event.pointerId) cancelGesture() }} onLostPointerCapture={() => { if (gesture.current?.id === tool.id) cancelGesture() }}
+              onPointerCancel={event => { if (gesture.current?.pointerId === event.pointerId) cancelGesture() }} onLostPointerCapture={event => { if (gesture.current?.pointerId === event.pointerId) cancelGesture() }}
               onContextMenu={event => event.preventDefault()}
               onKeyDown={event => { if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); cancelGesture(); dismiss(tool.id) } }}
               onClick={event => {
-                if (event.detail > 0 && suppressedClick.current.id === tool.id && Date.now() < suppressedClick.current.until) {
-                  suppressedClick.current.until = 0
-                  return
-                }
-                onToggle(tool.id)
+                // Pointer taps are handled on release. Only keyboard/assistive clicks
+                // toggle here, so a delayed compatibility click can never reopen a dragged tool.
+                if (event.detail === 0) onToggle(tool.id)
               }}>
-              <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/35 via-white/5 to-transparent" />
-              {activeTool === tool.id ? <X size={20} /> : <tool.Icon size={20} className="drop-shadow-xs" />}
-              {tool.id === 'chat' && activeTool !== 'chat' && <span aria-hidden="true" className="pointer-events-none absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border border-white bg-emerald-400 shadow-xs" />}
+              {activeTool === tool.id ? <X size={21} strokeWidth={1.8} /> : <tool.Icon size={21} strokeWidth={1.8} />}
             </button>
+            {!interaction && <span aria-hidden="true" className={`pointer-events-none absolute top-1/2 hidden -translate-y-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 sm:block dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 ${point && point.x < 200 ? 'left-full ml-3' : 'right-full mr-3'}`}>{tool.label}</span>}
           </div>
         )
       })}
       {interaction && (
         <div role="status" aria-label="Thùng rác xoá bong bóng" className="pointer-events-none fixed left-1/2 top-1/2 z-[100] -translate-x-1/2 -translate-y-1/2">
-          <div className={`flex h-24 w-24 items-center justify-center rounded-full border-2 shadow-xl transition-colors ${interaction.over ? 'border-red-600 bg-red-600 text-white ring-8 ring-red-200/60' : 'border-red-300 bg-white/95 text-red-500'}`}>
-            <Trash2 size={36} aria-hidden="true" />
+          <div className={`flex h-24 w-24 items-center justify-center rounded-full border shadow-lg transition-colors ${interaction.over ? 'border-red-600 bg-red-600 text-white ring-4 ring-red-100' : 'border-red-200 bg-red-50/95 text-red-500'}`}>
+            <Trash2 size={32} strokeWidth={1.8} aria-hidden="true" />
           </div>
           <span className="absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-red-600 shadow-sm">{interaction.over ? 'Thả để xoá' : 'Kéo vào đây để xoá'}</span>
         </div>

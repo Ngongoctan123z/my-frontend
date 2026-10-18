@@ -154,6 +154,12 @@ try {
     const errors=[]
     page.on('pageerror',error=>errors.push(error.message))
     await page.goto(`http://127.0.0.1:${server.address().port}/?exam=dock`)
+    await page.evaluate(()=>{
+      window.toolEvents=[]
+      for(const type of ['pointerdown','pointerup','pointercancel','lostpointercapture','click']) document.addEventListener(type,event=>{
+        if(event.target.closest?.('[data-floating-tool]')) window.toolEvents.push({type,id:event.pointerId,primary:event.isPrimary,detail:event.detail,tool:event.target.closest('[data-floating-tool]').dataset.floatingTool})
+      },true)
+    })
     const tool=id=>page.locator(`[data-floating-tool="${id}"]`)
     const trash=page.getByRole('status',{name:'Thùng rác xoá bong bóng',exact:true})
     const center=async id=>{const box=await tool(id).boundingBox();assert.ok(box);return {x:box.x+box.width/2,y:box.y+box.height/2}}
@@ -177,7 +183,7 @@ try {
       await up();await trash.waitFor({state:'hidden'})
     }
     await tool('calc').waitFor()
-    assert.equal(await page.getByText('giữ để xoá',{exact:true}).count(),3)
+    assert.equal(await page.getByText('giữ để xoá',{exact:true}).count(),1)
     assert.equal(await trash.count(),0)
     await tap('calc');await page.getByRole('dialog',{name:'CalculatorBubble'}).waitFor()
     await tap('calc');await page.getByRole('dialog').waitFor({state:'hidden'})
@@ -231,6 +237,7 @@ try {
   }
 } catch(error) {
   if(activePage && !activePage.isClosed()) {
+    console.log('Tool event diagnostics:',await activePage.evaluate(()=>window.toolEvents || []))
     await activePage.screenshot({path:`${output}/failure.png`,fullPage:true})
     await writeFile(`${output}/failure.html`,await activePage.content())
   }
