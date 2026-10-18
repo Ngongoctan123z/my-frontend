@@ -1,6 +1,6 @@
 # Báo cáo kiểm thử chấm TOEIC, TOPIK và HSK
 
-Ngày kiểm tra: 2026-10-18. Phiên bản GitHub đối chiếu:
+Ngày kiểm tra: 2026-10-18. Phiên bản GitHub đối chiếu ban đầu:
 `1ef9efa821f64f13cc4c72cd2398cdacbc35d3e6`.
 
 ## Phạm vi và kết quả
@@ -63,7 +63,11 @@ Trang TOEIC tại https://vndocs.net/ai-grader/toeic mở được qua công c�
 yêu cầu đăng nhập Google để làm bài/chấm bài. Các trang TOPIK/HSK không mở được
 qua công cụ web; điều này không đủ để kết luận website bị lỗi.
 
-Workspace không có phiên đăng nhập website để gửi bài thật. Kết nối mạng
-terminal vẫn lỗi proxy, và lần cập nhật GitHub trước bị từ chối với HTTP 403.
-Vì vậy chưa thể xác nhận chất lượng chấm Groq thực tế hoặc kết luận bản live
-đã hết lỗi. Cần triển khai bản vá và kiểm tra lại bằng phiên đăng nhập hợp lệ.
+Workspace không có phiên đăng nhập website để gửi bài thật, nên chưa thể xác
+nhận chất lượng chấm Groq thực tế.
+
+Cập nhật sau khi khôi phục GitHub App: bản sửa API đã được đẩy trong commit
+`fd24d0588b24e104143b7d3f004725e346b40f8c`; Cloudflare Workers Builds đã xác nhận
+triển khai thành công vào Worker `my-frontend`. Bộ kiểm thử được bổ sung thêm
+6 ca SEO/build, tổng cộng 36 ca. Xem `docs/deployment-repair.md` để biết luồng
+build/deploy hiện tại. Việc chấm Groq thật vẫn cần một phiên đăng nhập hợp lệ.

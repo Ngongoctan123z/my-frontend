@@ -1,0 +1,48 @@
+name: Build and test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test API key rotation
+        run: npm run test:api-rotation
+
+      - name: Test grader submissions
+        run: npm run test:grader-submissions
+
+      - name: Test build-time SEO behavior
+        run: npm run test:build-seo
+
+      - name: Build Next.js and OpenNext
+        run: npm run pages:build
+
+      # Cloudflare Workers Builds deploys main through the existing GitHub App
+      # integration. This workflow verifies the same build without a second
+      # deployment path or separate Cloudflare credentials.

@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build-next.mjs",
     "pages:build": "opennextjs-cloudflare build",
     "deploy": "opennextjs-cloudflare deploy",
     "start": "next start",
     "lint": "eslint .",
     "test:api-rotation": "node --experimental-strip-types tests/ai-key-rotation.test.mjs",
-    "test:grader-submissions": "node --experimental-vm-modules tests/grader-submissions.test.mjs"
+    "test:grader-submissions": "node --experimental-vm-modules tests/grader-submissions.test.mjs",
+    "test:build-seo": "node --experimental-vm-modules tests/build-seo.test.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
