@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
+import { createKeyRotation, generateWithKeyRotation, normalizeApiKeys, sha256Hex, KeyPoolExhaustedError } from '@/src/lib/aiKeyRotation'
+import { createDbKeyRotationStore } from './keyRotationStore'
 // Web Crypto API will be used instead of node:crypto
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
 import { checkRateLimit } from '@/src/lib/rateLimit'
 import { systemConfigs, prompts as promptsTable, apiUsages, users, essayHistory } from '@/src/db/schema'
-import { eq, sql, and } from 'drizzle-orm'
+import { eq, sql, and, inArray } from 'drizzle-orm'
 import {
   basePrompt, CRIT, correctionsSchema,
   IELTS_COMMON_RUBRIC, IELTS_T2_RUBRIC, IELTS_T1_RUBRIC,
@@ -21,7 +23,7 @@ import {
   TOEIC_RESPOND_FALLBACKS, TOEIC_ESSAY_FALLBACKS, TOEIC_PAIRED_SETS,
   TOPIK_51_FALLBACKS, TOPIK_52_FALLBACKS, TOPIK_53_FALLBACKS, TOPIK_54_FALLBACKS,
   IELTS_TASK_1_FALLBACKS, IELTS_TASK_2_FALLBACKS, IELTS_PAIRED_SETS,
-  HSK_5_FALLBACKS, HSK_6_FALLBACKS, FallbackPromptItem
+  HSK_5_FALLBACKS, HSK_6_FALLBACKS, type FallbackPromptItem
 } from '@/src/data/fallbackPrompts'
 
 function getFallbackPromptsForType(type: string): FallbackPromptItem[] {
@@ -50,53 +52,31 @@ async function checkAndIncrementRateLimit(userId: string): Promise<{ allowed: bo
     else if (plan === 'plus') limit = 50
   }
 
-  const usages = await db.select().from(apiUsages).where(sql`userId = ${userId} AND date = ${today}`)
-  const usage = usages[0]
-
-  if (!usage) {
-    await db.insert(apiUsages).values({ userId, date: today, count: 1 })
-    return { allowed: true, limit }
-  }
-
-  if (usage.count >= limit) {
-    return { allowed: false, limit }
-  }
-
-  await db.update(apiUsages).set({ count: usage.count + 1 }).where(sql`userId = ${userId} AND date = ${today}`)
-  return { allowed: true, limit }
+  // Full TOEIC/TOPIK tests submit multiple questions concurrently. Reserve a
+  // daily slot in one statement to prevent duplicate inserts or lost counts.
+  const reserved = await db.insert(apiUsages).values({ userId, date: today, count: 1 })
+    .onConflictDoUpdate({
+      target: [apiUsages.userId, apiUsages.date],
+      set: { count: sql`${apiUsages.count} + 1` },
+      setWhere: sql`${apiUsages.count} < ${limit}`,
+    })
+    .returning({ count: apiUsages.count })
+  return { allowed: reserved.length > 0, limit }
 }
 
-async function sha256Hex(text: string) {
-  const msgBuffer = new TextEncoder().encode(text);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function incrementGlobalCounter(usedKey?: string) {
+async function incrementGlobalCounter(usedKey: string) {
   try {
     const db = await getDb()
-    const configs = await db.select().from(systemConfigs)
-
-    const totalConfig = configs.find(c => c.key === 'TOTAL_API_REQUESTS')
-    if (totalConfig) {
-      await db.update(systemConfigs).set({ value: (parseInt(totalConfig.value) + 1).toString() }).where(eq(systemConfigs.key, 'TOTAL_API_REQUESTS'))
-    } else {
-      await db.insert(systemConfigs).values({ key: 'TOTAL_API_REQUESTS', value: '1' })
+    const hash = await sha256Hex(usedKey)
+    // Count every provider attempt, including errors, without losing concurrent
+    // increments. Admin KEY_USAGE identifiers retain their existing format.
+    for (const key of ['TOTAL_API_REQUESTS', `KEY_USAGE_${hash.slice(0, 16)}`]) {
+      await db.insert(systemConfigs).values({ key, value: '1' })
+        .onConflictDoUpdate({ target: systemConfigs.key,
+          set: { value: sql`CAST(${systemConfigs.value} AS INTEGER) + 1` } })
     }
-
-    if (usedKey) {
-      const hash = await sha256Hex(usedKey)
-      const keyUsageKey = `KEY_USAGE_${hash.slice(0, 16)}`
-      const keyConfig = configs.find(c => c.key === keyUsageKey)
-      if (keyConfig) {
-        await db.update(systemConfigs).set({ value: (parseInt(keyConfig.value) + 1).toString() }).where(eq(systemConfigs.key, keyUsageKey))
-      } else {
-        await db.insert(systemConfigs).values({ key: keyUsageKey, value: '1' })
-      }
-    }
-  } catch (e) {
-    console.error(e)
+  } catch {
+    console.error('[AI-Grader] Failed to record API usage')
   }
 }
 
@@ -117,16 +97,17 @@ const GRADING_MODELS = [
 ]
 
 async function getGroqConfigFromDb(forGrading: boolean = false): Promise<{ apiKeys: string[], models: string[] }> {
-  let apiKeys = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean) : []
+  let apiKeys = process.env.GROQ_API_KEY ? normalizeApiKeys(process.env.GROQ_API_KEY) : []
   let models = forGrading ? GRADING_MODELS : FALLBACK_MODELS
 
   try {
     const db = await getDb()
     const configs = await db.select().from(systemConfigs)
+      .where(inArray(systemConfigs.key, ['GROQ_API_KEY', 'GRADING_GROQ_MODEL', 'ACTIVE_GROQ_MODEL']))
     const configMap = configs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
 
     if (configMap['GROQ_API_KEY']) {
-      apiKeys = configMap['GROQ_API_KEY'].split(',').map((k: string) => k.trim()).filter(Boolean)
+      apiKeys = normalizeApiKeys(configMap['GROQ_API_KEY'])
     }
 
     if (forGrading) {
@@ -151,98 +132,37 @@ async function getGroqConfigFromDb(forGrading: boolean = false): Promise<{ apiKe
   return { apiKeys, models }
 }
 
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-
 interface GenerateOptions {
+  accountId: string     // Luôn lấy từ session phía server, không tin userId trong body
   userContent?: string   // Nội dung bài làm tách riêng khỏi system prompt
   temperature?: number
   forGrading?: boolean   // true => dùng danh sách model mạnh, không shuffle
   maxTokens?: number
 }
 
-async function tryGenerateWithFallback(systemPrompt: string, isJson: boolean = false, options: GenerateOptions = {}): Promise<{ text: string, usedKey: string, model: string, finishReason: string }> {
-  const { apiKeys, models: modelsToTry } = await getGroqConfigFromDb(!!options.forGrading)
-
-  if (!apiKeys || apiKeys.length === 0) {
-    throw new Error('GROQ_API_KEY_MISSING')
-  }
-
-  // Cache to track rate-limited keys
-  const globalAny = global as any
-  if (!globalAny.keyCooldowns) {
-    globalAny.keyCooldowns = {}
-  }
-  const keyCooldowns = globalAny.keyCooldowns
-
-  const messages: any[] = [{ role: 'system', content: systemPrompt }]
+async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: boolean, options: GenerateOptions): Promise<{ text: string, model: string, finishReason: string }> {
+  const { apiKeys, models } = await getGroqConfigFromDb(!!options.forGrading)
+  const db = await getDb()
+  const rotation = await createKeyRotation(apiKeys, options.accountId, createDbKeyRotationStore(db))
+  const messages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [{ role: 'system', content: systemPrompt }]
   if (options.userContent) messages.push({ role: 'user', content: options.userContent })
 
-  let retryCount = 0
-  const MAX_RETRIES = 3
-  while (retryCount < MAX_RETRIES) {
-    const shuffledKeys = [...apiKeys]
-    for (let i = shuffledKeys.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledKeys[i], shuffledKeys[j]] = [shuffledKeys[j], shuffledKeys[i]];
-    }
+  const { result: response, model } = await generateWithKeyRotation(rotation, models, async (apiKey, modelName) => {
+    const groq = new Groq({ apiKey, maxRetries: 0, timeout: options.forGrading ? 45000 : 15000 })
+    return groq.chat.completions.create({
+      messages,
+      model: modelName,
+      temperature: options.temperature ?? 0.2,
+      ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
+      response_format: isJson ? { type: 'json_object' } : { type: 'text' },
+    })
+  }, incrementGlobalCounter)
 
-    const now = Date.now()
-    const availableKeys = shuffledKeys.filter(k => !keyCooldowns[k] || now > keyCooldowns[k])
-
-    // Nếu tất cả các key đều đang bị cooldown, đừng cố thử lại (gây 1102 CPU time limit và tốn subrequests)
-    if (availableKeys.length === 0) {
-      throw new Error('Hệ thống đang quá tải do giới hạn của Groq API. Vui lòng đợi 1 phút và thử lại.')
-    }
-
-    for (const apiKey of availableKeys) {
-      const groq = new Groq({ apiKey, maxRetries: 0, timeout: options.forGrading ? 45000 : 15000 })
-
-      for (const modelName of modelsToTry) {
-        try {
-          const response = await groq.chat.completions.create({
-            messages,
-            model: modelName,
-            temperature: options.temperature ?? 0.2,
-            ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
-            response_format: isJson ? { type: 'json_object' } : { type: 'text' },
-          })
-          return { text: response.choices[0]?.message?.content || '', usedKey: apiKey, model: modelName, finishReason: response.choices[0]?.finish_reason || '' }
-        } catch (err: any) {
-          const msg = (err.message || '').toLowerCase()
-
-          if (msg.includes('safety') || msg.includes('blocked')) {
-            throw err // Lỗi vi phạm chính sách nội dung thì dừng lại
-          }
-
-          if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('resource_exhausted') || msg.includes('429')) {
-            // Đưa key này vào blacklist tạm thời trong 1 phút để các request sau không bị kẹt
-            keyCooldowns[apiKey] = Date.now() + 60 * 1000;
-            break // Chuyển sang key khác
-          }
-
-          if (msg.includes('api_key_invalid') || msg.includes('permission_denied') || msg.includes('api key not valid') || msg.includes('authentication')) {
-            break // Chuyển sang key khác
-          }
-
-          // Lỗi 500, Timeout... thử model tiếp theo
-          continue
-        }
-      }
-    }
-
-    // Hết key ở lượt này, đợi 2 giây rồi thử lại. 
-    // Tuy nhiên nếu availableKeys = 0 ở trên nó đã throw Error, nên vòng lặp sẽ không quay cuồng lãng phí CPU.
-    await delay(2000)
-    retryCount++
+  return {
+    text: response.choices[0]?.message?.content || '',
+    model,
+    finishReason: response.choices[0]?.finish_reason || '',
   }
-  throw new Error('model_exhausted')
-}
-
-// Wrapper to increment global counter
-async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: boolean = false, options: GenerateOptions = {}): Promise<{ text: string, model: string, finishReason: string }> {
-  const result = await tryGenerateWithFallback(systemPrompt, isJson, options)
-  await incrementGlobalCounter(result.usedKey)
-  return { text: result.text, model: result.model, finishReason: result.finishReason }
 }
 
 // =====================================================================
@@ -269,7 +189,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { action, type, prompt, essay, imageDescription, feedbackLang } = body
+    const { action, type, prompt, essay, feedbackLang } = body
+    // TOPIK clients send chartExtra; retain imageDescription compatibility.
+    const imageDescription = body.imageDescription ?? body.chartExtra
 
     const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'anon'
     // Phân loại: Chấm bài (grade_essay) tốn tài nguyên AI thì giới hạn chặt,
@@ -804,6 +726,7 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
       let validationErrorMsg = ''
       for (let attempt = 0; attempt < 2; attempt++) {
         const textRes = await tryGenerateWithFallbackWrapped(systemPrompt + (validationErrorMsg ? '\\n\\n[HỆ THỐNG] LỖI VALIDATION TỪ LẦN CHẤM TRƯỚC:\\n' + validationErrorMsg : ''), true, {
+          accountId: userId,
           userContent,
           temperature: 0,
           forGrading: true,
@@ -825,8 +748,8 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
           finalResult.modelUsed = textRes.model
           finalResult.rubricVersion = '1.0'
           finalResult.scoreKind = type.includes('IELTS') ? 'band' : 'score'
-          finalResult.scoreScale = type.includes('IELTS') ? 9 : (type.includes('TOEIC') ? (type === 'TOEIC_ESSAY' ? 5 : 4) : 100)
-          finalResult.overallBandFormatted = `${finalResult.overallBand}/${finalResult.scoreScale}`
+          // postProcessResult already sets the task-specific scale and text
+          // (TOPIK 51/52: 10, 53: 30, 54: 50). Preserve that scoring contract.
 
           return NextResponse.json(finalResult)
         } catch (e: any) {
@@ -846,6 +769,12 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
     return NextResponse.json({ error: 'Yêu cầu không hợp lệ.' }, { status: 400 })
 
   } catch (error: any) {
+    if (error instanceof KeyPoolExhaustedError) {
+      return NextResponse.json(
+        { error: 'Các API key đang tạm bị giới hạn. Vui lòng thử lại sau.', retryAfterSeconds: error.retryAfterSeconds },
+        { status: 429, headers: { 'Retry-After': String(error.retryAfterSeconds) } }
+      )
+    }
     const msg = (error.message || '').toLowerCase()
 
     if (msg.includes('groq_api_key_missing')) {
@@ -864,7 +793,7 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
       return NextResponse.json({ error: 'Tất cả model AI đều đang bận. Vui lòng thử lại.' }, { status: 503 })
     }
 
-    console.error('[AI-Grader] Unhandled error:', error.message)
+    console.error('[AI-Grader] Unhandled server error')
     return NextResponse.json(
       { error: 'Hệ thống máy chủ AI đang gặp sự cố. Vui lòng thử lại sau ít phút.' },
       { status: 500 }

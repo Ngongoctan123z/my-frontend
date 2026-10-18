@@ -1,0 +1,193 @@
+// Executes the real route, rubric, scoring and D1-store adapter. Only external
+// Next/Auth/Groq/Drizzle dependencies are replaced; SQLite executes the SQL.
+import { readFile } from 'node:fs/promises'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { stripTypeScriptTypes } from 'node:module'
+import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
+import { DatabaseSync } from 'node:sqlite'
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const quote = name => '"' + name.replaceAll('"', '""') + '"'
+const fragment = (text, params = []) => ({ kind: 'sql', text, params })
+const columnSql = column => `${quote(column.table.name)}.${quote(column.name)}`
+function interpolate(value) {
+  if (value?.kind === 'sql') return value
+  if (value?.kind === 'column') return fragment(columnSql(value))
+  if (value?.kind === 'table') return fragment(quote(value.name))
+  return fragment('?', [value])
+}
+function sql(parts, ...values) {
+  let text = parts[0]
+  const params = []
+  values.forEach((value, index) => {
+    const next = interpolate(value)
+    text += next.text + parts[index + 1]
+    params.push(...next.params)
+  })
+  return fragment(text, params)
+}
+sql.raw = text => fragment(text)
+const eq = (field, value) => sql`${field} = ${value}`
+const inArray = (field, values) => fragment(`${columnSql(field)} IN (${values.map(() => '?').join(',')})`, values)
+const and = (...conditions) => fragment(conditions.map(condition => `(${condition.text})`).join(' AND '), conditions.flatMap(condition => condition.params))
+function table(name, columns) {
+  const definition = { kind: 'table', name }
+  for (const column of columns) definition[column] = { kind: 'column', name: column, table: definition }
+  return definition
+}
+const schema = {
+  systemConfigs: table('system_config', ['key', 'value']),
+  prompts: table('prompt', ['id', 'type', 'content', 'createdAt', 'imageUrl']),
+  apiUsages: table('api_usage', ['userId', 'date', 'count']),
+  users: table('user', ['email', 'plan']),
+  essayHistory: table('essay_history', ['email', 'prompt']),
+}
+
+function makeDb(connection) {
+  class Query {
+    constructor(kind, fields, source) { Object.assign(this, { kind, fields, source }) }
+    from(source) { this.source = source; return this }
+    where(condition) { this.condition = condition; return this }
+    values(values) { this.insertValues = values; return this }
+    set(values) { this.updateValues = values; return this }
+    onConflictDoNothing() { this.ignoreConflict = true; return this }
+    onConflictDoUpdate(update) { this.conflictUpdate = update; return this }
+    returning(fields) { this.returnFields = fields; return this }
+    then(onResolve, onReject) { return Promise.resolve().then(() => this.execute()).then(onResolve, onReject) }
+    execute() {
+      let text = ''
+      const params = []
+      const fieldsSql = fields => Object.entries(fields).map(([alias, field]) => `${columnSql(field)} AS ${quote(alias)}`).join(', ')
+      const valuesSql = values => Object.entries(values).map(([key, value]) => {
+        const expression = interpolate(value)
+        params.push(...expression.params)
+        return `${quote(key)} = ${expression.text}`
+      }).join(', ')
+      if (this.kind === 'select') {
+        text = `SELECT ${this.fields ? fieldsSql(this.fields) : '*'} FROM ${quote(this.source.name)}`
+      } else if (this.kind === 'insert') {
+        const columns = Object.keys(this.insertValues)
+        const expressions = Object.values(this.insertValues).map(value => {
+          const expression = interpolate(value)
+          params.push(...expression.params)
+          return expression.text
+        })
+        text = `INSERT INTO ${quote(this.source.name)} (${columns.map(quote).join(',')}) VALUES (${expressions.join(',')})`
+        if (this.ignoreConflict) text += ' ON CONFLICT DO NOTHING'
+        if (this.conflictUpdate) {
+          const targets = Array.isArray(this.conflictUpdate.target) ? this.conflictUpdate.target : [this.conflictUpdate.target]
+          text += ` ON CONFLICT (${targets.map(target => quote(target.name)).join(',')}) DO UPDATE SET ${valuesSql(this.conflictUpdate.set)}`
+          if (this.conflictUpdate.setWhere) {
+            text += ` WHERE ${this.conflictUpdate.setWhere.text}`
+            params.push(...this.conflictUpdate.setWhere.params)
+          }
+        }
+      } else {
+        text = `UPDATE ${quote(this.source.name)} SET ${valuesSql(this.updateValues)}`
+      }
+      if (this.condition) {
+        text += ` WHERE ${this.condition.text}`
+        params.push(...this.condition.params)
+      }
+      if (this.returnFields) text += ' RETURNING ' + fieldsSql(this.returnFields)
+      const statement = connection.prepare(text)
+      return this.kind === 'select' || this.returnFields ? statement.all(...params) : statement.run(...params)
+    }
+  }
+  return {
+    select: fields => new Query('select', fields),
+    insert: source => new Query('insert', undefined, source),
+    update: source => new Query('update', undefined, source),
+    async batch(queries) {
+      connection.exec('BEGIN')
+      try {
+        const results = queries.map(query => query.execute())
+        connection.exec('COMMIT')
+        return results
+      } catch (error) {
+        connection.exec('ROLLBACK')
+        throw error
+      }
+    },
+  }
+}
+
+export async function createGraderHarness() {
+  const sqlite = new DatabaseSync(':memory:')
+  sqlite.exec(`
+    CREATE TABLE system_config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+    CREATE TABLE user (email TEXT PRIMARY KEY, plan TEXT NOT NULL);
+    CREATE TABLE api_usage (userId TEXT, date TEXT, count INTEGER, PRIMARY KEY (userId, date));
+    CREATE TABLE prompt (id INTEGER, type TEXT, content TEXT, createdAt INTEGER, imageUrl TEXT);
+    CREATE TABLE essay_history (email TEXT, prompt TEXT);
+  `)
+  const keys = ['test-key-1', 'test-key-2', 'test-key-3', 'test-key-4', 'test-key-5']
+  sqlite.prepare('INSERT INTO system_config VALUES (?, ?)').run('GROQ_API_KEY', keys.join(','))
+  sqlite.prepare('INSERT INTO system_config VALUES (?, ?)').run('GRADING_GROQ_MODEL', 'grading-primary,grading-fallback')
+  const state = {
+    email: 'grader-test@example.test', response: {}, finishReason: 'stop',
+    calls: [], logs: [], handler: null,
+  }
+  sqlite.prepare('INSERT INTO user VALUES (?, ?)').run(state.email, 'pro')
+  const database = makeDb(sqlite)
+  class FakeGroq {
+    constructor(options) {
+      this.chat = { completions: { create: async payload => {
+        const call = { apiKey: options.apiKey, options, payload }
+        state.calls.push(call)
+        const value = state.handler ? await state.handler(call) : state.response
+        return { choices: [{ message: { content: typeof value === 'string' ? value : JSON.stringify(value) }, finish_reason: state.finishReason }] }
+      } } }
+    }
+  }
+  const external = {
+    'next/server': { NextRequest: Request, NextResponse: Response },
+    'groq-sdk': { default: FakeGroq },
+    '@/auth': { auth: async () => state.email ? { user: { email: state.email } } : null },
+    '@/src/db': { getDb: async () => database },
+    '@/src/db/schema': schema,
+    'drizzle-orm': { sql, eq, inArray, and },
+  }
+  const context = createContext({
+    crypto: globalThis.crypto, TextEncoder, TextDecoder, Headers, Request, Response,
+    setTimeout, clearTimeout,
+    console: Object.fromEntries(['log', 'warn', 'error'].map(level => [level, (...args) => state.logs.push([level, ...args])])),
+    process: { env: {} },
+  })
+  const modules = new Map()
+  async function load(identifier) {
+    if (modules.has(identifier)) return modules.get(identifier)
+    let module
+    if (external[identifier]) {
+      const exports = external[identifier]
+      module = new SyntheticModule(Object.keys(exports), function () {
+        for (const [name, value] of Object.entries(exports)) this.setExport(name, value)
+      }, { context, identifier })
+    } else {
+      const source = await readFile(identifier, 'utf8')
+      module = new SourceTextModule(stripTypeScriptTypes(source), { context, identifier })
+    }
+    modules.set(identifier, module)
+    await module.link((specifier, parent) => {
+      if (external[specifier]) return load(specifier)
+      const absolute = specifier.startsWith('@/') ? resolve(root, specifier.slice(2)) : resolve(dirname(parent.identifier), specifier)
+      return load(absolute.endsWith('.ts') ? absolute : absolute + '.ts')
+    })
+    return module
+  }
+  const module = await load(resolve(root, 'app/api/ai-grader/route.ts'))
+  await module.evaluate()
+  let requestId = 0
+  return {
+    state, sqlite, keys,
+    async grade(body, headers = {}) {
+      const { provider, expected, name, ...submission } = body
+      const response = await module.namespace.POST(new Request('http://test.local/api/ai-grader', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'cf-connecting-ip': `198.51.100.${++requestId}`, ...headers },
+        body: JSON.stringify({ action: 'grade_essay', ...submission }),
+      }))
+      return { response, data: await response.json() }
+    },
+  }
+}
