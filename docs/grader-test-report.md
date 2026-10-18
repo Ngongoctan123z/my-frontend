@@ -69,5 +69,5 @@ nhận chất lượng chấm Groq thực tế.
 Cập nhật sau khi khôi phục GitHub App: bản sửa API đã được đẩy trong commit
 `fd24d0588b24e104143b7d3f004725e346b40f8c`; Cloudflare Workers Builds đã xác nhận
 triển khai thành công vào Worker `my-frontend`. Bộ kiểm thử được bổ sung thêm
-6 ca SEO/build, tổng cộng 36 ca. Xem `docs/deployment-repair.md` để biết luồng
+10 ca SEO/build và binding, tổng cộng 40 ca. Xem `docs/deployment-repair.md` để biết luồng
 build/deploy hiện tại. Việc chấm Groq thật vẫn cần một phiên đăng nhập hợp lệ.

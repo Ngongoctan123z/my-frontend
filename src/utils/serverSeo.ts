@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import { getDb } from '@/src/db'
-import { isStaticBuild } from '@/src/lib/buildPhase'
+import { getOptionalDb } from '@/src/db'
 import { systemConfigs } from '@/src/db/schema'
 import { inArray, eq } from 'drizzle-orm'
 
@@ -10,7 +9,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
   let ogImage = '';
   
   try {
-    const db = isStaticBuild() ? null : await getDb()
+    const db = await getOptionalDb()
     if (db) {
       // Chỉ fetch đúng các key cần thiết thay vì full table scan
       const routeKey = `SEO_ROUTE_${path}`
@@ -81,7 +80,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
 
 export async function getCustomRouteSeo(path: string) {
   try {
-    const db = isStaticBuild() ? null : await getDb()
+    const db = await getOptionalDb()
     if (db) {
       // Chỉ fetch đúng 1 key thay vì toàn bộ bảng
       const routeKey = `SEO_ROUTE_${path}`

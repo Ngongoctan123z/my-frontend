@@ -2,7 +2,7 @@
 
 ## Luồng hiện tại
 
-- GitHub Actions `.github/workflows/ci.yml` chạy 36 regression tests và full
+- GitHub Actions `.github/workflows/ci.yml` chạy 40 regression tests và full
   Next.js/OpenNext build trên Node 24.
 - Cloudflare Workers Builds nhận commit trên `main` từ kết nối GitHub App
   hiện có và triển khai Worker `my-frontend`.
@@ -22,9 +22,10 @@ với version `355395d7-3181-495c-8437-57768436ec6c` của bản sửa API đầ
    của check do Cloudflare Workers and Pages phát hành.
 4. Bỏ luồng deploy Actions dùng credential/đích riêng đã gây lỗi 403; giữ
    Cloudflare Workers Builds làm luồng triển khai qua Git.
-5. Khi `next build` dựng trang tĩnh, SEO trả dữ liệu mặc định và không gọi D1.
-   Cờ `VNDOCS_STATIC_BUILD=1` chỉ được đặt cho tiến trình con của build.
-   Khi chạy website, SEO vẫn truy vấn D1; thiếu binding thật vẫn được báo lỗi.
+5. SEO dùng `getOptionalDb()`: nếu giai đoạn dựng trang tĩnh chưa có binding D1,
+   metadata dùng dữ liệu mặc định mà không phát sinh exception. Khi có D1,
+   SEO vẫn đọc cấu hình admin. Các API vẫn dùng `getDb()` bắt buộc và tiếp tục
+   báo lỗi nếu thiếu binding; lỗi truy vấn D1 bất thường của SEO vẫn được ghi log.
 
 ## Chạy kiểm tra
 
@@ -38,9 +39,10 @@ npm run test:build-seo
 npm run pages:build
 ```
 
-`npm run build` gọi wrapper trong `scripts/build-next.mjs` để đặt cờ build
-chỉ cho Next.js. Không đặt cờ này trong Cloudflare runtime variables hoặc
-`next.config.env`.
+`npm run build` tiếp tục gọi `next build`; việc dựng trang không phụ thuộc
+vào cờ môi trường tạm thời hoặc binding database của production.
+`getOptionalDb()` và `getDb()` đều phân giải binding theo từng request,
+không cache D1 binding ở module scope.
 
 Cảnh báo deprecation từ dependencies không phải lỗi compile. Các dependency
 chính chưa được nâng major đồng loạt vì cần một đợt kiểm thử tương thích riêng.

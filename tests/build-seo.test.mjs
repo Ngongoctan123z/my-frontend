@@ -4,12 +4,17 @@ import { readFile } from 'node:fs/promises'
 import { stripTypeScriptTypes } from 'node:module'
 import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
 
-async function loadSeo({ build = false, rows = [], dbError = null } = {}) {
-  const state = { dbCalls: 0, logs: [], env: build ? { VNDOCS_STATIC_BUILD: '1' } : {} }
-  const context = createContext({ URL, process: { env: state.env }, console: { error: (...args) => state.logs.push(args) } })
+async function loadSeo({ bindingAvailable = true, rows = [], dbError = null } = {}) {
+  const state = { dbCalls: 0, logs: [] }
+  const context = createContext({ URL, console: { error: (...args) => state.logs.push(args) } })
   const query = { from() { return this }, where() { return this }, limit() { return this }, then(resolve) { return Promise.resolve(rows).then(resolve) } }
   const external = {
-    '@/src/db': { getDb: async () => { state.dbCalls++; if (dbError) throw dbError; return { select: () => query } } },
+    '@/src/db': { getOptionalDb: async () => {
+      if (!bindingAvailable) return null
+      state.dbCalls++
+      if (dbError) throw dbError
+      return { select: () => query }
+    } },
     '@/src/db/schema': { systemConfigs: { key: 'key' } },
     'drizzle-orm': { eq: () => {}, inArray: () => {} },
   }
@@ -23,8 +28,7 @@ async function loadSeo({ build = false, rows = [], dbError = null } = {}) {
         for (const [name, value] of Object.entries(values)) this.setExport(name, value)
       }, { context })
     } else {
-      const path = id === '@/src/lib/buildPhase' ? 'src/lib/buildPhase.ts' : 'src/utils/serverSeo.ts'
-      module = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../' + path, import.meta.url), 'utf8')), { context })
+      module = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/utils/serverSeo.ts', import.meta.url), 'utf8')), { context })
     }
     cache.set(id, module)
     await module.link(specifier => load(specifier))
@@ -36,7 +40,7 @@ async function loadSeo({ build = false, rows = [], dbError = null } = {}) {
 }
 
 test('static build returns complete fallback metadata without accessing D1 or logging errors', async () => {
-  const { seo, state } = await loadSeo({ build: true, dbError: new Error('DB unavailable during build') })
+  const { seo, state } = await loadSeo({ bindingAvailable: false })
   const metadata = await seo.getRouteMetadata('/ai-grader/toeic', 'TOEIC test', 'Fallback description')
   assert.equal(metadata.title, 'TOEIC test')
   assert.equal(metadata.description, 'Fallback description')
@@ -47,7 +51,7 @@ test('static build returns complete fallback metadata without accessing D1 or lo
 })
 
 test('static build custom SEO returns null without D1 access', async () => {
-  const { seo, state } = await loadSeo({ build: true })
+  const { seo, state } = await loadSeo({ bindingAvailable: false })
   assert.equal(await seo.getCustomRouteSeo('/'), null)
   assert.equal(state.dbCalls, 0)
 })
@@ -66,12 +70,64 @@ test('runtime continues to load admin metadata from D1 and applies route overrid
   assert.equal(state.dbCalls, 1)
 })
 
-test('runtime still reports a missing DB binding and returns safe SEO fallback', async () => {
-  const { seo, state } = await loadSeo({ dbError: new Error('Database binding "DB" not found') })
+test('unexpected runtime database errors remain visible while SEO falls back safely', async () => {
+  const { seo, state } = await loadSeo({ dbError: new Error('D1 query failed') })
   const metadata = await seo.getRouteMetadata('/', 'Fallback', 'Description')
   assert.equal(metadata.title, 'Fallback')
   assert.equal(state.dbCalls, 1)
   assert.equal(state.logs.length, 1)
+})
+
+async function loadDatabase({ env = {}, cloudflareEnv = null } = {}) {
+  const state = { cloudflareEnv, drizzleCalls: [] }
+  const context = createContext({ process: { env } })
+  const dependencies = {
+    'drizzle-orm/d1': { drizzle: binding => { state.drizzleCalls.push(binding); return { binding } } },
+    './schema': {},
+    '@opennextjs/cloudflare': { getCloudflareContext: () => {
+      if (!state.cloudflareEnv) throw new Error('No Cloudflare context during build')
+      return { env: state.cloudflareEnv }
+    } },
+  }
+  const module = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/db/index.ts', import.meta.url), 'utf8')), { context })
+  await module.link(async name => {
+    const values = dependencies[name]
+    const dependency = new SyntheticModule(Object.keys(values), function () {
+      for (const [key, value] of Object.entries(values)) this.setExport(key, value)
+    }, { context })
+    return dependency
+  })
+  await module.evaluate()
+  return { database: module.namespace, state }
+}
+
+test('missing build binding returns null only for optional database consumers', async () => {
+  const { database, state } = await loadDatabase()
+  assert.equal(await database.getOptionalDb(), null)
+  await assert.rejects(database.getDb(), /Database binding "DB" not found/)
+  assert.equal(state.drizzleCalls.length, 0)
+})
+
+test('runtime D1 binding is still used by required and optional consumers', async () => {
+  const binding = { name: 'runtime-d1' }
+  const { database } = await loadDatabase({ cloudflareEnv: { DB: binding } })
+  assert.equal((await database.getDb()).binding, binding)
+  assert.equal((await database.getOptionalDb()).binding, binding)
+})
+
+test('database binding is resolved per request and is not cached across Workers requests', async () => {
+  const first = { name: 'first-d1' }
+  const second = { name: 'second-d1' }
+  const { database, state } = await loadDatabase({ cloudflareEnv: { DB: first } })
+  assert.equal((await database.getDb()).binding, first)
+  state.cloudflareEnv = { DB: second }
+  assert.equal((await database.getDb()).binding, second)
+})
+
+test('explicit runtime binding remains supported', async () => {
+  const binding = { name: 'explicit-d1' }
+  const { database } = await loadDatabase({ env: { DB: binding } })
+  assert.equal((await database.getDb()).binding, binding)
 })
 
 test('runtime custom SEO queries D1 and parses the saved object', async () => {
