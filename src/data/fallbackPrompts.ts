@@ -190,24 +190,33 @@ export const IELTS_PAIRED_SETS: PairedExamSet[] = [
 // ==========================================
 export const HSK_5_FALLBACKS: FallbackPromptItem[] = [
   {
-    content: `HSK 5 书写全套试题 (满分 100 分)
-
-第 91-98 题：完成句子 (每题 5 分，共 40 分)
-1. 去 / 打算 / 留学 / 明年 / 他 / 中国
-2. 汉语水平 / 提高 / 他的 / 显著 / 得到了
-3. 责任 / 对 / 每一个 / 我们 / 要 / 工作 / 负起
-4. 被 / 经理 / 方案 / 这个 / 采纳了
-5. 环境 / 这里的 / 适合 / 居住 / 非常
-6. 他 / 充分 / 把 / 表达了 / 自己的 / 观点
-7. 不仅 / 他 / 聪明 / 勤奋 / 而且 / 非常
-8. 大家 / 给 / 深刻的 / 留下了 / 印象 / 这次旅行
-
-第 99 题：请结合下列 5 个词语，写一篇 80 字左右的短文。(30 分)
-词语：明确, 凭, 严肃, 规矩, 遵守
-
-第 100 题：请结合下列情境写一篇 80 字左右的短文。(30 分)
-图片情境：一位年轻人在整洁的书桌前专心致志地看书学习，桌上放着笔记本电脑和咖啡杯。`
-  }
+    // Keep the fallback in the same structured format as generated HSK 5 sets.
+    // The mobile editor pairs each item with its answer using these question IDs.
+    content: JSON.stringify({
+      title: 'HSK 5 书写全套试题 (满分 100 分)',
+      part1: [
+        { id: 91, words: '去 / 打算 / 留学 / 明年 / 他 / 中国' },
+        { id: 92, words: '汉语水平 / 提高 / 他的 / 显著 / 得到了' },
+        { id: 93, words: '责任 / 对 / 每一个 / 我们 / 要 / 工作 / 负起' },
+        { id: 94, words: '被 / 经理 / 方案 / 这个 / 采纳了' },
+        { id: 95, words: '环境 / 这里的 / 适合 / 居住 / 非常' },
+        { id: 96, words: '他 / 充分 / 把 / 表达了 / 自己的 / 观点' },
+        { id: 97, words: '不仅 / 他 / 聪明 / 勤奋 / 而且 / 非常' },
+        { id: 98, words: '大家 / 给 / 深刻的 / 留下了 / 印象 / 这次旅行' },
+      ],
+      part2: {
+        id: 99,
+        keywords: ['明确', '凭', '严肃', '规矩', '遵守'],
+        requirement: '请结合下列 5 个词语，写一篇 80 字左右的短文。(30 分)',
+      },
+      part3: {
+        id: 100,
+        imageUrl: '',
+        description: '一位年轻人在整洁的书桌前专心致志地看书学习，桌上放着笔记本电脑和咖啡杯。',
+        requirement: '请结合下列情境写一篇 80 字左右的短文。(30 分)',
+      },
+    }),
+  },
 ]
 
 export const HSK_6_FALLBACKS: FallbackPromptItem[] = [

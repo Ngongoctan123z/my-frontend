@@ -63,10 +63,12 @@ const server = createServer((request, response) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
 const browser = await chromium.launch({ headless: true })
 let checks=0
+let activePage
 try {
   for(const width of [320,375,576,1280]) {
     for(const exam of ['ielts','toeic','topik','hsk']) {
       const page=await browser.newPage({viewport:{width,height:900}})
+      activePage=page
       const errors=[]
       page.on('pageerror',error=>errors.push(error.message))
       await page.goto(`http://127.0.0.1:${server.address().port}/?exam=${exam}`)
@@ -140,6 +142,12 @@ try {
     }
   }
   console.log(`PASS ${checks} field clear interactions; 16 responsive layouts; task switching and language controls`)
+} catch(error) {
+  if(activePage && !activePage.isClosed()) {
+    await activePage.screenshot({path:`${output}/failure.png`,fullPage:true})
+    await writeFile(`${output}/failure.html`,await activePage.content())
+  }
+  throw error
 } finally {
   await browser.close()
   await new Promise(resolve=>server.close(resolve))
