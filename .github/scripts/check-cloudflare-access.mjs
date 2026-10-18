@@ -44,6 +44,9 @@ if (target.ok) {
 const scripts = await inspect(`${root}/workers/scripts`, 'Worker access in configured account')
 if (scripts.ok && Array.isArray(scripts.body.result)) {
   console.log(`Configured Worker present in script list: ${scripts.body.result.some(script => script.id === worker)}`)
+  console.log(`Visible Worker count: ${scripts.body.result.length}`)
+  const candidates = scripts.body.result.filter(script => /vndocs|frontend|exam/i.test(script.id || '')).map(script => script.id)
+  if (candidates.length) console.log(`Worker names relevant to this repository: ${JSON.stringify(candidates)}`)
 }
 const domains = await inspect(`${root}/workers/domains`, 'Custom-domain access in configured account')
 if (domains.ok && Array.isArray(domains.body.result)) {
@@ -51,6 +54,20 @@ if (domains.ok && Array.isArray(domains.body.result)) {
   const matches = domains.body.result.filter(domain => configuredDomains.has(domain.hostname))
   for (const match of matches) console.log(`Domain ${match.hostname} points to Worker ${match.service} (${match.environment})`)
   if (!matches.length) console.log('Configured custom domains were not found in this account.')
+}
+
+const pages = await inspect(`${root}/pages/projects`, 'Pages access in configured account')
+if (pages.ok && Array.isArray(pages.body.result)) {
+  const configuredDomains = new Set((config.routes || []).filter(route => route.custom_domain).map(route => route.pattern))
+  const matches = pages.body.result.filter(project =>
+    /vndocs|frontend|exam/i.test(project.name || '')
+    || (project.domains || []).some(domain => configuredDomains.has(domain)))
+  console.log(`Pages projects relevant to this repository: ${JSON.stringify(matches.map(project => ({
+    name: project.name,
+    domains: (project.domains || []).filter(domain => configuredDomains.has(domain)),
+    repository: project.source?.config?.repo_name,
+    productionBranch: project.production_branch,
+  })))}`)
 }
 
 if (target.status === 404 && scripts.ok) {
