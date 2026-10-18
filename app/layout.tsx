@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '../src/components/Providers'
@@ -13,7 +13,7 @@ const inter = Inter({
   preload: true,
 })
 
-import { getDb } from '@/src/db'
+import { getOptionalDb } from '@/src/db'
 import { systemConfigs } from '@/src/db/schema'
 import { inArray } from 'drizzle-orm'
 
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   let ogImage = '';
   
   try {
-    const db = await getDb()
+    const db = await getOptionalDb()
     if (db) {
       // Chỉ lấy 3 key cần thiết thay vì full table scan
       const SEO_KEYS = ['SEO_TITLE', 'SEO_DESCRIPTION', 'SEO_OG_IMAGE'] as const
@@ -108,3 +108,4 @@ export default function RootLayout({
     </html>
   )
 }
+

@@ -2,7 +2,7 @@
 
 ## Luồng hiện tại
 
-- GitHub Actions `.github/workflows/ci.yml` chạy 40 regression tests và full
+- GitHub Actions `.github/workflows/ci.yml` chạy 42 regression tests và full
   Next.js/OpenNext build trên Node 24.
 - Cloudflare Workers Builds nhận commit trên `main` từ kết nối GitHub App
   hiện có và triển khai Worker `my-frontend`.

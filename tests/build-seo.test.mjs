@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { stripTypeScriptTypes } from 'node:module'
 import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
 
-async function loadSeo({ bindingAvailable = true, rows = [], dbError = null } = {}) {
+async function loadSeo({ bindingAvailable = true, rows = [], dbError = null, rootMetadata = false } = {}) {
   const state = { dbCalls: 0, logs: [] }
   const context = createContext({ URL, console: { error: (...args) => state.logs.push(args) } })
   const query = { from() { return this }, where() { return this }, limit() { return this }, then(resolve) { return Promise.resolve(rows).then(resolve) } }
@@ -28,7 +28,17 @@ async function loadSeo({ bindingAvailable = true, rows = [], dbError = null } = 
         for (const [name, value] of Object.entries(values)) this.setExport(name, value)
       }, { context })
     } else {
-      module = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/utils/serverSeo.ts', import.meta.url), 'utf8')), { context })
+      let source = await readFile(new URL('../src/utils/serverSeo.ts', import.meta.url), 'utf8')
+      if (rootMetadata) {
+        // Execute the actual metadata function from the TSX layout without
+        // requiring React/Next's unrelated JSX rendering dependencies.
+        const layout = await readFile(new URL('../app/layout.tsx', import.meta.url), 'utf8')
+        const start = layout.indexOf('export async function generateMetadata')
+        const end = layout.indexOf('export default function RootLayout')
+        assert.ok(start >= 0 && end > start)
+        source = `import { getOptionalDb } from '@/src/db';\nimport { systemConfigs } from '@/src/db/schema';\nimport { inArray } from 'drizzle-orm';\n${layout.slice(start, end)}`
+      }
+      module = new SourceTextModule(stripTypeScriptTypes(source), { context })
     }
     cache.set(id, module)
     await module.link(specifier => load(specifier))
@@ -54,6 +64,30 @@ test('static build custom SEO returns null without D1 access', async () => {
   const { seo, state } = await loadSeo({ bindingAvailable: false })
   assert.equal(await seo.getCustomRouteSeo('/'), null)
   assert.equal(state.dbCalls, 0)
+})
+
+test('root layout metadata falls back without D1 and preserves favicon declarations', async () => {
+  const { seo, state } = await loadSeo({ bindingAvailable: false, rootMetadata: true })
+  const metadata = await seo.generateMetadata()
+  assert.ok(metadata.title.startsWith('VNDocs'))
+  assert.equal(metadata.icons.shortcut, '/icon.png')
+  assert.equal(metadata.icons.icon.length, 2)
+  assert.equal(metadata.icons.apple[0].url, '/icon-512.png')
+  assert.equal(state.dbCalls, 0)
+  assert.equal(state.logs.length, 0)
+})
+
+test('root layout still reads global admin SEO from the runtime D1 binding', async () => {
+  const { seo, state } = await loadSeo({ rootMetadata: true, rows: [
+    { key: 'SEO_TITLE', value: 'Runtime global title' },
+    { key: 'SEO_DESCRIPTION', value: 'Runtime description' },
+    { key: 'SEO_OG_IMAGE', value: 'https://vndocs.net/runtime.png' },
+  ] })
+  const metadata = await seo.generateMetadata()
+  assert.equal(metadata.title, 'Runtime global title')
+  assert.equal(metadata.description, 'Runtime description')
+  assert.equal(metadata.openGraph.images[0].url, 'https://vndocs.net/runtime.png')
+  assert.equal(state.dbCalls, 1)
 })
 
 test('runtime continues to load admin metadata from D1 and applies route overrides', async () => {
