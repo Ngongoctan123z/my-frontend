@@ -43,6 +43,20 @@ jobs:
       - name: Build Next.js and OpenNext
         run: npm run pages:build
 
+      - name: Install browser for grader UI checks
+        run: npx playwright install --with-deps chromium
+
+      - name: Test grader inputs and mobile layouts
+        run: npm run test:grader-ui
+
+      - name: Save grader screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grader-ui-screenshots
+          path: test-results/grader-ui
+          if-no-files-found: ignore
+
       # Cloudflare Workers Builds deploys main through the existing GitHub App
       # integration. This workflow verifies the same build without a second
       # deployment path or separate Cloudflare credentials.

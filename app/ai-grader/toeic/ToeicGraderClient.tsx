@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { 
   FileEdit, Loader2, RefreshCw, Send, AlertCircle, History, 
   ArrowLeft, ArrowRight, Maximize2, Minimize2, Layers, CheckCircle2,
@@ -8,11 +8,16 @@ import {
 } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
-import { GradingResultModal } from '@/src/components/common/GradingResultModal'
-import { ShareExamModal } from '@/src/components/common/ShareExamModal'
-import { StudentManagementModal } from '@/src/components/common/StudentManagementModal'
+import dynamic from 'next/dynamic'
+import { AnswerTextarea, GraderActions } from '@/src/components/common/GraderControls'
+
+
 import { usePathname } from 'next/navigation'
 import { TOEIC_PAIRED_SETS, TOEIC_RESPOND_FALLBACKS, TOEIC_ESSAY_FALLBACKS } from '@/src/data/fallbackPrompts'
+
+const GradingResultModal = dynamic(() => import('@/src/components/common/GradingResultModal').then(module => module.GradingResultModal))
+const ShareExamModal = dynamic(() => import('@/src/components/common/ShareExamModal').then(module => module.ShareExamModal))
+const StudentManagementModal = dynamic(() => import('@/src/components/common/StudentManagementModal').then(module => module.StudentManagementModal))
 
 type ToeicMode = 'TOEIC_FULL' | 'TOEIC_RESPOND' | 'TOEIC_ESSAY'
 type PromptObject = { content: string, imageUrl?: string | null }
@@ -282,8 +287,8 @@ export function ToeicGraderClient() {
 
   // Word count helpers
   const countWords = (t: string) => t.trim().split(/\s+/).filter(Boolean).length
-  const wordsPart1 = countWords(essayPart1)
-  const wordsPart2 = countWords(essayPart2)
+  const wordsPart1 = useMemo(() => countWords(essayPart1), [essayPart1])
+  const wordsPart2 = useMemo(() => countWords(essayPart2), [essayPart2])
 
   // Current active prompt & essay
   const activePrompt = (activeTab === 'TOEIC_FULL')
@@ -513,7 +518,7 @@ export function ToeicGraderClient() {
   }
 
   return (
-    <div className="w-full space-y-3 sm:space-y-6">
+    <div className="w-full min-w-0 space-y-3 sm:space-y-6">
       {/* Header & Modes */}
       <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-slate-100">
@@ -530,18 +535,7 @@ export function ToeicGraderClient() {
           </div>
 
           {/* Action buttons - shown on upper row when screen touches edge (< xl) */}
-          <div className="flex xl:hidden items-center gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 text-xs shrink-0">
-              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
-              <select
-                value={feedbackLang}
-                onChange={e => setFeedbackLang(e.target.value)}
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
-              >
-                <option value="Tiếng Việt">Tiếng Việt</option>
-                <option value="English">English</option>
-              </select>
-            </div>
+          <div className="flex xl:hidden min-w-0 max-w-full items-center gap-1.5 overflow-x-auto snap-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
             <button
               onClick={() => {
@@ -568,7 +562,7 @@ export function ToeicGraderClient() {
         {/* Tab Selection & Desktop Action Buttons */}
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           {/* Tabs - enlarged on desktop */}
-          <div className="flex items-center gap-2 md:gap-3 overflow-x-auto xl:overflow-x-visible pb-1 xl:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 max-w-full overflow-x-auto snap-x xl:overflow-x-visible pb-1 xl:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {[
               { key: 'TOEIC_FULL', title: isEn ? 'Trọn bộ' : 'Trọn bộ', subtitle: isEn ? 'Q6-8' : 'Q6–8 (200đ)', max: '200đ' },
               { key: 'TOEIC_RESPOND', title: isEn ? 'Email' : 'Email', subtitle: isEn ? 'Q6-7' : 'Câu 6-7', max: '4đ' },
@@ -585,7 +579,7 @@ export function ToeicGraderClient() {
                     }
                     setError(null)
                   }}
-                  className={`shrink-0 flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all min-w-[75px] md:min-w-[120px] ${
+                  className={`shrink-0 snap-start flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all min-w-[75px] md:min-w-[120px] ${
                     isActive
                       ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -609,17 +603,6 @@ export function ToeicGraderClient() {
 
           {/* Desktop action buttons - same row as tabs only on large screen (>= xl) */}
           <div className="hidden xl:flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs">
-              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
-              <select
-                value={feedbackLang}
-                onChange={e => setFeedbackLang(e.target.value)}
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
-              >
-                <option value="Tiếng Việt">Tiếng Việt</option>
-                <option value="English">English</option>
-              </select>
-            </div>
 
             <button
               onClick={() => {
@@ -645,12 +628,12 @@ export function ToeicGraderClient() {
 
         {/* Full test step indicator */}
         {activeTab === 'TOEIC_FULL' && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+          <div className="mt-4 pt-4 border-t border-slate-100 flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2.5 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
             <span className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5 shrink-0">
               <Layers className="w-4 h-4 text-blue-600" />
               {isEn ? 'Full Test Flow:' : 'Tiến trình thi trọn bộ:'}
             </span>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setFullTestStep(1)}
@@ -675,10 +658,10 @@ export function ToeicGraderClient() {
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 items-start">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
         {/* Left Column: Prompt */}
         <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col min-h-0 lg:min-h-[440px]">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+          <div className="flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
             <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded border border-blue-100 shrink-0">
               {(activeTab === 'TOEIC_FULL' ? fullTestStep === 1 : activeTab === 'TOEIC_RESPOND')
                 ? (isEn ? 'Part 1: Email (Q6-7)' : 'Phần 1: Email (Câu 6-7)')
@@ -781,14 +764,14 @@ export function ToeicGraderClient() {
           <div className={`bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 shadow-xs flex flex-col ${
             isEditorExpanded ? 'flex-1 p-4 sm:p-6' : 'p-4 sm:p-5 min-h-0 lg:min-h-[440px]'
           }`}>
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <div className="flex min-w-0 items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">
                 {isEn ? 'Your Written Response' : 'Bài làm của bạn'}
               </h3>
 
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                  {countWords(activeEssay)} {isEn ? 'words' : 'từ'}
+                  {(activeTab === 'TOEIC_FULL' ? fullTestStep === 1 : activeTab === 'TOEIC_RESPOND') ? wordsPart1 : wordsPart2} {isEn ? 'words' : 'từ'}
                 </span>
                 <button
                   type="button"
@@ -823,9 +806,9 @@ export function ToeicGraderClient() {
                   </button>
                 </div>
               )}
-              <textarea
+              <AnswerTextarea isEn={isEn} answerLabel={isEn ? "Your answer" : "Bài làm của bạn"}
                 value={activeEssay}
-                onChange={e => setActiveEssay(e.target.value)}
+                onValueChange={value => setActiveEssay(value)}
                 placeholder={
                   !session
                     ? (isEn ? 'Please sign in to write your response...' : 'Vui lòng đăng nhập để bắt đầu làm bài...')
@@ -840,8 +823,9 @@ export function ToeicGraderClient() {
 
             {/* Bottom Controls */}
             <div className="mt-5 pt-4 border-t border-slate-100">
-              {activeTab === 'TOEIC_FULL' ? (
-                <div className="flex items-center justify-between gap-3">
+              <GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt', 'English']}>
+                {activeTab === 'TOEIC_FULL' ? (
+                <div className="flex flex-col gap-2">
                   {fullTestStep === 2 ? (
                     <button
                       type="button"
@@ -851,7 +835,7 @@ export function ToeicGraderClient() {
                       <ArrowLeft className="w-3.5 h-3.5" />
                       {isEn ? 'Back to Part 1' : 'Quay lại Part 1'}
                     </button>
-                  ) : <div />}
+                  ) : null}
 
                   {fullTestStep === 1 ? (
                     <button
@@ -893,6 +877,7 @@ export function ToeicGraderClient() {
                   {isGrading ? (isEn ? 'Grading...' : 'Đang chấm điểm...') : (session ? (isEn ? 'Submit & Grade Essay' : 'Nộp bài & Chấm điểm') : (isEn ? 'Sign in with Google to Grade' : 'Đăng nhập Google để Chấm điểm'))}
                 </button>
               )}
+              </GraderActions>
 
               {session && (
                 <p className="text-center text-[11px] text-slate-400 mt-2">
@@ -998,7 +983,7 @@ export function ToeicGraderClient() {
       )}
 
       {/* Student Management Modal */}
-      <StudentManagementModal
+      {(showStudentsModal) && (<StudentManagementModal
         isOpen={showStudentsModal}
         onClose={() => setShowStudentsModal(false)}
         loading={loadingStudents}
@@ -1006,23 +991,24 @@ export function ToeicGraderClient() {
         expandedStudentId={expandedStudentId}
         setExpandedStudentId={setExpandedStudentId}
         examTypePrefix="TOEIC"
-      />
+      />)}
 
       {/* Share Exam Modal */}
-      <ShareExamModal
+      {(isShareModalOpen) && (<ShareExamModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         onConfirm={handleCreateSharedLink}
-      />
+      />)}
 
       {/* Result Modal */}
-      <GradingResultModal
+      {(isGrading || !!result) && (<GradingResultModal
         isOpen={isGrading || !!result}
         onClose={() => setResult(null)}
         isGrading={isGrading}
         result={result}
         examType={resultExamType}
-      />
+      />)}
     </div>
   )
 }
+

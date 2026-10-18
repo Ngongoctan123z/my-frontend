@@ -1,14 +1,19 @@
 'use client'
 
-import { GradingResultModal } from '@/src/components/common/GradingResultModal'
+import dynamic from 'next/dynamic'
+import { AnswerTextarea, GraderActions } from '@/src/components/common/GraderControls'
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { FileEdit, Loader2, RefreshCw, Send, AlertCircle, CheckCircle2, XCircle, History, Clock, Trash2, ArrowRight, Share2, Copy, Users, Maximize2, Minimize2, Play, Pause, Square, Layers, Lock, LogIn } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
-import { ShareExamModal } from '@/src/components/common/ShareExamModal'
-import { StudentManagementModal } from '@/src/components/common/StudentManagementModal'
+
+
 import { IELTS_PAIRED_SETS, IELTS_TASK_1_FALLBACKS, IELTS_TASK_2_FALLBACKS } from '@/src/data/fallbackPrompts'
+
+const GradingResultModal = dynamic(() => import('@/src/components/common/GradingResultModal').then(module => module.GradingResultModal))
+const ShareExamModal = dynamic(() => import('@/src/components/common/ShareExamModal').then(module => module.ShareExamModal))
+const StudentManagementModal = dynamic(() => import('@/src/components/common/StudentManagementModal').then(module => module.StudentManagementModal))
 
 type ExamType = 'IELTS_TASK_1' | 'IELTS_TASK_2' | 'IELTS_FULL'
 type PromptObject = { content: string, imageUrl?: string | null }
@@ -23,6 +28,7 @@ interface PairedIeltsSet {
 const ImageWithProgress = ({ src, onClick, isEn }: { src: string, onClick: () => void, isEn: boolean }) => {
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState(0)
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   
   useEffect(() => {
     setLoading(true)
@@ -34,6 +40,7 @@ const ImageWithProgress = ({ src, onClick, isEn }: { src: string, onClick: () =>
         return p + Math.random() * 10 + 5;
       })
     }, 150)
+    progressTimer.current = interval
     
     return () => clearInterval(interval)
   }, [src])
@@ -58,8 +65,13 @@ const ImageWithProgress = ({ src, onClick, isEn }: { src: string, onClick: () =>
         alt="Chart/Graph" 
         className={`w-full h-auto max-h-[500px] object-contain transition-all duration-500 group-hover:opacity-90 ${loading ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}
         onLoad={() => {
+          if (progressTimer.current) clearInterval(progressTimer.current)
           setProgress(100)
-          setTimeout(() => setLoading(false), 200)
+          setLoading(false)
+        }}
+        onError={() => {
+          if (progressTimer.current) clearInterval(progressTimer.current)
+          setLoading(false)
         }}
       />
       {!loading && (
@@ -396,7 +408,7 @@ export function AiGraderClient() {
   const activeEssay = isViewingTask1 ? task1Essay : task2Essay
   const setActiveEssay = isViewingTask1 ? setTask1Essay : setTask2Essay
 
-  const wordCount = activeEssay.trim() ? activeEssay.trim().split(/\s+/).filter(Boolean).length : 0
+  const wordCount = useMemo(() => activeEssay.trim() ? activeEssay.trim().split(/\s+/).length : 0, [activeEssay])
   const minWords = isViewingTask1 ? 150 : 250
 
   const handleCreateSharedLink = async (reqPhone: boolean, reqEmail: boolean): Promise<string | void> => {
@@ -633,7 +645,7 @@ export function AiGraderClient() {
   }
 
   return (
-    <div className="w-full space-y-3 sm:space-y-6">
+    <div className="w-full min-w-0 space-y-3 sm:space-y-6">
       {/* Top Header & Modes Card - Matching TOEIC Luxury Design */}
       <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-slate-100">
@@ -650,21 +662,7 @@ export function AiGraderClient() {
           </div>
 
           {/* Action buttons - shown on upper row when screen touches edge (< xl) */}
-          <div className="flex xl:hidden items-center gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 text-xs shrink-0">
-              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
-              <select
-                value={feedbackLang}
-                onChange={e => setFeedbackLang(e.target.value)}
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer text-xs"
-              >
-                <option value="Tiếng Việt">Tiếng Việt</option>
-                <option value="English">English</option>
-                <option value="한국어">한국어</option>
-                <option value="中文">中文</option>
-                <option value="日本語">日本語</option>
-              </select>
-            </div>
+          <div className="flex xl:hidden min-w-0 max-w-full items-center gap-1.5 overflow-x-auto snap-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
             <button 
               onClick={() => { 
@@ -691,7 +689,7 @@ export function AiGraderClient() {
         {/* Tab Selection & Desktop Action Buttons */}
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           {/* Tabs - enlarged on desktop */}
-          <div className="flex items-center gap-2 md:gap-3 overflow-x-auto xl:overflow-x-visible pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 max-w-full overflow-x-auto snap-x xl:overflow-x-visible pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {[
               { 
                 key: 'IELTS_FULL', 
@@ -725,7 +723,7 @@ export function AiGraderClient() {
                     setExamPhase('setup')
                     setError(null)
                   }}
-                  className={`shrink-0 flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all active:scale-98 duration-75 min-w-[80px] md:min-w-[120px] ${
+                  className={`shrink-0 snap-start flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all active:scale-98 duration-75 min-w-[80px] md:min-w-[120px] ${
                     isActive
                       ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -749,20 +747,6 @@ export function AiGraderClient() {
 
           {/* Desktop action buttons - same row as tabs only on large screen (>= xl) */}
           <div className="hidden xl:flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs">
-              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
-              <select
-                value={feedbackLang}
-                onChange={e => setFeedbackLang(e.target.value)}
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer text-xs"
-              >
-                <option value="Tiếng Việt">Tiếng Việt</option>
-                <option value="English">English</option>
-                <option value="한국어">한국어</option>
-                <option value="中文">中文</option>
-                <option value="日本語">日本語</option>
-              </select>
-            </div>
 
             <button 
               onClick={() => { 
@@ -788,16 +772,16 @@ export function AiGraderClient() {
 
         {/* Full test step indicator */}
         {examType === 'IELTS_FULL' && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+          <div className="mt-4 pt-4 border-t border-slate-100 flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
             <span className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-blue-600" />
               {isEn ? 'Full Test Flow:' : 'Tiến trình thi trọn bộ:'}
             </span>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setFullStep(1)}
-                className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-colors active:scale-95 duration-75 ${
+                className={`shrink-0 snap-start px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-colors active:scale-95 duration-75 ${
                   fullStep === 1 ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
@@ -806,7 +790,7 @@ export function AiGraderClient() {
               <button
                 type="button"
                 onClick={() => setFullStep(2)}
-                className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-colors active:scale-95 duration-75 ${
+                className={`shrink-0 snap-start px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-colors active:scale-95 duration-75 ${
                   fullStep === 2 ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
@@ -818,10 +802,10 @@ export function AiGraderClient() {
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 items-start">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
         {/* Left Column: Prompt */}
         <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+          <div className="flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
             <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded border border-blue-100 shrink-0">
               {examType === 'IELTS_FULL' 
                 ? (fullStep === 1 ? 'Task 1 (Academic)' : 'Task 2 (Essay)')
@@ -932,13 +916,13 @@ export function AiGraderClient() {
             </div>
           )}
           <div className={`bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 shadow-xs flex flex-col ${isEditorExpanded ? 'flex-1 p-4 sm:p-6' : 'p-4 sm:p-6'}`}>
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <div className="flex min-w-0 items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">
                 {isEn 
                   ? (isViewingTask1 ? 'Task 1 Response' : 'Task 2 Response') 
                   : (isViewingTask1 ? 'Bài làm Task 1 (Academic)' : 'Bài làm Task 2 (Essay)')}
               </h3>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded ${wordCount >= minWords ? 'bg-emerald-100 text-emerald-700 font-bold' : 'bg-slate-100 text-slate-700'}`}>
                   {wordCount} / {minWords} {isEn ? 'words' : 'từ'}
                 </span>
@@ -948,13 +932,6 @@ export function AiGraderClient() {
                   title={isEditorExpanded ? (isEn ? 'Minimize' : 'Thu nhỏ') : (isEn ? 'Expand' : 'Phóng to')}
                 >
                   {isEditorExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </button>
-                <button 
-                  onClick={() => { if(confirm(isEn ? 'Clear current essay?' : 'Bạn có chắc chắn muốn xóa bài làm hiện tại?')) setActiveEssay('') }}
-                  className="p-1 text-red-400 hover:text-red-700 rounded transition-colors"
-                  title={isEn ? 'Clear essay' : 'Xóa bài làm'}
-                >
-                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -981,9 +958,9 @@ export function AiGraderClient() {
                   </button>
                 </div>
               )}
-              <textarea
+              <AnswerTextarea isEn={isEn} answerLabel={isEn ? "Your answer" : "Bài làm của bạn"}
                 value={activeEssay}
-                onChange={(e) => setActiveEssay(e.target.value)}
+                onValueChange={value => setActiveEssay(value)}
                 placeholder={!session ? (isEn ? "Please sign in to write your essay..." : "Vui lòng đăng nhập để bắt đầu làm bài...") : (isEn ? "Write your essay here..." : "Viết bài làm của bạn vào đây...")}
                 disabled={!session || isGrading}
                 className="flex-1 w-full min-h-[220px] sm:min-h-[280px] p-4 rounded-lg border border-gray-300 bg-white text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-y text-base leading-relaxed font-sans disabled:bg-gray-50 disabled:text-gray-500"
@@ -991,7 +968,9 @@ export function AiGraderClient() {
             </div>
 
             {/* Action buttons depending on mode */}
-            {examType === 'IELTS_FULL' ? (
+            <div className="mt-6">
+              <GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt', 'English', '한국어', '中文', '日本語']}>
+                {examType === 'IELTS_FULL' ? (
               fullStep === 1 ? (
                 <button
                   onClick={() => {
@@ -1002,12 +981,12 @@ export function AiGraderClient() {
                     }
                     setFullStep(2)
                   }}
-                  className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
                 >
                   <span>{isEn ? 'Next to Task 2 →' : 'Chuyển sang Task 2 →'}</span>
                 </button>
               ) : (
-                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col gap-2">
                   <button
                     onClick={() => setFullStep(1)}
                     className="py-3 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1.5"
@@ -1034,12 +1013,14 @@ export function AiGraderClient() {
                   gradeEssay()
                 }}
                 disabled={isGrading || isGenerating}
-                className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isGrading ? <Loader2 className="w-5 h-5 animate-spin" /> : (!session ? <LogIn className="w-5 h-5" /> : <Send className="w-5 h-5" />)}
                 {isGrading ? (isEn ? 'Grading...' : 'Đang chấm điểm...') : (session ? (isEn ? 'Submit & Grade' : 'Nộp bài & Chấm điểm') : (isEn ? 'Sign in with Google to Grade' : 'Đăng nhập Google để Chấm điểm'))}
               </button>
             )}
+              </GraderActions>
+            </div>
 
             {session && (
               <p className="text-center text-xs text-slate-500 mt-2">
@@ -1156,7 +1137,7 @@ export function AiGraderClient() {
       )}
 
       {/* Student Management Modal */}
-      <StudentManagementModal 
+      {(showStudentsModal) && (<StudentManagementModal 
         isOpen={showStudentsModal}
         onClose={() => setShowStudentsModal(false)}
         loading={loadingStudents}
@@ -1164,21 +1145,21 @@ export function AiGraderClient() {
         expandedStudentId={expandedStudentId}
         setExpandedStudentId={setExpandedStudentId}
         examTypePrefix="IELTS"
-      />
+      />)}
 
-      <ShareExamModal 
+      {(isShareModalOpen) && (<ShareExamModal 
         isOpen={isShareModalOpen} 
         onClose={() => setIsShareModalOpen(false)} 
         onConfirm={handleCreateSharedLink} 
-      />
+      />)}
     
-      <GradingResultModal 
+      {(isGrading || !!result) && (<GradingResultModal 
         isOpen={isGrading || !!result} 
         onClose={() => { if (!isGrading) setResult(null) }} 
         isGrading={isGrading} 
         result={result} 
         examType={examType || 'IELTS'} 
-      />
+      />)}
 
       {/* Expanded Image Modal */}
       {expandedImage && (
@@ -1196,3 +1177,4 @@ export function AiGraderClient() {
     </div>
   )
 }
+

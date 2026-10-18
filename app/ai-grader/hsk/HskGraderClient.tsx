@@ -8,11 +8,16 @@ import {
 } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
-import { GradingResultModal } from '@/src/components/common/GradingResultModal'
-import { ShareExamModal } from '@/src/components/common/ShareExamModal'
-import { StudentManagementModal } from '@/src/components/common/StudentManagementModal'
+import dynamic from 'next/dynamic'
+import { AnswerInput, AnswerTextarea, GraderActions } from '@/src/components/common/GraderControls'
+
+
 import { usePathname } from 'next/navigation'
 import { HSK_5_FALLBACKS, HSK_6_FALLBACKS } from '@/src/data/fallbackPrompts'
+
+const GradingResultModal = dynamic(() => import('@/src/components/common/GradingResultModal').then(module => module.GradingResultModal))
+const ShareExamModal = dynamic(() => import('@/src/components/common/ShareExamModal').then(module => module.ShareExamModal))
+const StudentManagementModal = dynamic(() => import('@/src/components/common/StudentManagementModal').then(module => module.StudentManagementModal))
 
 type HskMode = 'HSK_5_FULL' | 'HSK_6'
 type PromptObject = { content: string, imageUrl?: string | null }
@@ -268,10 +273,10 @@ export function HskGraderClient() {
   }
 
   // Character counts
-  const hsk5P2Count = countHanzi(hsk5Part2Essay)
-  const hsk5P3Count = countHanzi(hsk5Part3Essay)
+  const hsk5P2Count = useMemo(() => countHanzi(hsk5Part2Essay), [hsk5Part2Essay])
+  const hsk5P3Count = useMemo(() => countHanzi(hsk5Part3Essay), [hsk5Part3Essay])
   const hsk5P1AnsweredCount = Object.values(hsk5Part1Answers).filter(a => a.trim().length > 0).length
-  const hsk6CharCount = countHanzi(hsk6Essay)
+  const hsk6CharCount = useMemo(() => countHanzi(hsk6Essay), [hsk6Essay])
 
   // Compile HSK 5 submission
   const compileHsk5 = () => {
@@ -412,7 +417,7 @@ export function HskGraderClient() {
   }
 
   return (
-    <div className="w-full space-y-3 sm:space-y-6">
+    <div className="w-full min-w-0 space-y-3 sm:space-y-6">
       {/* Top Header & Settings */}
       <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-slate-100">
@@ -429,19 +434,7 @@ export function HskGraderClient() {
           </div>
 
           {/* Action buttons - shown on upper row when screen touches edge (< xl) */}
-          <div className="flex xl:hidden items-center gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 text-xs shrink-0">
-              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
-              <select
-                value={feedbackLang}
-                onChange={e => setFeedbackLang(e.target.value)}
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
-              >
-                <option value="Tiếng Việt">Tiếng Việt</option>
-                <option value="English">English</option>
-                <option value="中文">中文</option>
-              </select>
-            </div>
+          <div className="flex xl:hidden min-w-0 max-w-full items-center gap-1.5 overflow-x-auto snap-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
             <button
               onClick={() => {
@@ -468,7 +461,7 @@ export function HskGraderClient() {
         {/* Tab Selection & Desktop Action Buttons */}
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           {/* Tabs - enlarged on desktop */}
-          <div className="flex items-center gap-2 md:gap-3 overflow-x-auto xl:overflow-x-visible pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 max-w-full overflow-x-auto snap-x xl:overflow-x-visible pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {[
               { key: 'HSK_5_FULL', title: 'HSK 5', subtitle: isEn ? 'Full (Q91-100)' : 'Trọn bộ (Câu 91-100)', max: '100đ' },
               { key: 'HSK_6', title: 'HSK 6', subtitle: isEn ? 'Summary Essay' : 'Tóm tắt 400 chữ', max: '100đ' },
@@ -481,7 +474,7 @@ export function HskGraderClient() {
                     setActiveTab(t.key as any)
                     setError(null)
                   }}
-                  className={`shrink-0 flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all min-w-[80px] md:min-w-[130px] ${
+                  className={`shrink-0 snap-start flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all min-w-[80px] md:min-w-[130px] ${
                     isActive
                       ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -505,18 +498,6 @@ export function HskGraderClient() {
 
           {/* Desktop action buttons - same row as tabs only on large screen (>= xl) */}
           <div className="hidden xl:flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs">
-              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
-              <select
-                value={feedbackLang}
-                onChange={e => setFeedbackLang(e.target.value)}
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
-              >
-                <option value="Tiếng Việt">Tiếng Việt</option>
-                <option value="English">English</option>
-                <option value="中文">中文</option>
-              </select>
-            </div>
 
             <button
               onClick={() => {
@@ -542,12 +523,12 @@ export function HskGraderClient() {
 
         {/* HSK 5 Step Indicator */}
         {activeTab === 'HSK_5_FULL' && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+          <div className="mt-4 pt-4 border-t border-slate-100 flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
             <span className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-blue-600" />
               {isEn ? 'HSK 5 Sections:' : 'Các phần thi HSK 5:'}
             </span>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <div className="flex shrink-0 items-center gap-1.5 text-xs">
               {[
                 { step: 1, label: isEn ? 'Part 1: Word Order (Q91-98)' : 'Phần 1: Sắp xếp (Câu 91-98)', done: hsk5P1AnsweredCount > 0 },
                 { step: 2, label: isEn ? 'Part 2: Keywords (Q99)' : 'Phần 2: Từ khóa (Câu 99)', done: hsk5P2Count > 0 },
@@ -556,7 +537,7 @@ export function HskGraderClient() {
                 <button
                   key={s.step}
                   onClick={() => setHsk5Step(s.step as any)}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
+                  className={`shrink-0 snap-start px-3 py-1 rounded text-xs font-bold transition-colors ${
                     hsk5Step === s.step
                       ? 'bg-blue-600 text-white'
                       : s.done
@@ -573,10 +554,10 @@ export function HskGraderClient() {
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 items-start">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
         {/* Left Column: Prompt Box */}
         <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+          <div className="flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
             <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded border border-blue-100 shrink-0">
               {activeTab === 'HSK_5_FULL'
                 ? (hsk5Step === 1 ? 'Phần 1 (Câu 91–98)' :
@@ -663,10 +644,10 @@ export function HskGraderClient() {
                                 {item.words}
                               </p>
                             </div>
-                            <input
+                            <AnswerInput isEn={isEn} answerLabel={`HSK ${item.id}`}
                               type="text"
                               value={hsk5Part1Answers[item.id] || ''}
-                              onChange={e => setHsk5Part1Answers(prev => ({ ...prev, [item.id]: e.target.value }))}
+                              onValueChange={value => setHsk5Part1Answers(prev => ({ ...prev, [item.id]: value }))}
                               disabled={!session || isGrading}
                               placeholder={!session ? (isEn ? "Sign in to answer..." : "Đăng nhập để điền...") : `Nhập câu hoàn chỉnh cho câu ${item.id}...`}
                               className="w-full px-3 py-2 text-sm bg-slate-50 focus:bg-white rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 transition-all font-sans"
@@ -793,7 +774,7 @@ export function HskGraderClient() {
           <div className={`bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 shadow-xs flex flex-col ${
             isEditorExpanded ? 'flex-1 p-4 sm:p-6' : 'p-4 sm:p-5 min-h-0 lg:min-h-[460px]'
           }`}>
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <div className="flex min-w-0 items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">
                 {activeTab === 'HSK_5_FULL'
                   ? (hsk5Step === 1 ? 'Điền đáp án Câu 91–98' : hsk5Step === 2 ? 'Bài viết Câu 99' : 'Bài viết Câu 100')
@@ -872,10 +853,10 @@ export function HskGraderClient() {
                     {[91, 92, 93, 94, 95, 96, 97, 98].map(qNum => (
                       <div key={qNum} className="flex items-center gap-2">
                         <span className="w-7 text-xs font-bold text-slate-500">{qNum}.</span>
-                        <input
+                        <AnswerInput isEn={isEn} answerLabel={`HSK ${qNum}`}
                           type="text"
                           value={hsk5Part1Answers[qNum] || ''}
-                          onChange={e => setHsk5Part1Answers(prev => ({ ...prev, [qNum]: e.target.value }))}
+                          onValueChange={value => setHsk5Part1Answers(prev => ({ ...prev, [qNum]: value }))}
                           disabled={!session || isGrading}
                           placeholder={!session ? (isEn ? "Sign in to answer..." : "Đăng nhập để điền đáp án...") : `Nhập câu hoàn chỉnh cho câu ${qNum}...`}
                           className="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm outline-none font-sans disabled:bg-slate-50 disabled:text-slate-400"
@@ -885,18 +866,18 @@ export function HskGraderClient() {
                   </div>
                 ) : hsk5Step === 2 ? (
                   /* Step 2: Part 2 - Keywords paragraph */
-                  <textarea
+                  <AnswerTextarea isEn={isEn} answerLabel={"HSK 99"}
                     value={hsk5Part2Essay}
-                    onChange={e => setHsk5Part2Essay(e.target.value)}
+                    onValueChange={value => setHsk5Part2Essay(value)}
                     disabled={!session || isGrading}
                     placeholder={!session ? (isEn ? "Sign in to write essay..." : "Đăng nhập để nhập bài làm...") : "Nhập đoạn văn ngắn khoảng 80 chữ tiếng Hán, kết hợp đủ 5 từ khóa..."}
                     className="flex-1 w-full min-h-[260px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
                   />
                 ) : (
                   /* Step 3: Part 3 - Picture paragraph */
-                  <textarea
+                  <AnswerTextarea isEn={isEn} answerLabel={"HSK 100"}
                     value={hsk5Part3Essay}
-                    onChange={e => setHsk5Part3Essay(e.target.value)}
+                    onValueChange={value => setHsk5Part3Essay(value)}
                     disabled={!session || isGrading}
                     placeholder={!session ? (isEn ? "Sign in to write essay..." : "Đăng nhập để nhập bài làm...") : "Nhập đoạn văn ngắn khoảng 80 chữ tiếng Hán miêu tả tranh..."}
                     className="flex-1 w-full min-h-[260px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
@@ -904,9 +885,9 @@ export function HskGraderClient() {
                 )
               ) : (
                 /* HSK 6 Editor */
-                <textarea
+                <AnswerTextarea isEn={isEn} answerLabel={"HSK 6"}
                   value={hsk6Essay}
-                  onChange={e => setHsk6Essay(e.target.value)}
+                  onValueChange={value => setHsk6Essay(value)}
                   disabled={!session || isGrading}
                   placeholder={!session ? (isEn ? "Sign in to write summary..." : "Đăng nhập để nhập bài tóm tắt...") : "Nhập bài văn tóm tắt khoảng 400 chữ tiếng Hán (tự đặt tiêu đề, không chép nguyên văn, không bình luận cá nhân)..."}
                   className="flex-1 w-full min-h-[280px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
@@ -916,8 +897,9 @@ export function HskGraderClient() {
 
             {/* Bottom Controls */}
             <div className="mt-5 pt-4 border-t border-slate-100">
-              {activeTab === 'HSK_5_FULL' ? (
-                <div className="flex items-center justify-between gap-3">
+              <GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt', 'English', '中文']}>
+                {activeTab === 'HSK_5_FULL' ? (
+                <div className="flex flex-col gap-2">
                   {hsk5Step > 1 ? (
                     <button
                       type="button"
@@ -927,7 +909,7 @@ export function HskGraderClient() {
                       <ArrowLeft className="w-3.5 h-3.5" />
                       {isEn ? `Back to Part ${hsk5Step - 1}` : `Quay lại Phần ${hsk5Step - 1}`}
                     </button>
-                  ) : <div />}
+                  ) : null}
 
                   {hsk5Step < 3 ? (
                     <button
@@ -974,6 +956,7 @@ export function HskGraderClient() {
                         : (isEn ? 'Submit & Grade HSK 6 (100 pts)' : 'Nộp bài & Chấm HSK 6 (100đ)'))}
                 </button>
               )}
+              </GraderActions>
 
               {session && (
                 <p className="text-center text-[11px] text-slate-400 mt-2">
@@ -1093,7 +1076,7 @@ export function HskGraderClient() {
       )}
 
       {/* Student Management Modal */}
-      <StudentManagementModal
+      {(showStudentsModal) && (<StudentManagementModal
         isOpen={showStudentsModal}
         onClose={() => setShowStudentsModal(false)}
         loading={loadingStudents}
@@ -1101,23 +1084,24 @@ export function HskGraderClient() {
         expandedStudentId={expandedStudentId}
         setExpandedStudentId={setExpandedStudentId}
         examTypePrefix="HSK"
-      />
+      />)}
 
       {/* Share Exam Modal */}
-      <ShareExamModal
+      {(isShareModalOpen) && (<ShareExamModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         onConfirm={handleCreateSharedLink}
-      />
+      />)}
 
       {/* Result Modal */}
-      <GradingResultModal
+      {(isGrading || !!result) && (<GradingResultModal
         isOpen={isGrading || !!result}
         onClose={() => setResult(null)}
         isGrading={isGrading}
         result={result}
         examType={resultExamType}
-      />
+      />)}
     </div>
   )
 }
+

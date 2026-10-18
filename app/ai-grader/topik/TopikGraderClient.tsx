@@ -8,15 +8,20 @@ import {
 } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
-import { ShareExamModal } from '@/src/components/common/ShareExamModal'
-import { StudentManagementModal } from '@/src/components/common/StudentManagementModal'
-import { GradingResultModal } from '@/src/components/common/GradingResultModal'
+
+
+import dynamic from 'next/dynamic'
+import { AnswerTextarea, GraderActions } from '@/src/components/common/GraderControls'
 import { usePathname } from 'next/navigation'
 import { TOPIK_51_FALLBACKS, TOPIK_52_FALLBACKS, TOPIK_53_FALLBACKS, TOPIK_54_FALLBACKS } from '@/src/data/fallbackPrompts'
 
 export type TopikQuestionKey = 'TOPIK_51' | 'TOPIK_52' | 'TOPIK_53' | 'TOPIK_54'
 export type TopikMode = TopikQuestionKey | 'TOPIK_FULL'
 export type PromptObject = { content: string; imageUrl?: string | null; imageDescription?: string | null }
+
+const GradingResultModal = dynamic(() => import('@/src/components/common/GradingResultModal').then(module => module.GradingResultModal))
+const ShareExamModal = dynamic(() => import('@/src/components/common/ShareExamModal').then(module => module.ShareExamModal))
+const StudentManagementModal = dynamic(() => import('@/src/components/common/StudentManagementModal').then(module => module.StudentManagementModal))
 
 interface TabMeta {
   key: TopikMode
@@ -566,7 +571,7 @@ export function TopikGraderClient() {
   }
 
   return (
-    <div className="w-full space-y-3 sm:space-y-6">
+    <div className="w-full min-w-0 space-y-3 sm:space-y-6">
       {/* Top Card: Navigation & Settings */}
       <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-slate-100">
@@ -583,20 +588,7 @@ export function TopikGraderClient() {
           </div>
 
           {/* Action buttons - shown on upper row when screen touches edge (< xl) */}
-          <div className="flex xl:hidden items-center gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="flex items-center gap-1 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 text-xs shrink-0">
-              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
-              <select
-                value={feedbackLang}
-                onChange={e => setFeedbackLang(e.target.value)}
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
-              >
-                <option value="Tiếng Việt">Tiếng Việt</option>
-                <option value="English">English</option>
-                <option value="한국어">한국어</option>
-                <option value="中文">中文</option>
-              </select>
-            </div>
+          <div className="flex xl:hidden min-w-0 max-w-full items-center gap-1.5 overflow-x-auto snap-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
             <button
               onClick={() => {
@@ -623,7 +615,7 @@ export function TopikGraderClient() {
         {/* Tab Selection & Desktop Action Buttons */}
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           {/* Tabs - enlarged on desktop with plenty of space */}
-          <div className="flex items-center gap-2 md:gap-3 overflow-x-auto xl:overflow-x-visible pb-1 xl:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 max-w-full overflow-x-auto snap-x xl:overflow-x-visible pb-1 xl:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {TOPIK_TABS.map(t => {
               const isActive = activeTab === t.key
               return (
@@ -633,7 +625,7 @@ export function TopikGraderClient() {
                     setActiveTab(t.key)
                     setGeneralError(null)
                   }}
-                  className={`shrink-0 flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all ${
+                  className={`shrink-0 snap-start flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all ${
                     isActive
                       ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -657,19 +649,6 @@ export function TopikGraderClient() {
 
           {/* Desktop action buttons - same row as tabs only on large screen (>= xl) */}
           <div className="hidden xl:flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-xs">
-              <span className="font-semibold text-slate-600">{isEn ? 'Lang:' : 'Ngôn ngữ:'}</span>
-              <select
-                value={feedbackLang}
-                onChange={e => setFeedbackLang(e.target.value)}
-                className="bg-transparent font-medium text-slate-800 outline-none cursor-pointer"
-              >
-                <option value="Tiếng Việt">Tiếng Việt</option>
-                <option value="English">English</option>
-                <option value="한국어">한국어</option>
-                <option value="中文">中文</option>
-              </select>
-            </div>
 
             <button
               onClick={() => {
@@ -695,12 +674,12 @@ export function TopikGraderClient() {
 
         {/* Full Test Step Indicator */}
         {activeTab === 'TOPIK_FULL' && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+          <div className="mt-4 pt-4 border-t border-slate-100 flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
             <span className="text-xs font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-blue-600" />
               {isEn ? 'Full Test Flow:' : 'Tiến trình thi trọn bộ:'}
             </span>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <div className="flex shrink-0 items-center gap-1.5 text-xs">
               {[
                 { step: 1, label: 'Câu 51 (10đ)', done: !!(answers51.a || answers51.b) },
                 { step: 2, label: 'Câu 52 (10đ)', done: !!(answers52.a || answers52.b) },
@@ -731,10 +710,10 @@ export function TopikGraderClient() {
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 items-start">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
         {/* Left Column: Prompt Box */}
         <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+          <div className="flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
             <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded border border-blue-100 shrink-0">
               {effectiveQuestionKey === 'TOPIK_51' ? 'Câu 51 (10đ)' :
                effectiveQuestionKey === 'TOPIK_52' ? 'Câu 52 (10đ)' :
@@ -857,7 +836,7 @@ export function TopikGraderClient() {
           <div className={`bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 shadow-xs flex flex-col ${
             isEditorExpanded ? 'flex-1 p-4 sm:p-6' : 'p-4 sm:p-5 min-h-0 lg:min-h-[460px]'
           }`}>
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+            <div className="flex min-w-0 items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">
                 {isEn ? `Your Answer for ${effectiveQuestionKey.replace('_', ' ')}` : `Bài làm ${effectiveQuestionKey.replace('TOPIK_', 'Câu ')}`}
               </h3>
@@ -925,10 +904,9 @@ export function TopikGraderClient() {
                       <span>Đáp án chỗ trống ㉠:</span>
                       <span className="text-[11px] text-slate-400 font-normal">Tối đa 5 điểm</span>
                     </label>
-                    <textarea
+                    <AnswerTextarea isEn={isEn} answerLabel={"TOPIK ㉠"}
                       value={effectiveQuestionKey === 'TOPIK_51' ? answers51.a : answers52.a}
-                      onChange={e => {
-                        const v = e.target.value
+                      onValueChange={v => {
                         if (effectiveQuestionKey === 'TOPIK_51') setAnswers51(p => ({ ...p, a: v }))
                         else setAnswers52(p => ({ ...p, a: v }))
                       }}
@@ -944,10 +922,9 @@ export function TopikGraderClient() {
                       <span>Đáp án chỗ trống ㉡:</span>
                       <span className="text-[11px] text-slate-400 font-normal">Tối đa 5 điểm</span>
                     </label>
-                    <textarea
+                    <AnswerTextarea isEn={isEn} answerLabel={"TOPIK ㉡"}
                       value={effectiveQuestionKey === 'TOPIK_51' ? answers51.b : answers52.b}
-                      onChange={e => {
-                        const v = e.target.value
+                      onValueChange={v => {
                         if (effectiveQuestionKey === 'TOPIK_51') setAnswers51(p => ({ ...p, b: v }))
                         else setAnswers52(p => ({ ...p, b: v }))
                       }}
@@ -960,9 +937,9 @@ export function TopikGraderClient() {
                 </div>
               ) : effectiveQuestionKey === 'TOPIK_53' ? (
                 <div className="flex-1 flex flex-col space-y-2">
-                  <textarea
+                  <AnswerTextarea isEn={isEn} answerLabel={"TOPIK 53"}
                     value={essay53}
-                    onChange={e => setEssay53(e.target.value)}
+                    onValueChange={value => setEssay53(value)}
                     disabled={!session || isGrading}
                     placeholder={!session ? (isEn ? "Sign in to write essay..." : "Đăng nhập để nhập bài làm...") : "Nhập bài văn phân tích số liệu biểu đồ (200~300 ký tự, dùng đuôi câu viết -ㄴ/는다)..."}
                     className="flex-1 w-full min-h-[220px] sm:min-h-[260px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
@@ -970,9 +947,9 @@ export function TopikGraderClient() {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col space-y-2">
-                  <textarea
+                  <AnswerTextarea isEn={isEn} answerLabel={"TOPIK 54"}
                     value={essay54}
-                    onChange={e => setEssay54(e.target.value)}
+                    onValueChange={value => setEssay54(value)}
                     disabled={!session || isGrading}
                     placeholder={!session ? (isEn ? "Sign in to write essay..." : "Đăng nhập để nhập bài làm...") : "Nhập bài văn nghị luận xã hội (600~700 ký tự, bố cục 3 phần, dùng từ vựng cao cấp)..."}
                     className="flex-1 w-full min-h-[260px] sm:min-h-[320px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
@@ -983,9 +960,10 @@ export function TopikGraderClient() {
 
             {/* Bottom Actions */}
             <div className="mt-5 pt-4 border-t border-slate-100">
-              {activeTab === 'TOPIK_FULL' ? (
+              <GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt', 'English', '한국어', '中文']}>
+                {activeTab === 'TOPIK_FULL' ? (
                 /* Full test step navigation */
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-2">
                   {fullTestStep > 1 ? (
                     <button
                       type="button"
@@ -995,7 +973,7 @@ export function TopikGraderClient() {
                       <ArrowLeft className="w-3.5 h-3.5" />
                       {isEn ? `Back to Q${50 + fullTestStep - 1}` : `Quay lại Câu ${50 + fullTestStep - 1}`}
                     </button>
-                  ) : <div />}
+                  ) : null}
 
                   {fullTestStep < 4 ? (
                     <button
@@ -1043,6 +1021,7 @@ export function TopikGraderClient() {
                         : (isEn ? `Submit & Grade ${activeTab.replace('_', ' ')}` : `Nộp bài & Chấm ${activeTab.replace('TOPIK_', 'Câu ')}`))}
                 </button>
               )}
+              </GraderActions>
 
               {session && (
                 <p className="text-center text-[11px] text-slate-400 mt-2">
@@ -1162,7 +1141,7 @@ export function TopikGraderClient() {
       )}
 
       {/* Student Management Modal */}
-      <StudentManagementModal
+      {(showStudentsModal) && (<StudentManagementModal
         isOpen={showStudentsModal}
         onClose={() => setShowStudentsModal(false)}
         loading={loadingStudents}
@@ -1170,23 +1149,24 @@ export function TopikGraderClient() {
         expandedStudentId={expandedStudentId}
         setExpandedStudentId={setExpandedStudentId}
         examTypePrefix="TOPIK"
-      />
+      />)}
 
       {/* Share Exam Modal */}
-      <ShareExamModal
+      {(isShareModalOpen) && (<ShareExamModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         onConfirm={handleCreateSharedLink}
-      />
+      />)}
 
       {/* Grading Result Modal */}
-      <GradingResultModal
+      {(isGrading || !!result) && (<GradingResultModal
         isOpen={isGrading || !!result}
         onClose={() => setResult(null)}
         isGrading={isGrading}
         result={result}
         examType={resultExamType}
-      />
+      />)}
     </div>
   )
 }
+
