@@ -7,8 +7,10 @@ export function FloatingToolPanel({ title, onClose, children, className='' }: {t
     const previous=document.activeElement as HTMLElement|null
     panel.current?.focus({preventScroll:true})
     const resize=()=>{if(panel.current)panel.current.style.maxHeight=`${Math.max(220,(window.visualViewport?.height || window.innerHeight)-32)}px`}
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!event.defaultPrevented&&!document.querySelector('dialog[open]'))close.current()}
     resize();window.visualViewport?.addEventListener('resize',resize)
-    return()=>{window.visualViewport?.removeEventListener('resize',resize);if(previous?.isConnected)previous.focus({preventScroll:true})}
+    document.addEventListener('keydown',escape)
+    return()=>{document.removeEventListener('keydown',escape);window.visualViewport?.removeEventListener('resize',resize);if(previous?.isConnected)previous.focus({preventScroll:true})}
   },[])
   return <div ref={panel} role="dialog" aria-label={title} aria-modal="false" tabIndex={-1} data-tool-panel
     onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();close.current()}}}

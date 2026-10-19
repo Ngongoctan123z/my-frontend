@@ -255,6 +255,7 @@ test('upload-only saves audio before AI; failed storage does not call providers 
 test('live delivery dots use 1.5 seconds then one second and keep filler/repeated words',async()=>{
  const h=await fixture(),lib=await h.loadModule('src/lib/speechDelivery.ts')
  assert.deepEqual([0,1499,1500,2499,2500,3500].map(lib.pauseDotCount),[0,0,1,1,2,3])
+ assert.equal(lib.pauseDots(15500).split(' ').length,15)
  const delivery={recognitionAvailable:true,segments:[{text:'um I I',atMs:100,final:true},{text:'enjoy reading',atMs:3000,final:true}],pauses:[{startMs:400,durationMs:2500}]}
  assert.equal(lib.deliveryText(delivery),'um I I . . enjoy reading')
  h.body.items[0].delivery=delivery

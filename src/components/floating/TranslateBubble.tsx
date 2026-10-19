@@ -303,11 +303,11 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
           
           {/* Language Selector Bar */}
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-xs">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-xs gap-2">
             <select
-              value={fromLang}
+              aria-label="Ngôn ngữ nguồn" value={fromLang}
               onChange={(e) => setFromLang(e.target.value)}
-              className="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer py-1 truncate max-w-[130px] rounded-lg"
+              className="min-w-0 flex-1 bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer py-1 truncate max-w-[130px] rounded-lg"
             >
               {LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>{l.name}</option>
@@ -324,9 +324,9 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
             </button>
 
             <select
-              value={toLang}
+              aria-label="Ngôn ngữ đích" value={toLang}
               onChange={(e) => setToLang(e.target.value)}
-              className="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer py-1 truncate max-w-[130px] text-right rounded-lg"
+              className="min-w-0 flex-1 bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer py-1 truncate max-w-[130px] text-right rounded-lg"
             >
               {LANGUAGES.filter(l => l.code !== 'auto').map((l) => (
                 <option key={l.code} value={l.code}>{l.name}</option>

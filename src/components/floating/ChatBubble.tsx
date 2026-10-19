@@ -470,9 +470,9 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
 
                 {/* Send Button */}
                 <button 
-                  type="submit"
+                  type="submit" aria-label="Gửi tin nhắn"
                   disabled={(!input.trim() && !selectedFile) || loading}
-                  className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center shrink-0 shadow-xs active:scale-95"
+                  className="h-11 w-11 p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center shrink-0 shadow-xs active:scale-95"
                 >
                   {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 </button>

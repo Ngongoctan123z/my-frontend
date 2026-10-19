@@ -54,8 +54,9 @@ try{
   const dialog=page.getByRole('dialog');assert.equal(await dialog.locator('article').count(),5)
   assert.equal(await dialog.getByText('Câu mẫu tham khảo',{exact:true}).count(),5)
   assert.equal(await dialog.getByRole('link',{name:'Unsplash',exact:true}).count(),5)
-  await page.waitForFunction(()=>[...document.querySelectorAll('[role="dialog"] img')].every(img=>img.complete&&img.naturalWidth>0))
-  await layout(page);await page.screenshot({path:output+'/photos-'+width+'.png',fullPage:true})
+  for(const image of await dialog.locator('img').all()){await image.scrollIntoViewIfNeeded();await image.evaluate(img=>img.complete&&img.naturalWidth?true:new Promise((resolve,reject)=>{img.onload=()=>resolve(true);img.onerror=()=>reject(new Error('Photo failed to load'))}))}
+  await dialog.locator('article').first().scrollIntoViewIfNeeded()
+  await layout(page);await page.screenshot({path:output+'/photos-'+width+'.png'})
   await page.keyboard.press('Escape');await page.getByLabel('Tìm bộ ảnh TOEIC').fill('Bộ ảnh 50')
   assert.equal(await page.getByRole('button',{name:/Xem đủ 5 ảnh/}).count(),1)
   await page.close()
@@ -86,7 +87,7 @@ try{
    if(title==='Dịch thuật nhanh'){await panel.getByLabel('Văn bản cần dịch').fill('Hello');await panel.getByRole('button',{name:'Dịch ngay',exact:true}).click();await panel.getByText('Xin chào',{exact:true}).waitFor()}
    if(title==='Hỗ trợ VNDocs')await panel.getByLabel('Tin nhắn hỗ trợ').fill('Draft only; do not send')
    await layout(page);await page.screenshot({path:output+'/'+label+'-'+width+'.png'})
-   await page.keyboard.press('Escape');assert.equal(await panel.count(),0)
+   await page.keyboard.press('Escape');await panel.waitFor({state:'detached'})
   }
   assert.equal(await page.evaluate(()=>window.requests.some(r=>r.url==='/api/chat'&&r.method==='POST')),false)
   await page.close()

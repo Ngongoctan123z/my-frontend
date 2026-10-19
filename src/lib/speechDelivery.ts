@@ -5,7 +5,7 @@ export type SpeakingDelivery = {
 }
 export const PAUSE_START_MS = 1500
 export const pauseDotCount = (durationMs: number) => durationMs < PAUSE_START_MS ? 0 : 1 + Math.floor((durationMs - PAUSE_START_MS) / 1000)
-export const pauseDots = (durationMs: number) => Array(Math.min(12,pauseDotCount(durationMs))).fill('.').join(' ')
+export const pauseDots = (durationMs: number) => Array(Math.min(300,pauseDotCount(durationMs))).fill('.').join(' ')
 export function deliveryText(delivery?: SpeakingDelivery) {
   if(!delivery)return ''
   const events=[...delivery.segments.map(s=>({at:s.atMs,text:s.text})),...delivery.pauses.map(p=>({at:p.startMs,text:pauseDots(p.durationMs)}))]
