@@ -129,7 +129,7 @@ export function HskGraderClient() {
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 7)
     }).catch(() => {})
-  }, [accountEmail])
+  }, [session])
 
   const isPromptDone = (content?: string, historyList = history) => {
     if (!content) return false
@@ -359,6 +359,7 @@ export function HskGraderClient() {
         essay: compiledEssay,
         result: data
       })
+      void loadHistory()
 
       gradingInFlight.current = false
       setIsGrading(false)
@@ -370,8 +371,7 @@ export function HskGraderClient() {
       setHsk5Step(1)
 
       // Tự động load đề mới chưa từng làm
-      await generatePrompt('HSK_5')
-      await loadHistory()
+      void generatePrompt('HSK_5')
     } catch (err: any) {
       setError(err.message || 'Lỗi khi chấm bài HSK 5.')
     } finally {
@@ -424,7 +424,7 @@ export function HskGraderClient() {
 
       // Keep the source passage and summary available for review and revision.
       // History refresh must never select a different prompt.
-      await loadHistory()
+      void loadHistory()
     } catch (err: any) {
       setError(err.message || 'Lỗi khi chấm bài HSK 6.')
     } finally {
