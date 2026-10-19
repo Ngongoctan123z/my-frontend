@@ -31,7 +31,11 @@
   ],
   "r2_buckets": [
     {
-      "binding": "SPEAKING_AUDIO"
+      "binding": "SPEAKING_AUDIO",
+      "bucket_name": "vndocs-speaking-audio"
     }
-  ]
+  ],
+  "build": {
+    "command": "node scripts/ensure-speaking-r2.mjs"
+  }
 }
