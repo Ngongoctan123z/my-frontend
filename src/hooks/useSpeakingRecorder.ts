@@ -58,7 +58,7 @@ export function useSpeakingRecorder(options: Options) {
       stats.current = { speechMs: 0, lastFrame: Date.now(), silenceStarted: 0, heard: false, pauseCount: 0, longPauses: 0, pauseMs: 0 }
       setSignalDetected(false); setElapsedMs(0)
       mediaRecorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data) }
-      mediaRecorder.onerror = () => { discard.current = true; stop(); if (mounted.current) { setError('Thiết bị đã ngắt thu âm. Vui lòng kiểm tra micro và thử lại.'); setRecording(false); callbacks.current.onActiveChange(false) } }
+      mediaRecorder.onerror = () => { if (token !== generation.current) return; discard.current = true; stop(); if (mounted.current) { setError('Thiết bị đã ngắt thu âm. Vui lòng kiểm tra micro và thử lại.'); setRecording(false); callbacks.current.onActiveChange(false) } }
       mediaRecorder.onstop = () => {
         if (!mounted.current || token !== generation.current || discard.current) return
         release(); setRecording(false); callbacks.current.onActiveChange(false)

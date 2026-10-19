@@ -79,6 +79,14 @@ function expand(prompt: SpeakingPrompt, part: PracticePart, start: number, full:
 /** Build a real question queue; TOEIC groups expand to 2+2+3+3+1 questions. */
 export function buildSpeakingSet(exam: SpeakingExam, tab: SpeakingTab, catalog = fallbackCatalog(exam), selectedId?: string, random = Math.random): SpeakingQuestion[] {
   const pools = mergeCatalog(exam, catalog)
+  if (tab === 'FULL') {
+    // Individual admin questions remain available in practice; a full test needs
+    // complete question groups and linked IELTS discussion topics.
+    for (const part of ['PART_1', 'PART_3', 'Q5_7', 'Q8_10'] as PracticePart[]) {
+      if (pools[part]) pools[part] = pools[part]!.filter(prompt => (prompt.subQuestions?.length || 0) >= (part === 'PART_1' || part === 'PART_3' ? 3 : 2))
+    }
+    if (exam === 'IELTS_SPEAKING') pools.PART_2 = pools.PART_2?.filter(prompt => prompt.setId && pools.PART_3?.some(discussion => discussion.setId === prompt.setId))
+  }
   const pick = (part: PracticePart, id?: string) => {
     const pool = pools[part] || []
     return pool.find(p => p.id === id) || pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))]

@@ -44,6 +44,15 @@ test('group practice expands real questions; old admin part names remain compati
   assert.deepEqual(Array.from(h.body.items, x => x.question.questionNumber), [5,6,7])
   assert.equal(h.lib.canonicalPart('Q4_6'), 'Q5_7'); assert.equal(h.lib.canonicalPart('Q10_11'), 'Q11')
 })
+test('incomplete admin groups cannot truncate full tests or detach IELTS Part 3', async () => {
+  const h = await fixture('IELTS_SPEAKING','FULL'), ielts=h.lib.fallbackCatalog('IELTS_SPEAKING')
+  for(const part of ['PART_1','PART_2','PART_3']) ielts[part].unshift({...ielts[part][0],id:'admin-'+part,setId:'unpaired-'+part,subQuestions:[]})
+  const q=h.lib.buildSpeakingSet('IELTS_SPEAKING','FULL',ielts,'admin-PART_2',()=>0)
+  assert.equal(q.length,11);assert.equal(q[6].setId,q[7].setId)
+  const toeic=h.lib.fallbackCatalog('TOEIC_SPEAKING')
+  for(const part of ['Q5_7','Q8_10'])toeic[part].unshift({...toeic[part][0],id:'admin-'+part,subQuestions:[]})
+  assert.equal(h.lib.buildSpeakingSet('TOEIC_SPEAKING','FULL',toeic,undefined,()=>0).length,11)
+})
 test('anonymous submissions, history and coach are rejected before AI or quota', async () => {
   const h = await fixture(); h.state.email = null
   for (const body of [h.body, {action:'report'}, {action:'chat',recordingId:'x',message:'Hi'}, {action:'chat_history',recordingId:'x'}]) assert.equal((await h.post(body)).response.status, 401)

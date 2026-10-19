@@ -217,7 +217,7 @@ export function SpeakingClient() {
     resetAssessment(); setResultOpen(false)
   }
   const pickPart = tab === 'FULL' ? exam === 'IELTS_SPEAKING' ? 'PART_2' : 'Q11' : tab
-  const choices = (catalogs[exam][pickPart] || []).filter(prompt => `${prompt.topic} ${prompt.questionEn}`.toLowerCase().includes(keyword.trim().toLowerCase()))
+  const choices = (catalogs[exam][pickPart] || []).filter(prompt => (tab !== 'FULL' || exam !== 'IELTS_SPEAKING' || (prompt.setId && catalogs[exam].PART_3?.some(p => p.setId === prompt.setId && (p.subQuestions?.length || 0) >= 3))) && `${prompt.topic} ${prompt.questionEn}`.toLowerCase().includes(keyword.trim().toLowerCase()))
 
   if (status === 'loading' || loadedOwner.current !== owner || !current) return <p className="p-6 text-center text-sm text-slate-500">Đang chuẩn bị đề Speaking…</p>
   return <div className="mx-auto w-full min-w-0 max-w-6xl space-y-4 sm:space-y-5">

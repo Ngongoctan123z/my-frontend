@@ -101,7 +101,7 @@ try{
   await page.getByText('Đã phân tích nội dung bài nói',{exact:true}).waitFor();assert.equal(await dialog.getByText('Band tham khảo · câu luyện',{exact:true}).count(),0);
   assert.equal(await page.evaluate(()=>window.requests.filter(r=>r.action==='begin_submission').length),1,'Retry reuses reservation');
   await dialog.getByLabel('Nghe lại bài đã chấm',{exact:true}).waitFor();await assertLayout(page);await page.screenshot({path:`${output}/result-${width}.png`,fullPage:true});
-  await page.keyboard.press('Escape');await page.getByRole('button',{name:'Lịch sử',exact:true}).click();await page.getByRole('button',{name:'Xem kết quả',exact:true}).click();await dialog.waitFor();
+  await page.keyboard.press('Escape');await page.getByRole('button',{name:'Lịch sử',exact:true}).click();await page.getByRole('dialog',{name:'Lịch sử Speaking',exact:true}).getByRole('button',{name:'Xem kết quả',exact:true}).click();await dialog.waitFor();
   await page.evaluate(()=>window.changeOwner('other-user@example.test'));await dialog.waitFor({state:'hidden'});assert.equal(await page.getByLabel('Nghe lại bản thu',{exact:true}).count(),0,'Other account cannot see previous audio');
   await page.getByRole('button',{name:'Lịch sử',exact:true}).click();await page.getByText('Chưa có bài Speaking đã nộp.',{exact:true}).waitFor();await page.keyboard.press('Escape');
   assert.deepEqual(errors,[]);await page.screenshot({path:`${output}/speaking-${width}.png`,fullPage:true});await context.close();console.log(`PASS Speaking recording, retry, storage, history, account privacy and layout at ${width}px`);
