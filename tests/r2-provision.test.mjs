@@ -19,6 +19,9 @@ test('first deployment creates only the named Speaking bucket',async()=>{
 test('permission errors stop provisioning before attempting a write',async()=>{
  await assert.rejects(run([{status:403,body:{success:false,errors:[{code:10000,message:'Authentication error'}]}}]),/R2 permissions/)
 })
+test('R2 entitlement error points to account activation rather than token permissions',async()=>{
+ await assert.rejects(run([{status:403,body:{success:false,errors:[{code:10042,message:'NotEntitled'}]}}]),/not activated.*10042.*r2\/overview/)
+})
 test('concurrent builds safely reuse a bucket created during deployment',async()=>{
  const r=await run([{status:404,body:{success:false}},{status:409,body:{success:false}},{status:200,body:{success:true}}]);assert.equal(r.calls.length,3)
 })

@@ -19,6 +19,9 @@ if (existing.response.ok && existing.data.success) {
   console.log(`Private Speaking R2 bucket ready: ${bucket}`)
   process.exit(0)
 }
+if (existing.data.errors?.some(error => Number(error.code) === 10042)) {
+  throw new Error(`Speaking R2 is not activated for this account (10042). Enable R2 at https://dash.cloudflare.com/${account}/r2/overview and retry deployment.`)
+}
 if (existing.response.status !== 404 && !existing.data.errors?.some(error => /not found|does not exist|no such bucket/i.test(error.message || ''))) {
   throw new Error(`Unable to inspect Speaking R2 bucket (HTTP ${existing.response.status}; codes ${existing.data.errors?.map(error => error.code).join(',') || 'unknown'}). Check the Cloudflare build token's R2 permissions.`)
 }
