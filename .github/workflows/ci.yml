@@ -52,6 +52,9 @@ jobs:
       - name: Test canonical Writing admin overview
         run: node --experimental-vm-modules tests/writing-overview.test.mjs
 
+      - name: Test archived 2026 exam files, routes and pagination
+        run: EXAM_ARCHIVE_VERIFY_ASSETS=1 node tests/exams-2026.test.mjs
+
       - name: Test build-time SEO behavior
         run: npm run test:build-seo
 
@@ -76,6 +79,9 @@ jobs:
       - name: Test photo bank, exam links, live speech and floating tools
         run: node tests/phase2-ui.test.mjs
 
+      - name: Test legacy exam admin and archived PDF catalog
+        run: node tests/exams-2026-ui.test.mjs
+
       - name: Test unified Writing admin and legacy deep links
         run: node tests/admin-writing-ui.test.mjs
 
@@ -93,6 +99,7 @@ jobs:
             test-results/speaking-ui
             test-results/phase2-ui
             test-results/admin-writing-ui
+            test-results/exams-2026-ui
           if-no-files-found: ignore
 
       # Cloudflare Workers Builds deploys main through the existing GitHub App

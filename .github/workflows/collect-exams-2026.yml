@@ -1,11 +1,6 @@
 name: Collect 2026 exam PDFs
 
 on:
-  pull_request:
-    paths:
-      - resources/exams-2026/sources.json
-      - scripts/collect-exams-2026.py
-      - .github/workflows/collect-exams-2026.yml
   push:
     branches: [codex/exams-2026]
     paths:
@@ -17,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: collect-exams-2026
+  group: collect-exams-2026-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -39,6 +34,15 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p /tmp/exam-collection-save
+          cp -R public/exam-papers /tmp/exam-collection-save/
+          cp src/data/exams2026.json /tmp/exam-collection-save/
+          cp resources/exams-2026/collection-report.json /tmp/exam-collection-save/
+          git fetch origin codex/exams-2026
+          git reset --hard FETCH_HEAD
+          cp -R /tmp/exam-collection-save/exam-papers public/
+          cp /tmp/exam-collection-save/exams2026.json src/data/
+          cp /tmp/exam-collection-save/collection-report.json resources/exams-2026/
           git add -f public/exam-papers/2026/*.pdf
           git add src/data/exams2026.json resources/exams-2026/collection-report.json
           git diff --cached --quiet && exit 0

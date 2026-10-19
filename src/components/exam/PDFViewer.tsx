@@ -6,7 +6,7 @@ import 'react-pdf/dist/Page/TextLayer.css'
 import { Button } from '../ui/Button'
 
 // Use unpkg CDN which worked previously
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+pdfjs.GlobalWorkerOptions.workerSrc = '/exam-media/pdf.worker.min.mjs'
 
 
 type Props = {

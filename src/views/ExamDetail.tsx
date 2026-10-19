@@ -51,8 +51,8 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
   const title = exam?.title || `Đề thi ${subjectLabel} ${examTypeLabel(type) === 'Vào 10' ? 'vào 10' : 'THPT'} ${provinceLabel} ${yearNumber}`
 
   useSeo(
-    `${title} | Tải PDF`,
-    `${title}. Xem online và tải PDF hoàn toàn miễn phí.`,
+    exam?.seoTitle || `${title} | Tải PDF`,
+    exam?.sourceUrl && exam?.description ? exam.description : `${title}. Xem online và tải PDF hoàn toàn miễn phí.`,
   )
 
   useEffect(() => {
@@ -218,15 +218,16 @@ export function ExamDetail({ initialExam, initialRelated, slug }: { initialExam:
         <Breadcrumb
           items={[
           { label: 'Trang chủ', to: '/' },
-          { label: examTypeLabel(type), to: `/category/${examType}` },
-          { label: subjectLabel, to: `/exams/${examType}/${subject}` },
-          { label: provinceLabel, to: `/exams/${examType}/${subject}/${province}` },
+          { label: examTypeLabel(type), to: `/tai-lieu?examType=${encodeURIComponent(type)}` },
+          { label: subjectLabel, to: `/tai-lieu?examType=${encodeURIComponent(type)}&subject=${encodeURIComponent(subjectLabel)}` },
+          { label: provinceLabel, to: `/tai-lieu?examType=${encodeURIComponent(type)}&subject=${encodeURIComponent(subjectLabel)}&province=${encodeURIComponent(provinceLabel)}` },
           { label: String(yearNumber) },
         ]}
       />
       <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-xl font-bold md:text-2xl leading-tight">{title}</h1>
+          {exam.sourceUrl && <p className="mt-2 text-xs leading-relaxed text-ink-muted">Nguồn: <a href={exam.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{exam.sourcePublisher || 'Trang công bố đề'}</a>{exam.pdfPageCount ? ` · PDF ${exam.pdfPageCount} trang` : ''}</p>}
           <p className="mt-1 text-ink-muted text-xs">
             Mã đề: <span className="font-mono text-[var(--color-primary)]">{exam.examCode}</span> · {formatNumber(exam.downloadCount)} lượt tải · {formatNumber(exam.viewCount)} lượt xem
           </p>

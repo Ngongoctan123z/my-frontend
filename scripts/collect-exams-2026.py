@@ -22,7 +22,9 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'public/exam-papers/2026'
 MAX_BYTES = 22 * 1024 * 1024
 SOURCE_HOSTS = {'thi.tuyensinh247.com', 'www.hanoi.edu.vn', 'xaydungchinhsach.chinhphu.vn'}
-ASSET_SUFFIXES = ('chinhphu.vn', 'tuyensinh247.com', 'cdnchinhphu.vn', 'shieldix.app', 'moet.gov.vn', 'hanoi.edu.vn', 'mediacdn.vn')
+ASSET_SUFFIXES = ('toanmath.com', 'drive.google.com', 'drive.usercontent.google.com', 'googleusercontent.com', 'chinhphu.vn', 'tuyensinh247.com', 'cdnchinhphu.vn', 'shieldix.app', 'moet.gov.vn', 'hanoi.edu.vn', 'mediacdn.vn')
+EXISTING_FILE = ROOT / 'src/data/exams2026.json'
+EXISTING = {row['id']: row for row in json.loads(EXISTING_FILE.read_text())} if EXISTING_FILE.exists() else {}
 SELECTORS = ['#mainContent', '#news-content', '#news_content', '#news_detail', '.content_detail', '.news-content', '.news-detail-content', '.news_detail_content', '#main-detail-body', '.detail__content', '.detail-content', '[itemprop="articleBody"]', '.singular-content']
 
 
@@ -99,6 +101,12 @@ def article_assets(row):
 
 def collect(row):
     try:
+        previous = EXISTING.get(row['id'])
+        previous_file = OUT / (row['slug'] + '.pdf')
+        if previous and previous.get('sourceUrl') == row['sourceUrl'] and previous_file.exists():
+            payload = previous_file.read_bytes()
+            if hashlib.sha256(payload).hexdigest() == previous.get('assetSha256'):
+                return {**previous, **row, 'fileUrl': previous['fileUrl']}, None
         pdfs, images = article_assets(row)
         payload, originals, mode = None, [], None
         if pdfs:

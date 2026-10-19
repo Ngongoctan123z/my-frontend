@@ -15,15 +15,15 @@ export async function generateMetadata() {
   )
 }
 
-export default async function TaiLieuPage() {
-  let initialExams: import('@/src/types/exam').ExamListResponse = { data: [], total: 0, page: 0, limit: 12 }
+export default async function TaiLieuPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const query = await searchParams
+  const value = (key: string) => typeof query[key] === 'string' ? query[key] as string : ''
+  const q=value('q'), examType=value('examType') as import('@/src/types/exam').ExamType | '', subject=value('subject'), province=value('province'), year=value('year'), sort=(value('sort') || 'recent') as 'recent' | 'popular' | 'name'
+  let initialExams: import('@/src/types/exam').ExamListResponse | undefined
   try {
-    initialExams = await getExams({ limit: 12, page: 0, sort: 'recent' })
-  } catch (e) {}
-
-  return (
-    <Suspense fallback={<div className="p-12 text-center text-ink-muted">Đang tải dữ liệu...</div>}>
-      <SearchResults initialExams={initialExams} />
-    </Suspense>
-  )
+    initialExams = await getExams({ limit: 8, page: 0, q, examType, subject, province, year: year ? Number(year) : undefined, sort })
+  } catch {}
+  return <Suspense fallback={<div className="p-12 text-center text-ink-muted">Đang tải dữ liệu...</div>}>
+    <SearchResults initialExams={initialExams} initialFilterKey={JSON.stringify([q,examType,subject,province,year,sort])} />
+  </Suspense>
 }

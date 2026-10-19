@@ -1,5 +1,6 @@
 import type { Exam, ExamFilters, ExamListResponse } from '../types/exam'
 import { apiFetch } from './api'
+import { archivedExam2026, archivedExamByPath, archiveExamPage, filterArchivedExams, compareExams } from '../lib/exams2026'
 
 function toQuery(filters: ExamFilters): string {
   const params = new URLSearchParams()
@@ -15,21 +16,46 @@ function toQuery(filters: ExamFilters): string {
 }
 
 export async function getExams(filters: ExamFilters = {}): Promise<ExamListResponse> {
-  return await apiFetch<ExamListResponse>('/exams?' + toQuery(filters))
+  const local = archiveExamPage(filters)
+  if (filters.year === 2026) return local
+  const page = Math.max(0, filters.page || 0), limit = Math.max(1, filters.limit || 12), needed = (page + 1) * limit
+  try {
+    const remote = await apiFetch<ExamListResponse>('/exams?' + toQuery({ ...filters, page: 0, limit: needed }), { signal: AbortSignal.timeout(4000) })
+    const legacy = [...remote.data]
+    // Some upstream deployments cap the requested page size. Fetch the next
+    // real pages rather than leaving holes after merging the archive.
+    const legacyPageSize = remote.data.length || needed
+    for (let nextPage = 1; legacy.length < Math.min(needed, remote.total) && nextPage <= 20; nextPage++) {
+      const more = await apiFetch<ExamListResponse>('/exams?' + toQuery({ ...filters, page: nextPage, limit: legacyPageSize }), { signal: AbortSignal.timeout(4000) })
+      if (!more.data.length) break
+      legacy.push(...more.data)
+    }
+    const merged = [...filterArchivedExams(filters), ...legacy].sort(compareExams(filters.sort))
+    return { data: merged.slice(page * limit, needed), total: local.total + remote.total, page, limit }
+  } catch (error) {
+    if (!local.total) throw error
+    return local
+  }
 }
 
 export async function getExamsByIds(ids: number[]): Promise<Exam[]> {
   if (ids.length === 0) return []
-  const result = await apiFetch<ExamListResponse>('/exams?ids=' + ids.join(',') + '&limit=' + ids.length + '&page=0')
+  const local = ids.map(archivedExam2026).filter((row): row is Exam => !!row)
+  const otherIds = ids.filter(id => !archivedExam2026(id))
+  const result = otherIds.length ? await apiFetch<ExamListResponse>('/exams?ids=' + otherIds.join(',') + '&limit=' + otherIds.length + '&page=0') : { data: [] }
   const order = new Map(ids.map((id, index) => [id, index]))
-  return [...result.data].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+  return [...local, ...result.data].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
 }
 
 export async function getRelatedExams(id: number): Promise<Exam[]> {
+  const local = archivedExam2026(id)
+  if (local) return filterArchivedExams({ examType: local.examType, subject: local.subject }).filter(row => row.id !== id).slice(0, 6)
   return await apiFetch<Exam[]>('/exams/' + id + '/related')
 }
 
 export async function getExamById(id: number): Promise<Exam> {
+  const local = archivedExam2026(id)
+  if (local) return local
   return await apiFetch<Exam>('/exams/' + id)
 }
 
@@ -40,6 +66,8 @@ export async function getExamByPath(params: {
   year: number
   slugIdentifier?: string
 }): Promise<Exam | undefined> {
+  const local = archivedExamByPath(params)
+  if (local) return local
   const query = new URLSearchParams({
     examType: params.examType,
     subject: params.subject,
@@ -53,20 +81,23 @@ export async function getExamByPath(params: {
 }
 
 export async function getPopularExams(): Promise<Exam[]> {
-  const result = await apiFetch<ExamListResponse>('/exams?sort=popular&limit=4&page=0')
+  const result = await getExams({ sort: 'popular', limit: 4 })
   return result.data
 }
 
 export async function getRecentExams(): Promise<Exam[]> {
-  const result = await apiFetch<ExamListResponse>('/exams?sort=recent&limit=3&page=0')
+  const result = await getExams({ sort: 'recent', limit: 3 })
   return result.data
 }
 
 export async function recordView(id: number): Promise<void> {
+  if (archivedExam2026(id)) return
   await apiFetch('/exams/' + id + '/view', { method: 'POST' }).catch(() => {})
 }
 
 export async function requestDownload(examId: number, bulk = false): Promise<{ paymentLink?: string; fileUrl: string }> {
+  const local = archivedExam2026(examId)
+  if (local) return { fileUrl: local.fileUrl }
   return await apiFetch('/downloads/' + examId + '/request' + (bulk ? '-bulk' : ''), { method: 'POST' })
 }
 

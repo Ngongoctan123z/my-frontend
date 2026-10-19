@@ -27,6 +27,11 @@ export type Exam = {
   seoStructure?: string
   createdAt?: string
   updatedAt?: string
+  seoTitle?: string
+  sourceUrl?: string
+  sourcePublisher?: string
+  pdfPageCount?: number
+  assetSha256?: string
 }
 
 export type ExamListResponse = {
