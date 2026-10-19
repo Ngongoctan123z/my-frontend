@@ -1,11 +1,11 @@
 import { ImageResponse } from 'next/og'
-import { retiredSectionResponse } from '@/src/lib/siteSections'
+import { retiredSectionResponse, hasRetiredSeo } from '@/src/lib/siteSections'
 import { NextRequest } from 'next/server'
 
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  if (searchParams.has('slug')) return retiredSectionResponse()
+  if (searchParams.has('slug') || hasRetiredSeo(searchParams.get('title')) || hasRetiredSeo(searchParams.get('description'))) return retiredSectionResponse()
   const title = searchParams.get('title') || 'VNDocs — Writing & Speaking'
   const descParam = searchParams.get('description')
   const isGeneric = true
