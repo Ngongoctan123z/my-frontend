@@ -35,7 +35,7 @@ for (let attempt = 1; attempt <= 24; attempt++) {
     assert.ok(set.questions.every((q,i)=>q.id===i+1 && q.keywords?.length===2 && q.imageUrl))
     const linkedData=await linked.json()
     assert.equal(linkedData.source,'database','Full Writing sets must use explicit D1 child IDs')
-    assert.ok(linkedData.sets.length>0)
+    assert.equal(linkedData.sets.filter(row=>row.id.startsWith('toeic-photo-full-')).length,50,'Every added photo group must belong to a complete Writing exam')
     for(const row of linkedData.sets){assert.ok(row.picturePromptId && row.part1.id && row.email7.id && row.part2.id);assert.notEqual(row.part1.id,row.email7.id)}
     console.log('PASS deployed D1 catalogs, TOEIC picture bank, private audio and admin auth guards')
     process.exit(0)

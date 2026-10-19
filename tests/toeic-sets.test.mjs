@@ -27,8 +27,22 @@ test('deleted and broken TOEIC linked sets stay absent instead of being silently
  const h=await fixture(),rows=await h.bank.listToeicExamSets(h.raw)
  await h.bank.mutateToeicExamSet(h.raw,'delete_toeic_exam_set',{id:rows[0].id})
  h.sqlite.prepare('DELETE FROM prompt WHERE id=?').run(rows[1].essayPromptId)
- assert.equal((await h.bank.publicToeicExamSets(h.raw)).sets.length,0)
+ const remaining=(await h.bank.publicToeicExamSets(h.raw)).sets
+ assert.equal(remaining.some(row=>row.id===rows[0].id||row.part2.id===rows[1].essayPromptId),false)
  assert.equal((await h.bank.listToeicExamSets(h.raw)).length,rows.length-1)
+})
+
+test('all 50 photo groups have complete stable parents and preserve the existing email/email/essay grouping',async()=>{
+ const h=await fixture(),rows=await h.bank.listToeicExamSets(h.raw)
+ const parents=rows.filter(row=>row.id.startsWith('toeic-photo-full-')),original=rows.filter(row=>!row.id.startsWith('toeic-photo-full-'))
+ assert.equal(parents.length,50)
+ assert.equal(new Set(parents.map(row=>row.picturePromptId)).size,50)
+ for(const parent of parents){assert.equal(parent.valid,true);assert.equal(parent.isPublished,true);assert.ok(original.some(row=>row.email6PromptId===parent.email6PromptId&&row.email7PromptId===parent.email7PromptId&&row.essayPromptId===parent.essayPromptId))}
+ const first=parents[0],edited=await h.bank.mutateToeicExamSet(h.raw,'update_toeic_exam_set',{...first,title:'Admin keeps this grouping',isPublished:false})
+ await h.bank.mutateToeicExamSet(h.raw,'delete_toeic_exam_set',{id:parents[1].id})
+ const again=await h.bank.listToeicExamSets(h.raw)
+ assert.equal(again.find(row=>row.id===first.id).title,edited.title);assert.equal(again.find(row=>row.id===first.id).isPublished,false)
+ assert.equal(again.some(row=>row.id===parents[1].id),false)
 })
 test('public TOEIC route returns the four exact child IDs without consuming AI or quota',async()=>{
  const h=await fixture(),r=await h.post({action:'get_paired_full_test',exam:'TOEIC'})

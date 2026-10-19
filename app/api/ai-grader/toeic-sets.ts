@@ -1,6 +1,7 @@
 import { TOEIC_PAIRED_SETS, TOEIC_RESPOND_FALLBACKS } from '@/src/data/fallbackPrompts'
 import { TOEIC_PICTURE_SETS, parseToeicPictures, publicToeicPictures } from '@/src/data/toeicWriting'
 import { ensureToeicPhotoBank } from './toeic-photo-bank'
+import { ensurePhotoFullSets } from './toeic-photo-full-sets'
 import type { CompleteToeicSet } from '@/src/lib/toeicExamSets'
 import type { D1Statement, SpeakingD1 } from '../speaking/store'
 import { SpeakingRequestError } from '../speaking/validation'
@@ -12,6 +13,10 @@ export const TOEIC_SET_SCHEMA = `CREATE TABLE IF NOT EXISTS writing_exam_set (
 )`
 const seedKey = 'TOEIC_LINKED_SETS_SEEDED_V1'
 export async function ensureToeicExamSets(db: SpeakingD1) {
+  await ensureDefaultToeicExamSets(db)
+  await ensurePhotoFullSets(db)
+}
+async function ensureDefaultToeicExamSets(db: SpeakingD1) {
   await ensureToeicPhotoBank(db)
   await db.prepare(TOEIC_SET_SCHEMA).run()
   if (await db.prepare('SELECT value FROM system_config WHERE key=?').bind(seedKey).first()) return

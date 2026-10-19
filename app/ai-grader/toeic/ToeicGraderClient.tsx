@@ -586,6 +586,7 @@ export function ToeicGraderClient() {
         {error&&<p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
         <div className="mt-5 border-t border-slate-100 pt-4"><GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt','English']}><button type="button" disabled={isGrading} onClick={()=>{if(!session)return signIn('google');if(activeTab==='TOEIC_FULL')setFullTestStep(1);else void gradePictures()}} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{isGrading?<Loader2 className="h-4 w-4 animate-spin"/>:null}{!session?(isEn?'Sign in to continue':'Đăng nhập để tiếp tục'):activeTab==='TOEIC_FULL'?(isEn?'Continue to emails (Q6–7) →':'Chuyển sang email (Câu 6–7) →'):(isEn?'Submit questions 1–5':'Nộp bài câu 1–5')}</button></GraderActions><p className="mt-2 text-center text-[11px] text-slate-400">{isEn?'Daily quota:':'Lượt chấm hôm nay:'} {usageCount}/{usageLimit}</p></div>
       </div> : <>
+      {activeTab==='TOEIC_FULL'&&fullTestStep===1&&<p className="rounded-lg border border-blue-100 bg-blue-50/40 px-4 py-3 text-xs leading-relaxed text-slate-600">{isEn?'Questions 6–7 contain two separate emails, with ten minutes per email. Answer question 6 below, then question 7.':'Nhóm câu 6–7 gồm hai email riêng, mỗi câu 10 phút. Viết câu 6 ở ô đầu, rồi câu 7 ở ô tiếp theo.'}</p>}
       {/* Main Two-Column Layout */}
       <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
         {/* Left Column: Prompt */}
@@ -593,8 +594,8 @@ export function ToeicGraderClient() {
           <div className="flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
             <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded border border-blue-100 shrink-0">
               {(activeTab === 'TOEIC_FULL' ? fullTestStep === 1 : activeTab === 'TOEIC_RESPOND')
-                ? (isEn ? 'Part 1: Email (Q6-7)' : 'Phần 1: Email (Câu 6-7)')
-                : (isEn ? 'Part 2: Essay (Q8)' : 'Phần 2: Viết luận (Câu 8)')}
+                ? (activeTab==='TOEIC_FULL'?(isEn?'Question 6 · Email 1/2':'Câu 6 · Email 1/2'):(isEn?'Email practice · Q6–7 type':'Luyện email · Dạng câu 6–7'))
+                : (isEn ? 'Question 8 · Opinion essay' : 'Câu 8 · Bài luận')}
             </span>
 
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -697,7 +698,7 @@ export function ToeicGraderClient() {
           }`}>
             <div className="flex min-w-0 items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-800">
-                {isEn ? 'Your Written Response' : 'Bài làm của bạn'}
+                {activeTab==='TOEIC_FULL'&&fullTestStep===1?(isEn?'Your response · Question 6':'Bài làm câu 6'):(isEn ? 'Your Written Response' : 'Bài làm của bạn')}
               </h3>
 
               <div className="flex shrink-0 items-center gap-2">
@@ -752,7 +753,7 @@ export function ToeicGraderClient() {
               />
             </div>
 
-            {activeTab === 'TOEIC_FULL' && fullTestStep === 1 && <div className="mt-5 space-y-3 border-t border-slate-100 pt-4"><h3 className="text-sm font-bold text-slate-800">{isEn?'Question 7 · Second email':'Câu 7 · Email thứ hai'}</h3><p className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">{promptEmail7.content}</p><AnswerTextarea isEn={isEn} answerLabel={isEn?'TOEIC question 7':'TOEIC câu 7'} value={essayEmail7} onValueChange={setEssayEmail7} disabled={!session||isGrading} maxLength={8000} rows={8} placeholder={isEn?'Write your second email response…':'Nhập email trả lời câu 7…'} className="w-full rounded-lg border border-slate-300 p-4 text-sm leading-relaxed outline-none focus:border-blue-500" /></div>}
+            {activeTab === 'TOEIC_FULL' && fullTestStep === 1 && <div className="mt-5 space-y-3 border-t border-slate-100 pt-4"><h3 className="text-sm font-bold text-slate-800">{isEn?'Question 7 · Email 2/2':'Câu 7 · Email 2/2'}</h3><p className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">{promptEmail7.content}</p><AnswerTextarea isEn={isEn} answerLabel={isEn?'TOEIC question 7':'TOEIC câu 7'} value={essayEmail7} onValueChange={setEssayEmail7} disabled={!session||isGrading} maxLength={8000} rows={8} placeholder={isEn?'Write your second email response…':'Nhập email trả lời câu 7…'} className="w-full rounded-lg border border-slate-300 p-4 text-sm leading-relaxed outline-none focus:border-blue-500" /></div>}
             {/* Bottom Controls */}
             <div className="mt-5 pt-4 border-t border-slate-100">
               <GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt', 'English']}>
