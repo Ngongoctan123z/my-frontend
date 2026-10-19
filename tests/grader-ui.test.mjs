@@ -12,6 +12,7 @@ const output = 'test-results/grader-ui'
 await mkdir(output, { recursive: true })
 const cssNames = (await readdir('.next/static/css', { recursive: true })).filter(name => name.endsWith('.css'))
 const css = (await Promise.all(cssNames.map(name => readFile(path.join('.next/static/css', name), 'utf8')))).join('\n')
+const hskPassages = ['甲：乡村图书馆', '乙：山区邮递员', '丙：城市园丁'].map(story => '阅读下面的材料，十分钟后材料将被收回。请根据记忆写一篇四百字左右的缩写，题目自拟，不要加入个人看法。请注意故事发生的时间和人物之间的关系。\n\n' + story + '\n' + story.repeat(25))
 const entry = `
 import React from 'react'; import { createRoot } from 'react-dom/client';
 import { AiGraderClient } from './app/ai-grader/ielts/AiGraderClient';
@@ -21,10 +22,22 @@ import { HskGraderClient } from './app/ai-grader/hsk/HskGraderClient';
 import { ChatWidget } from './src/components/chat/ChatWidget';
 import * as fixtures from './src/data/fallbackPrompts';
 window.requests=[];
+window.hskScenario=new URL(location.href).searchParams.get('scenario')==='hsk-stability';
+window.hskPassages=${JSON.stringify(hskPassages)};
+window.historyRecords=[];window.savedHistory=[];window.historyRequests=0;window.historyResolvers=[];window.gradeResolvers=[];window.promptResolvers=[];
+window.deferHistory=window.hskScenario;
+window.deferHskPrompt=new URL(location.href).searchParams.has('delay-prompt');
+window.loadHistoryFixture=()=>{window.historyRequests++;return window.deferHistory?new Promise(resolve=>window.historyResolvers.push(resolve)):Promise.resolve([...window.historyRecords]);};
+window.resolveHistory=()=>{window.deferHistory=false;window.historyResolvers.splice(0).forEach(resolve=>resolve([...window.historyRecords]));};
 window.fetch=async (url,options={})=>{
   const body=options.body ? JSON.parse(options.body) : {};
   window.requests.push({url,body});
   let result={count:0,limit:50,plan:'free'};
+  if(window.hskScenario&&body.action==='generate_prompt_batch'&&body.type==='HSK_6'){
+    if(window.deferHskPrompt)return new Promise(resolve=>window.promptResolvers.push(resolve));
+    return Response.json({prompts:window.hskPassages.map(content=>({content}))});
+  }
+  if(window.hskScenario&&body.action==='grade_essay')return new Promise(resolve=>window.gradeResolvers.push(resolve));
   if(body.action==='get_paired_full_test') result={sets:fixtures[body.exam+'_PAIRED_SETS']};
   if(body.action==='generate_prompt_batch') result={prompts:fixtures[body.type+'_FALLBACKS'] || []};
   if(body.action==='grade') return new Promise(()=>{});
@@ -34,14 +47,15 @@ const key=new URL(location.href).searchParams.get('exam');
 createRoot(document.getElementById('root')).render(React.createElement({ielts:AiGraderClient,toeic:ToeicGraderClient,topik:TopikGraderClient,hsk:HskGraderClient,dock:ChatWidget}[key]));
 `
 const stubs = {
-  'next-auth/react': `const session={user:{email:'ui-test@example.invalid'}}; export const useSession=()=>({data:session,status:'authenticated'}); export const signIn=()=>{};`,
+  'next-auth/react': `import {useEffect,useState} from 'react'; const initial={user:{email:'ui-test@example.invalid'}}; export function useSession(){const [session,setSession]=useState(initial);useEffect(()=>{const refresh=()=>setSession({...initial,user:{...initial.user}});window.addEventListener('fixture-session',refresh);return()=>window.removeEventListener('fixture-session',refresh)},[]);return {data:session,status:'authenticated'}} export const signIn=()=>{};`,
   'next/navigation': `export const usePathname=()=>location.pathname;`,
   'next/dynamic': `import React from 'react'; export default function dynamic(loader){const C=React.lazy(loader.then ? ()=>loader : ()=>loader().then(defaultExport=>({default:defaultExport}))); return props=>React.createElement(React.Suspense,{fallback:null},React.createElement(C,props));}`,
-  '@/src/utils/indexedDB': `export const getEssayHistory=async()=>[]; export const saveEssayHistory=async()=>{}; export const clearEssayHistory=async()=>{};`,
+  '@/src/utils/indexedDB': `export const getEssayHistory=async()=>window.hskScenario?window.loadHistoryFixture():[]; export const saveEssayHistory=async item=>{if(window.hskScenario){window.savedHistory.push(item);window.historyRecords.unshift({...item,id:crypto.randomUUID(),timestamp:Date.now()})}}; export const clearEssayHistory=async()=>{};`,
 }
 for (const name of ['GradingResultModal','ShareExamModal','StudentManagementModal']) {
   stubs['@/src/components/common/'+name] = `export const ${name}=()=>null;`
 }
+stubs['@/src/components/common/GradingResultModal']=`import React from 'react';export const GradingResultModal=({isOpen,isGrading,result,examType,onClose})=>window.hskScenario&&isOpen?React.createElement('div',{role:'dialog','aria-label':'Kết quả HSK thử nghiệm'},React.createElement('p',null,isGrading?'Đang chấm '+examType:result?.detailedFeedback),React.createElement('button',{onClick:onClose,disabled:isGrading},'Đóng kết quả')):null;`;
 for (const name of ['CalculatorBubble','TranslateBubble','ChatBubble']) {
   stubs[name] = `import React from 'react'; export const ${name}=({onClose})=>React.createElement('div',{role:'dialog','aria-label':'${name}'},React.createElement('button',{onClick:onClose},'Đóng'));`
 }
@@ -148,6 +162,85 @@ try {
     }
   }
   console.log(`PASS ${checks} field clear interactions; 16 responsive layouts; task switching and language controls`)
+  {
+    const page=await browser.newPage({viewport:{width:375,height:900}})
+    activePage=page
+    const errors=[];page.on('pageerror',error=>errors.push(error.message))
+    await page.goto(`http://127.0.0.1:${server.address().port}/?exam=hsk&scenario=hsk-stability`)
+    await page.getByRole('button',{name:/^HSK 6/}).click()
+    const passage=page.getByRole('region',{name:'Bài đọc HSK 6',exact:true})
+    const answer=page.getByRole('textbox',{name:'HSK 6',exact:true})
+    const submit=page.getByRole('button',{name:'Nộp bài & Chấm HSK 6 (100đ)',exact:true})
+    const summaryA='乡村图书馆的故事\n年轻教师回到家乡，整理图书室并邀请村民参加阅读活动。'
+    await passage.waitFor();assert.equal(await passage.textContent(),hskPassages[0])
+    await answer.fill(summaryA)
+    await page.evaluate(()=>{
+      window.historyRecords=[{id:'history-a',email:'ui-test@example.invalid',examType:'HSK_6',prompt:window.hskPassages[0],essay:'旧的缩写',timestamp:Date.now(),result:{overallBand:80}}]
+      window.resolveHistory();window.dispatchEvent(new Event('fixture-session'))
+    })
+    await page.waitForTimeout(150)
+    assert.equal(await passage.textContent(),hskPassages[0],'Delayed history must not replace the active passage')
+    assert.equal(await answer.inputValue(),summaryA)
+    assert.equal(await page.evaluate(()=>window.requests.filter(r=>r.body.action==='generate_prompt_batch'&&r.body.type==='HSK_6').length),1)
+    assert.equal(await page.evaluate(()=>window.historyRequests),1,'Refreshing the session object must not reload/select a prompt')
+    await page.getByRole('button',{name:'Ẩn bài đọc (Mô phỏng thi)',exact:true}).click()
+    await page.getByLabel('Ngôn ngữ nhận xét',{exact:true}).selectOption('English')
+    await submit.click();await page.waitForFunction(()=>window.gradeResolvers.length===1)
+    const sent=await page.evaluate(()=>window.requests.find(r=>r.body.action==='grade_essay').body)
+    assert.equal(sent.prompt,hskPassages[0]);assert.equal(sent.essay,summaryA);assert.equal(sent.feedbackLang,'English')
+    assert.equal(await page.getByRole('button',{name:'Đổi đề',exact:true}).isDisabled(),true)
+    assert.equal(await page.getByRole('button',{name:/^HSK 5/}).isDisabled(),true)
+    assert.equal(await answer.isDisabled(),true)
+    await page.evaluate(()=>window.gradeResolvers.shift()(Response.json({overallBand:85,overallBandFormatted:'85/100',detailedFeedback:'Kết quả đúng bài A',criteria:{},corrections:[]})))
+    await page.getByText('Kết quả đúng bài A',{exact:true}).waitFor()
+    await page.getByRole('button',{name:'Đóng kết quả',exact:true}).click()
+    assert.equal(await answer.inputValue(),summaryA,'Successful grading must preserve the summary')
+    await page.getByRole('button',{name:'Hiện bài đọc',exact:true}).click()
+    assert.equal(await passage.textContent(),hskPassages[0],'Successful grading must preserve its source')
+    const saved=await page.evaluate(()=>window.savedHistory.at(-1))
+    assert.equal(saved.prompt,sent.prompt);assert.equal(saved.essay,sent.essay)
+    page.once('dialog',dialog=>dialog.dismiss())
+    await page.getByRole('button',{name:'Đổi đề',exact:true}).click()
+    assert.equal(await passage.textContent(),hskPassages[0]);assert.equal(await answer.inputValue(),summaryA)
+    page.once('dialog',dialog=>dialog.accept())
+    await page.getByRole('button',{name:'Đổi đề',exact:true}).click()
+    await page.waitForFunction(source=>document.querySelector('[aria-label="Bài đọc HSK 6"]').textContent===source,hskPassages[1])
+    assert.equal(await answer.inputValue(),'','An explicit new prompt must not inherit the previous summary')
+    const summaryB='山区邮递员的故事\n邮递员每天走山路，把信件送给村里的居民。'
+    await answer.fill(summaryB);await submit.click();await page.waitForFunction(()=>window.gradeResolvers.length===1)
+    await page.evaluate(()=>window.gradeResolvers.shift()(Response.json({error:'Thử nghiệm mất kết nối'},{status:503})))
+    await page.getByText('Thử nghiệm mất kết nối',{exact:true}).waitFor()
+    assert.equal(await passage.textContent(),hskPassages[1]);assert.equal(await answer.inputValue(),summaryB)
+    await submit.click();await page.waitForFunction(()=>window.gradeResolvers.length===1)
+    const attempts=await page.evaluate(()=>window.requests.filter(r=>r.body.action==='grade_essay').map(r=>r.body))
+    assert.deepEqual(attempts.slice(1).map(r=>({prompt:r.prompt,essay:r.essay})),[{prompt:hskPassages[1],essay:summaryB},{prompt:hskPassages[1],essay:summaryB}])
+    await page.evaluate(()=>window.gradeResolvers.shift()(Response.json({overallBand:82,detailedFeedback:'Kết quả đúng bài B',criteria:{},corrections:[]})))
+    await page.getByText('Kết quả đúng bài B',{exact:true}).waitFor();await page.getByRole('button',{name:'Đóng kết quả',exact:true}).click()
+    assert.equal(await passage.textContent(),hskPassages[1]);assert.equal(await answer.inputValue(),summaryB)
+    assert.deepEqual(errors,[]);await page.screenshot({path:`${output}/hsk6-stable-submission.png`,fullPage:true});await page.close()
+    console.log('PASS HSK 6: delayed history, session refresh, hidden passage, exact submitted source, retained answer, explicit prompt change and failed-request retry')
+  }
+  {
+    const page=await browser.newPage({viewport:{width:1280,height:900}})
+    activePage=page
+    await page.goto(`http://127.0.0.1:${server.address().port}/?exam=hsk&scenario=hsk-stability&delay-prompt=1`)
+    await page.getByRole('button',{name:/^HSK 6/}).click();await page.waitForFunction(()=>window.promptResolvers.length===1)
+    assert.equal(await page.getByRole('button',{name:'Nộp bài & Chấm HSK 6 (100đ)',exact:true}).isDisabled(),true,'Cannot grade before the source has loaded')
+    await page.evaluate(()=>{window.historyRecords=[{id:'restored-b',email:'ui-test@example.invalid',examType:'HSK_6',prompt:window.hskPassages[1],essay:'保留历史中的缩写',timestamp:Date.now(),result:{detailedFeedback:'Bài B đã lưu',overallBand:80}}];window.resolveHistory()})
+    await page.waitForFunction(()=>document.body.textContent.includes('Lịch sử (1)'))
+    await page.getByRole('button',{name:'Lịch sử (1)',exact:true}).filter({visible:true}).click()
+    await page.getByRole('button',{name:'Xem lại bài →',exact:true}).click()
+    await page.getByText('Bài B đã lưu',{exact:true}).waitFor();await page.getByRole('button',{name:'Đóng kết quả',exact:true}).click()
+    await page.evaluate(()=>window.promptResolvers.shift()(Response.json({prompts:window.hskPassages.map(content=>({content}))})))
+    await page.waitForTimeout(150)
+    assert.equal(await page.getByRole('region',{name:'Bài đọc HSK 6',exact:true}).textContent(),hskPassages[1],'Late prompt response must not overwrite restored history')
+    assert.equal(await page.getByRole('textbox',{name:'HSK 6',exact:true}).inputValue(),'保留历史中的缩写')
+    await page.getByRole('button',{name:/^HSK 5/}).click();await page.getByRole('button',{name:/^HSK 6/}).click()
+    assert.equal(await page.getByRole('region',{name:'Bài đọc HSK 6',exact:true}).textContent(),hskPassages[1])
+    assert.equal(await page.evaluate(()=>window.requests.filter(r=>r.body.action==='generate_prompt_batch'&&r.body.type==='HSK_6').length),1)
+    await page.screenshot({path:`${output}/hsk6-restored-passage.png`,fullPage:true});await page.close()
+    console.log('PASS HSK 6: delayed prompt cannot overwrite a restored passage or mismatch its saved summary')
+  }
   for(const touch of [false,true]) {
     const page=await browser.newPage({viewport:{width:touch?375:1280,height:touch?812:900},hasTouch:touch,isMobile:touch})
     activePage=page

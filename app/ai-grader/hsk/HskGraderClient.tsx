@@ -113,6 +113,12 @@ export function HskGraderClient() {
   const hsk5Queue = useRef<PromptObject[]>([])
   const hsk6Queue = useRef<PromptObject[]>([])
   const isFetchingHsk = useRef<Record<string, boolean>>({})
+  const promptRequestVersion = useRef<Record<string, number>>({ HSK_5: 0, HSK_6: 0 })
+  const gradingInFlight = useRef(false)
+  const historyRequestVersion = useRef(0)
+  const accountEmail = session?.user?.email || 'anonymous'
+  const currentAccount = useRef(accountEmail)
+  currentAccount.current = accountEmail
 
   const hsk5Data = useMemo(() => {
     return parseHsk5Prompt(hsk5Prompt?.content, hsk5Prompt?.imageUrl)
@@ -123,30 +129,26 @@ export function HskGraderClient() {
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 7)
     }).catch(() => {})
-  }, [session])
+  }, [accountEmail])
 
   const isPromptDone = (content?: string, historyList = history) => {
     if (!content) return false
-    const snippet = content.slice(0, 50).trim().toLowerCase()
-    const contentLower = content.toLowerCase()
+    const contentLower = content.trim().replace(/\s+/g, ' ').toLowerCase()
     return historyList.some(h => {
       if (!h.prompt) return false
-      const p = h.prompt.toLowerCase()
-      return p === contentLower || p.includes(contentLower) || contentLower.includes(p) || (snippet.length >= 15 && p.includes(snippet))
+      const p = h.prompt.trim().replace(/\s+/g, ' ').toLowerCase()
+      // HSK 6 passages often share the same exam instructions. Those opening
+      // lines do not identify the story; compare the complete prompt instead.
+      return p === contentLower || (contentLower.length >= 80 && p.includes(contentLower))
     })
   }
 
   // Load history (Database for logged in, localStorage for guests)
   const loadHistory = async () => {
-    const email = session?.user?.email || 'anonymous'
+    const email = accountEmail
+    const requestVersion = ++historyRequestVersion.current
     const data = await getEssayHistory(email, 'HSK')
-    setHistory(data)
-
-    // Tự động kiểm tra: Nếu đề HSK đang hiển thị đã có trong lịch sử đã làm -> Đổi ngay sang đề chưa làm
-    if (data.length > 0) {
-      if (hsk5Prompt && isPromptDone(hsk5Prompt.content, data)) generatePrompt('HSK_5', data)
-      if (hsk6Prompt && isPromptDone(hsk6Prompt.content, data)) generatePrompt('HSK_6', data)
-    }
+    if (requestVersion === historyRequestVersion.current && currentAccount.current === email) setHistory(data)
   }
 
   useEffect(() => {
@@ -154,7 +156,7 @@ export function HskGraderClient() {
       loadHistory()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, session])
+  }, [status, accountEmail])
 
   // Call API with safe content-type checking to prevent HTML parsing errors
   const callApi = async (body: object) => {
@@ -184,8 +186,10 @@ export function HskGraderClient() {
   }
 
   // Draw prompt without blocking between HSK 5 and HSK 6
-  const generatePrompt = async (type: 'HSK_5' | 'HSK_6', customHistory?: GradedEssayHistory[], force = false) => {
-    if (!force && (isFetchingHsk.current[type] || isGrading)) return
+  const generatePrompt = async (type: 'HSK_5' | 'HSK_6', customHistory?: GradedEssayHistory[], replaceAnswers = false) => {
+    if (isFetchingHsk.current[type] || gradingInFlight.current) return
+    const requestVersion = ++promptRequestVersion.current[type]
+    const requestAccount = accountEmail
     isFetchingHsk.current[type] = true
     setIsGenerating(true)
     setError(null)
@@ -193,10 +197,24 @@ export function HskGraderClient() {
     const qRef = type === 'HSK_5' ? hsk5Queue : hsk6Queue
     const hList = customHistory || history
     const pastPrompts = hList.map(h => h.prompt)
+    const isCurrentRequest = () => promptRequestVersion.current[type] === requestVersion && currentAccount.current === requestAccount && !gradingInFlight.current
+    const applyPrompt = (prompt: PromptObject) => {
+      if (!isCurrentRequest()) return
+      if (type === 'HSK_5') {
+        setHsk5Prompt(prompt)
+        if (replaceAnswers) { setHsk5Part1Answers({}); setHsk5Part2Essay(''); setHsk5Part3Essay(''); setHsk5Step(1) }
+      } else {
+        setHsk6Prompt(prompt)
+        setIsHsk6TextHidden(false)
+        if (replaceAnswers) setHsk6Essay('')
+      }
+      if (replaceAnswers) setResult(null)
+    }
 
     try {
       if (qRef.current.length === 0) {
         const data = await callApi({ action: 'generate_prompt_batch', type, donePrompts: pastPrompts })
+        if (!isCurrentRequest()) return
         if (Array.isArray(data.prompts) && data.prompts.length > 0) {
           qRef.current = data.prompts
         }
@@ -209,25 +227,31 @@ export function HskGraderClient() {
 
       const nextPrompt = qRef.current.shift()
       if (nextPrompt) {
-        if (type === 'HSK_5') setHsk5Prompt(nextPrompt)
-        else setHsk6Prompt(nextPrompt)
+        applyPrompt(nextPrompt)
       } else {
         const fb = type === 'HSK_5' ? HSK_5_FALLBACKS[0] : HSK_6_FALLBACKS[0]
-        if (type === 'HSK_5') setHsk5Prompt(fb)
-        else setHsk6Prompt(fb)
+        applyPrompt(fb)
       }
     } catch (err: any) {
       console.warn('generatePrompt error, using fallback:', err)
       const fb = type === 'HSK_5' ? HSK_5_FALLBACKS[0] : HSK_6_FALLBACKS[0]
       if (type === 'HSK_5') {
-        if (!hsk5Prompt) setHsk5Prompt(fb)
+        if (!hsk5Prompt) applyPrompt(fb)
       } else {
-        if (!hsk6Prompt) setHsk6Prompt(fb)
+        if (!hsk6Prompt) applyPrompt(fb)
       }
     } finally {
-      isFetchingHsk.current[type] = false
-      setIsGenerating(false)
+      if (promptRequestVersion.current[type] === requestVersion) isFetchingHsk.current[type] = false
+      setIsGenerating(Object.values(isFetchingHsk.current).some(Boolean))
     }
+  }
+
+  const changePrompt = () => {
+    if (isGenerating || gradingInFlight.current) return
+    const hasAnswer = activeTab === 'HSK_6' ? !!hsk6Essay.trim()
+      : Object.values(hsk5Part1Answers).some(answer => !!answer.trim()) || !!hsk5Part2Essay.trim() || !!hsk5Part3Essay.trim()
+    if (hasAnswer && !window.confirm(isEn ? 'Changing the prompt will clear the answers for this exam. Continue?' : 'Đổi đề sẽ xóa bài làm đang nhập của đề này. Bạn có muốn tiếp tục?')) return
+    void generatePrompt(activeTab === 'HSK_6' ? 'HSK_6' : 'HSK_5', undefined, true)
   }
 
   // Auto-load prompt on mount and when tab changes
@@ -298,6 +322,7 @@ export function HskGraderClient() {
 
   // Grade HSK 5 Full Test
   const gradeHsk5Full = async () => {
+    if (gradingInFlight.current || isGenerating || !hsk5Prompt) return
     const hasP1 = Object.values(hsk5Part1Answers).some(a => a.trim().length > 0)
     const hasP2 = hsk5Part2Essay.trim().length > 0
     const hasP3 = hsk5Part3Essay.trim().length > 0
@@ -307,7 +332,9 @@ export function HskGraderClient() {
       return
     }
 
+    gradingInFlight.current = true
     setIsGrading(true)
+    setResultExamType('HSK_5')
     setError(null)
     setResult(null)
 
@@ -333,6 +360,7 @@ export function HskGraderClient() {
         result: data
       })
 
+      gradingInFlight.current = false
       setIsGrading(false)
 
       // Tự động xóa bài làm và reset bước làm về bước 1
@@ -342,71 +370,81 @@ export function HskGraderClient() {
       setHsk5Step(1)
 
       // Tự động load đề mới chưa từng làm
-      await generatePrompt('HSK_5', undefined, true)
+      await generatePrompt('HSK_5')
       await loadHistory()
     } catch (err: any) {
       setError(err.message || 'Lỗi khi chấm bài HSK 5.')
     } finally {
+      gradingInFlight.current = false
       setIsGrading(false)
     }
   }
 
   // Grade HSK 6
   const gradeHsk6 = async () => {
+    if (gradingInFlight.current || isGenerating) return
+    if (!hsk6Prompt?.content?.trim()) {
+      setError(isEn ? 'Please wait for the reading passage before submitting.' : 'Vui lòng chờ tải xong bài đọc trước khi nộp.')
+      return
+    }
     if (!hsk6Essay.trim()) {
       setError(isEn ? 'Please write your summary essay before submitting.' : 'Vui lòng viết bài văn tóm tắt trước khi nộp.')
       return
     }
 
+    // Freeze the source, answer and language together before any async work.
+    const submission = { prompt: hsk6Prompt.content, essay: hsk6Essay.trim(), feedbackLang, email: accountEmail }
+    gradingInFlight.current = true
     setIsGrading(true)
+    setResultExamType('HSK_6')
     setError(null)
     setResult(null)
 
     try {
-      const promptText = hsk6Prompt?.content || 'Đề thi tóm tắt HSK 6'
-      const essayText = hsk6Essay.trim()
-
       const data = await callApi({
         action: 'grade_essay',
         type: 'HSK_6',
-        prompt: promptText,
-        essay: essayText,
-        feedbackLang
+        prompt: submission.prompt,
+        essay: submission.essay,
+        feedbackLang: submission.feedbackLang
       })
+      if (currentAccount.current !== submission.email) return
 
       setResult(data)
       setResultExamType('HSK_6')
       setUsageCount(prev => prev + 1)
 
       await saveEssayHistory({
-        email: session?.user?.email || 'anonymous',
+        email: submission.email,
         examType: 'HSK_6',
-        prompt: promptText,
-        essay: essayText,
+        prompt: submission.prompt,
+        essay: submission.essay,
         result: data
       })
 
-      setIsGrading(false)
-
-      // Tự động xóa bài làm
-      setHsk6Essay('')
-
-      // Tự động load đề mới chưa từng làm
-      await generatePrompt('HSK_6', undefined, true)
+      // Keep the source passage and summary available for review and revision.
+      // History refresh must never select a different prompt.
       await loadHistory()
     } catch (err: any) {
       setError(err.message || 'Lỗi khi chấm bài HSK 6.')
     } finally {
+      gradingInFlight.current = false
       setIsGrading(false)
     }
   }
 
   // Restore history
   const restoreHistory = (item: GradedEssayHistory) => {
+    if (gradingInFlight.current) return
+    const type = item.examType === 'HSK_6' ? 'HSK_6' : 'HSK_5'
+    promptRequestVersion.current[type]++
+    isFetchingHsk.current[type] = false
+    setIsGenerating(Object.values(isFetchingHsk.current).some(Boolean))
     if (item.examType === 'HSK_6') {
       setActiveTab('HSK_6')
       setHsk6Prompt({ content: item.prompt })
       setHsk6Essay(item.essay)
+      setIsHsk6TextHidden(false)
     } else {
       setActiveTab('HSK_5_FULL')
       setHsk5Prompt({ content: item.prompt })
@@ -470,6 +508,7 @@ export function HskGraderClient() {
               return (
                 <button
                   key={t.key}
+                  disabled={isGrading}
                   onClick={() => {
                     setActiveTab(t.key as any)
                     setError(null)
@@ -555,7 +594,7 @@ export function HskGraderClient() {
                 type="button"
                 onClick={() => {
                   if (!session) return signIn('google')
-                  generatePrompt(activeTab === 'HSK_5_FULL' ? 'HSK_5' : 'HSK_6')
+                  changePrompt()
                 }}
                 disabled={isGenerating || isGrading}
                 className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 px-2.5 py-1 rounded border border-blue-200 hover:bg-blue-50 disabled:opacity-50 transition-all active:scale-95 duration-75 shrink-0 whitespace-nowrap"
@@ -619,7 +658,7 @@ export function HskGraderClient() {
                               type="text"
                               value={hsk5Part1Answers[item.id] || ''}
                               onValueChange={value => setHsk5Part1Answers(prev => ({ ...prev, [item.id]: value }))}
-                              disabled={!session || isGrading}
+                              disabled={!session || isGrading || isGenerating || !currentPromptObj}
                               placeholder={!session ? (isEn ? "Sign in to answer..." : "Đăng nhập để điền...") : `Nhập câu hoàn chỉnh cho câu ${item.id}...`}
                               className="w-full px-3 py-2 text-sm bg-slate-50 focus:bg-white rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 transition-all font-sans"
                             />
@@ -723,7 +762,7 @@ export function HskGraderClient() {
                       Bài đọc đã được thu hồi theo quy chế thi thật. Hãy tập trung viết bản tóm tắt ở cột bên phải.
                     </div>
                   ) : (
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm leading-relaxed max-h-[460px] overflow-y-auto whitespace-pre-wrap font-sans">
+                    <div role="region" aria-label={isEn ? 'HSK 6 reading passage' : 'Bài đọc HSK 6'} className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm leading-relaxed max-h-[460px] overflow-y-auto whitespace-pre-wrap font-sans">
                       {hsk6Prompt.content}
                     </div>
                   )}
@@ -828,7 +867,7 @@ export function HskGraderClient() {
                           type="text"
                           value={hsk5Part1Answers[qNum] || ''}
                           onValueChange={value => setHsk5Part1Answers(prev => ({ ...prev, [qNum]: value }))}
-                          disabled={!session || isGrading}
+                          disabled={!session || isGrading || isGenerating || !currentPromptObj}
                           placeholder={!session ? (isEn ? "Sign in to answer..." : "Đăng nhập để điền đáp án...") : `Nhập câu hoàn chỉnh cho câu ${qNum}...`}
                           className="flex-1 px-3 py-2 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm outline-none font-sans disabled:bg-slate-50 disabled:text-slate-400"
                         />
@@ -840,7 +879,7 @@ export function HskGraderClient() {
                   <AnswerTextarea isEn={isEn} answerLabel={"HSK 99"}
                     value={hsk5Part2Essay}
                     onValueChange={value => setHsk5Part2Essay(value)}
-                    disabled={!session || isGrading}
+                    disabled={!session || isGrading || isGenerating || !currentPromptObj}
                     placeholder={!session ? (isEn ? "Sign in to write essay..." : "Đăng nhập để nhập bài làm...") : "Nhập đoạn văn ngắn khoảng 80 chữ tiếng Hán, kết hợp đủ 5 từ khóa..."}
                     className="flex-1 w-full min-h-[260px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
                   />
@@ -849,7 +888,7 @@ export function HskGraderClient() {
                   <AnswerTextarea isEn={isEn} answerLabel={"HSK 100"}
                     value={hsk5Part3Essay}
                     onValueChange={value => setHsk5Part3Essay(value)}
-                    disabled={!session || isGrading}
+                    disabled={!session || isGrading || isGenerating || !currentPromptObj}
                     placeholder={!session ? (isEn ? "Sign in to write essay..." : "Đăng nhập để nhập bài làm...") : "Nhập đoạn văn ngắn khoảng 80 chữ tiếng Hán miêu tả tranh..."}
                     className="flex-1 w-full min-h-[260px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
                   />
@@ -859,7 +898,7 @@ export function HskGraderClient() {
                 <AnswerTextarea isEn={isEn} answerLabel={"HSK 6"}
                   value={hsk6Essay}
                   onValueChange={value => setHsk6Essay(value)}
-                  disabled={!session || isGrading}
+                  disabled={!session || isGrading || isGenerating || !currentPromptObj}
                   placeholder={!session ? (isEn ? "Sign in to write summary..." : "Đăng nhập để nhập bài tóm tắt...") : "Nhập bài văn tóm tắt khoảng 400 chữ tiếng Hán (tự đặt tiêu đề, không chép nguyên văn, không bình luận cá nhân)..."}
                   className="flex-1 w-full min-h-[280px] p-4 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm leading-relaxed outline-none resize-y font-sans disabled:bg-slate-50 disabled:text-slate-400"
                 />
@@ -868,7 +907,7 @@ export function HskGraderClient() {
 
             {/* Bottom Controls */}
             <div className="mt-5 pt-4 border-t border-slate-100">
-              <GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt', 'English', '中文']}>
+              <GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading || isGenerating} languages={['Tiếng Việt', 'English', '中文']}>
                 {activeTab === 'HSK_5_FULL' ? (
                 <div className="flex flex-col gap-2">
                   {hsk5Step > 1 ? (
@@ -897,7 +936,7 @@ export function HskGraderClient() {
                         if (!session) return signIn('google')
                         gradeHsk5Full()
                       }}
-                      disabled={isGrading}
+                      disabled={isGrading || isGenerating || !hsk5Prompt}
                       className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all active:scale-95 duration-75 flex items-center gap-1.5 shadow-xs disabled:opacity-50"
                     >
                       {isGrading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -916,7 +955,7 @@ export function HskGraderClient() {
                     if (!session) return signIn('google')
                     gradeHsk6()
                   }}
-                  disabled={isGrading}
+                  disabled={isGrading || isGenerating || !hsk6Prompt}
                   className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all active:scale-95 duration-75 flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
                 >
                   {isGrading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

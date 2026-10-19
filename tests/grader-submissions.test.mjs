@@ -20,6 +20,7 @@ for (const sample of gradingSamples) {
     assert.equal(call.options.maxRetries, 0)
     assert.equal(call.payload.response_format.type, 'json_object')
     assert.ok(call.payload.messages[1].content.includes(sample.essay))
+    assert.ok(call.payload.messages[1].content.includes(sample.prompt), 'AI must receive the submitted source prompt unchanged')
     if (sample.chartExtra) assert.ok(call.payload.messages[1].content.includes(sample.chartExtra))
     assert.equal(Number(harness.sqlite.prepare("SELECT value FROM system_config WHERE key = 'TOTAL_API_REQUESTS'").get().value), 1)
     assert.equal(harness.sqlite.prepare('SELECT count FROM api_usage').get().count, 1)
