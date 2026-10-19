@@ -85,7 +85,7 @@ export function buildSpeakingSet(exam: SpeakingExam, tab: SpeakingTab, catalog =
     // Individual admin questions remain available in practice; a full test needs
     // complete question groups and linked IELTS discussion topics.
     for (const part of ['PART_1', 'PART_3', 'Q5_7', 'Q8_10'] as PracticePart[]) {
-      if (pools[part]) pools[part] = pools[part]!.filter(prompt => (prompt.subQuestions?.length || 0) >= (part === 'PART_1' || part === 'PART_3' ? 3 : 2))
+      if (pools[part]) pools[part] = pools[part]!.filter(prompt => (prompt.subQuestions?.length || 0) >= (part === 'PART_1' ? 3 : 2))
     }
     if (exam === 'IELTS_SPEAKING') pools.PART_2 = pools.PART_2?.filter(prompt => prompt.setId && pools.PART_3?.some(discussion => discussion.setId === prompt.setId))
   }

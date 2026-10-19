@@ -1,0 +1,14 @@
+import type {SpeakingPrompt} from './speakingPrompts'
+export const SPEAKING_FORMAT_SOURCES={
+ TOEIC_SPEAKING:{title:'ETS · Speaking & Writing sample tests',url:'https://www.ets.org/pdfs/toeic/toeic-speaking-writing-sample-tests.pdf'},
+ IELTS_SPEAKING:{title:'IELTS · Speaking sample tasks (British Council)',url:'https://takeielts.britishcouncil.org/sites/default/files/%5Bdownloads%5D/ielts-speaking-sample-tasks-2023.pdf'},
+}
+// Short official sample tasks, verified against the linked publisher PDFs.
+// These excerpts are not presented as complete released examinations.
+export const officialSpeakingSamples:SpeakingPrompt[]=[
+ {id:'ets-sample-television',examType:'TOEIC_SPEAKING',part:'Q5_7',topic:'ETS sample · Television',questionEn:'How often do you watch television?',questionVi:'Bạn xem ti vi thường xuyên như thế nào?',subQuestions:['What kinds of programs do you usually watch?','Describe your favorite television program.'],prepTimeSec:3,speakTimeSec:15,startGraceSec:0,criteria:[],difficulty:'easy'},
+ {id:'ets-sample-vacation-opinion',examType:'TOEIC_SPEAKING',part:'Q11',topic:'ETS sample · Work and vacation',questionEn:'Some people prefer to take a job that does not pay well but does provide a lot of time off from work. What is your opinion about taking a job with a low salary that has a lot of vacation time? Give reasons for your opinion.',questionVi:'Nêu ý kiến về công việc lương thấp nhưng có nhiều thời gian nghỉ, kèm lý do.',prepTimeSec:45,speakTimeSec:60,startGraceSec:0,criteria:[],difficulty:'medium'},
+ {id:'ielts-official-important-possession',examType:'IELTS_SPEAKING',part:'PART_2',topic:'IELTS sample · An important possession',questionEn:'Describe something you own which is very important to you.',questionVi:'Mô tả một đồ vật bạn sở hữu có ý nghĩa quan trọng với bạn.',cueCard:'You should say:\nwhere you got it from\nhow long you have had it\nwhat you use it for',setId:'ielts-official-possessions',prepTimeSec:60,speakTimeSec:120,startGraceSec:0,criteria:[],difficulty:'medium'},
+ {id:'ielts-official-values-advertising',examType:'IELTS_SPEAKING',part:'PART_3',topic:'IELTS sample · Values and advertising',questionEn:'What kind of things give status to people in your country?',questionVi:'Ở nước bạn, những điều gì thể hiện địa vị của một người?',subQuestions:['Have things changed since your parents’ time?','Do you think advertising influences what people buy?'],setId:'ielts-official-possessions',prepTimeSec:0,speakTimeSec:60,startGraceSec:0,criteria:[],difficulty:'hard'},
+]
+export function officialSpeakingSource(id:string,question?:string){const sample=officialSpeakingSamples.find(row=>row.id===id.split(':')[0]);return sample&&(!question||[sample.questionEn,...(sample.subQuestions||[])].includes(question))?{...SPEAKING_FORMAT_SOURCES[sample.examType],page:sample.id.startsWith('ets-')?sample.part==='Q11'?5:3:sample.part==='PART_2'?5:6}:null}

@@ -292,3 +292,18 @@ test('filler and repetition metrics preserve audible hesitation without labeling
  const begin=await h.post(h.body),r=await h.upload(begin.data.id)
  assert.equal(r.response.status,200);assert.equal(r.data.result.fluency.fillerCount,3);assert.equal(r.data.result.fluency.repetitionCount,1)
 })
+
+test('official sample tasks persist in D1 with exact task structures and linked IELTS discussion',async()=>{
+ const h=await fixture(),bank=await h.loadModule('app/api/speaking/question-bank.ts'),samples=await h.loadModule('src/data/speakingOfficialSamples.ts')
+ await bank.ensureQuestionBank(h.db.$client)
+ for(const sample of samples.officialSpeakingSamples){const stored=h.sqlite.prepare('SELECT * FROM speaking_prompt WHERE id=?').get(sample.id);assert.equal(stored.questionEn,sample.questionEn);assert.equal(stored.part,sample.part);assert.ok(samples.officialSpeakingSource(sample.id).url.startsWith('https://'))}
+ const questions=h.lib.buildSpeakingSet('IELTS_SPEAKING','FULL',undefined,'ielts-official-important-possession',()=>0)
+ assert.equal(questions.filter(q=>q.part==='PART_3').length,3);assert.equal(questions.find(q=>q.part==='PART_2').setId,questions.find(q=>q.part==='PART_3').setId)
+ h.sqlite.prepare('DELETE FROM speaking_prompt WHERE id=?').run('ets-sample-television');await bank.ensureQuestionBank(h.db.$client);assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM speaking_prompt WHERE id=?').get('ets-sample-television').n,0)
+})
+test('grading uses server transcription, ignoring submitted editable text and preserving exact transcript in report',async()=>{
+ const h=await fixture();const start=await h.post(h.body),form=new FormData();form.set('action','submit_audio');form.set('submissionId',start.data.id);form.set('itemIndex','0');form.set('audio',h.audio);form.set('transcript','I secretly replaced my answer.')
+ const result=await h.post(form);assert.equal(result.response.status,200);assert.equal(result.data.result.transcript,'I enjoy reading books because they help me learn new things.')
+ const provider=h.state.calls.find(c=>c.kind!=='stt');assert.ok(provider.payload.messages[1].content.includes(result.data.result.transcript));assert.ok(!provider.payload.messages[1].content.includes('secretly replaced'))
+ const report=await h.post({action:'report',submissionId:start.data.id});assert.equal(report.data.report.items[0].result.transcript,result.data.result.transcript);assert.ok(report.data.report.items[0].audioAvailable)
+})

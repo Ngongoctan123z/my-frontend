@@ -1,3 +1,4 @@
+import {officialSpeakingSamples} from '@/src/data/speakingOfficialSamples'
 import { canonicalPart, fallbackCatalog, SPEAKING_PARTS, type SpeakingExam } from '@/src/lib/speaking'
 import { SpeakingRequestError } from './validation'
 import type { SpeakingD1 } from './store'
@@ -16,6 +17,11 @@ export async function ensureQuestionBank(db: SpeakingD1) {
   await db.batch([
     db.prepare(QUESTION_BANK_SCHEMA),
     db.prepare('CREATE INDEX IF NOT EXISTS speaking_prompt_exam_part ON speaking_prompt(examType,part,isPublished)'),
+  ])
+  const officialKey='SPEAKING_OFFICIAL_SAMPLES_V1'
+  if(!await db.prepare('SELECT value FROM system_config WHERE key=?').bind(officialKey).first())await db.batch([
+    ...officialSpeakingSamples.map(p=>{const row=validateQuestion({...p,isPublished:true});return db.prepare(`INSERT INTO speaking_prompt(id,${columns.join(',')},createdAt) SELECT ${Array(columns.length+2).fill('?').join(',')} WHERE NOT EXISTS(SELECT 1 FROM system_config WHERE key=?) ON CONFLICT(id) DO NOTHING`).bind(p.id,...columns.map(k=>row[k]),Date.now(),officialKey)}),
+    db.prepare('INSERT INTO system_config(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING').bind(officialKey,'1'),
   ])
   if (await db.prepare('SELECT value FROM system_config WHERE key=?').bind(seedKey).first()) return
   const defaults = (['IELTS_SPEAKING','TOEIC_SPEAKING'] as SpeakingExam[]).flatMap(exam => Object.values(fallbackCatalog(exam)).flat())

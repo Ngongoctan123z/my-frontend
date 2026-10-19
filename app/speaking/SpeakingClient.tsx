@@ -1,4 +1,5 @@
 'use client'
+import {officialSpeakingSource,SPEAKING_FORMAT_SOURCES} from '@/src/data/speakingOfficialSamples'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { signIn, useSession } from 'next-auth/react'
@@ -237,7 +238,7 @@ export function SpeakingClient() {
     resetAssessment(); setResultOpen(false)
   }
   const pickPart = tab === 'FULL' ? exam === 'IELTS_SPEAKING' ? 'PART_2' : 'Q11' : tab
-  const choices = (catalogs[exam][pickPart] || []).filter(prompt => (tab !== 'FULL' || exam !== 'IELTS_SPEAKING' || (prompt.setId && catalogs[exam].PART_3?.some(p => p.setId === prompt.setId && (p.subQuestions?.length || 0) >= 3))) && `${prompt.topic} ${prompt.questionEn}`.toLowerCase().includes(keyword.trim().toLowerCase()))
+  const choices = (catalogs[exam][pickPart] || []).filter(prompt => (tab !== 'FULL' || exam !== 'IELTS_SPEAKING' || (prompt.setId && catalogs[exam].PART_3?.some(p => p.setId === prompt.setId && (p.subQuestions?.length || 0) >= 2))) && `${prompt.topic} ${prompt.questionEn}`.toLowerCase().includes(keyword.trim().toLowerCase()))
 
   if (status === 'loading' || loadedOwner.current !== owner) return <p className="p-6 text-center text-sm text-slate-500">Đang chuẩn bị đề Speaking…</p>
   if (!current) return <div className="space-y-4 p-6 text-center"><p className="text-sm text-slate-500">Phần này chưa có bộ đề đã xuất bản đủ câu. Hãy chọn phần khác.</p><div className="flex gap-2 overflow-x-auto">{SPEAKING_PARTS[exam].map(part => <button type="button" key={part} onClick={() => changeSet(exam, part)} className="shrink-0 rounded-lg border px-3 py-2 text-sm">{PART_LABELS[part]}</button>)}</div></div>
@@ -252,6 +253,7 @@ export function SpeakingClient() {
     <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2 sm:gap-5">
       <section aria-label="Đề bài Speaking" className="min-w-0 rounded-none border-y border-slate-200 bg-white shadow-xs sm:rounded-xl sm:border"><div className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-4 sm:px-5"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Đề bài</p><p className="mt-1 text-xs font-semibold text-blue-600">{PART_LABELS[current.part]}{questions.length > 1 ? ` · Câu ${index + 1}/${questions.length}` : ''}</p></div><div className="flex shrink-0 items-center gap-1.5"><button type="button" disabled={locked || strict} onClick={() => { setKeyword(''); setPickerOpen(true) }} className="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40">Chọn đề</button><button type="button" aria-label="Đổi đề Speaking" disabled={locked || strict} onClick={() => changeSet()} className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-semibold text-blue-600 disabled:opacity-40"><RefreshCw className="h-3.5 w-3.5" />Đổi đề</button></div></div>
         <div className="p-4 sm:p-5"><p className="mb-3 text-xs text-slate-400">{current.topic}</p><h2 className="whitespace-pre-wrap text-base font-semibold leading-relaxed text-slate-800 sm:text-lg">{current.questionEn}</h2>
+          <p className="mt-3 text-[11px] leading-5 text-slate-400">{officialSpeakingSource(current.id,current.questionEn)?'Câu mẫu chính thức · ':'Đề luyện · cấu trúc tham chiếu '}<a className="text-blue-600 underline underline-offset-2" href={(officialSpeakingSource(current.id,current.questionEn)||SPEAKING_FORMAT_SOURCES[exam]).url} target="_blank" rel="noopener noreferrer">{officialSpeakingSource(current.id,current.questionEn)?.title||SPEAKING_FORMAT_SOURCES[exam].title}</a>{officialSpeakingSource(current.id,current.questionEn)&&` · trang ${officialSpeakingSource(current.id,current.questionEn)!.page}`}</p>
           {current.cueCard && <div className="mt-4 whitespace-pre-wrap rounded-r-lg border-l-[3px] border-blue-200 bg-blue-50/40 p-4 text-sm leading-relaxed text-slate-600">{current.cueCard}</div>}
           {current.informationText && <div className="mt-4 whitespace-pre-wrap rounded-lg border border-blue-100 bg-blue-50/30 p-4 text-xs leading-7 text-slate-600">{current.informationText}</div>}
           {current.imageUrl && <img src={current.imageUrl} alt="Ảnh đề TOEIC Speaking" className="mt-4 max-h-80 w-full rounded-lg border border-slate-100 object-contain" loading="lazy" />}

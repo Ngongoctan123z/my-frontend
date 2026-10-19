@@ -1,3 +1,4 @@
+import {officialSpeakingSamples} from './speakingOfficialSamples'
 export interface SpeakingPrompt {
   id: string
   examType: 'IELTS_SPEAKING' | 'TOEIC_SPEAKING'
@@ -507,6 +508,9 @@ export type SpeakingPart =
   | 'Q3_4' | 'Q5_7' | 'Q8_10' | 'Q11'
 
 export function getPromptsForPart(examType: 'IELTS_SPEAKING' | 'TOEIC_SPEAKING', part: SpeakingPart): SpeakingPrompt[] {
+  return [...getOriginalPromptsForPart(examType,part),...officialSpeakingSamples.filter(row=>row.examType===examType&&row.part===part)]
+}
+function getOriginalPromptsForPart(examType:'IELTS_SPEAKING'|'TOEIC_SPEAKING',part:SpeakingPart):SpeakingPrompt[]{
   if (examType === 'IELTS_SPEAKING') {
     if (part === 'PART_1') return IELTS_PART1_PROMPTS
     if (part === 'PART_2') return IELTS_PART2_PROMPTS

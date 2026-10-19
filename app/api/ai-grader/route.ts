@@ -1,3 +1,5 @@
+import {WRITING_EXAMS,type WritingExam} from '@/src/lib/writingBank'
+import {writingCatalog,getWritingSet,writingPracticePrompts} from './writing-bank'
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { publicToeicExamSets } from './toeic-sets'
@@ -223,6 +225,20 @@ export async function POST(req: NextRequest) {
           }
         }
       )
+    }
+
+    if(action==='get_writing_catalog'||action==='get_writing_set'){
+      if(!WRITING_EXAMS.includes(body.exam))return NextResponse.json({error:'Loại đề không hợp lệ.'},{status:400})
+      try{const db=await getDb(),raw=db.$client as SpeakingD1
+        if(action==='get_writing_catalog')return NextResponse.json(await writingCatalog(raw,body.exam as WritingExam))
+        if(typeof body.id!=='string'||body.id.length>120)return NextResponse.json({error:'ID đề không hợp lệ.'},{status:400})
+        const set=await getWritingSet(raw,body.exam as WritingExam,body.id)
+        return set?NextResponse.json({source:'database',set}):NextResponse.json({error:'Bộ đề đã bị xoá hoặc thiếu câu thành phần. Hãy chọn bộ khác.'},{status:404})
+      }catch{return NextResponse.json({error:'Không tải được kho đề. Bài đang làm vẫn được giữ.'},{status:503})}
+    }
+    if(['TOPIK_51','TOPIK_52','TOPIK_53','TOPIK_54','HSK_5','HSK_6'].includes(type)&&(action==='generate_prompt_batch'||action==='generate_prompt')){
+      try{const db=await getDb();return NextResponse.json(await writingPracticePrompts(db.$client as SpeakingD1,type,Array.isArray(body.donePrompts)?body.donePrompts:[]))}
+      catch{return NextResponse.json({error:'Không tải được đề. Hãy thử lại; không thay đổi đề đang làm.'},{status:503})}
     }
 
     if (action === 'get_paired_full_test' && body.exam === 'TOEIC') {

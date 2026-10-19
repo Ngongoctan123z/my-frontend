@@ -11,13 +11,15 @@ import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistor
 
 
 import dynamic from 'next/dynamic'
+import {WritingSetPicker} from '@/src/components/common/WritingSetPicker'
+import type {WritingLoadedSet,WritingPrompt} from '@/src/lib/writingBank'
 import { AnswerTextarea, GraderActions } from '@/src/components/common/GraderControls'
 import { usePathname } from 'next/navigation'
 import { TOPIK_51_FALLBACKS, TOPIK_52_FALLBACKS, TOPIK_53_FALLBACKS, TOPIK_54_FALLBACKS } from '@/src/data/fallbackPrompts'
 
 export type TopikQuestionKey = 'TOPIK_51' | 'TOPIK_52' | 'TOPIK_53' | 'TOPIK_54'
 export type TopikMode = TopikQuestionKey | 'TOPIK_FULL'
-export type PromptObject = { content: string; imageUrl?: string | null; imageDescription?: string | null }
+export type PromptObject = WritingPrompt
 
 const GradingResultModal = dynamic(() => import('@/src/components/common/GradingResultModal').then(module => module.GradingResultModal))
 const ShareExamModal = dynamic(() => import('@/src/components/common/ShareExamModal').then(module => module.ShareExamModal))
@@ -45,6 +47,9 @@ export function TopikGraderClient() {
 
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState<TopikMode>('TOPIK_FULL')
+  const [fullSetId,setFullSetId]=useState('')
+  const activeMode=useRef<TopikMode>('TOPIK_FULL'),requestEpoch=useRef(0),fullDraft=useRef<any>(null),singleDraft=useRef<any>(null)
+  activeMode.current=activeTab
   const [fullTestStep, setFullTestStep] = useState<1 | 2 | 3 | 4>(1)
   const [feedbackLang, setFeedbackLang] = useState<string>(isEn ? 'English' : 'Tiếng Việt')
 
@@ -133,6 +138,35 @@ export function TopikGraderClient() {
     else setPrompt54(p)
   }
 
+  const snapshot=()=>({prompt51,prompt52,prompt53,prompt54,answers51,answers52,essay53,essay54,fullSetId,fullTestStep})
+  const applySnapshot=(draft:any)=>{setPrompt51(draft?.prompt51||null);setPrompt52(draft?.prompt52||null);setPrompt53(draft?.prompt53||null);setPrompt54(draft?.prompt54||null);setAnswers51(draft?.answers51||{a:'',b:''});setAnswers52(draft?.answers52||{a:'',b:''});setEssay53(draft?.essay53||'');setEssay54(draft?.essay54||'');setFullSetId(draft?.fullSetId||'');setFullTestStep(draft?.fullTestStep||1)}
+  const switchMode=(next:TopikMode)=>{
+    if(isGrading||next===activeTab)return
+    requestEpoch.current++;setIsGenerating(false)
+    if(activeTab==='TOPIK_FULL'&&next!=='TOPIK_FULL'){fullDraft.current=snapshot();applySnapshot(singleDraft.current)}
+    else if(activeTab!=='TOPIK_FULL'&&next==='TOPIK_FULL'){singleDraft.current=snapshot();applySnapshot(fullDraft.current)}
+    setActiveTab(next);setGeneralError(null)
+  }
+  const applyFullSet=(set:WritingLoadedSet)=>{setPrompt51(set.questions.TOPIK_51);setPrompt52(set.questions.TOPIK_52);setPrompt53(set.questions.TOPIK_53);setPrompt54(set.questions.TOPIK_54);setFullSetId(set.id);setFullTestStep(1);setAnswers51({a:'',b:''});setAnswers52({a:'',b:''});setEssay53('');setEssay54('');setResult(null);setFieldErrors51({});setFieldErrors52({});setGeneralError(null)}
+  const loadFullSet=async(id:string)=>{
+    if(isGrading)return
+    const epoch=++requestEpoch.current;setIsGenerating(true);setGeneralError(null)
+    try{const data=await callApi({action:'get_writing_set',exam:'TOPIK',id});if(epoch===requestEpoch.current&&activeMode.current==='TOPIK_FULL')applyFullSet(data.set)}
+    catch(failure:any){if(epoch===requestEpoch.current)setGeneralError(failure.message)}
+    finally{if(epoch===requestEpoch.current)setIsGenerating(false)}
+  }
+  const drawFullSet=async()=>{
+    if(isGrading||isGenerating)return
+    setIsGenerating(true);setGeneralError(null)
+    const epoch=++requestEpoch.current
+    try{const data=await callApi({action:'get_writing_catalog',exam:'TOPIK'});if(epoch!==requestEpoch.current||activeMode.current!=='TOPIK_FULL')return
+      const choices=(data.sets||[]).filter((row:any)=>row.id!==fullSetId),pool=choices.length?choices:data.sets||[]
+      if(!pool.length)throw new Error(isEn?'No complete sets are available.':'Chưa có bộ đề đầy đủ.')
+      const response=await callApi({action:'get_writing_set',exam:'TOPIK',id:pool[Math.floor(Math.random()*pool.length)].id})
+      if(epoch===requestEpoch.current&&activeMode.current==='TOPIK_FULL')applyFullSet(response.set)
+    }catch(failure:any){if(epoch===requestEpoch.current)setGeneralError(failure.message)}finally{if(epoch===requestEpoch.current)setIsGenerating(false)}
+  }
+
   // Load usage & plan
   useEffect(() => {
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
@@ -150,13 +184,8 @@ export function TopikGraderClient() {
   // Load history (Database for logged in, localStorage for guests)
   const isPromptDone = (content?: string, historyList = history) => {
     if (!content) return false
-    const snippet = content.slice(0, 50).trim().toLowerCase()
-    const contentLower = content.toLowerCase()
-    return historyList.some(h => {
-      if (!h.prompt) return false
-      const p = h.prompt.toLowerCase()
-      return p === contentLower || p.includes(contentLower) || contentLower.includes(p) || (snippet.length >= 15 && p.includes(snippet))
-    })
+    const source=content.trim().replace(/\s+/g,' ')
+    return historyList.some(h=>typeof h.prompt==='string'&&(h.prompt.trim().replace(/\s+/g,' ')===source||(source.length>=80&&h.prompt.trim().replace(/\s+/g,' ').includes(source))))
   }
 
   // Load history (Database for logged in, localStorage for guests)
@@ -165,13 +194,7 @@ export function TopikGraderClient() {
     const data = await getEssayHistory(email, 'TOPIK')
     setHistory(data)
 
-    // Tự động kiểm tra: Nếu đề TOPIK đang hiển thị đã có trong lịch sử đã làm -> Đổi ngay sang đề chưa làm
-    if (data.length > 0) {
-      if (prompt51 && isPromptDone(prompt51.content, data)) generatePrompt('TOPIK_51', data)
-      if (prompt52 && isPromptDone(prompt52.content, data)) generatePrompt('TOPIK_52', data)
-      if (prompt53 && isPromptDone(prompt53.content, data)) generatePrompt('TOPIK_53', data)
-      if (prompt54 && isPromptDone(prompt54.content, data)) generatePrompt('TOPIK_54', data)
-    }
+
   }
 
   useEffect(() => {
@@ -236,7 +259,9 @@ export function TopikGraderClient() {
 
   // Generate prompt
   const generatePrompt = async (targetKey?: TopikQuestionKey, customHistory?: GradedEssayHistory[], force = false) => {
+    if(activeMode.current==='TOPIK_FULL'){await drawFullSet();return}
     const key = targetKey || effectiveQuestionKey
+    const epoch=++requestEpoch.current,mode=activeMode.current
     const now = Date.now()
     if (!force && (isGenerating || isGrading || now - lastActionTimeRef.current < 600)) return
     lastActionTimeRef.current = now
@@ -256,13 +281,13 @@ export function TopikGraderClient() {
           qRef.current = [{ content: data.text }]
         }
       } catch (err: any) {
-        console.warn('generatePrompt error, using curated fallback:', err)
-        const fb = getTopikFallback(key)
-        qRef.current = [fb]
+        if(epoch===requestEpoch.current){setGeneralError(err.message||'Không tải được đề.');setIsGenerating(false)}
+        return
       }
       setIsGenerating(false)
     }
 
+    if(epoch!==requestEpoch.current||mode!==activeMode.current)return
     // Bỏ qua đề đã làm nếu còn đề chưa làm trong queue
     while (qRef.current.length > 1 && isPromptDone(qRef.current[0].content, hList)) {
       qRef.current.shift()
@@ -271,15 +296,16 @@ export function TopikGraderClient() {
     const nextPrompt = qRef.current.shift()
     if (nextPrompt) {
       setCurrentPrompt(key, nextPrompt)
+      if(key==='TOPIK_51')setAnswers51({a:'',b:''});else if(key==='TOPIK_52')setAnswers52({a:'',b:''});else if(key==='TOPIK_53')setEssay53('');else setEssay54('')
+      setResult(null)
     } else {
-      const fb = getTopikFallback(key)
-      setCurrentPrompt(key, fb)
+      setGeneralError(isEn?'No prompts are available.':'Không có đề trong kho. Hãy thử lại.')
     }
   }
 
   // Auto-load prompt on initial render & step switch if empty
   useEffect(() => {
-    if (!currentPrompt) {
+    if (activeTab!=='TOPIK_FULL'&&!currentPrompt) {
       generatePrompt(effectiveQuestionKey)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -488,6 +514,8 @@ export function TopikGraderClient() {
         isFullTest: true,
         fullTestType: 'TOPIK',
         overallBand: totalScore,
+        linkedSetId:fullSetId||undefined,
+        sourcePrompts:{TOPIK_51:prompt51,TOPIK_52:prompt52,TOPIK_53:prompt53,TOPIK_54:prompt54},
         scoreScale: 100,
         overallBandFormatted: `${totalScore}/100`,
         formula: isEn
@@ -516,20 +544,6 @@ export function TopikGraderClient() {
 
       setIsGrading(false)
 
-      // Tự động xóa tất cả bài làm và reset bước về câu 51 (step 1)
-      setAnswers51({ a: '', b: '' })
-      setAnswers52({ a: '', b: '' })
-      setEssay53('')
-      setEssay54('')
-      setFullTestStep(1)
-
-      // Tự động load đề mới cho cả 4 câu
-      await Promise.all([
-        generatePrompt('TOPIK_51', undefined, true),
-        generatePrompt('TOPIK_52', undefined, true),
-        generatePrompt('TOPIK_53', undefined, true),
-        generatePrompt('TOPIK_54', undefined, true)
-      ])
       await loadHistory()
     } catch (err: any) {
       setGeneralError(err.message || 'Lỗi khi chấm trọn bộ TOPIK.')
@@ -541,6 +555,15 @@ export function TopikGraderClient() {
   // Restore history
   const restoreHistoryItem = (item: GradedEssayHistory) => {
     if (item.result?.isFullTest) {
+      requestEpoch.current++
+      const source=item.result.sourcePrompts
+      if(source?.TOPIK_51&&source?.TOPIK_52&&source?.TOPIK_53&&source?.TOPIK_54){
+        if(activeTab!=='TOPIK_FULL')singleDraft.current=snapshot()
+        setPrompt51(source.TOPIK_51);setPrompt52(source.TOPIK_52);setPrompt53(source.TOPIK_53);setPrompt54(source.TOPIK_54);setFullSetId(item.result.linkedSetId||'')
+        const answer=(n:number)=>new RegExp('\\[Câu '+n+'\\]\\n([\\s\\S]*?)(?=\\n\\n\\[Câu |$)').exec(item.essay)?.[1]||''
+        const blanks=(text:string)=>({a:/㉠\s*([^\n]+)/.exec(text)?.[1]?.trim()||'',b:/㉡\s*([^\n]+)/.exec(text)?.[1]?.trim()||''})
+        setAnswers51(blanks(answer(51)));setAnswers52(blanks(answer(52)));setEssay53(answer(53));setEssay54(answer(54))
+      }
       setActiveTab('TOPIK_FULL')
       setFullTestStep(1)
       setResult(item.result)
@@ -612,6 +635,8 @@ export function TopikGraderClient() {
           </div>
         </div>
 
+        {session&&activeTab==='TOPIK_FULL'&&<div className="mb-4"><WritingSetPicker exam="TOPIK" currentId={fullSetId} onChoose={id=>void loadFullSet(id)} autoLoad disabled={isGenerating||isGrading} isEn={isEn}/></div>}
+
         {/* Tab Selection & Desktop Action Buttons */}
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           {/* Tabs - enlarged on desktop with plenty of space */}
@@ -621,9 +646,9 @@ export function TopikGraderClient() {
               return (
                 <button
                   key={t.key}
+                  disabled={isGrading}
                   onClick={() => {
-                    setActiveTab(t.key)
-                    setGeneralError(null)
+                    switchMode(t.key)
                   }}
                   className={`shrink-0 snap-start flex flex-col px-3 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl border text-left transition-all ${
                     isActive
@@ -744,7 +769,9 @@ export function TopikGraderClient() {
                 <p className="text-xs text-slate-500">{isEn ? 'Drawing official prompt...' : 'Đang tải đề thi...'}</p>
               </div>
             ) : effectiveQuestionKey === 'TOPIK_53' ? (
-              <div>
+              <div className="space-y-3">
+                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{currentPrompt.content}</p>
+                {currentPrompt.source&&<p className="text-[11px] leading-5 text-slate-400">{isEn?'Chart source: ':'Nguồn biểu đồ: '}<a href={currentPrompt.source.url} target="_blank" rel="noopener noreferrer" className="underline">{currentPrompt.source.publisher||currentPrompt.source.title}</a></p>}
                 {currentPrompt.imageUrl ? (
                   <div className="border border-slate-200 rounded-lg overflow-hidden bg-white p-2">
                     <div

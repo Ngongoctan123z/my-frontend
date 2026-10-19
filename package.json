@@ -15,7 +15,11 @@
     "test:build-seo": "node --experimental-vm-modules tests/build-seo.test.mjs",
     "test:grader-ui": "node tests/grader-ui.test.mjs",
     "test:speaking": "node --experimental-vm-modules tests/speaking.test.mjs",
-    "test:speaking-ui": "node tests/speaking-ui.test.mjs"
+    "test:speaking-ui": "node tests/speaking-ui.test.mjs",
+    "prepare:writing-bank": "node scripts/build-writing-bank.mjs",
+    "prebuild": "npm run prepare:writing-bank",
+    "predev": "npm run prepare:writing-bank",
+    "deploy:preview": "opennextjs-cloudflare upload"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
@@ -70,4 +74,3 @@
     "wrangler": "^4.140.0"
   }
 }
-

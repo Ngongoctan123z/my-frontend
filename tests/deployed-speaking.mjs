@@ -40,7 +40,19 @@ for (let attempt = 1; attempt <= 24; attempt++) {
     for(const row of linkedData.sets){assert.ok(row.picturePromptId && row.part1.id && row.email7.id && row.part2.id);assert.notEqual(row.part1.id,row.email7.id)}
     for(const [number,response] of [[6,email6],[7,email7]]){assert.equal(response.status,200);const catalog=await response.json();assert.equal(catalog.totalPrompts,30);assert.ok(catalog.prompts.every(row=>row.id.startsWith('toeic-email-'+number+'-')))}
     for(const row of linkedData.sets.filter(row=>row.id.startsWith('toeic-photo-full-'))){assert.ok(row.part1.id.startsWith('toeic-email-6-'));assert.ok(row.email7.id.startsWith('toeic-email-7-'))}
-    console.log('PASS deployed D1 catalogs, TOEIC picture bank, private audio and admin auth guards')
+    for(const exam of ['TOPIK','HSK_5','HSK_6']){
+      const response=await request('/api/ai-grader',{action:'get_writing_catalog',exam});assert.equal(response.status,200)
+      const catalog=await response.json();assert.equal(catalog.source,'database');assert.equal(catalog.totalSets,50,exam+' complete D1 sets')
+      const last=catalog.sets.at(-1),loaded=await request('/api/ai-grader',{action:'get_writing_set',exam,id:last.id}),{set}=await loaded.json();assert.equal(loaded.status,200)
+      for(const [type,id] of Object.entries(last.children))assert.equal(set.questions[type].id,id)
+      if(exam==='TOPIK'){const q=set.questions.TOPIK_53;assert.ok(q.imageDescription&&q.source.documentUrl);const image=await request(q.imageUrl);assert.equal(image.status,200);assert.match(image.headers.get('content-type'),/image/)}
+      if(exam==='HSK_5'){const body=JSON.parse(set.questions.HSK_5.content);assert.equal(body.part1.length,8);assert.equal(body.part2.keywords.length,5);assert.match(body.part3.imageUrl,/images.unsplash.com/)}
+      if(exam==='HSK_6')assert.ok(set.questions.HSK_6.content.length>1000)
+      console.log(exam+' bank: 50 complete D1 sets and exact child IDs')
+    }
+    const speaking=await request('/api/speaking',{action:'catalog',examType:'TOEIC_SPEAKING'}),speakingBank=await speaking.json();assert.ok(speakingBank.catalog.Q11.some(q=>q.id==='ets-sample-vacation-opinion'))
+    const privateBank=await request('/api/admin?type=writing_catalog&exam=TOPIK');assert.equal(privateBank.status,401)
+    console.log('PASS deployed D1 Writing/Speaking catalogs, chart assets and private audio/admin auth guards')
     process.exit(0)
   } catch (error) {
     lastError=error

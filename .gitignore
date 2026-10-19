@@ -28,3 +28,7 @@ dist-ssr
 .wrangler/
 
 scratch/
+
+# Generated Writing seed and browser verification artifacts
+public/exam-data/writing-bank-v1.json
+test-results/

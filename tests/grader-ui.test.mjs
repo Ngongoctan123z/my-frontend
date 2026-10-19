@@ -25,8 +25,11 @@ import * as fixtures from './src/data/fallbackPrompts';
 import {fallbackToeicExamSets} from './src/lib/toeicExamSets';
 import {toeicPhotoPracticeSets} from './src/data/toeicPhotoBank';
 import {toeicEmailBank} from './src/data/toeicEmails';
+import {buildWritingBank} from './src/data/writing-bank/catalog';
+const writing=buildWritingBank();
+const publicPrompt=row=>row.type==='TOPIK_53'?{id:row.id,imageUrl:row.imageUrl,...JSON.parse(row.content),content:JSON.parse(row.content).text}:row;
 const linkedToeic=fallbackToeicExamSets().map((set,index)=>({...set,id:'linked-'+index,picturePromptId:'pictures-'+index,part1:{...set.part1,id:'email6-'+index},email7:{...set.email7,id:'email7-'+index},part2:{...set.part2,id:'essay-'+index}}));
-window.requests=[];
+window.requests=[];window.topikScenario=new URL(location.href).searchParams.get('scenario')==='topik-linked';
 window.toeicScenario=new URL(location.href).searchParams.get('scenario')==='toeic-full';
 window.hskScenario=new URL(location.href).searchParams.get('scenario')==='hsk-stability';
 window.hskPassages=${JSON.stringify(hskPassages)};
@@ -50,10 +53,13 @@ window.fetch=async (url,options={})=>{
   }
 
   let result={count:0,limit:50,plan:'free'};
+  if(body.action==='get_writing_catalog')return Response.json({sets:writing.sets.filter(s=>s.exam===body.exam)});
+  if(body.action==='get_writing_set'){if(window.failWritingSet)return Response.json({error:'Không tải được bộ mới.'},{status:503});const set=writing.sets.find(s=>s.id===body.id);return Response.json({set:{...set,questions:Object.fromEntries(Object.entries(set.children).map(([key,id])=>[key,publicPrompt(writing.questions.find(q=>q.id===id))]))}});}
   if(window.hskScenario&&body.action==='generate_prompt_batch'&&body.type==='HSK_6'){
     if(window.deferHskPrompt)return new Promise(resolve=>window.promptResolvers.push(resolve));
     return Response.json({prompts:window.hskPassages.map(content=>({content}))});
   }
+  if(window.topikScenario&&body.action==='grade_essay')return Response.json({overallBand:body.type==='TOPIK_54'?40:body.type==='TOPIK_53'?24:8,scoreScale:body.type==='TOPIK_54'?50:body.type==='TOPIK_53'?30:10,detailedFeedback:'Đã chấm đúng bộ.'});
   if(window.toeicScenario&&body.action==='grade_essay'){if(window.failToeicType===body.type){window.failToeicType=null;return Response.json({error:'Temporary grading failure'},{status:503});}return Response.json(body.type==='TOEIC_PICTURE'?{overallBand:15,scoreScale:15,pictureTasks:JSON.parse(body.essay).map(row=>({...row,score:3})),detailedFeedback:'Pictures checked.'}:{overallBand:body.type==='TOEIC_ESSAY'?5:4,scoreScale:body.type==='TOEIC_ESSAY'?5:4,detailedFeedback:'Email or essay checked.'});}
   if(window.hskScenario&&body.action==='grade_essay')return new Promise(resolve=>window.gradeResolvers.push(resolve));
   if(body.action==='get_paired_full_test') result={sets:body.exam==='TOEIC'?linkedToeic:fixtures[body.exam+'_PAIRED_SETS']};
@@ -68,7 +74,7 @@ const stubs = {
   'next-auth/react': `import {useEffect,useState} from 'react'; const initial={user:{email:'ui-test@example.invalid'}}; export function useSession(){const [session,setSession]=useState(initial);useEffect(()=>{const refresh=()=>setSession({...initial,user:{...initial.user}});window.addEventListener('fixture-session',refresh);return()=>window.removeEventListener('fixture-session',refresh)},[]);return {data:session,status:'authenticated'}} export const signIn=()=>{};`,
   'next/navigation': `export const usePathname=()=>location.pathname;`,
   'next/dynamic': `import React from 'react'; export default function dynamic(loader){const C=React.lazy(loader.then ? ()=>loader : ()=>loader().then(defaultExport=>({default:defaultExport}))); return props=>React.createElement(React.Suspense,{fallback:null},React.createElement(C,props));}`,
-  '@/src/utils/indexedDB': `export const getEssayHistory=async()=>window.hskScenario?window.loadHistoryFixture():[]; export const saveEssayHistory=async item=>{if(window.hskScenario||window.toeicScenario){window.savedHistory.push(item);window.historyRecords.unshift({...item,id:crypto.randomUUID(),timestamp:Date.now()})}}; export const clearEssayHistory=async()=>{};`,
+  '@/src/utils/indexedDB': `export const getEssayHistory=async()=>window.hskScenario?window.loadHistoryFixture():[]; export const saveEssayHistory=async item=>{if(window.hskScenario||window.toeicScenario||window.topikScenario){window.savedHistory.push(item);window.historyRecords.unshift({...item,id:crypto.randomUUID(),timestamp:Date.now()})}}; export const clearEssayHistory=async()=>{};`,
 }
 for (const name of ['GradingResultModal','ShareExamModal','StudentManagementModal']) {
   stubs['@/src/components/common/'+name] = `export const ${name}=()=>null;`
@@ -186,6 +192,36 @@ try {
     }
   }
   console.log(`PASS ${checks} field clear interactions; 16 responsive layouts; task switching and language controls`)
+
+  {
+    const page=await browser.newPage({viewport:{width:375,height:900}});activePage=page
+    await page.goto(`http://127.0.0.1:${server.address().port}/?exam=topik&scenario=topik-linked`)
+    const picker=page.getByLabel('Chọn bộ đề Writing',{exact:true});await picker.selectOption('topik-practice-50')
+    await page.waitForFunction(()=>document.querySelector('select[aria-label="Chọn bộ đề Writing"]')?.value==='topik-practice-50'&&!document.querySelector('select[aria-label="Chọn bộ đề Writing"]').disabled)
+    await page.getByRole('textbox',{name:'TOPIK ㉠',exact:true}).fill('원래 시험 답안입니다.')
+    await page.getByRole('textbox',{name:'TOPIK ㉡',exact:true}).fill('안내해 주시기 바랍니다.')
+    await page.getByRole('button',{name:/^Câu 51/}).click()
+    await page.getByRole('textbox',{name:'TOPIK ㉠',exact:true}).fill('개별 연습 답안입니다.')
+    await page.getByRole('button',{name:/^Thi trọn bộ/}).click()
+    await page.waitForFunction(()=>document.querySelector('select[aria-label="Chọn bộ đề Writing"]')?.value==='topik-practice-50'&&!document.querySelector('select[aria-label="Chọn bộ đề Writing"]').disabled)
+    assert.equal(await picker.inputValue(),'topik-practice-50');assert.equal(await page.getByRole('textbox',{name:'TOPIK ㉠',exact:true}).inputValue(),'원래 시험 답안입니다.')
+    await page.evaluate(()=>window.failWritingSet=true);await picker.selectOption('topik-practice-49');await page.getByText('Không tải được bộ mới.',{exact:true}).waitFor()
+    assert.equal(await picker.inputValue(),'topik-practice-50');assert.equal(await page.getByRole('textbox',{name:'TOPIK ㉠',exact:true}).inputValue(),'원래 시험 답안입니다.')
+    await page.evaluate(()=>window.failWritingSet=false)
+    await page.getByRole('button',{name:'Chuyển sang Câu 52 →',exact:true}).click()
+    await page.getByRole('textbox',{name:'TOPIK ㉠',exact:true}).fill('충분히 생각해야 한다.');await page.getByRole('textbox',{name:'TOPIK ㉡',exact:true}).fill('꾸준히 실천하는 것이 중요하다.')
+    await page.getByRole('button',{name:'Chuyển sang Câu 53 →',exact:true}).click();await page.getByRole('textbox',{name:'TOPIK 53',exact:true}).fill('자료를 보면 일의 가치 인식 비율이 증가하였다.'.repeat(10))
+    await page.getByRole('button',{name:'Chuyển sang Câu 54 →',exact:true}).click();await page.getByRole('textbox',{name:'TOPIK 54',exact:true}).fill('사람들은 서로 협력하면서 사회의 문제를 해결해야 한다.'.repeat(25))
+    await page.getByRole('button',{name:/Nộp bài/}).click();await page.waitForFunction(()=>window.savedHistory.length===1)
+    const saved=await page.evaluate(()=>window.savedHistory[0]);assert.equal(saved.result.linkedSetId,'topik-practice-50');assert.equal(saved.result.overallBand,80)
+    const requests=await page.evaluate(()=>window.requests.filter(r=>r.body.action==='grade_essay').map(r=>r.body));assert.equal(requests.length,4)
+    for(const request of requests)assert.equal(request.prompt,saved.result.sourcePrompts[request.type].content)
+    assert.equal(requests.find(r=>r.type==='TOPIK_53').chartExtra,saved.result.sourcePrompts.TOPIK_53.imageDescription)
+    assert.equal(await page.getByRole('textbox',{name:'TOPIK 54',exact:true}).inputValue(),'사람들은 서로 협력하면서 사회의 문제를 해결해야 한다.'.repeat(25));assert.equal(await picker.inputValue(),'topik-practice-50')
+    await page.screenshot({path:output+'/topik-linked-mobile.png',fullPage:true});await page.close()
+    console.log('PASS TOPIK exact linked set, independent single/full drafts, failed-load retention, source snapshot grading and preserved completed draft')
+  }
+
   {
     const page=await browser.newPage({viewport:{width:375,height:900}});activePage=page
     const errors=[];page.on('pageerror',error=>errors.push(error.message))

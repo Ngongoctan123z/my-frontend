@@ -1,4 +1,5 @@
 'use client'
+import {WritingBankAdmin} from '@/src/components/admin/WritingBankAdmin'
 
 import React, { useEffect, useState } from 'react'
 import { Users, Settings, FileText, MessageSquare, Wallet, ArrowDownLeft, Link2, Mic } from 'lucide-react'
@@ -18,7 +19,7 @@ import { BankHookTab } from '@/src/components/admin/BankHookTab'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('relations')
-  useEffect(()=>{{const tab=new URLSearchParams(window.location.search).get('tab');if(tab==='toeic-photos'||tab==='toeic-emails')setActiveTab(tab)}},[])
+  useEffect(()=>{{const tab=new URLSearchParams(window.location.search).get('tab');if(tab==='toeic-photos'||tab==='toeic-emails'||tab==='topik-hsk')setActiveTab(tab)}},[])
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-6 mt-10">
@@ -35,6 +36,7 @@ export default function AdminPage() {
       </div>
       
       <div className="flex items-center gap-2 sm:gap-4 border-b border-gray-200 overflow-x-auto pb-1 no-scrollbar">
+        <button type="button" onClick={()=>setActiveTab('topik-hsk')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='topik-hsk'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOPIK & HSK · Kho 150 bộ</button>
         <button type="button" onClick={()=>setActiveTab('toeic-emails')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='toeic-emails'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOEIC · Email câu 6/7</button>
         <button type="button" onClick={()=>setActiveTab('toeic-photos')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='toeic-photos'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOEIC · Bộ ảnh câu 1–5</button>
         <button
@@ -100,6 +102,7 @@ export default function AdminPage() {
         {activeTab === 'prompts' && <PromptsTab />}
         {activeTab === 'toeic-photos' && <ToeicPictureBankAdmin />}
         {activeTab === 'toeic-emails' && <ToeicEmailBankAdmin />}
+        {activeTab === 'topik-hsk' && <WritingBankAdmin />}
         {activeTab === 'speaking' && <SpeakingAdminTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'models' && <ModelsTab />}

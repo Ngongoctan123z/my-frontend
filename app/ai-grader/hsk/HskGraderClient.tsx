@@ -9,6 +9,8 @@ import {
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
 import dynamic from 'next/dynamic'
+import {WritingSetPicker} from '@/src/components/common/WritingSetPicker'
+import type {WritingPrompt} from '@/src/lib/writingBank'
 import { AnswerInput, AnswerTextarea, GraderActions } from '@/src/components/common/GraderControls'
 
 
@@ -20,7 +22,7 @@ const ShareExamModal = dynamic(() => import('@/src/components/common/ShareExamMo
 const StudentManagementModal = dynamic(() => import('@/src/components/common/StudentManagementModal').then(module => module.StudentManagementModal))
 
 type HskMode = 'HSK_5_FULL' | 'HSK_6'
-type PromptObject = { content: string, imageUrl?: string | null }
+type PromptObject = WritingPrompt
 
 export interface Hsk5PromptData {
   title?: string
@@ -185,6 +187,21 @@ export function HskGraderClient() {
     return data
   }
 
+  const chooseWritingSet=async(id:string)=>{
+    const type=activeTab==='HSK_6'?'HSK_6':'HSK_5'
+    if(gradingInFlight.current||isFetchingHsk.current[type])return
+    const version=++promptRequestVersion.current[type],owner=accountEmail
+    isFetchingHsk.current[type]=true;setIsGenerating(true);setError(null)
+    try{const data=await callApi({action:'get_writing_set',exam:type,id})
+      if(version!==promptRequestVersion.current[type]||currentAccount.current!==owner||gradingInFlight.current)return
+      const prompt=data.set.questions[type]
+      if(type==='HSK_5'){setHsk5Prompt(prompt);setHsk5Part1Answers({});setHsk5Part2Essay('');setHsk5Part3Essay('');setHsk5Step(1)}
+      else{setHsk6Prompt(prompt);setHsk6Essay('');setIsHsk6TextHidden(false)}
+      setResult(null)
+    }catch(failure:any){if(version===promptRequestVersion.current[type])setError(failure.message)}
+    finally{if(version===promptRequestVersion.current[type]){isFetchingHsk.current[type]=false;setIsGenerating(Object.values(isFetchingHsk.current).some(Boolean))}}
+  }
+
   // Draw prompt without blocking between HSK 5 and HSK 6
   const generatePrompt = async (type: 'HSK_5' | 'HSK_6', customHistory?: GradedEssayHistory[], replaceAnswers = false) => {
     if (isFetchingHsk.current[type] || gradingInFlight.current) return
@@ -229,17 +246,10 @@ export function HskGraderClient() {
       if (nextPrompt) {
         applyPrompt(nextPrompt)
       } else {
-        const fb = type === 'HSK_5' ? HSK_5_FALLBACKS[0] : HSK_6_FALLBACKS[0]
-        applyPrompt(fb)
+        throw new Error(isEn?'No prompts are available.':'Không có đề trong kho. Hãy thử lại.')
       }
     } catch (err: any) {
-      console.warn('generatePrompt error, using fallback:', err)
-      const fb = type === 'HSK_5' ? HSK_5_FALLBACKS[0] : HSK_6_FALLBACKS[0]
-      if (type === 'HSK_5') {
-        if (!hsk5Prompt) applyPrompt(fb)
-      } else {
-        if (!hsk6Prompt) applyPrompt(fb)
-      }
+      if(isCurrentRequest())setError(err.message||(isEn?'Unable to load this prompt.':'Không tải được đề. Hãy thử lại.'))
     } finally {
       if (promptRequestVersion.current[type] === requestVersion) isFetchingHsk.current[type] = false
       setIsGenerating(Object.values(isFetchingHsk.current).some(Boolean))
@@ -456,6 +466,7 @@ export function HskGraderClient() {
 
   return (
     <div className="w-full min-w-0 space-y-3 sm:space-y-6">
+      {session&&<div className="rounded-xl border bg-white p-4"><WritingSetPicker exam={activeTab==='HSK_6'?'HSK_6':'HSK_5'} currentId={(activeTab==='HSK_6'?hsk6Prompt:hsk5Prompt)?.id?.replace(/-body$/,'')||''} onChoose={id=>void chooseWritingSet(id)} disabled={isGenerating||isGrading} isEn={isEn}/><p className="mt-2 text-[10px] text-slate-400">Cấu trúc hệ 6 cấp (2.0) · đề luyện gốc.</p></div>}
       {/* Top Header & Settings */}
       <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-slate-100">

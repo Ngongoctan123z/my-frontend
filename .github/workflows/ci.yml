@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare validated Writing bank assets
+        run: npm run prepare:writing-bank
+
       - name: Test API key rotation
         run: npm run test:api-rotation
 
@@ -42,6 +45,9 @@ jobs:
 
       - name: Test linked TOEIC sets and real photo bank
         run: node --experimental-vm-modules tests/toeic-sets.test.mjs
+
+      - name: Test TOPIK and HSK question bank
+        run: node --experimental-vm-modules tests/writing-bank.test.mjs
 
       - name: Test build-time SEO behavior
         run: npm run test:build-seo

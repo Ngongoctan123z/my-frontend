@@ -1,3 +1,5 @@
+import {ensureWritingBank,writingCatalog,getWritingSet} from '../ai-grader/writing-bank'
+import {WRITING_EXAMS,type WritingExam} from '@/src/lib/writingBank'
 import { checkAdmin } from '@/src/lib/adminAccess'
 import { ensureToeicPhotoBank } from '../ai-grader/toeic-photo-bank'
 import { ensureToeicEmailBank } from '../ai-grader/toeic-email-bank'
@@ -30,11 +32,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(allUsers)
     }
 
+    if(type==='writing_catalog'||type==='writing_set'){
+      const exam=req.nextUrl.searchParams.get('exam') as WritingExam
+      if(!WRITING_EXAMS.includes(exam))return NextResponse.json({error:'Loại đề không hợp lệ.'},{status:400})
+      if(type==='writing_catalog')return NextResponse.json(await writingCatalog(db.$client as SpeakingD1,exam))
+      const id=req.nextUrl.searchParams.get('id')||''
+      if(id.length>120)return NextResponse.json({error:'ID không hợp lệ.'},{status:400})
+      const set=await getWritingSet(db.$client as SpeakingD1,exam,id)
+      return set?NextResponse.json({set}):NextResponse.json({error:'Không tìm thấy bộ đề đầy đủ.'},{status:404})
+    }
     if (type === 'prompts') {
+      await ensureWritingBank(db.$client as SpeakingD1)
       await ensureToeicPhotoBank(db.$client as SpeakingD1)
       await ensureToeicEmailBank(db.$client as SpeakingD1)
       const allPrompts = await db.select().from(prompts).orderBy(desc(prompts.createdAt))
-      return NextResponse.json(allPrompts)
+      return NextResponse.json(allPrompts.filter(row=>!row.type.startsWith('WRITING_SET_')))
     }
 
     if (type === 'toeic_exam_sets') return NextResponse.json(await listToeicExamSets(db.$client as SpeakingD1))
