@@ -58,6 +58,10 @@ jobs:
       - name: Test Speaking recording and mobile layouts
         run: npm run test:speaking-ui
 
+      - name: Verify deployed D1 catalogs and private Speaking routes
+        if: github.ref == 'refs/heads/main'
+        run: node tests/deployed-speaking.mjs
+
       - name: Save grader screenshots
         if: always()
         uses: actions/upload-artifact@v7.0.2
