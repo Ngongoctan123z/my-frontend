@@ -141,6 +141,9 @@ export default async function ExamPage({ params }: Props) {
   
   let relatedExams: import('../../../src/types/exam').Exam[] = []
   try {
+    if (exam.sourceUrl) {
+      relatedExams = await getRelatedExams(exam.id)
+    } else {
     const [p1, p2, p3] = await Promise.all([
       getExams({ examType: exam.examType, subject: exam.subject, year: exam.year, limit: 5 }),
       getExams({ examType: exam.examType, year: exam.year, limit: 5 }),
@@ -154,6 +157,7 @@ export default async function ExamPage({ params }: Props) {
       seen.add(e.id);
       return true;
     }).slice(0, 6);
+    }
   } catch (e) {}
 
   let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
@@ -176,7 +180,7 @@ export default async function ExamPage({ params }: Props) {
         '@type': 'LearningResource',
         '@id': `${FRONTEND_URL}${examPath(exam as any)}#resource`,
         name: exam.title || titleText,
-        description: desc,
+        description: exam.sourceUrl && exam.description ? exam.description : desc,
         inLanguage: 'vi',
         educationalLevel: examTypeLabel(exam.examType),
         learningResourceType: 'Đề thi',
