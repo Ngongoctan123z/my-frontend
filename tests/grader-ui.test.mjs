@@ -19,6 +19,7 @@ import { AiGraderClient } from './app/ai-grader/ielts/AiGraderClient';
 import { ToeicGraderClient } from './app/ai-grader/toeic/ToeicGraderClient';
 import { TopikGraderClient } from './app/ai-grader/topik/TopikGraderClient';
 import { HskGraderClient } from './app/ai-grader/hsk/HskGraderClient';
+import { SpeakingAdminTab } from './src/components/admin/SpeakingAdminTab';
 import { ChatWidget } from './src/components/chat/ChatWidget';
 import * as fixtures from './src/data/fallbackPrompts';
 window.requests=[];
@@ -33,6 +34,17 @@ window.resolveHistory=()=>{window.deferHistory=false;window.historyResolvers.spl
 window.fetch=async (url,options={})=>{
   const body=options.body ? JSON.parse(options.body) : {};
   window.requests.push({url,body});
+  if(String(url).startsWith('/api/admin')){
+    const rows=JSON.parse(localStorage.getItem('fixture-speaking-bank')||'[]');
+    if(!body.action)return Response.json(rows);
+    if(window.failAdminSave)return Response.json({error:'Không lưu được D1 thử nghiệm.'},{status:503});
+    const payload=body.payload;
+    if(body.action==='add_speaking_prompt'){const saved={...payload,id:'server-id-'+(rows.length+1)};rows.push(saved);localStorage.setItem('fixture-speaking-bank',JSON.stringify(rows));return Response.json(saved);}
+    const index=rows.findIndex(row=>row.id===payload.id);if(index<0)return Response.json({error:'Không tìm thấy đề.'},{status:404});
+    if(body.action==='delete_speaking_prompt'){rows.splice(index,1);localStorage.setItem('fixture-speaking-bank',JSON.stringify(rows));return Response.json({success:true});}
+    rows[index]={...rows[index],...payload};localStorage.setItem('fixture-speaking-bank',JSON.stringify(rows));return Response.json(rows[index]);
+  }
+
   let result={count:0,limit:50,plan:'free'};
   if(window.hskScenario&&body.action==='generate_prompt_batch'&&body.type==='HSK_6'){
     if(window.deferHskPrompt)return new Promise(resolve=>window.promptResolvers.push(resolve));
@@ -46,7 +58,7 @@ window.fetch=async (url,options={})=>{
   return new Response(JSON.stringify(result),{headers:{'content-type':'application/json'}});
 };
 const key=new URL(location.href).searchParams.get('exam');
-createRoot(document.getElementById('root')).render(React.createElement({ielts:AiGraderClient,toeic:ToeicGraderClient,topik:TopikGraderClient,hsk:HskGraderClient,dock:ChatWidget}[key]));
+createRoot(document.getElementById('root')).render(React.createElement({ielts:AiGraderClient,toeic:ToeicGraderClient,topik:TopikGraderClient,hsk:HskGraderClient,dock:ChatWidget,admin:SpeakingAdminTab}[key]));
 `
 const stubs = {
   'next-auth/react': `import {useEffect,useState} from 'react'; const initial={user:{email:'ui-test@example.invalid'}}; export function useSession(){const [session,setSession]=useState(initial);useEffect(()=>{const refresh=()=>setSession({...initial,user:{...initial.user}});window.addEventListener('fixture-session',refresh);return()=>window.removeEventListener('fixture-session',refresh)},[]);return {data:session,status:'authenticated'}} export const signIn=()=>{};`,
@@ -278,6 +290,36 @@ try {
     assert.equal(await page.evaluate(()=>window.requests.filter(r=>r.body.action==='generate_prompt_batch'&&r.body.type==='HSK_6').length),1)
     await page.screenshot({path:`${output}/hsk6-restored-passage.png`,fullPage:true});await page.close()
     console.log('PASS HSK 6: delayed prompt cannot overwrite a restored passage or mismatch its saved summary')
+  }
+  for(const width of [375,1280]) {
+    const page=await browser.newPage({viewport:{width,height:900}});activePage=page
+    const errors=[];page.on('pageerror',error=>errors.push(error.message))
+    await page.goto(`http://127.0.0.1:${server.address().port}/?exam=admin`)
+    await page.getByRole('button',{name:'Thêm đề',exact:true}).click()
+    await page.getByLabel('Chủ đề',{exact:true}).fill('Persistent speaking topic')
+    await page.getByLabel('Câu hỏi / nội dung tiếng Anh',{exact:true}).fill('What do you enjoy doing?')
+    await page.getByLabel('Câu hỏi tiếp theo (mỗi dòng một câu)',{exact:true}).fill('Why do you enjoy it?\nHow often do you do it?\nWho do you do it with?')
+    await page.evaluate(()=>window.failAdminSave=true)
+    await page.getByRole('button',{name:'Lưu đề Speaking',exact:true}).click()
+    await page.getByRole('dialog').getByRole('alert').waitFor()
+    assert.equal(await page.getByLabel('Chủ đề',{exact:true}).inputValue(),'Persistent speaking topic')
+    await page.evaluate(()=>window.failAdminSave=false)
+    await page.getByRole('button',{name:'Lưu đề Speaking',exact:true}).click()
+    await page.getByRole('dialog').waitFor({state:'hidden'})
+    await page.getByRole('button',{name:'Đã xuất bản',exact:true}).click()
+    await page.getByRole('button',{name:'Đang ẩn',exact:true}).waitFor()
+    await page.getByRole('button',{name:'Sửa',exact:true}).click()
+    await page.getByLabel('Chủ đề',{exact:true}).fill('Updated speaking topic')
+    await page.getByRole('button',{name:'Lưu đề Speaking',exact:true}).click()
+    await page.getByRole('dialog').waitFor({state:'hidden'})
+    const requests=await page.evaluate(()=>window.requests.filter(r=>r.body.action==='update_speaking_prompt').map(r=>r.body.payload))
+    assert.equal(requests[0].id,'server-id-1');assert.equal(requests[0].isPublished,false);assert.equal(requests[0].subQuestions.length,3)
+    await page.reload();await page.getByRole('heading',{name:'Updated speaking topic',exact:true}).waitFor()
+    await page.getByRole('button',{name:'Đang ẩn',exact:true}).waitFor()
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false)
+    await page.screenshot({path:`${output}/speaking-admin-${width}.png`,fullPage:true})
+    assert.deepEqual(errors,[]);await page.close()
+    console.log('PASS Speaking admin save failure, retained edits, server ID update, follow-ups, publish state and reload at '+width+'px')
   }
   for(const touch of [false,true]) {
     const page=await browser.newPage({viewport:{width:touch?375:1280,height:touch?812:900},hasTouch:touch,isMobile:touch})
