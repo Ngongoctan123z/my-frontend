@@ -1,17 +1,11 @@
 {
-  "requested": 101,
-  "downloaded": 100,
-  "unavailable": [
-    {
-      "id": 260000010,
-      "slug": "vao-10-ngu-van-tp-ho-chi-minh-2026-khong-chuyen",
-      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-tphcm-mon-van-2026-c29a89827.html",
-      "error": "Unable to obtain every scan page: 404 Client Error: Not Found for url: https://images.tuyensinh247.com/picture/article/2026/0605/dap-an-de-thi-vao-lop-10-tphcm-mon-van-2026_1780655202_7.jpg"
-    }
-  ],
+  "requested": 109,
+  "downloaded": 109,
+  "unavailable": [],
   "provincesWithFiles": [
     "An Giang",
     "Bắc Ninh",
+    "Cà Mau",
     "Cần Thơ",
     "Gia Lai",
     "Huế",
@@ -22,6 +16,7 @@
     "Khánh Hòa",
     "Lai Châu",
     "Lào Cai",
+    "Lâm Đồng",
     "Lạng Sơn",
     "Nghệ An",
     "Ninh Bình",
@@ -35,11 +30,15 @@
     "Thái Nguyên",
     "Tuyên Quang",
     "Tây Ninh",
+    "Vĩnh Long",
+    "Điện Biên",
     "Đà Nẵng",
+    "Đắk Lắk",
     "Đồng Nai",
     "Đồng Tháp"
   ],
   "thptSubjects": [
+    "Công nghệ Nông nghiệp",
     "Giáo dục kinh tế và pháp luật",
     "Hóa học",
     "Lịch sử",
