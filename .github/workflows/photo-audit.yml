@@ -1,0 +1,25 @@
+name: TOEIC photo audit
+on:
+  push:
+    branches: [codex/toeic-picture-bank]
+    paths: [src/data/toeicPhotoCandidates.json, tests/toeic-photo-audit.mjs, .github/workflows/photo-audit.yml]
+permissions:
+  contents: read
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/toeic-photo-audit.mjs
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: toeic-photo-audit
+          path: test-results/toeic-photos
