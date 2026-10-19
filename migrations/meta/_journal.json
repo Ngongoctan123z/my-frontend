@@ -71,6 +71,13 @@
       "when": 1792368494585,
       "tag": "0009_speaking_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792380000000,
+      "tag": "0010_speaking_bank_audio",
+      "breakpoints": true
     }
   ]
 }

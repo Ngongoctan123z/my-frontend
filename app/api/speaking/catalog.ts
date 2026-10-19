@@ -1,12 +1,15 @@
+import { ensureQuestionBank } from './question-bank'
+import type { SpeakingD1 } from './store'
 import { eq } from 'drizzle-orm'
 import { getDb } from '@/src/db'
 import { speakingPrompts } from '@/src/db/schema'
-import { canonicalPart, fallbackCatalog, mergeCatalog, SPEAKING_PARTS, type SpeakingCatalog, type SpeakingExam } from '@/src/lib/speaking'
+import { canonicalPart, fallbackCatalog, SPEAKING_PARTS, type SpeakingCatalog, type SpeakingExam } from '@/src/lib/speaking'
 
 export async function loadSpeakingCatalog(exam: SpeakingExam) {
   const catalog: SpeakingCatalog = {}
   try {
     const db = await getDb()
+    await ensureQuestionBank(db.$client as SpeakingD1)
     const rows = await db.select().from(speakingPrompts).where(eq(speakingPrompts.examType, exam)).limit(300)
     for (const row of rows) {
       if (!row.isPublished) continue
@@ -24,5 +27,5 @@ export async function loadSpeakingCatalog(exam: SpeakingExam) {
       } catch { /* A malformed admin row must not hide valid fallback prompts. */ }
     }
   } catch { return { catalog: fallbackCatalog(exam), source: 'fallback' } }
-  return { catalog: mergeCatalog(exam, catalog), source: Object.keys(catalog).length ? 'database' : 'fallback' }
+  return { catalog, source: 'database' }
 }

@@ -40,6 +40,7 @@ window.fetch=async(url,options={})=>{
   if(!report){const id=crypto.randomUUID().replaceAll('-','').repeat(2);report={id,clientId:body.clientSubmissionId,examType:body.examType,mode:body.mode,fullTest:body.fullTest,feedbackLang:body.feedbackLang,status:'reserved',createdAt:Date.now(),items:body.items.map((item,i)=>({id:id+':'+i,question:item.question,status:'pending',result:null}))};reports.push(report);save(reports);}
   return respond({id:report.id,count:reports.length,limit:100,report});
  }
+ if(body.action==='upload_audio'){const reports=load(),r=reports.find(r=>r.id===body.submissionId);r.items[Number(body.itemIndex)].audioAvailable=true;save(reports);return respond({audioAvailable:true});}
  if(body.action==='submit_audio'){
   if(window.failIndex===Number(body.itemIndex)){window.failIndex=null;return respond({error:'Kết nối tạm gián đoạn. Bản thu vẫn được giữ.'},503);}
   const reports=load(),report=reports.find(r=>r.id===body.submissionId),item=report.items[Number(body.itemIndex)];

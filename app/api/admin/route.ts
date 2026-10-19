@@ -1,8 +1,12 @@
+import { parseToeicPictures } from '@/src/data/toeicWriting'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
 import { users, prompts, systemConfigs, speakingPrompts } from '@/src/db/schema'
 import { desc, eq } from 'drizzle-orm'
+import { ensureQuestionBank, mutateQuestionBank } from '../speaking/question-bank'
+import { SpeakingRequestError } from '../speaking/validation'
+import type { SpeakingD1 } from '../speaking/store'
 
 async function checkAdmin() {
   const session = await auth()
@@ -53,12 +57,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'speaking_prompts') {
-      try {
-        const allSpeaking = await db.select().from(speakingPrompts).orderBy(desc(speakingPrompts.createdAt))
-        return NextResponse.json(allSpeaking)
-      } catch (err: any) {
-        return NextResponse.json([])
-      }
+      await ensureQuestionBank(db.$client as SpeakingD1)
+      const rows = await (db.$client as SpeakingD1).prepare('SELECT * FROM speaking_prompt ORDER BY createdAt DESC').all()
+      return NextResponse.json(rows.results.map(row => ({ ...row, isPublished: !!row.isPublished })))
     }
 
     if (type === 'configs') {
@@ -97,6 +98,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
   } catch (error: any) {
+    if (error instanceof SpeakingRequestError) return NextResponse.json({ error: error.message }, { status: error.status })
     if (error.message === 'Unauthorized') return NextResponse.json({ error: error.message }, { status: 401 })
     if (error.message === 'Forbidden') return NextResponse.json({ error: error.message }, { status: 403 })
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -135,6 +137,9 @@ export async function POST(req: NextRequest) {
 
     if (action === 'add_prompt') {
       const { type, content, imageUrl } = payload
+      if (type === 'TOEIC_PICTURE') {
+        try { parseToeicPictures(content) } catch (error: any) { return NextResponse.json({ error: error.message }, { status: 422 }) }
+      }
       const newPrompt = await db.insert(prompts).values({
         id: crypto.randomUUID(),
         type,
@@ -150,64 +155,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    // ── Speaking Prompts Admin Actions ─────────────────────────────────────────
-    if (action === 'add_speaking_prompt') {
-      const p = payload
-      const inserted = await db.insert(speakingPrompts).values({
-        id: crypto.randomUUID(),
-        examType: p.examType,
-        part: p.part,
-        topic: p.topic || 'General',
-        questionEn: p.questionEn,
-        questionVi: p.questionVi,
-        cueCard: p.cueCard || null,
-        subQuestions: p.subQuestions ? (typeof p.subQuestions === 'string' ? p.subQuestions : JSON.stringify(p.subQuestions)) : null,
-        suggestedVocabulary: p.suggestedVocabulary ? (typeof p.suggestedVocabulary === 'string' ? p.suggestedVocabulary : JSON.stringify(p.suggestedVocabulary)) : null,
-        imageUrl: p.imageUrl || null,
-        prepTimeSec: Number(p.prepTimeSec) || 0,
-        speakTimeSec: Number(p.speakTimeSec) || 45,
-        startGraceSec: Number(p.startGraceSec) || 15,
-        criteria: p.criteria ? (typeof p.criteria === 'string' ? p.criteria : JSON.stringify(p.criteria)) : null,
-        difficulty: p.difficulty || 'medium',
-        setId: p.setId || null,
-        isPublished: p.isPublished !== undefined ? Boolean(p.isPublished) : true,
-        createdAt: new Date(),
-      }).returning()
-      return NextResponse.json(inserted[0] || { success: true })
-    }
-
-    if (action === 'update_speaking_prompt') {
-      const p = payload
-      await db.update(speakingPrompts).set({
-        examType: p.examType,
-        part: p.part,
-        topic: p.topic || 'General',
-        questionEn: p.questionEn,
-        questionVi: p.questionVi,
-        cueCard: p.cueCard || null,
-        subQuestions: p.subQuestions ? (typeof p.subQuestions === 'string' ? p.subQuestions : JSON.stringify(p.subQuestions)) : null,
-        suggestedVocabulary: p.suggestedVocabulary ? (typeof p.suggestedVocabulary === 'string' ? p.suggestedVocabulary : JSON.stringify(p.suggestedVocabulary)) : null,
-        imageUrl: p.imageUrl || null,
-        prepTimeSec: Number(p.prepTimeSec) || 0,
-        speakTimeSec: Number(p.speakTimeSec) || 45,
-        startGraceSec: Number(p.startGraceSec) || 15,
-        criteria: p.criteria ? (typeof p.criteria === 'string' ? p.criteria : JSON.stringify(p.criteria)) : null,
-        difficulty: p.difficulty || 'medium',
-        setId: p.setId || null,
-        isPublished: Boolean(p.isPublished),
-      }).where(eq(speakingPrompts.id, p.id))
-      return NextResponse.json({ success: true })
-    }
-
-    if (action === 'delete_speaking_prompt') {
-      await db.delete(speakingPrompts).where(eq(speakingPrompts.id, payload.id))
-      return NextResponse.json({ success: true })
-    }
-
-    if (action === 'toggle_speaking_prompt_publish') {
-      const { id, isPublished } = payload
-      await db.update(speakingPrompts).set({ isPublished: Boolean(isPublished) }).where(eq(speakingPrompts.id, id))
-      return NextResponse.json({ success: true })
+    if (['add_speaking_prompt','update_speaking_prompt','delete_speaking_prompt','toggle_speaking_prompt_publish'].includes(action)) {
+      return NextResponse.json(await mutateQuestionBank(db.$client as SpeakingD1, action, payload))
     }
 
     if (action === 'test_groq_models') {
@@ -347,6 +296,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error: any) {
+    if (error instanceof SpeakingRequestError) return NextResponse.json({ error: error.message }, { status: error.status })
     if (error.message === 'Unauthorized') return NextResponse.json({ error: error.message }, { status: 401 })
     if (error.message === 'Forbidden') return NextResponse.json({ error: error.message }, { status: 403 })
     return NextResponse.json({ error: error.message }, { status: 500 })

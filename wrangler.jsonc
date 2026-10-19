@@ -28,6 +28,10 @@
       "database_name": "exam-web-db",
       "database_id": "a9e9ce4c-ade4-4b5b-986e-88db9e36b60d"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SPEAKING_AUDIO"
+    }
   ]
 }
-

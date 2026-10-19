@@ -23,7 +23,7 @@ export type SpeakingSubmissionItem = { question: SpeakingQuestion; audioHash: st
 export type SpeakingReport = {
   id: string; examType: SpeakingExam; mode: 'practice' | 'exam'; fullTest: boolean
   feedbackLang: string; createdAt: number; status: string
-  items: { id: string; question: SpeakingQuestion; result: SpeakingFeedback | null; status: string }[]
+  items: { id: string; question: SpeakingQuestion; result: SpeakingFeedback | null; status: string; audioAvailable?: boolean; metrics?: SpeakingMetrics }[]
 }
 
 export const SPEAKING_PARTS: Record<SpeakingExam, PracticePart[]> = {
@@ -78,7 +78,8 @@ function expand(prompt: SpeakingPrompt, part: PracticePart, start: number, full:
 
 /** Build a real question queue; TOEIC groups expand to 2+2+3+3+1 questions. */
 export function buildSpeakingSet(exam: SpeakingExam, tab: SpeakingTab, catalog = fallbackCatalog(exam), selectedId?: string, random = Math.random): SpeakingQuestion[] {
-  const pools = mergeCatalog(exam, catalog)
+  // A successful database catalog is authoritative, including unpublished/deleted rows.
+  const pools = Object.fromEntries(SPEAKING_PARTS[exam].map(part => [part, [...(catalog[part] || [])]])) as SpeakingCatalog
   if (tab === 'FULL') {
     // Individual admin questions remain available in practice; a full test needs
     // complete question groups and linked IELTS discussion topics.
@@ -101,6 +102,7 @@ export function buildSpeakingSet(exam: SpeakingExam, tab: SpeakingTab, catalog =
     }
     return expand(prompt, tab, tab === 'Q5_7' ? 5 : tab === 'Q8_10' ? 8 : tab === 'Q11' ? 11 : 1, false)
   }
+  if (SPEAKING_PARTS[exam].some(part => !pools[part]?.length)) return []
   if (exam === 'TOEIC_SPEAKING') {
     const queue: SpeakingQuestion[] = []
     for (const [part, start] of [['Q1_2', 1], ['Q3_4', 3]] as const) {

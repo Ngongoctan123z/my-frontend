@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
+import { TOEIC_PICTURE_SETS, parseToeicPictures, parseToeicPictureAnswers } from '@/src/data/toeicWriting'
+import { PICTURE_RUBRIC, normalizePictureResult } from './toeic-pictures'
 import { createKeyRotation, generateWithKeyRotation, normalizeApiKeys, sha256Hex, KeyPoolExhaustedError } from '@/src/lib/aiKeyRotation'
 import { createDbKeyRotationStore } from './keyRotationStore'
 // Web Crypto API will be used instead of node:crypto
@@ -27,6 +29,7 @@ import {
 } from '@/src/data/fallbackPrompts'
 
 function getFallbackPromptsForType(type: string): FallbackPromptItem[] {
+  if (type === 'TOEIC_PICTURE') return TOEIC_PICTURE_SETS.map(set => ({ content: JSON.stringify(set) }))
   if (type === 'TOEIC_RESPOND') return TOEIC_RESPOND_FALLBACKS
   if (type === 'TOEIC_ESSAY') return TOEIC_ESSAY_FALLBACKS
   if (type === 'TOPIK_51') return TOPIK_51_FALLBACKS
@@ -444,6 +447,10 @@ export async function POST(req: NextRequest) {
       || (imageDescription !== undefined && (typeof imageDescription !== 'string' || imageDescription.length > 24000))) {
       return NextResponse.json({ error: 'Đề bài hoặc bài làm không hợp lệ / quá dài.' }, { status: 400 })
     }
+    if (type === 'TOEIC_PICTURE') {
+      try { parseToeicPictures(prompt); parseToeicPictureAnswers(essay) }
+      catch (error: any) { return NextResponse.json({ error: error.message }, { status: 400 }) }
+    }
     const gradingSettings = await getGradingSettings(type)
 
     // Rate Limit Check
@@ -470,7 +477,10 @@ export async function POST(req: NextRequest) {
       let systemPrompt = ''
       let userContent = ''
 
-      if (type === 'IELTS_TASK_2') {
+      if (type === 'TOEIC_PICTURE') {
+        systemPrompt = PICTURE_RUBRIC
+        userContent = buildUserContent(prompt, essay, 'Five sentences, scores 0–3 each.')
+      } else if (type === 'IELTS_TASK_2') {
         systemPrompt = basePrompt + IELTS_COMMON_RUBRIC + IELTS_T2_RUBRIC + `
 ĐÁNH GIÁ VỚI BẢN LĨNH GIÁM KHẢO KHẢO THÍ CHÍNH THỨC (IELTS EXAMINER EVALUATION):
 Chấm điểm khách quan theo 4 tiêu chí chuẩn Cambridge cho IELTS Task 2:
@@ -704,7 +714,7 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
         return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
       }
 
-      systemPrompt += '\nHƯỚNG DẪN BỔ SUNG TỪ QUẢN TRỊ:\n' + gradingSettings.prompt + '\n' + GRADING_CONTRACT + `
+      systemPrompt += '\nHƯỚNG DẪN BỔ SUNG TỪ QUẢN TRỊ:\n' + (type === 'TOEIC_PICTURE' ? '' : gradingSettings.prompt) + '\n' + GRADING_CONTRACT + `
 
 YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
 - corrections phải là một mảng JSON, kể cả khi không có lỗi (khi đó dùng []).
@@ -741,10 +751,10 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
         try {
           const parsed = parseModelJson(textRes.text)
           const calibValue = gradingSettings.calibration[type] || 0
-          const finalResult = postProcessResult(parsed, type, essay, calibValue)
+          const finalResult: any = type === 'TOEIC_PICTURE' ? normalizePictureResult(parsed, prompt, essay) : postProcessResult(parsed, type, essay, calibValue)
           
           // Metadata
-          finalResult.assessmentStatus = 'verified'
+          finalResult.assessmentStatus = type === 'TOEIC_PICTURE' ? 'reference_based' : 'verified'
           finalResult.modelUsed = textRes.model
           finalResult.rubricVersion = '1.0'
           finalResult.scoreKind = type.includes('IELTS') ? 'band' : 'score'

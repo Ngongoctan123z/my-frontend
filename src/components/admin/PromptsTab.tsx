@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { TOEIC_PICTURE_SETS, parseToeicPictures, type ToeicPictureSet } from '@/src/data/toeicWriting'
 import { Loader2, Plus, Trash2, Sparkles, Image, Check, FileText } from 'lucide-react'
 
 export function PromptsTab() {
@@ -9,6 +10,7 @@ export function PromptsTab() {
   const [content, setContent] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [adding, setAdding] = useState(false)
+  const [pictures, setPictures] = useState<ToeicPictureSet>({title:'',questions:Array.from({length:5},(_,i)=>({id:i+1,imageUrl:'',keywords:['',''],description:''}))})
 
   // HSK 5 dedicated form state
   const [hsk5Mode, setHsk5Mode] = useState<'structured' | 'raw'>('structured')
@@ -105,6 +107,12 @@ export function PromptsTab() {
   const handleAdd = async () => {
     let finalContent = content
     let finalImageUrl = imageUrl
+
+    if (type === 'TOEIC_PICTURE') {
+      finalContent = JSON.stringify(pictures)
+      try { parseToeicPictures(finalContent) } catch(error: any) { alert(error.message); return }
+      finalImageUrl = ''
+    }
 
     if (type === 'HSK_5' && hsk5Mode === 'structured') {
       const part1Items = hsk5Part1.map((w, i) => ({ id: 91 + i, words: w.trim() })).filter(item => item.words)
@@ -220,6 +228,7 @@ export function PromptsTab() {
             >
               <option value="IELTS_TASK_1">IELTS Task 1</option>
               <option value="IELTS_TASK_2">IELTS Task 2</option>
+              <option value="TOEIC_PICTURE">TOEIC Writing Câu 1–5 (theo ảnh)</option>
               <option value="TOEIC_RESPOND">TOEIC Writing Q6-7</option>
               <option value="TOEIC_ESSAY">TOEIC Writing Q8</option>
               <option value="TOPIK_51">TOPIK Câu 51 (Hoàn thành câu - 10đ)</option>
@@ -233,7 +242,7 @@ export function PromptsTab() {
           </div>
 
           {/* DÀNH RIÊNG CHO HSK 5 */}
-          {type === 'HSK_5' ? (
+          {type === 'TOEIC_PICTURE' ? <div className="space-y-4 rounded-xl border border-blue-100 bg-blue-50/30 p-4"><div className="flex items-center justify-between gap-3"><h3 className="text-sm font-semibold">Bộ 5 câu viết theo ảnh</h3><button type="button" onClick={()=>setPictures(TOEIC_PICTURE_SETS[0])} className="shrink-0 rounded-lg border bg-white px-3 py-2 text-xs text-blue-600">Nạp mẫu</button></div><label className="block text-sm">Tên bộ đề<input value={pictures.title} onChange={e=>setPictures(previous=>({...previous,title:e.target.value}))} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>{pictures.questions.map((q,index)=><div key={q.id} className="space-y-3 rounded-lg border bg-white p-4"><p className="text-sm font-semibold">Câu {q.id}</p><label className="block text-xs">URL ảnh (HTTPS hoặc đường dẫn trong website)<input value={q.imageUrl} onChange={e=>setPictures(previous=>({...previous,questions:previous.questions.map((row,i)=>i===index?{...row,imageUrl:e.target.value}:row)}))} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label><div className="grid grid-cols-2 gap-3">{q.keywords.map((word,keywordIndex)=><label key={keywordIndex} className="block text-xs">Từ / cụm từ {keywordIndex+1}<input value={word} onChange={e=>setPictures(previous=>({...previous,questions:previous.questions.map((row,i)=>i===index?{...row,keywords:row.keywords.map((w,k)=>k===keywordIndex?e.target.value:w) as [string,string]}:row)}))} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>)}</div><label className="block text-xs">Mô tả ảnh tham chiếu (tiếng Anh, dùng khi chấm)<textarea rows={3} value={q.description} onChange={e=>setPictures(previous=>({...previous,questions:previous.questions.map((row,i)=>i===index?{...row,description:e.target.value}:row)}))} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label></div>)}<p className="text-xs leading-relaxed text-slate-500">Mô tả phải khớp ảnh thật. Học viên chỉ nhìn thấy ảnh và hai từ gợi ý; AI dùng mô tả tham chiếu để đối chiếu nội dung.</p></div> : type === 'HSK_5' ? (
             <div className="space-y-5 bg-red-50/40 p-5 rounded-xl border border-red-100">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -504,7 +513,7 @@ export function PromptsTab() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{p.content}</p>
+                    <p className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{p.type === 'TOEIC_PICTURE' ? (()=>{try{return parseToeicPictures(p.content).title + ' · 5 ảnh, mỗi ảnh 2 từ gợi ý'}catch{return 'Bộ ảnh cần kiểm tra lại cấu trúc'}})() : p.content}</p>
                   )}
 
                   {(p.imageUrl || hsk5Parsed?.part3?.imageUrl) && (

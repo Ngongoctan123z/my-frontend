@@ -192,3 +192,62 @@ test('coach uses saved assessment context and persists owner-scoped chat', async
   assert.equal(JSON.stringify(call.payload).includes('forged'),false)
   assert.equal((await h.post({action:'chat_history',recordingId:begin.data.id+':0'})).data.messages.length,2)
 })
+
+test('D1 question bank survives edits/reloads and never resurrects hidden or deleted defaults', async () => {
+  const h=await fixture(), bank=await h.loadModule('app/api/speaking/question-bank.ts')
+  const first=await h.post({action:'catalog',examType:'IELTS_SPEAKING'})
+  assert.equal(first.data.source,'database')
+  const original=first.data.catalog.PART_2[0]
+  const raw=h.sqlite.prepare('SELECT * FROM speaking_prompt WHERE id=?').get(original.id)
+  await bank.mutateQuestionBank(h.db.$client,'update_speaking_prompt',{...raw,isPublished:false,topic:'Edited in D1'})
+  const second=await h.post({action:'catalog',examType:'IELTS_SPEAKING'})
+  assert.equal(second.data.catalog.PART_2.some(row=>row.id===original.id),false)
+  assert.equal(h.lib.buildSpeakingSet('IELTS_SPEAKING','PART_2',second.data.catalog,original.id).some(row=>row.id.startsWith(original.id+':')),false)
+  h.sqlite.prepare('DELETE FROM speaking_prompt WHERE id=?').run(original.id)
+  await h.post({action:'catalog',examType:'IELTS_SPEAKING'})
+  assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM speaking_prompt WHERE id=?').get(original.id).n,0)
+  assert.equal(h.lib.buildSpeakingSet('TOEIC_SPEAKING','FULL',{}).length,0)
+})
+test('admin question bank saves server IDs, canonical groups and rejects nonexistent updates', async () => {
+  const h=await createGraderHarness({route:'app/api/admin/route.ts'}); h.state.email='admin@vndocs.net'
+  const p={examType:'TOEIC_SPEAKING',part:'Q4_6',topic:'Original admin topic',questionEn:'What is your job?',questionVi:'',subQuestions:['What do you enjoy?','What would you change?'],isPublished:true}
+  const saved=await h.post({action:'add_speaking_prompt',payload:p})
+  assert.equal(saved.response.status,200); assert.ok(saved.data.id); assert.equal(saved.data.part,'Q5_7')
+  assert.equal(JSON.parse(h.sqlite.prepare('SELECT subQuestions FROM speaking_prompt WHERE id=?').get(saved.data.id).subQuestions).length,2)
+  const updated=await h.post({action:'update_speaking_prompt',payload:{...p,id:saved.data.id,topic:'Updated persisted topic'}})
+  assert.equal(updated.data.id,saved.data.id); assert.equal(h.sqlite.prepare('SELECT topic FROM speaking_prompt WHERE id=?').get(saved.data.id).topic,'Updated persisted topic')
+  assert.equal((await h.post({action:'update_speaking_prompt',payload:{...p,id:'does-not-exist'}})).response.status,404)
+  assert.equal((await h.post({action:'add_speaking_prompt',payload:{...p,part:'PART_2'}})).response.status,422)
+  h.state.email=null
+  assert.equal((await h.post({action:'add_speaking_prompt',payload:p})).response.status,401)
+})
+test('private R2 recordings replay across devices with ranges and owner checks', async () => {
+  const h=await fixture(), begin=await h.post(h.body)
+  await h.upload(begin.data.id)
+  const route=await h.loadModule('app/api/speaking/audio/[recordingId]/route.ts'), context={params:Promise.resolve({recordingId:begin.data.id+':0'})}
+  const get=(headers={})=>route.GET(new Request('https://test.local/audio',{headers}),context)
+  const response=await get()
+  assert.equal(response.status,200); assert.equal(response.headers.get('content-type'),'audio/webm')
+  assert.equal(response.headers.get('cache-control'),'private, no-store')
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()),new Uint8Array(await h.audio.arrayBuffer()))
+  const range=await get({range:'bytes=100-199'}); assert.equal(range.status,206); assert.equal((await range.arrayBuffer()).byteLength,100)
+  assert.equal(range.headers.get('content-range'),'bytes 100-199/3000')
+  assert.equal((await get({range:'bytes=99999-'})).status,416)
+  assert.equal((await h.post({action:'report',submissionId:begin.data.id})).data.report.items[0].audioAvailable,true)
+  assert.equal(h.state.r2Writes,1)
+  await h.upload(begin.data.id); assert.equal(h.state.r2Writes,1)
+  h.state.email='other@example.test'; assert.equal((await get()).status,404)
+  h.state.email=null; assert.equal((await get()).status,401)
+})
+test('upload-only saves audio before AI; failed storage does not call providers or leave a false pointer', async () => {
+  const h=await fixture(), begin=await h.post(h.body)
+  const form=new FormData(); form.set('action','upload_audio');form.set('submissionId',begin.data.id);form.set('itemIndex','0');form.set('audio',h.audio)
+  h.state.r2Failure=true
+  assert.equal((await h.post(form)).response.status,503)
+  assert.equal(h.state.calls.length,0); assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM speaking_audio').get().n,0)
+  h.state.r2Failure=false
+  assert.equal((await h.post(form)).response.status,200); assert.equal(h.state.calls.length,0)
+  h.state.handler=()=>{throw {status:503,message:'provider down'}}
+  assert.equal((await h.upload(begin.data.id)).response.status,503)
+  assert.equal((await h.post({action:'report',submissionId:begin.data.id})).data.report.items[0].audioAvailable,true)
+})

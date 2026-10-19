@@ -37,6 +37,12 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
       ]
     }
     if (ft === 'TOEIC') {
+      if (internalResult.pictures) return [
+        {id:'pictures', label:isEn?'Pictures (Q1–5)':'Theo ảnh (Câu 1–5)', badge:`${internalResult.pictures?.overallBand ?? '—'}/15`},
+        {id:'email6', label:isEn?'Email (Q6)':'Email (Câu 6)', badge:`${internalResult.email6?.overallBand ?? '—'}/4`},
+        {id:'email7', label:isEn?'Email (Q7)':'Email (Câu 7)', badge:`${internalResult.email7?.overallBand ?? '—'}/4`},
+        {id:'part2', label:isEn?'Essay (Q8)':'Luận (Câu 8)', badge:`${internalResult.part2?.overallBand ?? '—'}/5`},
+      ]
       return [
         { id: 'part1', label: isEn ? 'Part 1 (Q6-7 Email)' : 'Phần 1: Email (Câu 6-7)', badge: `${internalResult.part1?.overallBand ?? '-'}/4` },
         { id: 'part2', label: isEn ? 'Part 2 (Q8 Opinion)' : 'Phần 2: Nghị luận (Câu 8)', badge: `${internalResult.part2?.overallBand ?? '-'}/5` }
@@ -62,7 +68,7 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
 
   // Default selected subtab
   useEffect(() => {
-    if (fullTestTabs.length > 0 && !selectedSubTab) {
+    if (fullTestTabs.length > 0 && !fullTestTabs.some(tab => tab.id === selectedSubTab)) {
       setSelectedSubTab(fullTestTabs[0].id)
     }
   }, [fullTestTabs, selectedSubTab])
@@ -151,7 +157,7 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
     } else {
       setInternalResult(null)
     }
-  }, [result])
+  }, [result, examType])
 
   if (!isOpen) return null
 
@@ -220,9 +226,9 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
               {/* Overall Score Banner */}
               <div className="bg-gradient-to-b from-blue-50/80 to-white border border-blue-200 rounded-xl p-6 text-center">
                 <span className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-100/80 px-3 py-1 rounded-md">
-                  {internalResult.isFullTest
-                    ? (isEn ? 'Official Overall Score' : 'Điểm Tổng Thể Toàn Bộ Bài Thi')
-                    : (isEn ? 'Overall Score' : 'Điểm Tổng')}
+                  {internalResult.scoreLabel || (internalResult.isFullTest
+                    ? (isEn ? 'Practice overall score' : 'Điểm tổng luyện tập')
+                    : (isEn ? 'Overall Score' : 'Điểm Tổng'))}
                 </span>
                 <div className="mt-3 flex items-baseline justify-center">
                   <span className="text-6xl font-black text-blue-700 tracking-tight">{overallScore}</span>
@@ -230,7 +236,7 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
                 </div>
                 {internalResult.isFullTest && internalResult.formula && (
                   <p className="text-xs text-slate-500 mt-2 font-medium">
-                    {internalResult.formula}
+                    {isToeic && !internalResult.rawScore ? (isEn?'Legacy practice result, calculated by the previous version.':'Kết quả luyện tập cũ, tính theo phiên bản trước.') : internalResult.formula}
                   </p>
                 )}
               </div>
@@ -241,12 +247,12 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
                   <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     {isEn ? 'View section breakdown:' : 'Xem chi tiết từng phần:'}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex snap-x gap-2 overflow-x-auto [scrollbar-width:none]">
                     {fullTestTabs.map(tab => (
                       <button
                         key={tab.id}
                         onClick={() => setSelectedSubTab(tab.id)}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 border ${
+                        className={`shrink-0 snap-start px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 border ${
                           selectedSubTab === tab.id
                             ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -264,6 +270,9 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
                 </div>
               )}
 
+              {activeResult?.scoreNote && <p className="text-xs leading-relaxed text-slate-500">{activeResult.scoreNote}</p>}
+              {activeResult?.assessmentNote && <p className="text-xs leading-relaxed text-slate-500">{activeResult.assessmentNote}</p>}
+              {Array.isArray(activeResult?.pictureTasks) && <div className="space-y-3">{activeResult.pictureTasks.map((task:any)=><div key={task.id} className="rounded-lg border border-slate-200 p-4"><div className="flex items-center justify-between gap-3"><h3 className="text-sm font-bold">{isEn?'Question':'Câu'} {task.id}</h3><span className="text-sm font-bold text-blue-600">{task.score}/{task.maxScore}</span></div><p className="mt-2 text-xs font-semibold text-slate-400">{task.keywords?.join(' / ')}</p><p className="mt-2 text-sm text-slate-700">{task.answer}</p><p className="mt-3 text-sm leading-relaxed text-slate-500">{task.feedback}</p>{task.correctedSentence&&<p className="mt-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">{isEn?'Suggested sentence: ':'Gợi ý: '}{task.correctedSentence}</p>}</div>)}</div>}
               {/* Criteria Scores Grid */}
               {activeResult?.criteria && Object.keys(activeResult.criteria).length > 0 && (
                 <div className="space-y-3">

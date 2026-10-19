@@ -165,7 +165,7 @@ export const speakingSessions = sqliteTable("speaking_session", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   email: text("email").notNull(),
   examType: text("examType").notNull(), // 'IELTS_SPEAKING' | 'TOEIC_SPEAKING'
-  part: text("part").notNull(), // 'PART_1' | 'PART_2' | 'PART_3' | 'Q1_2' | 'Q3' | 'Q4_6' | 'Q7_9' | 'Q10_11'
+  part: text("part").notNull(), // Canonical IELTS PART_1/2/3 and TOEIC Q1_2/Q3_4/Q5_7/Q8_10/Q11
   promptEn: text("promptEn").notNull(),
   promptVi: text("promptVi").notNull(),
   transcript: text("transcript"), // raw STT output
@@ -195,10 +195,16 @@ export const speakingRecordings = sqliteTable('speaking_recording', {
   error: text('error'), chatLog: text('chatLog'), updatedAt: integer('updatedAt').notNull(),
 }, table => [index('speaking_recording_submission').on(table.submissionId, table.itemIndex)])
 
+export const speakingAudio = sqliteTable('speaking_audio', {
+  recordingId: text('recordingId').primaryKey(), objectKey: text('objectKey').notNull(),
+  mimeType: text('mimeType').notNull(), byteSize: integer('byteSize').notNull(),
+  createdAt: integer('createdAt').notNull(),
+})
+
 export const speakingPrompts = sqliteTable("speaking_prompt", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   examType: text("examType").notNull(), // 'IELTS_SPEAKING' | 'TOEIC_SPEAKING'
-  part: text("part").notNull(), // 'PART_1' | 'PART_2' | 'PART_3' | 'Q1_2' | 'Q3' | 'Q4_6' | 'Q7_9' | 'Q10_11'
+  part: text("part").notNull(), // Canonical IELTS PART_1/2/3 and TOEIC Q1_2/Q3_4/Q5_7/Q8_10/Q11
   topic: text("topic").notNull(),
   questionEn: text("questionEn").notNull(),
   questionVi: text("questionVi").notNull(),
@@ -208,7 +214,7 @@ export const speakingPrompts = sqliteTable("speaking_prompt", {
   imageUrl: text("imageUrl"), // For TOEIC Q3 picture / Q7-9 chart
   prepTimeSec: integer("prepTimeSec").default(0).notNull(),
   speakTimeSec: integer("speakTimeSec").default(45).notNull(),
-  startGraceSec: integer("startGraceSec").default(15).notNull(),
+  startGraceSec: integer("startGraceSec").default(0).notNull(),
   criteria: text("criteria"), // JSON array
   difficulty: text("difficulty").default("medium").notNull(), // 'easy' | 'medium' | 'hard'
   setId: text("setId"), // For linking Part 2 and Part 3 sets

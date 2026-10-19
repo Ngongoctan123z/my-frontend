@@ -105,3 +105,38 @@ test('TOPIK 53 accepts legacy imageDescription and validates malformed chart dat
   assert.equal(malformed.response.status, 400)
   assert.equal(harness.state.calls.length, 1)
 })
+
+test('TOEIC pictures grade the exact five original sentences and sum task marks', async () => {
+  const h=await createGraderHarness(), data=await h.loadModule('src/data/toeicWriting.ts')
+  const prompt=JSON.stringify(data.TOEIC_PICTURE_SETS[0]), answers=[
+    'The people are sitting around a table.', 'There are chairs inside the cafe.', 'The books is on shelves.', 'This is unrelated.', 'The laptop is open.',
+  ].map((answer,index)=>({id:index+1,answer})), essay=JSON.stringify(answers)
+  h.state.response={pictureTasks:[3,2,1,0,3].map((score,index)=>({id:index+1,score,feedback:'Evidence-based feedback for the actual sentence.',correctedSentence:'Suggested correction only.'})),overallBand:999,detailedFeedback:'Five sentences checked.'}
+  const r=await h.grade({type:'TOEIC_PICTURE',prompt,essay,feedbackLang:'English'})
+  assert.equal(r.response.status,200,JSON.stringify(r.data));assert.equal(r.data.overallBandFormatted,'9/15');assert.equal(r.data.assessmentStatus,'reference_based')
+  assert.deepEqual(r.data.pictureTasks.map(t=>t.answer),answers.map(a=>a.answer))
+  assert.deepEqual(r.data.pictureTasks.map(t=>t.score),[3,2,1,0,3])
+  assert.ok(h.state.calls[0].payload.messages[1].content.includes(prompt));assert.ok(h.state.calls[0].payload.messages[1].content.includes(essay))
+  assert.ok(h.state.calls[0].payload.messages[0].content.includes('Inflections'))
+  assert.equal(h.sqlite.prepare('SELECT count FROM api_usage').get().count,1)
+})
+test('TOEIC pictures reject missing/malformed answers before quota and reject invented task scores', async () => {
+  const h=await createGraderHarness(), data=await h.loadModule('src/data/toeicWriting.ts'), prompt=JSON.stringify(data.TOEIC_PICTURE_SETS[0])
+  const answers=Array.from({length:5},(_,i)=>({id:i+1,answer:'One sentence.'}))
+  for(const essay of ['not json',JSON.stringify(answers.slice(0,4)),JSON.stringify(answers.map((r,i)=>({...r,id:i===0?5:r.id}))),JSON.stringify(answers.map((r,i)=>({...r,answer:i===0?'':r.answer})))])assert.equal((await h.grade({type:'TOEIC_PICTURE',prompt,essay})).response.status,400)
+  assert.equal(h.state.calls.length,0);assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM api_usage').get().n,0)
+  h.state.response={pictureTasks:answers.map(r=>({...r,score:4,feedback:'Invalid high score.'}))}
+  assert.equal((await h.grade({type:'TOEIC_PICTURE',prompt,essay:JSON.stringify(answers)})).response.status,500)
+  assert.equal(h.state.calls.length,2)
+})
+test('TOEIC complete writing has five pictures, two distinct emails and one essay, without invented 200 conversion', async () => {
+  const h=await createGraderHarness(), data=await h.loadModule('src/data/toeicWriting.ts'), scores=await h.loadModule('src/lib/examScores.ts')
+  const samples=gradingSamples.filter(s=>s.type.startsWith('TOEIC_'))
+  h.state.handler=call=>call.payload.messages[1].content.includes('Five sentences')?{pictureTasks:Array.from({length:5},(_,i)=>({id:i+1,score:3,feedback:'Correct sentence for this picture.'}))}:call.payload.messages[1].content.includes(samples[1].essay)?samples[1].provider:samples[0].provider
+  const sections=[{type:'TOEIC_PICTURE',prompt:JSON.stringify(data.TOEIC_PICTURE_SETS[0]),essay:JSON.stringify(Array.from({length:5},(_,i)=>({id:i+1,answer:'Five sentences fixture.'})))},samples[0],{...samples[0],prompt:'A second, different email request.'},samples[1]]
+  const results=[]
+  for(const section of sections){const r=await h.grade(section);assert.equal(r.response.status,200,JSON.stringify(r.data));results.push(r.data)}
+  const total=scores.toeicWritingRawScore(results)
+  assert.equal(total.scoreScale,28);assert.equal(total.overallBand,28);assert.equal(total.overallBandFormatted,'28/28')
+  assert.equal(h.state.calls.length,4);assert.equal(new Set(h.state.calls.map(c=>c.apiKey)).size,4)
+})

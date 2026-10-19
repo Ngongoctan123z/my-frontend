@@ -22,6 +22,7 @@ import { HskGraderClient } from './app/ai-grader/hsk/HskGraderClient';
 import { ChatWidget } from './src/components/chat/ChatWidget';
 import * as fixtures from './src/data/fallbackPrompts';
 window.requests=[];
+window.toeicScenario=new URL(location.href).searchParams.get('scenario')==='toeic-full';
 window.hskScenario=new URL(location.href).searchParams.get('scenario')==='hsk-stability';
 window.hskPassages=${JSON.stringify(hskPassages)};
 window.historyRecords=[];window.savedHistory=[];window.historyRequests=0;window.historyResolvers=[];window.gradeResolvers=[];window.promptResolvers=[];
@@ -37,6 +38,7 @@ window.fetch=async (url,options={})=>{
     if(window.deferHskPrompt)return new Promise(resolve=>window.promptResolvers.push(resolve));
     return Response.json({prompts:window.hskPassages.map(content=>({content}))});
   }
+  if(window.toeicScenario&&body.action==='grade_essay'){if(window.failToeicType===body.type){window.failToeicType=null;return Response.json({error:'Temporary grading failure'},{status:503});}return Response.json(body.type==='TOEIC_PICTURE'?{overallBand:15,scoreScale:15,pictureTasks:JSON.parse(body.essay).map(row=>({...row,score:3})),detailedFeedback:'Pictures checked.'}:{overallBand:body.type==='TOEIC_ESSAY'?5:4,scoreScale:body.type==='TOEIC_ESSAY'?5:4,detailedFeedback:'Email or essay checked.'});}
   if(window.hskScenario&&body.action==='grade_essay')return new Promise(resolve=>window.gradeResolvers.push(resolve));
   if(body.action==='get_paired_full_test') result={sets:fixtures[body.exam+'_PAIRED_SETS']};
   if(body.action==='generate_prompt_batch') result={prompts:fixtures[body.type+'_FALLBACKS'] || []};
@@ -50,12 +52,12 @@ const stubs = {
   'next-auth/react': `import {useEffect,useState} from 'react'; const initial={user:{email:'ui-test@example.invalid'}}; export function useSession(){const [session,setSession]=useState(initial);useEffect(()=>{const refresh=()=>setSession({...initial,user:{...initial.user}});window.addEventListener('fixture-session',refresh);return()=>window.removeEventListener('fixture-session',refresh)},[]);return {data:session,status:'authenticated'}} export const signIn=()=>{};`,
   'next/navigation': `export const usePathname=()=>location.pathname;`,
   'next/dynamic': `import React from 'react'; export default function dynamic(loader){const C=React.lazy(loader.then ? ()=>loader : ()=>loader().then(defaultExport=>({default:defaultExport}))); return props=>React.createElement(React.Suspense,{fallback:null},React.createElement(C,props));}`,
-  '@/src/utils/indexedDB': `export const getEssayHistory=async()=>window.hskScenario?window.loadHistoryFixture():[]; export const saveEssayHistory=async item=>{if(window.hskScenario){window.savedHistory.push(item);window.historyRecords.unshift({...item,id:crypto.randomUUID(),timestamp:Date.now()})}}; export const clearEssayHistory=async()=>{};`,
+  '@/src/utils/indexedDB': `export const getEssayHistory=async()=>window.hskScenario?window.loadHistoryFixture():[]; export const saveEssayHistory=async item=>{if(window.hskScenario||window.toeicScenario){window.savedHistory.push(item);window.historyRecords.unshift({...item,id:crypto.randomUUID(),timestamp:Date.now()})}}; export const clearEssayHistory=async()=>{};`,
 }
 for (const name of ['GradingResultModal','ShareExamModal','StudentManagementModal']) {
   stubs['@/src/components/common/'+name] = `export const ${name}=()=>null;`
 }
-stubs['@/src/components/common/GradingResultModal']=`import React from 'react';export const GradingResultModal=({isOpen,isGrading,result,examType,onClose})=>window.hskScenario&&isOpen?React.createElement('div',{role:'dialog','aria-label':'Kết quả HSK thử nghiệm'},React.createElement('p',null,isGrading?'Đang chấm '+examType:result?.detailedFeedback),React.createElement('button',{onClick:onClose,disabled:isGrading},'Đóng kết quả')):null;`;
+stubs['@/src/components/common/GradingResultModal']=`import React from 'react';export const GradingResultModal=({isOpen,isGrading,result,examType,onClose})=>(window.hskScenario||window.toeicScenario)&&isOpen?React.createElement('div',{role:'dialog','aria-label':'Kết quả HSK thử nghiệm'},React.createElement('p',null,isGrading?'Đang chấm '+examType:result?.detailedFeedback),React.createElement('button',{onClick:onClose,disabled:isGrading},'Đóng kết quả')):null;`;
 for (const name of ['CalculatorBubble','TranslateBubble','ChatBubble']) {
   stubs[name] = `import React from 'react'; export const ${name}=({onClose})=>React.createElement('div',{role:'dialog','aria-label':'${name}'},React.createElement('button',{onClick:onClose},'Đóng'));`
 }
@@ -139,15 +141,16 @@ try {
         await page.getByRole('button',{name:/HSK 6/}).first().click()
         await clearOne('HSK 6')
       } else {
+        if(exam==='toeic'){for(let q=1;q<=5;q++)await clearOne('TOEIC câu '+q);await assertLayout();await page.screenshot({path:`${output}/toeic-pictures-${width}.png`,fullPage:true});await page.getByRole('button',{name:'Chuyển sang email (Câu 6–7) →',exact:true}).click();await clearOne('TOEIC câu 7');}
         await clearOne('Bài làm của bạn')
         await page.getByRole('button',{name:'Phóng to',exact:true}).click()
         await clearOne('Bài làm của bạn')
         await page.getByRole('button',{name:'Thu nhỏ',exact:true}).click()
         if(exam==='toeic') {
           await page.getByRole('textbox',{name:'Bài làm của bạn',exact:true}).fill('Keep part one')
-          await page.getByRole('button',{name:'Chuyển sang Part 2 →',exact:true}).click()
+          await page.getByRole('button',{name:'Chuyển sang luận (Câu 8) →',exact:true}).click()
           await clearOne('Bài làm của bạn')
-          await page.getByRole('button',{name:'Quay lại Part 1',exact:true}).click()
+          await page.getByRole('button',{name:'Quay lại email',exact:true}).click()
           assert.equal(await page.getByRole('textbox',{name:'Bài làm của bạn',exact:true}).inputValue(),'Keep part one')
         }
       }
@@ -162,6 +165,37 @@ try {
     }
   }
   console.log(`PASS ${checks} field clear interactions; 16 responsive layouts; task switching and language controls`)
+  {
+    const page=await browser.newPage({viewport:{width:375,height:900}});activePage=page
+    const errors=[];page.on('pageerror',error=>errors.push(error.message))
+    await page.goto(`http://127.0.0.1:${server.address().port}/?exam=toeic&scenario=toeic-full`)
+    for(let q=1;q<=5;q++)await page.getByRole('textbox',{name:'TOEIC câu '+q,exact:true}).fill('Original sentence '+q)
+    await page.getByRole('button',{name:'Chuyển sang email (Câu 6–7) →',exact:true}).click()
+    await page.getByRole('textbox',{name:'Bài làm của bạn',exact:true}).fill('Original first email')
+    await page.getByRole('textbox',{name:'TOEIC câu 7',exact:true}).fill('Original second email')
+    await page.getByRole('button',{name:'Chuyển sang luận (Câu 8) →',exact:true}).click()
+    await page.getByRole('textbox',{name:'Bài làm của bạn',exact:true}).fill('Original opinion essay')
+    await page.getByLabel('Ngôn ngữ nhận xét',{exact:true}).selectOption('English')
+    await page.evaluate(()=>window.failToeicType='TOEIC_ESSAY')
+    await page.getByRole('button',{name:'Nộp bài & Chấm đủ 8 câu',exact:true}).click()
+    await page.getByText(/Temporary grading failure/).waitFor()
+    assert.equal(await page.getByRole('textbox',{name:'Bài làm của bạn',exact:true}).inputValue(),'Original opinion essay')
+    await page.getByRole('button',{name:'Nộp bài & Chấm đủ 8 câu',exact:true}).click()
+    await page.waitForFunction(()=>window.savedHistory.length===1)
+    const state=await page.evaluate(()=>({calls:window.requests.filter(r=>r.body.action==='grade_essay').map(r=>r.body),history:window.savedHistory[0]}))
+    assert.deepEqual(state.calls.map(c=>c.type),['TOEIC_PICTURE','TOEIC_RESPOND','TOEIC_RESPOND','TOEIC_ESSAY','TOEIC_ESSAY'])
+    assert.deepEqual(JSON.parse(state.calls[0].essay).map(row=>row.answer),[1,2,3,4,5].map(i=>'Original sentence '+i))
+    assert.equal(state.calls[1].essay,'Original first email');assert.equal(state.calls[2].essay,'Original second email');assert.notEqual(state.calls[1].prompt,state.calls[2].prompt)
+    assert.ok(state.calls.every(c=>c.feedbackLang==='English'));assert.equal(state.history.result.overallBand,28);assert.equal(state.history.result.scoreScale,28)
+    await page.getByRole('button',{name:'Đóng kết quả',exact:true}).click()
+    await page.getByRole('button',{name:'Quay lại email',exact:true}).click()
+    assert.equal(await page.getByRole('textbox',{name:'TOEIC câu 7',exact:true}).inputValue(),'Original second email')
+    await page.getByRole('button',{name:'Quay lại câu 1–5',exact:true}).click()
+    assert.equal(await page.getByRole('textbox',{name:'TOEIC câu 1',exact:true}).inputValue(),'Original sentence 1')
+    assert.deepEqual(errors,[]);await page.close()
+    console.log('PASS TOEIC all eight answers, distinct emails, feedback language, partial retry cache, raw marks and preserved draft')
+  }
+
   {
     const page=await browser.newPage({viewport:{width:375,height:900}})
     activePage=page

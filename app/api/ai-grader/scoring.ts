@@ -8,6 +8,7 @@ export const CALIBRATION: Record<string, number> = {
   IELTS_TASK_1: 0,
   IELTS_TASK_2: 0,
   TOEIC_RESPOND: 0,
+  TOEIC_PICTURE: 0,
   TOEIC_ESSAY: 0,
   HSK_5: 0,
   HSK_6: 0,
@@ -394,3 +395,4 @@ export const GRADING_CONTRACT = {
   version: "1.0",
   enforces: ["strict_schema", "evidence_matching", "range_validation"]
 }
+

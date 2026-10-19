@@ -88,7 +88,7 @@ export function SpeakingClient() {
     const controller = new AbortController()
     requestSpeaking({ action: 'catalog', examType: exam }, controller.signal).then(data => {
       if (controller.signal.aborted) return
-      const catalog = mergeCatalog(exam, data.catalog)
+      const catalog = data.source === 'database' ? data.catalog : mergeCatalog(exam, data.catalog)
       setCatalogs(previous => ({ ...previous, [exam]: catalog }))
       if (!touched.current && !Object.keys(snapshot.current.clips).length) setQuestions(buildSpeakingSet(exam, snapshot.current.tab, catalog))
     }).catch(() => {})
@@ -167,6 +167,20 @@ export function SpeakingClient() {
         id = data.id; updated = data.report; setSubmissionId(id); setReport(updated); setUsage({ count: data.count, limit: data.limit })
       } else updated = (await requestSpeaking({ action: 'report', submissionId: id }, controller.signal)).report
       if (!id || !updated) throw new Error('Chưa tạo được bài nộp. Bản thu vẫn được giữ.')
+      // Persist all recordings before any provider call, so a failed first grade
+      // cannot strand the remaining recordings on this device.
+      for (let i = 0; i < questions.length; i++) {
+        if (updated.items[i]?.audioAvailable) continue
+        const clip = clips[questions[i].id]
+        if (!clip) continue
+        setProcessing(`Đang lưu bản thu ${i + 1}/${questions.length}`)
+        const form = new FormData()
+        form.append('action', 'upload_audio'); form.append('submissionId', id); form.append('itemIndex', String(i)); form.append('audio', clip.blob, 'recording.webm')
+        await requestSpeaking(form, controller.signal)
+        if (controller.signal.aborted || ownerRef.current !== requestOwner) throw new DOMException('Aborted', 'AbortError')
+        updated = { ...updated, items: updated.items.map((item, n) => n === i ? { ...item, audioAvailable: true } : item) }
+        setReport(updated)
+      }
       for (let i = 0; i < questions.length; i++) {
         if (controller.signal.aborted || ownerRef.current !== requestOwner) throw new DOMException('Aborted', 'AbortError')
         const clip = clips[questions[i].id]
@@ -201,7 +215,13 @@ export function SpeakingClient() {
     const requestOwner = owner
     const nextClips: Record<string, SpeakingClip> = {}
     for (const item of source.items) {
-      const clip = await loadSpeakingAudio(owner, item.id).catch(() => undefined)
+      let clip = await loadSpeakingAudio(owner, item.id).catch(() => undefined)
+      if (!clip && !item.result && item.audioAvailable && item.metrics) {
+        try {
+          const response = await fetch(`/api/speaking/audio/${encodeURIComponent(item.id)}`)
+          if (response.ok) clip = { id: item.id, blob: await response.blob(), metrics: item.metrics, createdAt: source.createdAt }
+        } catch { /* Keep the explicit missing-audio message below. */ }
+      }
       if (clip) nextClips[item.question.id] = clip
     }
     if (ownerRef.current !== requestOwner) return
@@ -219,7 +239,8 @@ export function SpeakingClient() {
   const pickPart = tab === 'FULL' ? exam === 'IELTS_SPEAKING' ? 'PART_2' : 'Q11' : tab
   const choices = (catalogs[exam][pickPart] || []).filter(prompt => (tab !== 'FULL' || exam !== 'IELTS_SPEAKING' || (prompt.setId && catalogs[exam].PART_3?.some(p => p.setId === prompt.setId && (p.subQuestions?.length || 0) >= 3))) && `${prompt.topic} ${prompt.questionEn}`.toLowerCase().includes(keyword.trim().toLowerCase()))
 
-  if (status === 'loading' || loadedOwner.current !== owner || !current) return <p className="p-6 text-center text-sm text-slate-500">Đang chuẩn bị đề Speaking…</p>
+  if (status === 'loading' || loadedOwner.current !== owner) return <p className="p-6 text-center text-sm text-slate-500">Đang chuẩn bị đề Speaking…</p>
+  if (!current) return <div className="space-y-4 p-6 text-center"><p className="text-sm text-slate-500">Phần này chưa có bộ đề đã xuất bản đủ câu. Hãy chọn phần khác.</p><div className="flex gap-2 overflow-x-auto">{SPEAKING_PARTS[exam].map(part => <button type="button" key={part} onClick={() => changeSet(exam, part)} className="shrink-0 rounded-lg border px-3 py-2 text-sm">{PART_LABELS[part]}</button>)}</div></div>
   return <div className="mx-auto w-full min-w-0 max-w-6xl space-y-4 sm:space-y-5">
     <header className="rounded-none border-y border-slate-200 bg-white p-4 shadow-xs sm:rounded-xl sm:border sm:p-5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><h1 className="text-xl font-bold tracking-tight text-slate-800">Phòng Luyện Speaking</h1><p className="mt-1 text-xs text-slate-500">Chọn đề, nói thử và cải thiện từng câu trả lời.</p></div><div className="flex items-center justify-between gap-2 sm:justify-end"><select aria-label="Kỳ thi Speaking" value={exam} disabled={locked} onChange={event => { const value = event.target.value as SpeakingExam; changeSet(value, value === 'IELTS_SPEAKING' ? 'PART_2' : 'Q11') }} className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="IELTS_SPEAKING">IELTS Speaking</option><option value="TOEIC_SPEAKING">TOEIC Speaking</option></select><button type="button" disabled={locked} onClick={() => { if (!owner) { login(); return }; setHistoryOpen(true); void loadHistory() }} className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600 disabled:opacity-40"><History className="h-3.5 w-3.5 text-blue-600" />Lịch sử</button></div></div>

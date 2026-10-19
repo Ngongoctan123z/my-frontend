@@ -24,6 +24,7 @@ export const SPEAKING_SCHEMA = [
     error TEXT, chatLog TEXT, updatedAt INTEGER NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS speaking_recording_submission ON speaking_recording(submissionId, itemIndex)`,
+  `CREATE TABLE IF NOT EXISTS speaking_audio (recordingId TEXT PRIMARY KEY, objectKey TEXT NOT NULL, mimeType TEXT NOT NULL, byteSize INTEGER NOT NULL, createdAt INTEGER NOT NULL)`,
 ]
 let schemaReady = false
 export class SpeakingStore {
@@ -109,14 +110,20 @@ export class SpeakingStore {
     await this.db.prepare(`UPDATE speaking_recording SET status='error',error=?,leaseToken=NULL,leaseUntil=NULL,updatedAt=? WHERE id=? AND leaseToken=?`)
       .bind(error.slice(0, 250), Date.now(), id, token).run()
   }
+  async audio(recordingId: string) {
+    return this.db.prepare('SELECT * FROM speaking_audio WHERE recordingId=?').bind(recordingId).first<{ objectKey: string; mimeType: string; byteSize: number }>()
+  }
+  async saveAudio(recordingId: string, objectKey: string, mimeType: string, size: number) {
+    await this.db.prepare('INSERT INTO speaking_audio(recordingId,objectKey,mimeType,byteSize,createdAt) VALUES(?,?,?,?,?) ON CONFLICT(recordingId) DO NOTHING').bind(recordingId, objectKey, mimeType, size, Date.now()).run()
+  }
   async report(email: string, id: string): Promise<SpeakingReport> {
     const submission = await this.submission(email, id)
-    const { results } = await this.db.prepare('SELECT id,itemIndex,status,result FROM speaking_recording WHERE submissionId=? ORDER BY itemIndex').bind(id).all()
+    const { results } = await this.db.prepare('SELECT r.id,r.itemIndex,r.status,r.result,a.recordingId AS audioId FROM speaking_recording r LEFT JOIN speaking_audio a ON a.recordingId=r.id WHERE r.submissionId=? ORDER BY r.itemIndex').bind(id).all()
     return { id, examType: submission.manifest.examType, mode: submission.manifest.mode, fullTest: submission.manifest.fullTest,
       feedbackLang: submission.feedbackLang, createdAt: submission.createdAt, status: submission.status,
       items: submission.manifest.items.map((item, index) => {
         const row = results.find(row => row.itemIndex === index)
-        return { id: `${id}:${index}`, question: item.question, status: row?.status || 'pending', result: row?.result ? JSON.parse(row.result) : null }
+        return { id: `${id}:${index}`, question: item.question, status: row?.status || 'pending', audioAvailable: !!row?.audioId, metrics: item.metrics, result: row?.result ? JSON.parse(row.result) : null }
       }) }
   }
   async history(email: string) {

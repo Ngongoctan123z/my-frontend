@@ -43,7 +43,7 @@ jobs:
       - name: Test Speaking submissions and question formats
         run: npm run test:speaking
 
-      - name: Check Speaking and HSK TypeScript
+      - name: Check changed Speaking, Writing and admin TypeScript
         run: node tests/check-speaking-types.mjs
 
       - name: Build Next.js and OpenNext

@@ -7,6 +7,7 @@ import { canonicalPart, hashSpeakingAudio, type SpeakingExam, type SpeakingRepor
 import { SpeakingStore, type SpeakingD1 } from './store'
 import { SpeakingRequestError, validateManifest } from './validation'
 import { loadSpeakingCatalog } from './catalog'
+import { persistSpeakingAudio } from './audio'
 import { speakingConfig, transcribeSpeakingAudio, gradeSpeakingAudio, speakingCoachReply } from './providers'
 
 async function account() {
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
       let form: FormData
       try { form = await new Request(req.url, { method: 'POST', headers: req.headers, body: bytes }).formData() }
       catch { throw new SpeakingRequestError(400, 'Dữ liệu bản thu không hợp lệ.') }
-      if (form.get('action') !== 'submit_audio') throw new SpeakingRequestError(426, 'Phiên Speaking đã được cập nhật. Vui lòng tải lại trang trước khi nộp.')
+      if (!['submit_audio','upload_audio'].includes(String(form.get('action')))) throw new SpeakingRequestError(426, 'Phiên Speaking đã được cập nhật. Vui lòng tải lại trang trước khi nộp.')
       const audio = form.get('audio') as File | null, id = String(form.get('submissionId') || ''), index = Number(form.get('itemIndex'))
       if (!audio || typeof audio.arrayBuffer !== 'function' || audio.size < 500 || audio.size > 12_000_000) throw new SpeakingRequestError(422, 'Bản thu rỗng, quá ngắn hoặc vượt giới hạn 12MB. Vui lòng thu lại.')
       if (!/^audio\/(webm|ogg|mp4|m4a|wav|mpeg|mp3|aac)(;|$)/i.test(audio.type)) throw new SpeakingRequestError(415, 'Định dạng âm thanh chưa được hỗ trợ. Vui lòng thu lại bằng trình duyệt.')
@@ -96,9 +97,17 @@ export async function POST(req: NextRequest) {
       if (submission.status === 'limit' || submission.status === 'pending') throw new SpeakingRequestError(429, 'Bài nói chưa được cấp lượt chấm.')
       const item = submission.manifest.items[index]
       if (await hashSpeakingAudio(audio) !== item.audioHash) throw new SpeakingRequestError(409, 'Bản thu đã thay đổi. Vui lòng nộp lại từ đầu.')
+      if (form.get('action') === 'upload_audio') {
+        await persistSpeakingAudio(store, `${id}:${index}`, audio, item.audioHash)
+        return NextResponse.json({ recordingId: `${id}:${index}`, audioAvailable: true })
+      }
       const { row, token } = await store.claim(email, id, index)
-      if (!token) return NextResponse.json({ recordingId: row.id, result: JSON.parse(row.result), cached: true })
+      if (!token) {
+        await persistSpeakingAudio(store, row.id, audio, item.audioHash)
+        return NextResponse.json({ recordingId: row.id, result: JSON.parse(row.result), cached: true, audioAvailable: true })
+      }
       try {
+        await persistSpeakingAudio(store, row.id, audio, item.audioHash)
         let transcript = row.transcript
         if (!transcript) {
           transcript = await transcribeSpeakingAudio(db, email, audio)

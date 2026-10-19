@@ -145,7 +145,7 @@ export async function createGraderHarness({ route = 'app/api/ai-grader/route.ts'
   sqlite.prepare('INSERT INTO system_config VALUES (?, ?)').run('GRADING_GROQ_MODEL', 'grading-primary,grading-fallback')
   const state = {
     email: 'grader-test@example.test', response: {}, finishReason: 'stop',
-    calls: [], logs: [], handler: null,
+    calls: [], logs: [], handler: null, audioObjects: new Map(), r2Enabled: true, r2Writes: 0,
   }
   sqlite.prepare('INSERT INTO user VALUES (?, ?)').run(state.email, 'pro')
   const database = makeDb(sqlite)
@@ -165,13 +165,18 @@ export async function createGraderHarness({ route = 'app/api/ai-grader/route.ts'
       } } }
     }
   }
+  const bucket = {
+    async put(key, bytes, options) { if (state.r2Failure) throw new Error('R2_UNAVAILABLE'); state.r2Writes++; state.audioObjects.set(key, { bytes, options }) },
+    async get(key) { const row=state.audioObjects.get(key); if(!row)return null; const blob=new Blob([row.bytes]); return {body:blob.stream(),size:blob.size,httpEtag:'"test-audio"',arrayBuffer:()=>blob.arrayBuffer()} },
+  }
   const external = {
+    '@opennextjs/cloudflare': { getCloudflareContext: async () => ({env: state.r2Enabled ? {SPEAKING_AUDIO:bucket} : {}}) },
     'next/server': { NextRequest: Request, NextResponse: Response },
     'groq-sdk': { default: FakeGroq },
     '@/auth': { auth: async () => state.email ? { user: { email: state.email } } : null },
     '@/src/db': { getDb: async () => database },
     '@/src/db/schema': schema,
-    'drizzle-orm': { sql, eq, inArray, and },
+    'drizzle-orm': { sql, eq, inArray, and, desc: value => value },
   }
   const context = createContext({
     crypto: globalThis.crypto, TextEncoder, TextDecoder, Headers, Request, Response,
@@ -208,7 +213,7 @@ export async function createGraderHarness({ route = 'app/api/ai-grader/route.ts'
   await module.evaluate()
   let requestId = 0
   return {
-    state, sqlite, keys,
+    state, sqlite, keys, db: database,
     async loadModule(path) { const target = await load(resolve(root, path)); if (target.status !== 'evaluated') await target.evaluate(); return target.namespace },
     async post(body) {
       const response = await module.namespace.POST(new Request('http://test.local/api/speaking', {
