@@ -491,7 +491,7 @@ export function SeoTab() {
               <input 
                 type="text"
                 autoFocus
-                placeholder="VD: /exams/de-thi-toan-10-ha-noi-2023"
+                placeholder="VD: /speaking"
                 value={modalPathInput}
                 onChange={(e) => setModalPathInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleConfirmCustomRoute()}
