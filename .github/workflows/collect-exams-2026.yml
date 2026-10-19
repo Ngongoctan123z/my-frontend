@@ -1,0 +1,50 @@
+name: Collect 2026 exam PDFs
+
+on:
+  push:
+    branches: [codex/exams-2026]
+    paths:
+      - resources/exams-2026/sources.json
+      - scripts/collect-exams-2026.py
+      - .github/workflows/collect-exams-2026.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect-exams-2026
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: codex/exams-2026
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install PDF packaging tools
+        run: pip install requests==2.32.5 beautifulsoup4==4.13.4 Pillow==11.3.0 pypdf==6.0.0
+      - name: Download original files and package published scans
+        run: python scripts/collect-exams-2026.py
+      - name: Save files and source report to this review branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f public/exam-papers/2026/*.pdf
+          git add src/data/exams2026.json resources/exams-2026/collection-report.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Archive downloaded 2026 exam PDFs with source and SEO metadata'
+          git push origin HEAD:codex/exams-2026
+      - name: Save downloadable archive
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: exams-2026-pdf-and-source-report
+          path: |
+            public/exam-papers/2026
+            src/data/exams2026.json
+            resources/exams-2026/collection-report.json
