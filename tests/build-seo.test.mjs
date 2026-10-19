@@ -207,3 +207,12 @@ test('English root never inherits Vietnamese global title or description',async(
  const {seo}=await loadSeo({rootMetadata:true,language:'en',rows:[{key:'SEO_TITLE',value:'Tiêu đề tiếng Việt'},{key:'SEO_DESCRIPTION',value:'Mô tả tiếng Việt'}]})
  const metadata=await seo.generateMetadata();assert.match(metadata.title,/AI Writing/);assert.equal(metadata.openGraph.locale,'en_US');assert.ok(!metadata.description.includes('tiếng Việt'))
 })
+
+test('known legacy production copy upgrades field by field without dropping admin edits',async()=>{
+ const {seo}=await loadSeo({rows:[{key:'SEO_ROUTE_/ai-grader/ielts',value:JSON.stringify({title:'Chấm IELTS Writing Online Miễn Phí Bằng AI | VNDocs',description:'Custom description',h1:'Custom heading',ogImage:'https://vndocs.net/custom.png'})}]})
+ const metadata=await seo.getCoreMetadata('/ai-grader/ielts')
+ assert.equal(metadata.title,'Chấm IELTS Writing Task 1, Task 2 với AI | VNDocs');assert.equal(metadata.description,'Custom description');assert.equal(metadata.openGraph.images[0].url,'https://vndocs.net/custom.png')
+ assert.equal((await seo.getCustomRouteSeo('/ai-grader/ielts')).h1,'Custom heading')
+ const {seo:custom}=await loadSeo({rows:[{key:'SEO_ROUTE_/ai-grader/ielts',value:JSON.stringify({title:'An intentional custom title',description:'Custom text'})}]})
+ assert.equal((await custom.getCoreMetadata('/ai-grader/ielts')).title,'An intentional custom title')
+})

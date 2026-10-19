@@ -14,3 +14,5 @@ Research references (19 October 2026):
 - https://developers.google.com/search/docs/specialty/international/localized-versions — self-inclusive reciprocal hreflang.
 
 Validation: middleware tests include foreign countries, Googlebot and a spoofed locale header; metadata tests preserve D1 overrides and favicon declarations. The live audit verifies every core page on both hostnames, including title, description, HTML language, Content-Language, canonical, Open Graph locale and alternate URLs. Search results update when Google recrawls; metadata cannot guarantee ranking or instant replacement of cached snippets.
+
+Live validation found three pre-existing D1 overrides (Vietnamese IELTS/TOEIC/TOPIK). Exact old title/description values are upgraded independently at read time and in the admin editor; unrelated custom fields remain intact. This does not write to D1 during public requests. Saving in admin persists the upgraded values.

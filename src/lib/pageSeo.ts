@@ -81,3 +81,29 @@ export function languageAlternates(path: string): Record<string, string> | undef
   if (PAGE_SEO[path]) return { [pageLanguage(path)]: pageUrl(path), 'x-default': pageUrl(path) }
   return undefined
 }
+
+// Exact legacy values observed in production D1. Upgrade those fields only;
+// preserve deliberate custom text, H1, images and all other configuration.
+const LEGACY_PAGE_SEO: Record<string, {title: string; description: string}> = {
+  "/ai-grader/ielts": {
+    "title": "Chấm IELTS Writing Online Miễn Phí Bằng AI | VNDocs",
+    "description": "Chấm bài IELTS Writing Task 1 & Task 2 bằng AI miễn phí: điểm Band theo 4 tiêu chí TR, CC, LR, GRA kèm gợi ý sửa lỗi từ vựng, ngữ pháp trong 15 giây."
+  },
+  "/ai-grader/toeic": {
+    "title": "Chấm TOEIC Writing Online Miễn Phí Bằng AI | VNDocs",
+    "description": "Chấm TOEIC Writing bằng AI miễn phí: luyện mô tả ảnh, viết email, viết bài luận theo format thi thật, nhận điểm ước lượng và gợi ý sửa lỗi ngữ pháp, từ vựng."
+  },
+  "/ai-grader/topik": {
+    "title": "Chấm TOPIK Writing Online Bằng AI Miễn Phí | VNDocs",
+    "description": "Chấm bài TOPIK Writing (쓰기) bằng AI miễn phí: đánh giá bài viết, sửa lỗi từ vựng, ngữ pháp tiếng Hàn và gợi ý cải thiện trong 15 giây."
+  }
+}
+export function upgradeSavedPageSeo(path: string, saved: Record<string, any>): Record<string, any> {
+  const legacy = LEGACY_PAGE_SEO[path], copy = PAGE_SEO[path]
+  if (!legacy || !copy || !saved) return saved
+  return {
+    ...saved,
+    title: saved.title === legacy.title ? copy.title : saved.title,
+    description: saved.description === legacy.description ? copy.description : saved.description,
+  }
+}

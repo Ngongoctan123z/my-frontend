@@ -1,4 +1,4 @@
-import {PAGE_SEO,pageLanguage,pageUrl,languageAlternates} from '../src/lib/pageSeo.ts'
+import {PAGE_SEO,upgradeSavedPageSeo,pageLanguage,pageUrl,languageAlternates} from '../src/lib/pageSeo.ts'
 import {mkdir,writeFile} from 'node:fs/promises'
 const retired=['/tai-lieu','/exams/vao-10/toan/ha-noi/2026/old','/tools','/en/tools','/en/tools/casio','/en/tools/convert','/en/tools/compress','/en/tools/lock','/en/tools/remove-pages','/en/tools/merge-files','/ai-grader/tai-lieu-tong-hop','/favorites','/documents','/de-thi','/vao-10','/thpt']
 retired.push('/api/og?slug=vao-10/toan/ha-noi/2026','/api/og?title='+encodeURIComponent('VNDocs - Trang đề thi vào lớp 10 và THPT'))
@@ -18,6 +18,11 @@ async function inspect(item){
   const html=(r.headers.get('content-type')||'').includes('text/html')?await r.text():''
   const row={...item,status:r.status,robots:r.headers.get('x-robots-tag'),location:r.headers.get('location'),title:html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||null,canonical:html.match(/<link[^>]*rel="canonical"[^>]*href="([^"]+)"/i)?.[1]||null,oldNavigation:/href="(?:https:\/\/(?:www\.)?vndocs.net)?\/(?:en\/)?(?:tools|tai-lieu|exams)(?:[\/?"])/i.test(html),cache:r.headers.get('cf-cache-status'),...(item.expected==='active'?bilingual(html,r,item.path):{})}
   row.title=decode(row.title)
+  if(item.expected==='active'){
+   row.usesDefaultCopy=row.title===PAGE_SEO[item.path].title&&row.description===PAGE_SEO[item.path].description
+   const upgraded=upgradeSavedPageSeo(item.path,row)
+   row.legacyCopy=upgraded.title!==row.title||upgraded.description!==row.description
+  }
   results.push(row);console.log(JSON.stringify(row))
  }catch(error){const row={...item,error:error.message};results.push(row);console.log(JSON.stringify(row))}
 }
@@ -29,7 +34,7 @@ if(process.argv.includes('--verify')){
  const failures=results.filter(row=>{
   if(row.expected==='gone')return row.status!==410||!row.robots?.includes('noindex')
   const lang=pageLanguage(row.path),alternates=languageAlternates(row.path)
-  return row.status!==200||row.oldNavigation||row.canonical!==pageUrl(row.path)||row.language!==lang||row.contentLanguage!==lang||row.ogLocale!==(lang==='en'?'en_US':'vi_VN')||row.title!==PAGE_SEO[row.path].title||row.description!==PAGE_SEO[row.path].description||Object.entries(alternates).some(([key,url])=>row.alternates?.[key]!==url)||(!alternates.en&&row.alternates?.en)
+  return row.status!==200||row.oldNavigation||row.canonical!==pageUrl(row.path)||row.language!==lang||row.contentLanguage!==lang||row.ogLocale!==(lang==='en'?'en_US':'vi_VN')||!row.title||!row.description||row.legacyCopy||(process.argv.includes('--expect-default-copy')&&!row.usesDefaultCopy)||Object.entries(alternates).some(([key,url])=>row.alternates?.[key]!==url)||(!alternates.en&&row.alternates?.en)
  })
  if(failures.length){console.error('SEO_AUDIT_FAILURE '+JSON.stringify(failures));process.exitCode=1}else console.log('PASS live bilingual SEO and removal audit on apex and www: '+results.length+' URLs')
 }

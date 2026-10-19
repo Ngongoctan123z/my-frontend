@@ -1,4 +1,4 @@
-import { PAGE_SEO, pageLanguage, pageUrl, languageAlternates } from '@/src/lib/pageSeo'
+import { PAGE_SEO, upgradeSavedPageSeo, pageLanguage, pageUrl, languageAlternates } from '@/src/lib/pageSeo'
 import { isRetiredPath, hasRetiredSeo } from '@/src/lib/siteSections'
 import type { Metadata } from 'next'
 import { getOptionalDb } from '@/src/db'
@@ -34,7 +34,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       // 2. Ghi đè bằng cấu hình riêng của từng trang (nếu có)
       if (configMap[routeKey]) {
         try {
-          const routeSeo = JSON.parse(configMap[routeKey])
+          const routeSeo = upgradeSavedPageSeo(path, JSON.parse(configMap[routeKey]))
           if (!hasRetiredSeo(routeSeo.title) && !hasRetiredSeo(routeSeo.description)) {
             if (routeSeo.title) title = routeSeo.title
             if (routeSeo.description) description = routeSeo.description
@@ -89,7 +89,7 @@ export async function getCustomRouteSeo(path: string) {
         .where(eq(systemConfigs.key, routeKey))
         .limit(1)
       if (rows[0]?.value) {
-        const saved = JSON.parse(rows[0].value)
+        const saved = upgradeSavedPageSeo(path, JSON.parse(rows[0].value))
         return hasRetiredSeo(saved.title) || hasRetiredSeo(saved.description) || hasRetiredSeo(saved.h1) ? null : saved
       }
     }

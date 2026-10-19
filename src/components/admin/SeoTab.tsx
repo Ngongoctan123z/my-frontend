@@ -1,4 +1,4 @@
-import { PAGE_SEO } from '@/src/lib/pageSeo'
+import { PAGE_SEO, upgradeSavedPageSeo } from '@/src/lib/pageSeo'
 import { isRetiredPath, hasRetiredSeo, SITE_TITLE, SITE_DESCRIPTION } from '@/src/lib/siteSections'
 import React, { useEffect, useState } from 'react'
 import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map, X } from 'lucide-react'
@@ -194,7 +194,7 @@ export function SeoTab() {
             const path = key.replace('SEO_ROUTE_', '')
             if (isRetiredPath(path)) return
             try {
-              let parsed = JSON.parse(data[key])
+              let parsed = upgradeSavedPageSeo(path, JSON.parse(data[key]))
               if (hasRetiredSeo(parsed.title) || hasRetiredSeo(parsed.description) || hasRetiredSeo(parsed.h1)) parsed = {}
               loadedConfigs[path] = {
                 SEO_TITLE: parsed.title || '',
