@@ -283,7 +283,6 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
               <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center backdrop-blur-sm">
                 <ShieldAlert size={18} className="text-blue-600" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full"></div>
             </div>
             <div>
               <h3 className="font-bold text-sm leading-tight">Hỗ trợ VNDocs</h3>

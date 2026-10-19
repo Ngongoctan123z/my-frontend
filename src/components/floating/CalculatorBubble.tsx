@@ -319,53 +319,10 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          {/* D-Pad & Control Row */}
-          <div className="flex items-center justify-between px-1">
-            <div className="flex gap-2">
-              <button 
-                type="button"
-                onClick={() => onBtnClick('SHIFT', '')}
-                className={`w-11 h-7 rounded-lg text-[10px] font-bold shadow-md transition-all active:scale-95 ${
-                  isShift ? 'bg-amber-400 text-slate-900' : 'bg-slate-100 text-amber-400 hover:bg-slate-200'
-                }`}
-              >
-                SHIFT
-              </button>
-              <button 
-                type="button"
-                onClick={() => onBtnClick('ALPHA', '')}
-                className={`w-11 h-7 rounded-lg text-[10px] font-bold shadow-md transition-all active:scale-95 ${
-                  isAlpha ? 'bg-rose-400 text-white' : 'bg-slate-100 text-rose-400 hover:bg-slate-200'
-                }`}
-              >
-                ALPHA
-              </button>
-            </div>
-
-            {/* D-pad Oval Control */}
-            <div className="w-18 h-8 rounded-full bg-slate-100 border border-slate-700 flex items-center justify-around shadow-inner px-2">
-              <span className="text-[10px] text-slate-400 font-bold">◀</span>
-              <span className="text-[10px] text-slate-400 font-bold">▲</span>
-              <span className="text-[10px] text-slate-400 font-bold">▼</span>
-              <span className="text-[10px] text-slate-400 font-bold">▶</span>
-            </div>
-
-            <div className="flex gap-2">
-              <button 
-                type="button"
-                onClick={() => onBtnClick('OPTN', '')}
-                className="w-11 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold shadow-md active:scale-95"
-              >
-                OPTN
-              </button>
-              <button 
-                type="button"
-                onClick={() => onBtnClick('AC', '')}
-                className="w-11 h-7 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black shadow-md active:scale-95"
-              >
-                ON
-              </button>
-            </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={()=>onBtnClick('SHIFT','')} aria-pressed={isShift} className={`rounded-lg border px-3 py-2 text-[10px] font-semibold ${isShift?'border-amber-200 bg-amber-50 text-amber-800':'border-slate-200 bg-white text-slate-600'}`}>SHIFT</button>
+            <button type="button" onClick={()=>onBtnClick('ALPHA','')} aria-pressed={isAlpha} className={`rounded-lg border px-3 py-2 text-[10px] font-semibold ${isAlpha?'border-rose-200 bg-rose-50 text-rose-700':'border-slate-200 bg-white text-slate-600'}`}>ALPHA</button>
+            <span className="ml-auto text-[10px] text-slate-400">Hàm &amp; biểu thức</span>
           </div>
 
           {/* Scientific Keys Row 1: Phân số, căn, x2, x^, log, ln */}

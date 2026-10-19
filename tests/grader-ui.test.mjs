@@ -22,6 +22,9 @@ import { HskGraderClient } from './app/ai-grader/hsk/HskGraderClient';
 import { SpeakingAdminTab } from './src/components/admin/SpeakingAdminTab';
 import { ChatWidget } from './src/components/chat/ChatWidget';
 import * as fixtures from './src/data/fallbackPrompts';
+import {fallbackToeicExamSets} from './src/lib/toeicExamSets';
+import {toeicPhotoPracticeSets} from './src/data/toeicPhotoBank';
+const linkedToeic=fallbackToeicExamSets().map((set,index)=>({...set,id:'linked-'+index,picturePromptId:'pictures-'+index,part1:{...set.part1,id:'email6-'+index},email7:{...set.email7,id:'email7-'+index},part2:{...set.part2,id:'essay-'+index}}));
 window.requests=[];
 window.toeicScenario=new URL(location.href).searchParams.get('scenario')==='toeic-full';
 window.hskScenario=new URL(location.href).searchParams.get('scenario')==='hsk-stability';
@@ -52,8 +55,8 @@ window.fetch=async (url,options={})=>{
   }
   if(window.toeicScenario&&body.action==='grade_essay'){if(window.failToeicType===body.type){window.failToeicType=null;return Response.json({error:'Temporary grading failure'},{status:503});}return Response.json(body.type==='TOEIC_PICTURE'?{overallBand:15,scoreScale:15,pictureTasks:JSON.parse(body.essay).map(row=>({...row,score:3})),detailedFeedback:'Pictures checked.'}:{overallBand:body.type==='TOEIC_ESSAY'?5:4,scoreScale:body.type==='TOEIC_ESSAY'?5:4,detailedFeedback:'Email or essay checked.'});}
   if(window.hskScenario&&body.action==='grade_essay')return new Promise(resolve=>window.gradeResolvers.push(resolve));
-  if(body.action==='get_paired_full_test') result={sets:fixtures[body.exam+'_PAIRED_SETS']};
-  if(body.action==='generate_prompt_batch') result={prompts:fixtures[body.type+'_FALLBACKS'] || []};
+  if(body.action==='get_paired_full_test') result={sets:body.exam==='TOEIC'?linkedToeic:fixtures[body.exam+'_PAIRED_SETS']};
+  if(body.action==='generate_prompt_batch') result={prompts:body.type==='TOEIC_PICTURE'?toeicPhotoPracticeSets().slice(0,3).map(set=>({content:JSON.stringify(set)})):fixtures[body.type+'_FALLBACKS'] || []};
   if(body.action==='grade') return new Promise(()=>{});
   return new Response(JSON.stringify(result),{headers:{'content-type':'application/json'}});
 };
@@ -182,6 +185,11 @@ try {
     const errors=[];page.on('pageerror',error=>errors.push(error.message))
     await page.goto(`http://127.0.0.1:${server.address().port}/?exam=toeic&scenario=toeic-full`)
     for(let q=1;q<=5;q++)await page.getByRole('textbox',{name:'TOEIC câu '+q,exact:true}).fill('Original sentence '+q)
+    await page.getByRole('button',{name:/^Theo ảnh/}).click()
+    await page.getByRole('textbox',{name:'TOEIC câu 1',exact:true}).fill('Single-part draft')
+    await page.waitForTimeout(100)
+    await page.getByRole('button',{name:/^Trọn bộ/}).click()
+    assert.equal(await page.getByRole('textbox',{name:'TOEIC câu 1',exact:true}).inputValue(),'Original sentence 1','Independent picture loading must not change the linked full test')
     await page.getByRole('button',{name:'Chuyển sang email (Câu 6–7) →',exact:true}).click()
     await page.getByRole('textbox',{name:'Bài làm của bạn',exact:true}).fill('Original first email')
     await page.getByRole('textbox',{name:'TOEIC câu 7',exact:true}).fill('Original second email')
@@ -199,6 +207,8 @@ try {
     assert.deepEqual(JSON.parse(state.calls[0].essay).map(row=>row.answer),[1,2,3,4,5].map(i=>'Original sentence '+i))
     assert.equal(state.calls[1].essay,'Original first email');assert.equal(state.calls[2].essay,'Original second email');assert.notEqual(state.calls[1].prompt,state.calls[2].prompt)
     assert.ok(state.calls.every(c=>c.feedbackLang==='English'));assert.equal(state.history.result.overallBand,28);assert.equal(state.history.result.scoreScale,28)
+    assert.equal(state.history.result.linkedSetId,'linked-0')
+    assert.deepEqual(state.history.result.sections.map(s=>s.promptId),['pictures-0','email6-0','email7-0','essay-0'])
     await page.getByRole('button',{name:'Đóng kết quả',exact:true}).click()
     await page.getByRole('button',{name:'Quay lại email',exact:true}).click()
     assert.equal(await page.getByRole('textbox',{name:'TOEIC câu 7',exact:true}).inputValue(),'Original second email')

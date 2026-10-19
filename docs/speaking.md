@@ -25,3 +25,9 @@ Actual-audio assessment is optional. Set `SPEAKING_AUDIO_API_KEY` (comma/newline
 ## Verification
 
 `npm run test:speaking` executes the actual route and D1 SQL against SQLite, with mocked external AI responses. `npm run test:speaking-ui` bundles the actual client with production CSS and runs Chromium MediaRecorder/IndexedDB tests at 320, 375 and 1280px. Browser tests mock remote assessments, use a synthetic microphone, and do not consume paid AI quota. Existing Writing and API rotation tests remain part of CI.
+
+## Live recognition and pause evidence
+
+On supported browsers, English SpeechRecognition shows provisional words while MediaRecorder saves the complete audio. The live transcript preserves received fillers, repeated words and self-corrections. A pause indicator starts with one dot after 1.5 seconds and adds one dot per second. Recognition is optional; unsupported/interrupted recognition never stops the recording. Browser echo cancellation/noise suppression and an adaptive energy/voice-band gate reduce background-noise timing errors. Raw audio is never cut by this gate; wind/fan rejection and filler recognition are estimates, not guarantees.
+
+Bounded timestamped text and pause events are saved in the D1 manifest, restored with reports and included in Groq grading evidence. The model is told these are browser estimates and must not mistake recognition errors/noise for pronunciation or a medical speech disorder. Groq transcription requests retain fillers and repetitions. Transcript-only assessment still cannot invent a pronunciation or full Speaking score. Browser checks cover interim/final text, pause boundaries, retained hesitations and microphone/recognition cleanup.

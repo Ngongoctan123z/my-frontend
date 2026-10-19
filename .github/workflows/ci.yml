@@ -64,6 +64,9 @@ jobs:
       - name: Test Speaking recording and mobile layouts
         run: npm run test:speaking-ui
 
+      - name: Test photo bank, exam links, live speech and floating tools
+        run: node tests/phase2-ui.test.mjs
+
       - name: Verify deployed D1 catalogs and private Speaking routes
         if: github.ref == 'refs/heads/main'
         run: node tests/deployed-speaking.mjs
@@ -76,6 +79,7 @@ jobs:
           path: |
             test-results/grader-ui
             test-results/speaking-ui
+            test-results/phase2-ui
           if-no-files-found: ignore
 
       # Cloudflare Workers Builds deploys main through the existing GitHub App

@@ -432,7 +432,8 @@ export async function POST(req: NextRequest) {
         }))
         return NextResponse.json({
           text: promptObjects[0]?.content || fallbacks[0]?.content || '',
-          prompts: promptObjects.length > 0 ? promptObjects : fallbacks
+          prompts: promptObjects.length > 0 ? promptObjects : fallbacks,
+          ...(type === 'TOEIC_PICTURE' ? {totalPrompts:allPrompts.length} : {})
         })
       } catch (e: any) {
         console.warn('[AI-Grader] generate_prompt_batch DB error, using fallbacks:', e.message)
