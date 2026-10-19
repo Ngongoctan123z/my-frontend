@@ -53,7 +53,7 @@ for (let attempt = 1; attempt <= 24; attempt++) {
     const speaking=await request('/api/speaking',{action:'catalog',examType:'TOEIC_SPEAKING'}),speakingBank=await speaking.json();assert.ok(speakingBank.catalog.Q11.some(q=>q.id==='ets-sample-vacation-opinion'))
     const privateBank=await request('/api/admin?type=writing_catalog&exam=TOPIK');assert.equal(privateBank.status,401)
     for(const type of ['writing_overview','ielts_preview_sets'])assert.equal((await request('/api/admin?type='+type)).status,401,'Writing administration must remain private')
-    for (const path of ['/tai-lieu?year=2026','/exams/vao-10/toan/ha-noi/2026/old-paper','/files/old.pdf','/backend-files/old.pdf','/exam-papers/2026/vao-10-toan-ca-mau-2026-chuyen.pdf','/ai-grader/tai-lieu-tong-hop','/en/tai-lieu']) {
+    for (const path of ['/tai-lieu?year=2026','/exams/vao-10/toan/ha-noi/2026/old-paper','/files/old.pdf','/backend-files/old.pdf','/exam-papers/2026/vao-10-toan-ca-mau-2026-chuyen.pdf','/ai-grader/tai-lieu-tong-hop','/en/tai-lieu','/tools','/en/tools/lock','/favorites','/documents','/de-thi','/vao-10','/thpt','/api/og?title='+encodeURIComponent('VNDocs - Trang đề thi vào 10 và THPT')]) {
       const gone=await request(path);assert.equal(gone.status,410,path+' must be gone');assert.match(gone.headers.get('x-robots-tag')||'',/noindex/)
     }
     const home=await request('/en'),homeHtml=await home.text();assert.equal(home.status,200);assert.ok(homeHtml.includes('Writing and Speaking'));assert.ok(!homeHtml.includes('/tai-lieu'))

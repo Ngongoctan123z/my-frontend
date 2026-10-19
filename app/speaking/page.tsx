@@ -6,6 +6,7 @@ import { SpeakingClient } from './SpeakingClient'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
+    alternates: { canonical: `${FRONTEND_URL}/speaking` },
     title: 'Luyện IELTS & TOEIC Speaking Online | VNDocs',
     description: 'Luyện Speaking IELTS và TOEIC: chọn đề, thu âm, nghe lại và nhận góp ý từ AI. Luyện từng phần hoặc thi thử trọn bộ.',
     openGraph: {

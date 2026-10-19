@@ -89,6 +89,10 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: node tests/deployed-speaking.mjs
 
+      - name: Verify indexed legacy URLs and active canonicals on both hostnames
+        if: github.ref == 'refs/heads/main'
+        run: node scripts/audit-indexed-urls.mjs --verify
+
       - name: Save grader screenshots
         if: always()
         uses: actions/upload-artifact@v7.0.2
@@ -100,6 +104,7 @@ jobs:
             test-results/phase2-ui
             test-results/admin-writing-ui
             test-results/site-retirement-ui
+            test-results/seo-index-audit.json
           if-no-files-found: ignore
 
       # Cloudflare Workers Builds deploys main through the existing GitHub App

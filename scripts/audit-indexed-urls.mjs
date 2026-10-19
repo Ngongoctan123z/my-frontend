@@ -1,5 +1,6 @@
 import {mkdir,writeFile} from 'node:fs/promises'
 const retired=['/tai-lieu','/exams/vao-10/toan/ha-noi/2026/old','/tools','/en/tools','/en/tools/casio','/en/tools/convert','/en/tools/compress','/en/tools/lock','/en/tools/remove-pages','/en/tools/merge-files','/ai-grader/tai-lieu-tong-hop','/favorites','/documents','/de-thi','/vao-10','/thpt']
+retired.push('/api/og?slug=vao-10/toan/ha-noi/2026','/api/og?title='+encodeURIComponent('VNDocs - Trang đề thi vào lớp 10 và THPT'))
 const active=['/en','/en/ai-grader','/en/ai-grader/ielts','/en/ai-grader/hsk','/speaking']
 const tasks=['https://vndocs.net','https://www.vndocs.net'].flatMap(origin=>[...retired.map(path=>({url:origin+path,expected:'gone'})),...active.map(path=>({url:origin+path,expected:'active'}))])
 const results=[]
@@ -15,3 +16,8 @@ async function inspect(item){
 await Promise.all(Array.from({length:4},async()=>{while(next<tasks.length){const item=tasks[next++];await inspect(item)}}))
 await mkdir('test-results',{recursive:true});await writeFile('test-results/seo-index-audit.json',JSON.stringify({checkedAt:new Date().toISOString(),results},null,2))
 console.log('AUDIT_SUMMARY '+JSON.stringify({total:results.length,gone410:results.filter(r=>r.status===410).length,active200:results.filter(r=>r.expected==='active'&&r.status===200).length,other:results.filter(r=>r.status!==410&&r.expected==='gone')}))
+
+if(process.argv.includes('--verify')){
+ const failures=results.filter(row=>row.expected==='gone'?(row.status!==410||!row.robots?.includes('noindex')):(row.status!==200||row.oldNavigation||!row.canonical?.startsWith('https://vndocs.net/')||!/Writing|Speaking/i.test(row.title||'')))
+ if(failures.length){console.error('SEO_AUDIT_FAILURE '+JSON.stringify(failures));process.exitCode=1}else console.log('PASS live SEO removal audit on apex and www: '+results.length+' URLs')
+}

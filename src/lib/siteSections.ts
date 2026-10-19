@@ -1,5 +1,5 @@
 // Closed public sections stay explicitly retired, including localized aliases.
-export const RETIRED_SECTION_PREFIXES = ['/tai-lieu', '/exams', '/files', '/backend-files', '/exam-papers', '/ai-grader/tai-lieu-tong-hop', '/tools', '/quan-tri-he-thong-123'] as const
+export const RETIRED_SECTION_PREFIXES = ['/tai-lieu', '/exams', '/files', '/backend-files', '/exam-papers', '/ai-grader/tai-lieu-tong-hop', '/tools', '/quan-tri-he-thong-123', '/favorites', '/documents', '/de-thi', '/vao-10', '/thpt'] as const
 export const SITE_TITLE = 'VNDocs — Luyện Writing và Speaking Online'
 export const SITE_DESCRIPTION = 'Luyện Writing IELTS, TOEIC, TOPIK, HSK và Speaking IELTS, TOEIC. Nhận điểm luyện tập, sửa lỗi chi tiết và theo dõi tiến bộ qua từng bài làm.'
 export const SITE_TITLE_EN = 'VNDocs — Writing and Speaking Practice'

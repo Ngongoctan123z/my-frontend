@@ -9,7 +9,7 @@ const entry=`export * from './middleware';export * from './src/lib/siteSections'
 const bundle=await build({stdin:{contents:entry,loader:'ts',resolveDir:process.cwd()},bundle:true,write:false,platform:'node',format:'cjs',packages:'external',define:{'process.env.NEXT_PUBLIC_API_URL':'"https://fixture.invalid"'},plugins:[{name:'aliases',setup(b){b.onResolve({filter:/^@\//},a=>({path:process.cwd()+'/'+a.path.slice(2)+'.ts'}))}}]})
 const module={exports:{}};new Function('require','module','exports',bundle.outputFiles[0].text)(require,module,module.exports)
 const policy=module.exports
-const retired=['/tai-lieu','/tai-lieu?year=2026','/exams/vao-10/toan/ha-noi/2026/paper','/exams/thpt/toan/2026','/files/old.pdf','/backend-files/old.pdf','/exam-papers/2026/vao-10-toan-ca-mau-2026-chuyen.pdf','/ai-grader/tai-lieu-tong-hop','/quan-tri-he-thong-123','/tools/casio']
+const retired=['/tai-lieu','/tai-lieu?year=2026','/exams/vao-10/toan/ha-noi/2026/paper','/exams/thpt/toan/2026','/files/old.pdf','/backend-files/old.pdf','/exam-papers/2026/vao-10-toan-ca-mau-2026-chuyen.pdf','/ai-grader/tai-lieu-tong-hop','/quan-tri-he-thong-123','/tools/casio','/favorites','/documents','/de-thi','/vao-10','/thpt']
 
 test('retired public pages and files return 410/noindex before static or country redirects',async()=>{
  for(const path of retired)for(const prefix of ['', '/en']){
@@ -38,4 +38,10 @@ test('archive metadata and generated PDF files are absent from the active releas
 })
 test('old exam Open Graph URLs are gone without contacting the old exam backend',async()=>{
  const response=await policy.oldOg(new NextRequest('https://vndocs.net/api/og?slug=vao-10/toan/ha-noi/2026'));assert.equal(response.status,410);assert.match(response.headers.get('x-robots-tag'),/noindex/)
+})
+
+test('cached Open Graph titles and descriptions from retired sections are gone',async()=>{
+ for(const query of ['title='+encodeURIComponent('VNDocs - Trang đề thi vào lớp 10 và THPT'),'description='+encodeURIComponent('Kho tài liệu THPT miễn phí')]){
+  const response=await policy.oldOg(new NextRequest('https://vndocs.net/api/og?'+query));assert.equal(response.status,410);assert.match(response.headers.get('x-robots-tag'),/noindex/)
+ }
 })
