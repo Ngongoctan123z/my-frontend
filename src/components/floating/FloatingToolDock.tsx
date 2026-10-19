@@ -47,9 +47,34 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
   const [positions, setPositions] = useState<Partial<Record<FloatingToolId, Point>>>({})
   const [hidden, setHidden] = useState<FloatingToolId[]>([])
   const [interaction, setInteraction] = useState<{ id: FloatingToolId; point: Point; over: boolean } | null>(null)
+  const [showHint, setShowHint] = useState(false)
   const gesture = useRef<Gesture | null>(null)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const animationFrame = useRef<number | null>(null)
+
+  useEffect(() => {
+    const key = 'vndocs-floating-hint-next-at'
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let fallbackNextAt = 0
+    const schedule = () => {
+      if (timer) clearTimeout(timer)
+      const now = Date.now()
+      let nextAt = fallbackNextAt
+      try { nextAt = Math.max(nextAt, Number(localStorage.getItem(key)) || 0) } catch {}
+      if (document.visibilityState === 'visible' && now >= nextAt) {
+        setShowHint(true); fallbackNextAt = now + 302_000
+        try { localStorage.setItem(key, String(now + 302_000)) } catch {}
+        timer = setTimeout(() => { setShowHint(false); timer = setTimeout(schedule, 300_000) }, 2000)
+      } else {
+        setShowHint(false)
+        if (document.visibilityState === 'visible') timer = setTimeout(schedule, Math.max(1000, nextAt - now))
+      }
+    }
+    const synchronize = () => { setShowHint(false); schedule() }
+    schedule()
+    window.addEventListener('storage', synchronize); document.addEventListener('visibilitychange', synchronize)
+    return () => { if (timer) clearTimeout(timer); window.removeEventListener('storage', synchronize); document.removeEventListener('visibilitychange', synchronize) }
+  }, [])
 
   const clearScheduled = () => {
     if (holdTimer.current !== null) clearTimeout(holdTimer.current)
@@ -164,7 +189,7 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
           <div key={tool.id} data-floating-tool={tool.id}
             className={`group pointer-events-auto fixed h-11 w-11 sm:h-12 sm:w-12 ${dragging ? 'z-[110]' : ''}`}
             style={point ? { left: point.x, top: point.y } : { right: 'calc(var(--dock-right) + var(--dock-padding))', bottom: `calc(var(--dock-bottom) + var(--dock-padding) + ${docked.length - 1 - index} * (var(--bubble-size) + 0.625rem))` }}>
-            {(point || index === 0) && <span className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200/70 bg-white/95 px-1.5 py-0.5 text-[8px] leading-[10px] text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">giữ để xoá</span>}
+            {showHint && (point || index === 0) && <span className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200/70 bg-white/95 px-1.5 py-0.5 text-[8px] leading-[10px] text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">giữ để xoá</span>}
             <button type="button" aria-label={tool.label} aria-pressed={activeTool === tool.id}
               title={`${tool.label} · Kéo để di chuyển, giữ để xoá`}
               className={`relative flex h-full w-full touch-none select-none [-webkit-touch-callout:none] items-center justify-center rounded-full border outline-none shadow-[0_2px_6px_rgba(15,23,42,0.05)] transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-2 focus-visible:ring-blue-300 motion-reduce:transition-none ${dragging ? 'cursor-grabbing shadow-lg' : 'cursor-grab active:scale-95'} ${activeTool === tool.id ? tool.selected : tool.normal}`}
@@ -194,3 +219,4 @@ export function FloatingToolDock({ activeTool, onToggle, onDismiss }: {
     </aside>
   )
 }
+

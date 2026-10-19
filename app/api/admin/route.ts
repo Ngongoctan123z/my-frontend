@@ -1,3 +1,6 @@
+import { checkAdmin } from '@/src/lib/adminAccess'
+import { ensureToeicPhotoBank } from '../ai-grader/toeic-photo-bank'
+import { listToeicExamSets, mutateToeicExamSet } from '../ai-grader/toeic-sets'
 import { parseToeicPictures } from '@/src/data/toeicWriting'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
@@ -7,31 +10,6 @@ import { desc, eq } from 'drizzle-orm'
 import { ensureQuestionBank, mutateQuestionBank } from '../speaking/question-bank'
 import { SpeakingRequestError } from '../speaking/validation'
 import type { SpeakingD1 } from '../speaking/store'
-
-async function checkAdmin() {
-  const session = await auth()
-  if (!session?.user?.email) {
-    throw new Error('Unauthorized')
-  }
-  
-  const rootAdmins = [
-    'ngongoctan282005@gmail.com',
-    'ngotan1911@gmail.com',
-    'ngongoctan432005@gmail.com',
-    'admin@vndocs.net'
-  ]
-  if (rootAdmins.includes(session.user.email)) {
-    return true
-  }
-
-  const db = await getDb()
-  const userList = await db.select().from(users).where(eq(users.email, session.user.email))
-  if (userList.length > 0 && userList[0].role === 'admin') {
-    return true
-  }
-
-  throw new Error('Forbidden')
-}
 
 async function sha256Hex(text: string) {
   const msgBuffer = new TextEncoder().encode(text)
@@ -52,9 +30,12 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'prompts') {
+      await ensureToeicPhotoBank(db.$client as SpeakingD1)
       const allPrompts = await db.select().from(prompts).orderBy(desc(prompts.createdAt))
       return NextResponse.json(allPrompts)
     }
+
+    if (type === 'toeic_exam_sets') return NextResponse.json(await listToeicExamSets(db.$client as SpeakingD1))
 
     if (type === 'speaking_prompts') {
       await ensureQuestionBank(db.$client as SpeakingD1)
@@ -111,6 +92,10 @@ export async function POST(req: NextRequest) {
     const db = await getDb()
     const body = await req.json()
     const { action, payload } = body
+
+    if (['add_toeic_exam_set','update_toeic_exam_set','delete_toeic_exam_set'].includes(action)) {
+      return NextResponse.json(await mutateToeicExamSet(db.$client as SpeakingD1,action,payload))
+    }
 
     if (action === 'save_configs') {
       for (const [k, v] of Object.entries(payload)) {

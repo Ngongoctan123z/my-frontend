@@ -1,5 +1,6 @@
 'use client'
 
+import { FloatingToolPanel } from './FloatingToolPanel'
 import React, { useState, useEffect } from 'react'
 import { Languages, X, ArrowLeftRight, Copy, Check, Volume2, History, Trash2, RotateCcw, Loader2 } from 'lucide-react'
 
@@ -201,22 +202,22 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="w-[370px] max-w-[calc(100vw-32px)] h-[530px] max-h-[calc(100vh-80px)] bg-white border border-slate-300 shadow-2xl flex flex-col rounded-none overflow-hidden animate-in zoom-in-95 duration-150">
+    <FloatingToolPanel title="Dịch thuật nhanh" onClose={onClose}>
       
       {/* Header */}
-      <div className="px-3.5 py-2.5 bg-white border-b border-slate-200 flex justify-between items-center">
+      <div className="px-4 py-3.5 bg-white border-b border-slate-100 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Languages size={15} className="text-slate-800" />
-          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900">Dịch Thuật Song Ngữ</h3>
+          <h3 className="font-semibold text-sm text-slate-800">Dịch thuật nhanh</h3>
         </div>
 
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setShowHistory(!showHistory)}
-            className={`px-2 py-1 text-[11px] font-medium border transition-colors flex items-center gap-1 rounded-none ${
+            className={`px-2 py-1 text-[11px] font-medium border transition-colors flex items-center gap-1 rounded-lg ${
               showHistory 
-                ? 'bg-slate-900 text-white border-slate-900' 
+                ? 'bg-blue-50 text-blue-600 border-blue-100' 
                 : 'text-slate-600 border-slate-200 hover:border-slate-400 hover:text-slate-900'
             }`}
             title="Lịch sử dịch"
@@ -227,7 +228,7 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
           </button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={onClose} aria-label="Đóng dịch thuật nhanh"
             className="p-1 text-slate-400 hover:text-slate-800 transition-colors"
             title="Đóng"
           >
@@ -265,7 +266,7 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
               history.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white p-3 border border-slate-200 hover:border-slate-400 transition-colors space-y-1 rounded-none"
+                  className="bg-white p-3 border border-slate-200 hover:border-slate-400 transition-colors space-y-1 rounded-lg"
                 >
                   <div className="flex justify-between items-center text-[10px] text-slate-400 pb-1 border-b border-slate-100">
                     <span className="font-semibold text-slate-700 uppercase">
@@ -302,11 +303,11 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
           
           {/* Language Selector Bar */}
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-3 py-1.5 text-xs">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-xs">
             <select
               value={fromLang}
               onChange={(e) => setFromLang(e.target.value)}
-              className="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer py-1 truncate max-w-[140px] rounded-none"
+              className="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer py-1 truncate max-w-[130px] rounded-lg"
             >
               {LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>{l.name}</option>
@@ -325,7 +326,7 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
             <select
               value={toLang}
               onChange={(e) => setToLang(e.target.value)}
-              className="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer py-1 truncate max-w-[140px] text-right rounded-none"
+              className="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer py-1 truncate max-w-[130px] text-right rounded-lg"
             >
               {LANGUAGES.filter(l => l.code !== 'auto').map((l) => (
                 <option key={l.code} value={l.code}>{l.name}</option>
@@ -359,7 +360,7 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
                 }
               }}
               placeholder="Nhập hoặc dán văn bản cần dịch... (Ctrl + Enter)"
-              className="flex-1 w-full text-xs text-slate-900 placeholder:text-slate-400 resize-none outline-none leading-relaxed bg-transparent"
+              aria-label="Văn bản cần dịch" className="flex-1 w-full text-sm text-slate-900 placeholder:text-slate-400 resize-none outline-none leading-relaxed bg-transparent"
             />
 
             <div className="flex justify-between items-center pt-2 text-[10px] text-slate-400 border-t border-slate-100">
@@ -368,7 +369,7 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={handleTranslate}
                 disabled={!sourceText.trim() || loading}
-                className="px-3.5 py-1.5 bg-slate-900 hover:bg-black text-white font-medium text-xs tracking-wide transition-colors disabled:opacity-40 flex items-center gap-1.5 rounded-none cursor-pointer"
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs tracking-wide transition-colors disabled:opacity-40 flex items-center gap-1.5 rounded-lg cursor-pointer"
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : null}
                 <span>Dịch ngay</span>
@@ -404,7 +405,7 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto text-xs text-slate-900 leading-relaxed custom-scrollbar">
+            <div className="flex-1 overflow-y-auto text-sm text-slate-900 leading-relaxed custom-scrollbar">
               {loading ? (
                 <div className="h-full flex items-center justify-center text-slate-400 gap-2 py-6">
                   <Loader2 size={14} className="animate-spin text-slate-600" />
@@ -429,6 +430,7 @@ export function TranslateBubble({ onClose }: { onClose: () => void }) {
         <span>Phím tắt: Ctrl + Enter</span>
       </div>
 
-    </div>
+    </FloatingToolPanel>
   )
 }
+

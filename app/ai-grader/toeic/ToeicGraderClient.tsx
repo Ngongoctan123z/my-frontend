@@ -9,6 +9,7 @@ import {
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
 import dynamic from 'next/dynamic'
+import { fallbackToeicExamSets } from '@/src/lib/toeicExamSets'
 import { toeicWritingRawScore } from '@/src/lib/examScores'
 import { TOEIC_PICTURE_SETS, parseToeicPictures, type ToeicPictureSet } from '@/src/data/toeicWriting'
 import { ToeicPictureQuestions } from '@/src/components/common/ToeicPictureQuestions'
@@ -23,11 +24,14 @@ const ShareExamModal = dynamic(() => import('@/src/components/common/ShareExamMo
 const StudentManagementModal = dynamic(() => import('@/src/components/common/StudentManagementModal').then(module => module.StudentManagementModal))
 
 type ToeicMode = 'TOEIC_PICTURE' | 'TOEIC_FULL' | 'TOEIC_RESPOND' | 'TOEIC_ESSAY'
-type PromptObject = { content: string, imageUrl?: string | null }
+type PromptObject = { id?: string; content: string, imageUrl?: string | null }
 
 interface PairedToeicSet {
-  id: number
+  id: string | number
   title: string
+  pictures?: ToeicPictureSet
+  picturePromptId?: string
+  email7?: PromptObject
   part1: PromptObject
   part2: PromptObject
 }
@@ -54,15 +58,17 @@ export function ToeicGraderClient() {
   const [essayPart1, setEssayPart1] = useState('')
   const [essayPart2, setEssayPart2] = useState('')
   const [essayEmail7, setEssayEmail7] = useState('')
-  const [pictureSet, setPictureSet] = useState<ToeicPictureSet>(TOEIC_PICTURE_SETS[0])
-  const [pictureAnswers, setPictureAnswers] = useState<string[]>(Array(5).fill(''))
+  const [fullPictureSet, setFullPictureSet] = useState<ToeicPictureSet>(TOEIC_PICTURE_SETS[0])
+  const [fullPictureAnswers, setFullPictureAnswers] = useState<string[]>(Array(5).fill(''))
+  const [singlePictureSet, setSinglePictureSet] = useState<ToeicPictureSet>(TOEIC_PICTURE_SETS[0])
+  const [singlePictureAnswers, setSinglePictureAnswers] = useState<string[]>(Array(5).fill(''))
+  const pictureSet = activeTab === 'TOEIC_PICTURE' ? singlePictureSet : fullPictureSet
+  const pictureAnswers = activeTab === 'TOEIC_PICTURE' ? singlePictureAnswers : fullPictureAnswers
+  const setPictureAnswers = activeTab === 'TOEIC_PICTURE' ? setSinglePictureAnswers : setFullPictureAnswers
   const pictureTouched = useRef(false), gradingLock = useRef(false)
   const gradedCache = useRef(new Map<string, any>())
   const owner = session?.user?.email || 'anonymous', ownerRef = useRef(owner); ownerRef.current = owner
-  const promptEmail7 = useMemo(() => {
-    const next = pairedSets[(currentSetIdx + 1) % pairedSets.length]?.part1
-    return next && next.content !== promptPart1?.content ? next : TOEIC_RESPOND_FALLBACKS.find(p => p.content !== promptPart1?.content) || TOEIC_RESPOND_FALLBACKS[0]
-  }, [pairedSets, currentSetIdx, promptPart1])
+  const [promptEmail7,setPromptEmail7] = useState<PromptObject>(TOEIC_RESPOND_FALLBACKS[1] || TOEIC_RESPOND_FALLBACKS[0])
   const pictureView = activeTab === 'TOEIC_PICTURE' || (activeTab === 'TOEIC_FULL' && fullTestStep === 0)
 
 
@@ -138,7 +144,7 @@ export function ToeicGraderClient() {
     }).catch(() => {})
   }, [session?.user?.email])
 
-  const isSetAlreadyDone = (set: { title?: string; id?: number; part1?: any; part2?: any }, historyList = history) => {
+  const isSetAlreadyDone = (set: { title?: string; id?: string | number; part1?: any; part2?: any }, historyList = history) => {
     return historyList.some(h => {
       const p = (h.prompt || '').toLowerCase()
       if (set.title && p.includes(set.title.toLowerCase())) return true
@@ -178,13 +184,20 @@ export function ToeicGraderClient() {
       const data = await callApi({ action: 'generate_prompt_batch', type: 'TOEIC_PICTURE' })
       const sets = (data.prompts || []).flatMap((p: any) => { try { return [parseToeicPictures(p.content)] } catch { return [] } }) as ToeicPictureSet[]
       if (!manual && pictureTouched.current) return
-      const selected = sets.find(set => JSON.stringify(set) !== JSON.stringify(pictureSet)) || sets[0] || TOEIC_PICTURE_SETS[0]
-      setPictureSet(selected); setPictureAnswers(Array(5).fill('')); pictureTouched.current = false
+      const selected = sets.find(set => JSON.stringify(set) !== JSON.stringify(singlePictureSet)) || sets[0] || TOEIC_PICTURE_SETS[0]
+      setSinglePictureSet(selected); setSinglePictureAnswers(Array(5).fill('')); pictureTouched.current = false
     } catch (failure: any) { if (manual) setError(failure.message) }
     finally { setIsGenerating(false) }
   }
-  useEffect(() => { void loadPictures() }, [])
+  const loadedSinglePictures = useRef(false)
+  useEffect(() => { if (activeTab === 'TOEIC_PICTURE' && !loadedSinglePictures.current) {loadedSinglePictures.current=true;void loadPictures()} }, [activeTab])
 
+
+  const applyPairedSet = (set: PairedToeicSet) => {
+    setPromptPart1(set.part1);setPromptPart2(set.part2)
+    setPromptEmail7(set.email7 || TOEIC_RESPOND_FALLBACKS.find(p=>p.content!==set.part1.content) || TOEIC_RESPOND_FALLBACKS[0])
+    setFullPictureSet(set.pictures || TOEIC_PICTURE_SETS[0]);setFullPictureAnswers(Array(5).fill(''))
+  }
 
   // Fetch Paired Sets for Full Test (Links Part 1 and Part 2 together)
   const fetchPairedSets = async (customHistory?: GradedEssayHistory[]) => {
@@ -199,18 +212,16 @@ export function ToeicGraderClient() {
         const uncompletedIdx = data.sets.findIndex((s: any) => !isSetAlreadyDone(s, hList))
         const chosenIdx = uncompletedIdx >= 0 ? uncompletedIdx : 0
         setCurrentSetIdx(chosenIdx)
-        setPromptPart1(data.sets[chosenIdx].part1)
-        setPromptPart2(data.sets[chosenIdx].part2)
+        applyPairedSet(data.sets[chosenIdx])
         setFullTestStep(0)
       } else {
-        await Promise.all([drawSinglePrompt('TOEIC_RESPOND', hList), drawSinglePrompt('TOEIC_ESSAY', hList)])
+        setPairedSets([]);setPromptPart1(null);setPromptPart2(null)
+        setError(isEn?'No complete published TOEIC exam set. Select single-part practice or link a set in administration.':'Chưa có bộ TOEIC đã xuất bản đủ ba nhóm câu. Hãy chọn luyện lẻ hoặc ghép bộ đề trong quản trị.')
       }
     } catch (err: any) {
       console.warn('Could not load paired sets from API, fallback to local official sets:', err)
-      setPairedSets(TOEIC_PAIRED_SETS)
-      setCurrentSetIdx(0)
-      setPromptPart1(TOEIC_PAIRED_SETS[0].part1)
-      setPromptPart2(TOEIC_PAIRED_SETS[0].part2)
+      const defaults=fallbackToeicExamSets()
+      setPairedSets(defaults);setCurrentSetIdx(0);applyPairedSet(defaults[0])
       setFullTestStep(0)
     } finally {
       setIsLoadingSets(false)
@@ -232,8 +243,7 @@ export function ToeicGraderClient() {
     }
     const nextIdx = typeof idx === 'number' ? idx : (currentSetIdx + 1) % pairedSets.length
     setCurrentSetIdx(nextIdx)
-    setPromptPart1(pairedSets[nextIdx].part1)
-    setPromptPart2(pairedSets[nextIdx].part2)
+    applyPairedSet(pairedSets[nextIdx])
   }
 
   // Draw single prompt for single mode
@@ -429,10 +439,10 @@ export function ToeicGraderClient() {
     if(!promptPart1?.content || !promptPart2?.content){setError('Chưa tải đủ đề bài.');return}
     const email=owner, lang=feedbackLang
     const sections=[
-      {key:'pictures',type:'TOEIC_PICTURE',prompt:JSON.stringify(pictureSet),essay:JSON.stringify(pictureAnswers.map((answer,i)=>({id:i+1,answer:answer.trim()})))},
-      {key:'email6',type:'TOEIC_RESPOND',prompt:promptPart1.content,essay:essayPart1.trim()},
-      {key:'email7',type:'TOEIC_RESPOND',prompt:promptEmail7.content,essay:essayEmail7.trim()},
-      {key:'part2',type:'TOEIC_ESSAY',prompt:promptPart2.content,essay:essayPart2.trim()},
+      {key:'pictures',type:'TOEIC_PICTURE',promptId:pairedSets[currentSetIdx]?.picturePromptId,prompt:JSON.stringify(pictureSet),essay:JSON.stringify(pictureAnswers.map((answer,i)=>({id:i+1,answer:answer.trim()})))},
+      {key:'email6',type:'TOEIC_RESPOND',promptId:promptPart1.id,prompt:promptPart1.content,essay:essayPart1.trim()},
+      {key:'email7',type:'TOEIC_RESPOND',promptId:promptEmail7.id,prompt:promptEmail7.content,essay:essayEmail7.trim()},
+      {key:'part2',type:'TOEIC_ESSAY',promptId:promptPart2.id,prompt:promptPart2.content,essay:essayPart2.trim()},
     ]
     gradingLock.current=true;setIsGrading(true);setError(null);setResult(null)
     try {
@@ -441,7 +451,7 @@ export function ToeicGraderClient() {
       // exact prompt/answer/language, so a partial retry does not grade them again.
       for(const section of sections){results[section.key]={...await gradeSection(section.type,section.prompt,section.essay,lang,email),examType:section.type};if(ownerRef.current!==email)return}
       const score=toeicWritingRawScore(Object.values(results))
-      const fullResult={...results,isFullTest:true,fullTestType:'TOEIC',...score,
+      const fullResult={...results,isFullTest:true,fullTestType:'TOEIC',linkedSetId:pairedSets[currentSetIdx]?.id,...score,
         formula:isEn?'Raw task marks: pictures /15 + two emails /8 + essay /5 = total /28. ETS converts ratings to 0–200; no fixed section shares of 200 are published.':'Điểm thô: theo ảnh /15 + hai email /8 + luận /5 = tổng /28. ETS quy đổi tổng sang 0–200, không có mức điểm cố định từng phần trên thang 200.',
         detailedFeedback:isEn?'Review feedback for all eight questions below.':'Xem nhận xét của đủ 8 câu ở từng phần bên dưới.',sections}
       setResult(fullResult);setResultExamType('TOEIC_FULL')
@@ -571,7 +581,7 @@ export function ToeicGraderClient() {
 
       <details className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">{isEn?'How are scores calculated?':'Cách tính điểm TOEIC Writing'}</summary><p className="mt-2 leading-relaxed">{isEn?'Pictures: 5 × 3 = 15 raw marks. Emails: 2 × 4 = 8. Opinion essay: 5. Total: 28 raw marks. ETS converts the ratings to a 0–200 scaled score; there is no published fixed share of 200 for each section.':'Theo ảnh: 5 × 3 = 15 điểm thô. Hai email: 2 × 4 = 8. Bài luận: 5. Tổng: 28 điểm thô. ETS quy đổi tổng sang thang 0–200; không có mức điểm cố định từng phần trên thang 200.'}</p></details>
       {pictureView ? <div className="rounded-none border-y border-slate-200 bg-white p-4 shadow-xs sm:rounded-xl sm:border sm:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="text-sm font-bold text-blue-700">{isEn?'Picture sentences · Q1–5':'Viết câu theo ảnh · Câu 1–5'}</h3><button type="button" disabled={isGenerating || isGrading} onClick={()=>{if(pictureAnswers.some(Boolean)&&!confirm(isEn?'Discard the five answers and change pictures?':'Đổi bộ ảnh và xoá 5 câu đang viết?'))return;void loadPictures(true)}} className="shrink-0 rounded border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-600 disabled:opacity-50">{isGenerating?(isEn?'Loading…':'Đang tải…'):(isEn?'New pictures':'Đổi bộ ảnh')}</button></div>
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="text-sm font-bold text-blue-700">{isEn?'Picture sentences · Q1–5':'Viết câu theo ảnh · Câu 1–5'}</h3><button type="button" disabled={isGenerating || isGrading} onClick={()=>{if(activeTab==='TOEIC_FULL'){if((essayPart1||essayPart2||essayEmail7||pictureAnswers.some(Boolean))&&!confirm(isEn?'Change the complete exam and clear all answers?':'Đổi cả bộ đề và xoá bài đang viết?'))return;void switchPairedSet();return}if(pictureAnswers.some(Boolean)&&!confirm(isEn?'Discard the five answers and change pictures?':'Đổi bộ ảnh và xoá 5 câu đang viết?'))return;void loadPictures(true)}} className="shrink-0 rounded border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-600 disabled:opacity-50">{isGenerating?(isEn?'Loading…':'Đang tải…'):(activeTab==='TOEIC_FULL'?(isEn?'Change exam':'Đổi bộ đề'):(isEn?'New pictures':'Đổi bộ ảnh'))}</button></div>
         <ToeicPictureQuestions set={pictureSet} answers={pictureAnswers} onAnswer={(index,value)=>{pictureTouched.current=true;setPictureAnswers(previous=>previous.map((answer,i)=>i===index?value:answer))}} disabled={!session || isGrading} isEn={isEn}/>
         {error&&<p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
         <div className="mt-5 border-t border-slate-100 pt-4"><GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt','English']}><button type="button" disabled={isGrading} onClick={()=>{if(!session)return signIn('google');if(activeTab==='TOEIC_FULL')setFullTestStep(1);else void gradePictures()}} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{isGrading?<Loader2 className="h-4 w-4 animate-spin"/>:null}{!session?(isEn?'Sign in to continue':'Đăng nhập để tiếp tục'):activeTab==='TOEIC_FULL'?(isEn?'Continue to emails (Q6–7) →':'Chuyển sang email (Câu 6–7) →'):(isEn?'Submit questions 1–5':'Nộp bài câu 1–5')}</button></GraderActions><p className="mt-2 text-center text-[11px] text-slate-400">{isEn?'Daily quota:':'Lượt chấm hôm nay:'} {usageCount}/{usageLimit}</p></div>

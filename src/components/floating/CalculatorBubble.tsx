@@ -1,5 +1,6 @@
 'use client'
 
+import { FloatingToolPanel } from './FloatingToolPanel'
 import React, { useState, useEffect } from 'react'
 import { X, History, Trash2, RotateCcw, Copy, Check } from 'lucide-react'
 import * as math from 'mathjs'
@@ -185,24 +186,18 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="w-[370px] max-w-[calc(100vw-32px)] h-[570px] max-h-[calc(100vh-80px)] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 text-white select-none">
+    <FloatingToolPanel title="Máy tính khoa học" onClose={onClose}>
       
       {/* Header Casio */}
-      <div className="px-3.5 py-2.5 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <span className="font-black tracking-widest text-white text-xs italic">CASIO</span>
-          <span className="text-[10px] bg-slate-800 px-1.5 py-0.2 rounded font-mono font-bold text-slate-300">
-            fx-580VN X
-          </span>
-          <span className="text-[9px] font-bold text-blue-400">CLASSWIZ</span>
-        </div>
+      <div className="px-4 py-3.5 bg-white border-b border-slate-100 flex justify-between items-center">
+        <div className="min-w-0"><h3 className="text-sm font-semibold text-slate-800">Máy tính khoa học</h3><p className="mt-0.5 text-[10px] text-slate-400">Tính nhanh · Lưu kết quả</p></div>
 
         <div className="flex items-center gap-1.5">
           {/* Nút chuyển chế độ Độ (DEG) / Radian (RAD) */}
           <button
             type="button"
             onClick={() => setAngleMode(prev => prev === 'DEG' ? 'RAD' : 'DEG')}
-            className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition-colors"
+            className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 transition-colors"
             title="Đổi chế độ góc: DEG (Độ) / RAD (Radian)"
           >
             {angleMode}
@@ -213,7 +208,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={() => setShowHistory(!showHistory)}
             className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
-              showHistory ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              showHistory ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
             }`}
             title="Lịch sử tính toán"
           >
@@ -228,8 +223,8 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
           {/* Đóng */}
           <button
             type="button"
-            onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            onClick={onClose} aria-label="Đóng máy tính khoa học"
+            className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <X size={17} />
           </button>
@@ -238,16 +233,16 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
 
       {/* Main Body */}
       {showHistory ? (
-        <div className="flex-1 flex flex-col bg-slate-950 overflow-hidden text-slate-200">
-          <div className="p-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-              <History size={14} className="text-indigo-400" />
+        <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden text-slate-700">
+          <div className="p-3 bg-white border-b border-slate-100 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+              <History size={14} className="text-blue-500" />
               Lịch sử tính toán ({history.length})
             </span>
             {history.length > 0 && (
               <button
                 onClick={clearHistory}
-                className="text-[11px] text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 px-2 py-0.5 rounded hover:bg-rose-950/40 transition-colors"
+                className="text-[11px] text-rose-400 hover:text-rose-600 font-semibold flex items-center gap-1 px-2 py-0.5 rounded hover:bg-rose-950/40 transition-colors"
               >
                 <Trash2 size={12} />
                 Xóa tất cả
@@ -266,7 +261,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
               history.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 hover:border-indigo-500/50 transition-all shadow-xs"
+                  className="bg-white p-3 rounded-xl border border-slate-200 hover:border-blue-200 transition-all shadow-xs"
                 >
                   <div className="flex justify-between items-start text-xs text-slate-400 mb-1">
                     <span className="font-mono truncate max-w-[210px]">{item.expr}</span>
@@ -275,18 +270,18 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="font-bold font-mono text-base text-emerald-400">{item.result}</span>
+                    <span className="font-bold font-mono text-base text-blue-600">{item.result}</span>
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => copyResult(item.result, item.id)}
-                        className="p-1 text-slate-400 hover:text-white rounded transition-colors"
+                        className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
                         title="Sao chép kết quả"
                       >
-                        {copiedId === item.id ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                        {copiedId === item.id ? <Check size={14} className="text-blue-600" /> : <Copy size={14} />}
                       </button>
                       <button
                         onClick={() => applyHistoryItem(item)}
-                        className="text-[11px] font-semibold text-indigo-300 bg-indigo-950 hover:bg-indigo-900 border border-indigo-800/60 px-2 py-0.5 rounded transition-colors"
+                        className="text-[11px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 px-2 py-0.5 rounded transition-colors"
                       >
                         Chèn
                       </button>
@@ -298,10 +293,10 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col p-3 gap-2 justify-between bg-gradient-to-b from-slate-900 to-slate-950">
+        <div className="min-h-0 flex-1 overflow-y-auto flex flex-col p-4 gap-3 bg-white">
           
           {/* Authentic Casio LCD Screen */}
-          <div className="bg-[#b5b8a6] rounded-xl p-2.5 border-3 border-slate-700 shadow-inner flex flex-col justify-between h-24 font-mono text-slate-900">
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col justify-between h-24 font-mono text-slate-900">
             {/* Status indicators */}
             <div className="flex justify-between text-[10px] h-4 font-bold text-slate-700 select-none">
               <div className="flex gap-2">
@@ -310,7 +305,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
                 <span>{angleMode === 'DEG' ? 'D' : 'R'}</span>
                 <span>Math</span>
               </div>
-              <span className="text-[9px] opacity-60">Natural-V.P.A.M</span>
+              <span className="text-[9px] opacity-60">VNDocs</span>
             </div>
 
             {/* Expression Row */}
@@ -331,7 +326,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => onBtnClick('SHIFT', '')}
                 className={`w-11 h-7 rounded-lg text-[10px] font-bold shadow-md transition-all active:scale-95 ${
-                  isShift ? 'bg-amber-400 text-slate-900' : 'bg-slate-800 text-amber-400 hover:bg-slate-700'
+                  isShift ? 'bg-amber-400 text-slate-900' : 'bg-slate-100 text-amber-400 hover:bg-slate-200'
                 }`}
               >
                 SHIFT
@@ -340,7 +335,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => onBtnClick('ALPHA', '')}
                 className={`w-11 h-7 rounded-lg text-[10px] font-bold shadow-md transition-all active:scale-95 ${
-                  isAlpha ? 'bg-rose-400 text-white' : 'bg-slate-800 text-rose-400 hover:bg-slate-700'
+                  isAlpha ? 'bg-rose-400 text-white' : 'bg-slate-100 text-rose-400 hover:bg-slate-200'
                 }`}
               >
                 ALPHA
@@ -348,7 +343,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
             </div>
 
             {/* D-pad Oval Control */}
-            <div className="w-18 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-around shadow-inner px-2">
+            <div className="w-18 h-8 rounded-full bg-slate-100 border border-slate-700 flex items-center justify-around shadow-inner px-2">
               <span className="text-[10px] text-slate-400 font-bold">◀</span>
               <span className="text-[10px] text-slate-400 font-bold">▲</span>
               <span className="text-[10px] text-slate-400 font-bold">▼</span>
@@ -359,7 +354,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
               <button 
                 type="button"
                 onClick={() => onBtnClick('OPTN', '')}
-                className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold shadow-md active:scale-95"
+                className="w-11 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold shadow-md active:scale-95"
               >
                 OPTN
               </button>
@@ -390,7 +385,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
             <button onClick={() => onBtnClick('sin(', 'sin(')} className="casio-key">sin</button>
             <button onClick={() => onBtnClick('cos(', 'cos(')} className="casio-key">cos</button>
             <button onClick={() => onBtnClick('tan(', 'tan(')} className="casio-key">tan</button>
-            <button onClick={() => onBtnClick('SD', '')} className="casio-key font-bold text-amber-300">S⇔D</button>
+            <button onClick={() => onBtnClick('SD', '')} className="casio-key font-bold text-amber-700">S⇔D</button>
           </div>
 
           {/* Scientific Keys Row 3: (, ), STO, %, pi, e */}
@@ -440,29 +435,29 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
       {/* Tailwind helper style buttons inline */}
       <style jsx>{`
         .casio-key {
-          height: 28px;
+          height: 34px;
           border-radius: 6px;
-          background-color: #1e293b;
-          color: #f1f5f9;
+          background-color: #dbeafe;
+          color: #475569;
           font-size: 11px;
           font-weight: 600;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+          border: 1px solid #e2e8f0;
           transition: all 0.1s;
           display: flex;
           align-items: center;
           justify-content: center;
         }
-        .casio-key:hover { background-color: #334155; }
+        .casio-key:hover { background-color: #eff6ff; }
         .casio-key:active { transform: scale(0.95); }
 
         .casio-num {
-          height: 38px;
+          height: 44px;
           border-radius: 8px;
           background-color: #f8fafc;
           color: #0f172a;
           font-size: 16px;
-          font-weight: 800;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          font-weight: 600;
+          border: 1px solid #e2e8f0;
           transition: all 0.1s;
           display: flex;
           align-items: center;
@@ -472,13 +467,13 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
         .casio-num:active { transform: scale(0.95); }
 
         .casio-del {
-          height: 38px;
+          height: 44px;
           border-radius: 8px;
           background-color: #ea580c;
           color: white;
           font-size: 12px;
-          font-weight: 900;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          font-weight: 600;
+          border: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -487,13 +482,13 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
         .casio-del:active { transform: scale(0.95); }
 
         .casio-ac {
-          height: 38px;
+          height: 44px;
           border-radius: 8px;
           background-color: #dc2626;
           color: white;
           font-size: 12px;
-          font-weight: 900;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          font-weight: 600;
+          border: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -502,28 +497,28 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
         .casio-ac:active { transform: scale(0.95); }
 
         .casio-op {
-          height: 38px;
+          height: 44px;
           border-radius: 8px;
-          background-color: #334155;
-          color: white;
+          background-color: #eff6ff;
+          color: #2563eb;
           font-size: 15px;
-          font-weight: 800;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          font-weight: 600;
+          border: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
           justify-content: center;
         }
-        .casio-op:hover { background-color: #475569; }
+        .casio-op:hover { background-color: #dbeafe; }
         .casio-op:active { transform: scale(0.95); }
 
         .casio-eq {
-          height: 38px;
+          height: 44px;
           border-radius: 8px;
           background-color: #2563eb;
           color: white;
           font-size: 18px;
-          font-weight: 900;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          font-weight: 600;
+          border: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -531,6 +526,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
         .casio-eq:hover { background-color: #1d4ed8; }
         .casio-eq:active { transform: scale(0.95); }
       `}</style>
-    </div>
+    </FloatingToolPanel>
   )
 }
+

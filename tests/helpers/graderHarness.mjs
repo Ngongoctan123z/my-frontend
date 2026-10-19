@@ -41,7 +41,7 @@ const schema = {
   prompts: table('prompt', ['id', 'type', 'content', 'createdAt', 'imageUrl']),
   apiUsages: table('api_usage', ['userId', 'date', 'count']),
   users: table('user', ['email', 'plan']),
-  essayHistory: table('essay_history', ['email', 'prompt']),
+  essayHistory: table('essay_history', ['email', 'prompt', 'essay']),
   speakingPrompts: table('speaking_prompt', ['examType']),
 }
 
@@ -137,8 +137,8 @@ export async function createGraderHarness({ route = 'app/api/ai-grader/route.ts'
     CREATE TABLE system_config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     CREATE TABLE user (email TEXT PRIMARY KEY, plan TEXT NOT NULL);
     CREATE TABLE api_usage (userId TEXT, date TEXT, count INTEGER, PRIMARY KEY (userId, date));
-    CREATE TABLE prompt (id INTEGER, type TEXT, content TEXT, createdAt INTEGER, imageUrl TEXT);
-    CREATE TABLE essay_history (email TEXT, prompt TEXT);
+    CREATE TABLE prompt (id TEXT PRIMARY KEY, type TEXT, content TEXT, createdAt INTEGER, imageUrl TEXT);
+    CREATE TABLE essay_history (email TEXT, prompt TEXT, essay TEXT);
   `)
   const keys = ['test-key-1', 'test-key-2', 'test-key-3', 'test-key-4', 'test-key-5']
   sqlite.prepare('INSERT INTO system_config VALUES (?, ?)').run('GROQ_API_KEY', keys.join(','))

@@ -1,3 +1,4 @@
+import { PAUSE_START_MS, type SpeakingDelivery } from '@/src/lib/speechDelivery'
 import { SPEAKING_PARTS, type SpeakingExam, type SpeakingSubmissionItem, type SpeakingMetrics, type PracticePart } from '@/src/lib/speaking'
 
 export class SpeakingRequestError extends Error {
@@ -14,6 +15,22 @@ const text = (value: unknown, max: number, required = false): string => {
   if (value === undefined && !required) return ''
   if (typeof value !== 'string' || value.length > max || (required && !value.trim())) throw new SpeakingRequestError(400, 'Dữ liệu bài nói không hợp lệ.')
   return value.trim()
+}
+function deliveryData(value: any, totalMs: number): SpeakingDelivery | undefined {
+  if(value === undefined)return undefined
+  if(!value || typeof value.recognitionAvailable!=='boolean' || !Array.isArray(value.segments) || value.segments.length>120 || !Array.isArray(value.pauses) || value.pauses.length>120)throw new SpeakingRequestError(400,'Dữ liệu nhịp nói không hợp lệ.')
+  let totalChars=0,lastAt=-1
+  const segments=value.segments.map((row:any)=>{
+    const content=text(row.text,2000,true);totalChars+=content.length
+    if(totalChars>6000 || !Number.isFinite(row.atMs) || row.atMs<0 || row.atMs>totalMs || row.atMs<lastAt || typeof row.final!=='boolean')throw new SpeakingRequestError(400,'Mốc thời gian lời nói không hợp lệ.')
+    lastAt=row.atMs;return {text:content,atMs:Math.round(row.atMs),final:row.final}
+  })
+  let lastEnd=0
+  const pauses=value.pauses.map((row:any)=>{
+    if(!Number.isFinite(row.startMs)||!Number.isFinite(row.durationMs)||row.startMs<lastEnd||row.durationMs<PAUSE_START_MS||row.startMs+row.durationMs>totalMs+1)throw new SpeakingRequestError(400,'Mốc ngừng nói không hợp lệ.')
+    lastEnd=row.startMs+row.durationMs;return {startMs:Math.round(row.startMs),durationMs:Math.round(row.durationMs)}
+  })
+  return {recognitionAvailable:value.recognitionAvailable,segments,pauses}
 }
 export function validateManifest(body: any): SubmissionManifest {
   if (!body || !/^[a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12}$/i.test(body.clientSubmissionId || '')) throw new SpeakingRequestError(400, 'Mã lần nộp không hợp lệ.')
@@ -38,6 +55,7 @@ export function validateManifest(body: any): SubmissionManifest {
     if (imageUrl && !/^https:\/\//i.test(imageUrl)) throw new SpeakingRequestError(400, 'Địa chỉ ảnh đề bài không hợp lệ.')
     return {
       audioHash: item.audioHash.toLowerCase(),
+      delivery: deliveryData(item.delivery,m.totalDurationMs),
       metrics: { totalDurationMs: Math.round(m.totalDurationMs), speechDurationMs: Math.round(m.speechDurationMs), pauseCount: m.pauseCount, longPauseCount: m.longPauseCount, totalPauseSec: m.totalPauseSec, signalDetected: !!m.signalDetected },
       question: { id: text(q.id, 160, true), examType, part, questionNumber: q.questionNumber,
         topic: text(q.topic, 160, true), questionEn: text(q.questionEn, 6500, true), questionVi: text(q.questionVi, 6500),

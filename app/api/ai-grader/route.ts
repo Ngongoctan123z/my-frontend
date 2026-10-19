@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
-import { TOEIC_PICTURE_SETS, parseToeicPictures, parseToeicPictureAnswers } from '@/src/data/toeicWriting'
+import { publicToeicExamSets } from './toeic-sets'
+import { fallbackToeicExamSets } from '@/src/lib/toeicExamSets'
+import type { SpeakingD1 } from '../speaking/store'
+import { TOEIC_PICTURE_SETS, parseToeicPictures, parseToeicPictureAnswers, publicToeicPictures } from '@/src/data/toeicWriting'
+import { ensureToeicPhotoBank } from './toeic-photo-bank'
 import { PICTURE_RUBRIC, normalizePictureResult } from './toeic-pictures'
 import { createKeyRotation, generateWithKeyRotation, normalizeApiKeys, sha256Hex, KeyPoolExhaustedError } from '@/src/lib/aiKeyRotation'
 import { createDbKeyRotationStore } from './keyRotationStore'
@@ -215,6 +219,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (action === 'get_paired_full_test' && body.exam === 'TOEIC') {
+      try {
+        const db = await getDb()
+        return NextResponse.json(await publicToeicExamSets(db.$client as SpeakingD1))
+      } catch {
+        return NextResponse.json({sets:fallbackToeicExamSets(),source:'fallback'})
+      }
+    }
+
     // Ghép cặp trọn bộ đề thi (IELTS Task 1 + Task 2 hoặc TOEIC Part 1 + Part 2)
     if (action === 'get_paired_full_test') {
       const exam = body.exam // 'IELTS' hoặc 'TOEIC'
@@ -273,6 +286,7 @@ export async function POST(req: NextRequest) {
         // Ưu tiên 100% các bộ đề người dùng CHƯA LÀM (tỷ lệ lặp lại 0%)
         const doneList: string[] = []
         const session = await auth()
+
         if (session?.user?.email) {
           const userEmail = session.user.email.toLowerCase().trim()
           const doneRecords = await db.select({ prompt: essayHistory.prompt })
@@ -328,10 +342,12 @@ export async function POST(req: NextRequest) {
         const db = await getDb()
         const session = await auth()
 
+        if(type === 'TOEIC_PICTURE')await ensureToeicPhotoBank(db.$client)
+
         const allPrompts = await db.select()
           .from(promptsTable)
           .where(eq(promptsTable.type, type))
-          .limit(40)
+          .limit(type === 'TOEIC_PICTURE' ? 200 : 40)
 
         if (allPrompts.length === 0) {
           if (fallbacks.length > 0) {
@@ -410,7 +426,8 @@ export async function POST(req: NextRequest) {
 
         // Return array of objects containing content and imageUrl
         const promptObjects = chosenPrompts.map(p => ({
-          content: p.content,
+          id: p.id,
+          content: type === 'TOEIC_PICTURE' ? JSON.stringify(publicToeicPictures(parseToeicPictures(p.content))) : p.content,
           imageUrl: p.imageUrl
         }))
         return NextResponse.json({

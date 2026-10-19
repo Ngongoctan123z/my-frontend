@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Users, Settings, FileText, MessageSquare, Wallet, ArrowDownLeft, Link2, Mic } from 'lucide-react'
 import Link from 'next/link'
 
@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { UsersTab } from '@/src/components/admin/UsersTab'
 import { ModelsTab } from '@/src/components/admin/ModelsTab'
 import { PromptsTab } from '@/src/components/admin/PromptsTab'
+import { ToeicPictureBankAdmin } from '@/src/components/admin/ToeicPictureBankAdmin'
 import { PromptRelationsTab } from '@/src/components/admin/PromptRelationsTab'
 import { SpeakingAdminTab } from '@/src/components/admin/SpeakingAdminTab'
 import { SeoTab } from '@/src/components/admin/SeoTab'
@@ -16,11 +17,13 @@ import { BankHookTab } from '@/src/components/admin/BankHookTab'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('relations')
+  useEffect(()=>{if(new URLSearchParams(window.location.search).get('tab')==='toeic-photos')setActiveTab('toeic-photos')},[])
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-6 mt-10">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h1 className="text-3xl font-black text-slate-800">Quản Trị Hệ Thống</h1>
+        <Link href="/quan-ly-de-thi-123" className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700">Bộ đề TOEIC · Câu 1–8</Link>
         <Link
           href="/quan-ly-he-thong-123/bankhook"
           className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold border border-emerald-200 transition-colors shadow-sm"
@@ -31,6 +34,7 @@ export default function AdminPage() {
       </div>
       
       <div className="flex items-center gap-2 sm:gap-4 border-b border-gray-200 overflow-x-auto pb-1 no-scrollbar">
+        <button type="button" onClick={()=>setActiveTab('toeic-photos')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='toeic-photos'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOEIC · Bộ ảnh câu 1–5</button>
         <button
           onClick={() => setActiveTab('relations')}
           className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'relations' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
@@ -92,6 +96,7 @@ export default function AdminPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm min-h-[500px]">
         {activeTab === 'relations' && <PromptRelationsTab onNavigateToPrompts={() => setActiveTab('prompts')} />}
         {activeTab === 'prompts' && <PromptsTab />}
+        {activeTab === 'toeic-photos' && <ToeicPictureBankAdmin />}
         {activeTab === 'speaking' && <SpeakingAdminTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'models' && <ModelsTab />}

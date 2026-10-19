@@ -160,7 +160,7 @@ export function SpeakingClient() {
           const clip = clips[question.id]
           let audioHash = audioHashes.current.get(clip.id)
           if (!audioHash) { audioHash = await hashSpeakingAudio(clip.blob); audioHashes.current.set(clip.id, audioHash) }
-          items.push({ question, audioHash, metrics: clip.metrics })
+          items.push({ question, audioHash, metrics: clip.metrics, delivery: clip.delivery })
         }
         const data = await requestSpeaking({ action: 'begin_submission', clientSubmissionId: clientId, examType: exam, mode, fullTest: tab === 'FULL', feedbackLang, items }, controller.signal)
         if (controller.signal.aborted || ownerRef.current !== requestOwner) throw new DOMException('Aborted', 'AbortError')
@@ -219,7 +219,7 @@ export function SpeakingClient() {
       if (!clip && !item.result && item.audioAvailable && item.metrics) {
         try {
           const response = await fetch(`/api/speaking/audio/${encodeURIComponent(item.id)}`)
-          if (response.ok) clip = { id: item.id, blob: await response.blob(), metrics: item.metrics, createdAt: source.createdAt }
+          if (response.ok) clip = { id: item.id, blob: await response.blob(), metrics: item.metrics, delivery: item.delivery, createdAt: source.createdAt }
         } catch { /* Keep the explicit missing-audio message below. */ }
       }
       if (clip) nextClips[item.question.id] = clip

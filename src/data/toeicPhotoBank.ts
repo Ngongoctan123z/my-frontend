@@ -1,0 +1,123 @@
+import type { ToeicPictureSet } from './toeicWriting'
+
+// Original VNDocs practice, not past ETS papers. Every photograph was loaded
+// and visually reviewed at its full aspect ratio. Five distinct prompts per
+// photograph create 250 sentence tasks in 50 five-picture sets.
+type Variant = [string,string,string]
+type Photo = { id:string; topic:string; description:string; variants:Variant[] }
+const photo=(id:string,topic:string,description:string,variants:Variant[]):Photo=>({id,topic,description,variants})
+export const TOEIC_REAL_PHOTOS: Photo[] = [
+photo('1522071820081-009f0129c71c','Teamwork','Several people sit around a wooden table with open laptops in an indoor workspace.',[
+ ['people','table','Several people are sitting around a table.'],['laptops','use','The people are using laptops at the table.'],['chairs','sit','The people are sitting on chairs.'],['wooden','workspace','There is a wooden table in the workspace.'],['together','work','Several people are working together at a table.']]),
+photo('1554118811-1e0d58224f24','Cafe','An indoor cafe has tables, chairs, plants, hanging lights and a counter in the background.',[
+ ['chairs','inside','There are several chairs inside the cafe.'],['plants','near','Plants stand near the tables.'],['lights','hang','Lights are hanging above the seating area.'],['tables','arrange','Tables are arranged inside the cafe.'],['counter','background','A counter is visible in the background.']]),
+photo('1507842217343-583bb7270b66','Library','Many books are arranged on long shelves in a library.',[
+ ['books','shelves','Many books are arranged on shelves.'],['library','rows','The library has several rows of books.'],['different','covers','The books have covers of different colors.'],['wooden','hold','The wooden shelves hold many books.'],['collection','display','A large collection of books is displayed on the shelves.']]),
+photo('1486406146926-c627a92ad1ab','Office buildings','Tall buildings with dark glass windows rise around an open patch of sky, viewed from below.',[
+ ['buildings','tall','The buildings are very tall.'],['windows','cover','Windows cover the sides of the buildings.'],['sky','between','The sky is visible between the buildings.'],['look','up','The photograph shows a view looking up at the buildings.'],['glass','exterior','The buildings have glass exteriors.']]),
+photo('1517336714731-489689fd1ca8','Laptop','A partly open laptop is lit with purple and blue light; its keyboard, touchpad and outer lid are visible, but its display is not.',[
+ ['laptop','open','The laptop is partly open.'],['keyboard','visible','The keyboard is visible beneath the raised lid.'],['purple','light','Purple light falls across the laptop.'],['touchpad','below','The touchpad is below the keyboard.'],['lid','above','The lid is positioned above the keyboard.']]),
+photo('1496181133206-80ce9b88a853','Desk','An open laptop with a dark screen sits on a wooden desk, with geometric wooden objects on the left and a small plant on the right.',[
+ ['laptop','desk','A laptop is sitting on the desk.'],['plant','right','A small plant is on the right side of the desk.'],['screen','dark','The laptop screen is dark.'],['wooden','surface','The computer rests on a wooden surface.'],['objects','left','Several wooden objects are to the left of the laptop.']]),
+photo('1497366216548-37526070297c','Office hallway','A modern empty office has a long central hallway, glass partitions, low shelves and ceiling lights.',[
+ ['hallway','office','A long hallway runs through the office.'],['lights','ceiling','Lights are installed in the ceiling.'],['glass','partitions','The office has glass partitions.'],['shelves','low','There are low shelves beside the hallway.'],['empty','floor','The floor of the empty office is clearly visible.']]),
+photo('1497366811353-6870744d04b2','Meeting space','An empty office meeting area has a table and chairs, large windows on the left and glass walls on the right.',[
+ ['chairs','table','Several chairs are arranged around a table.'],['windows','left','Large windows line the left side of the room.'],['meeting','empty','The meeting area is empty.'],['glass','walls','The room has glass walls on one side.'],['daylight','enter','Daylight enters through the large windows.']]),
+photo('1524758631624-e2822e304c36','Office lounge','A bright lounge contains pale armchairs, a small round table, a sofa, large windows and a tall black floor lamp.',[
+ ['armchairs','table','Pale armchairs surround a small table.'],['lamp','tall','A tall lamp stands beside the seating area.'],['windows','bright','Large windows make the room bright.'],['sofa','behind','A sofa is behind the armchairs.'],['furniture','arrange','The furniture is arranged in a lounge.']]),
+photo('1521737711867-e3b97375f902','Shared workspace','Several people sit at a wooden table with open laptops, while pendant lights hang overhead and windows are at the side.',[
+ ['people','laptops','Several people are working on laptops.'],['table','wooden','The people are seated at a wooden table.'],['lights','overhead','Several lights hang overhead.'],['window','beside','A window is beside the work area.'],['computers','open','The computers on the table are open.']]),
+photo('1517245386807-bb43f82c33c4','Discussion','People sit around a table with a laptop and notebooks; a person in a checked shirt gestures with both hands.',[
+ ['person','gesture','A person is gesturing with both hands.'],['laptop','table','A laptop is open on the table.'],['notebooks','beside','Notebooks are lying beside the laptop.'],['shirt','checked','One person is wearing a checked shirt.'],['people','discussion','Several people are taking part in a discussion.']]),
+photo('1522202176988-66273c2fd55f','Group study','Three people sit around a table with laptops and notebooks; two are smiling during a conversation.',[
+ ['people','study','Three people are studying together.'],['laptops','open','Two laptops are open on the table.'],['smile','conversation','Two people are smiling during a conversation.'],['notebooks','table','There are notebooks on the table.'],['sit','around','The group is sitting around a table.']]),
+photo('1504384308090-c894fdcc538d','Open-plan office','Many people work at desks with computer monitors in a large open-plan office with long ceiling lights.',[
+ ['people','desks','Many people are working at desks.'],['monitors','office','There are computer monitors throughout the office.'],['lights','long','Long lights run across the ceiling.'],['chairs','sit','The workers are sitting on office chairs.'],['large','workspace','The photograph shows a large shared workspace.']]),
+photo('1523240795612-9a054b0db644','Library study','A group of people studies around a table in front of bookshelves; laptops, papers and drinks are on the table.',[
+ ['group','table','A group is studying around a table.'],['bookshelves','behind','Bookshelves are behind the group.'],['papers','laptops','Papers and laptops are on the table.'],['people','lean','Several people are leaning over their work.'],['drinks','beside','Drinks are placed beside the study materials.']]),
+photo('1516321318423-f06f85e504b3','Computer help','One person points at an open laptop screen while another person has a hand near the keyboard.',[
+ ['person','point','A person is pointing at the laptop screen.'],['laptop','open','The laptop on the table is open.'],['hand','keyboard','A hand is resting near the keyboard.'],['screen','show','The screen is showing content to the people.'],['computer','together','Two people are looking at a computer together.']]),
+photo('1519389950473-47ba0277781c','Work table','Viewed from above, a shared table is covered with laptops, notebooks, drinks, phones and people’s hands.',[
+ ['laptops','table','Several laptops are on the table.'],['hands','keyboard','A person has both hands on a keyboard.'],['notebooks','beside','Notebooks lie beside the computers.'],['drinks','work','There are drinks among the work materials.'],['above','view','The photograph provides a view of the table from above.']]),
+photo('1517248135467-4c7edcad34c4','Restaurant','A dark restaurant interior has many wooden chairs, tables set with glasses and large windows.',[
+ ['chairs','wooden','The restaurant has wooden chairs.'],['glasses','tables','Glasses have been placed on the tables.'],['windows','large','There are large windows beside the dining area.'],['restaurant','interior','The photograph shows the interior of a restaurant.'],['arranged','dining','Tables are arranged in the dining area.']]),
+photo('1414235077428-338989a2e8c0','Dining','A person holds the edge of a plate of food at a restaurant table set with glasses, cutlery and other dishes.',[
+ ['plate','food','There is food on the plate.'],['person','hold','A person is holding the edge of a plate.'],['glasses','table','Several glasses are on the table.'],['cutlery','beside','Cutlery is placed beside the dishes.'],['meal','restaurant','A meal is being served at a restaurant.']]),
+photo('1555396273-367ea4eb4db5','Cafe seating','A cafe interior contains wooden tables and chairs, hanging lamps, a counter on the left and large windows on the right.',[
+ ['tables','cafe','There are wooden tables in the cafe.'],['lamps','above','Lamps hang above the seating area.'],['counter','left','The counter is on the left side of the room.'],['windows','right','Large windows are on the right.'],['chairs','around','Chairs are arranged around the tables.']]),
+photo('1501339847302-ac426a4a7cbb','Cafe sign','The upper wall of a cafe has a large CAFE sign, a dark menu board and pendant lights.',[
+ ['sign','wall','A large sign is mounted on the wall.'],['menu','below','A menu board is below the cafe sign.'],['lights','hang','Several lights hang from the ceiling.'],['letters','large','The sign has large letters.'],['cafe','interior','Part of the cafe interior is visible.']]),
+photo('1442512595331-e89e73853f31','Coffee making','A person pours water from a metal kettle onto a filter above a glass coffee vessel; another glass vessel sits nearby.',[
+ ['person','pour','A person is pouring water from a kettle.'],['kettle','metal','The kettle is made of metal.'],['filter','above','A filter is positioned above a glass vessel.'],['coffee','prepare','Coffee is being prepared with a filter.'],['water','into','Water is being poured into the filter.']]),
+photo('1495474472287-4d71bcdd2085','Coffee cups','Viewed from above, hands hold three coffee drinks together, including two cups with leaf-shaped foam designs and a takeaway cup.',[
+ ['hands','cups','Several hands are holding cups of coffee.'],['coffee','together','Three coffee drinks are held together.'],['foam','designs','Two drinks have designs in the foam.'],['takeaway','cup','One drink is in a takeaway cup.'],['above','drinks','The drinks are photographed from above.']]),
+photo('1441986300917-64674bd600d8','Clothing store','A clothing store displays shirts and jackets on racks, folded clothes on tables and hats on upper shelves under hanging lights.',[
+ ['clothes','display','Clothes are displayed throughout the shop.'],['shirts','racks','Shirts are hanging on racks.'],['folded','table','Folded clothes are on the table.'],['hats','shelves','Hats are displayed on upper shelves.'],['lights','above','Lights hang above the merchandise.']]),
+photo('1445205170230-053b83016050','Clothes rack','A row of pale shirts and other garments hangs from hangers on a clothing rack.',[
+ ['clothes','hang','Clothes are hanging on a rack.'],['hangers','row','The hangers are arranged in a row.'],['shirts','pale','Several shirts are pale in color.'],['garments','display','The garments are displayed beside one another.'],['rack','hold','The rack holds several items of clothing.']]),
+photo('1473186578172-c141e6798cf4','Beach chairs','Two blue wooden chairs stand side by side on a sandy beach facing the sea under a blue sky.',[
+ ['chairs','beach','Two chairs stand on the beach.'],['blue','wooden','The wooden chairs are blue.'],['sea','face','The chairs face the sea.'],['sand','under','There is sand under the chairs.'],['side by side','stand','The chairs stand side by side.']]),
+photo('1483985988355-763728e1935b','Shopping','A woman wearing sunglasses stands outdoors holding several shopping bags in both hands.',[
+ ['woman','bags','The woman is holding shopping bags.'],['sunglasses','wear','She is wearing sunglasses.'],['hands','hold','She is holding bags in both hands.'],['shopping','outdoors','A woman with shopping bags is standing outdoors.'],['several','carry','The woman is carrying several bags.']]),
+photo('1542838132-92c53300491e','Produce market','A grocery display has many rows of vegetables, including peppers, cucumbers, leafy greens, cabbages and other produce.',[
+ ['vegetables','display','Vegetables are arranged in a display.'],['peppers','rows','Peppers are arranged in rows.'],['green','produce','There is green produce on the shelves.'],['cabbages','bottom','Cabbages are displayed near the bottom.'],['different','colors','The vegetables have different colors.']]),
+photo('1543168256-418811576931','Groceries','Groceries, including bananas, cucumbers, tomatoes, packaged food and bottles, are spread over a pale cloth.',[
+ ['groceries','cloth','Groceries are spread across a cloth.'],['bananas','beside','Bananas lie beside packaged food.'],['bottles','food','There are bottles among the food items.'],['cucumbers','long','Several long cucumbers are visible.'],['items','arranged','The food items are arranged on a pale surface.']]),
+photo('1494526585095-c41746248156','House entrance','The exterior of a modern house has lit windows, a front door, a garden and a path at dusk.',[
+ ['house','windows','The house has illuminated windows.'],['path','door','A path leads to the front door.'],['garden','outside','There is a garden outside the house.'],['lights','on','The exterior lights are on.'],['evening','building','The building is photographed in the evening.']]),
+photo('1560518883-ce09059eeffa','House model','A small red and white model house stands on a wooden surface beside a metal key and key ring.',[
+ ['model','house','A model house is standing on a wooden surface.'],['key','beside','A key is lying beside the model.'],['roof','gray','The model house has a gray roof.'],['red','walls','The model has red walls.'],['ring','metal','The key is attached to a metal ring.']]),
+photo('1564013799919-ab600027ffc6','House and pool','A white two-story house stands behind a swimming pool, with palm trees, garden plants and outdoor seating.',[
+ ['house','pool','There is a swimming pool in front of the house.'],['palm','trees','Palm trees grow beside the house.'],['white','building','The building is white.'],['water','blue','The water in the pool is blue.'],['garden','plants','Plants are growing in the garden.']]),
+photo('1484154218962-a197022b5858','Kitchen','A bright kitchen has white cabinets, a refrigerator, an oven, an island counter, two stools and black hanging lamps.',[
+ ['kitchen','cabinets','The kitchen has white cabinets.'],['stools','counter','Two stools stand beside the counter.'],['lamps','hang','Two black lamps hang above the counter.'],['oven','below','An oven is below the kitchen worktop.'],['refrigerator','left','The refrigerator is on the left side of the kitchen.']]),
+photo('1505693416388-ac5ce068fe85','Bedroom','A bedroom contains a large made bed with pillows, two bedside tables and lamps, and a padded bench at the foot of the bed.',[
+ ['bed','pillows','Several pillows are arranged on the bed.'],['bench','foot','A bench stands at the foot of the bed.'],['lamps','beside','Lamps stand beside the bed.'],['bedroom','large','The bedroom contains a large bed.'],['tables','both','There are bedside tables on both sides of the bed.']]),
+photo('1566073771259-6a8506099945','Poolside hotel','Cushioned lounge chairs line a curved swimming pool beside a large brown-roofed building and a wooden deck.',[
+ ['chairs','pool','Lounge chairs stand beside the pool.'],['roof','brown','The building has a brown roof.'],['deck','wooden','A wooden deck runs along the pool.'],['cushions','white','The lounge chairs have white cushions.'],['water','curved','Water fills the curved pool.']]),
+photo('1520250497591-112f2f40a3f4','Tropical resort','A turquoise swimming pool is surrounded by palms, tropical plants, loungers and small roofed buildings, with hills behind.',[
+ ['pool','palms','Palms grow around the pool.'],['hills','behind','Hills are visible behind the resort.'],['plants','surround','Tropical plants surround the swimming area.'],['water','turquoise','The water in the pool is turquoise.'],['buildings','roofs','The small buildings have pitched roofs.']]),
+photo('1436491865332-7a61a109cc05','Flight','An airplane wing extends across the foreground above clouds, with sunlight near the horizon.',[
+ ['wing','clouds','An airplane wing is visible above the clouds.'],['sunlight','horizon','Sunlight appears near the horizon.'],['airplane','flying','The airplane is flying above the clouds.'],['view','window','The photograph shows a view from an airplane window.'],['foreground','extends','The wing extends across the foreground.']]),
+photo('1473448912268-2022ce9509d8','Forest lake','A calm lake reflects tall evergreen trees, with green banks and misty mountains in the distance.',[
+ ['trees','lake','Tall trees stand beside the lake.'],['water','reflect','The water reflects the trees.'],['mountains','distance','Mountains are visible in the distance.'],['calm','surface','The lake has a calm surface.'],['green','banks','Green plants cover the banks of the lake.']]),
+photo('1507525428034-b723cf961d3e','Seashore','Small waves wash onto a sandy beach, with the sun near the horizon and scattered clouds above the sea.',[
+ ['waves','beach','Small waves are washing onto the beach.'],['sun','horizon','The sun is near the horizon.'],['clouds','above','Clouds are scattered above the sea.'],['sand','wet','The sand beside the water is wet.'],['water','shore','The water is reaching the shore.']]),
+photo('1470770841072-f978cf4d019e','Lakeside cabin','A wooden cabin stands on supports beside a calm mountain lake, surrounded by trees and rocky mountains under clouds.',[
+ ['cabin','lake','A wooden cabin stands beside the lake.'],['mountains','behind','Mountains rise behind the cabin.'],['water','calm','The water of the lake is calm.'],['clouds','above','Clouds are above the rocky mountains.'],['trees','shore','Trees grow along the shore.']]),
+photo('1441974231531-c6227db76b6e','Forest path','A dirt path leads between tall tree trunks in a green forest lit by sunlight.',[
+ ['path','forest','A path leads through the forest.'],['trees','tall','The trees along the path are tall.'],['sunlight','leaves','Sunlight is shining through the leaves.'],['trunks','beside','Tree trunks stand beside the path.'],['green','plants','Green plants cover parts of the forest floor.']]),
+photo('1544620347-c4fd4a3d5957','Tour bus','A large coach stands on open ground near mountains at dusk, with its headlights and interior lights illuminated.',[
+ ['bus','lights','The bus has its lights on.'],['mountains','behind','Mountains are visible behind the bus.'],['coach','large','A large coach stands on open ground.'],['headlights','illuminate','The headlights illuminate the ground in front of the bus.'],['dusk','vehicle','The vehicle is photographed at dusk.']]),
+photo('1503376780353-7e6692767b70','Road travel','A dark car is photographed from behind while traveling on a road beside a barrier, with blurred road markings.',[
+ ['car','road','A car is traveling along the road.'],['vehicle','dark','The vehicle is dark in color.'],['barrier','beside','There is a barrier beside the road.'],['rear','visible','The rear of the car is visible.'],['markings','road','There are markings on the road.']]),
+photo('1449965408869-eaa3f722e40d','Driving','Viewed from the passenger area, a driver wearing a watch holds the steering wheel; dashboard controls and traffic through the windscreen are visible.',[
+ ['driver','wheel','The driver is holding the steering wheel.'],['watch','wrist','The driver is wearing a watch on one wrist.'],['dashboard','controls','There are controls on the dashboard.'],['traffic','ahead','Traffic is visible ahead of the driver.'],['hand','steering wheel','A hand is resting on the steering wheel.']]),
+photo('1486262715619-67b85e0b08d3','Engine parts','A close-up of an engine shows a dark drive belt running around several metal pulleys, with hoses and other mechanical parts nearby.',[
+ ['belt','pulleys','A belt runs around several pulleys.'],['engine','parts','Several engine parts are visible.'],['metal','wheels','The belt passes around metal wheels.'],['hoses','nearby','There are hoses nearby.'],['mechanical','close-up','The photograph is a close-up of mechanical equipment.']]),
+photo('1507035895480-2b3156c31fc8','Bicycle','A blue bicycle with bright orange wheels stands beside a pale brick wall on a paved surface.',[
+ ['bicycle','wall','A bicycle stands beside a wall.'],['wheels','orange','The bicycle has orange wheels.'],['frame','blue','The bicycle frame is blue.'],['brick','background','A brick wall is in the background.'],['paved','surface','The bicycle stands on a paved surface.']]),
+photo('1542744173-8e7e53415bb0','Presentation','Several people sit around a conference table with open laptops while a standing person presents beside a lit display.',[
+ ['person','present','A person is presenting to the group.'],['laptops','conference','Laptops are open on the conference table.'],['people','listen','Several people are listening to the presenter.'],['display','beside','A display is beside the standing person.'],['table','around','The group is sitting around a table.']]),
+photo('1556761175-4b46a572b786','Office interior','A bright open office has an exposed wooden ceiling, desks, chairs, monitors, sofas and large windows; people are seated at workstations.',[
+ ['office','ceiling','The office has an exposed wooden ceiling.'],['desks','chairs','There are chairs beside the desks.'],['windows','large','Large windows line one side of the room.'],['people','workstations','People are seated at workstations.'],['sofas','inside','There are sofas inside the office.']]),
+photo('1559839734-2b71ea197ec2','White coat','A smiling person wearing a white coat stands outdoors beside a tree, with green foliage in the background.',[
+ ['person','coat','The person is wearing a white coat.'],['tree','beside','The person is standing beside a tree.'],['smile','outdoors','A person is smiling outdoors.'],['green','background','Green foliage fills the background.'],['standing','white','A person in a white coat is standing near a tree.']]),
+photo('1576091160399-112ba8d25d1d','Mobile device','A close-up shows a person in a white coat with a stethoscope around the neck holding a smartphone in both hands.',[
+ ['person','phone','A person is holding a phone.'],['stethoscope','neck','A stethoscope hangs around the person’s neck.'],['hands','both','The phone is held in both hands.'],['coat','white','The person is wearing a white coat.'],['smartphone','use','The person is using a smartphone.']]),
+photo('1581091226825-a6a2a5aee158','Technical workspace','A person sits using a laptop at a table surrounded by metal frameworks, wiring and technical equipment in a bright workspace.',[
+ ['person','laptop','A person is using a laptop.'],['equipment','surround','Technical equipment surrounds the work area.'],['frameworks','metal','There are metal frameworks in the workspace.'],['table','sit','The person is sitting at a table.'],['wiring','visible','Wiring is visible near the equipment.']]),
+]
+
+export function toeicPhotoPracticeSets(): (ToeicPictureSet & {id:string})[] {
+  if(TOEIC_REAL_PHOTOS.length!==50)throw new Error('TOEIC photo bank must contain 50 reviewed photos')
+  return Array.from({length:50},(_,setIndex)=>{
+    const variant=Math.floor(setIndex/10),column=setIndex%10
+    return {id:`toeic-photo-practice-${String(setIndex+1).padStart(2,'0')}`,title:`TOEIC Writing · Bộ ảnh ${String(setIndex+1).padStart(2,'0')}`,provenance:'original_practice',
+      questions:Array.from({length:5},(_,i)=>{
+        const row=TOEIC_REAL_PHOTOS[(column+i*10+variant*7)%50], [first,second,exampleAnswer]=row.variants[variant]
+        return {id:i+1,imageUrl:`https://images.unsplash.com/photo-${row.id}?w=1000&auto=format&fit=max&q=85`,keywords:[first,second] as [string,string],description:row.description,exampleAnswer,
+          source:{url:`https://images.unsplash.com/photo-${row.id}`,credit:'Unsplash',licenseUrl:'https://unsplash.com/license'}}
+      })}
+  })
+}

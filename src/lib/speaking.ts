@@ -1,3 +1,4 @@
+import type { SpeakingDelivery } from './speechDelivery'
 import { getPromptsForPart, type SpeakingPrompt, type SpeakingPart } from '../data/speakingPrompts'
 
 export type SpeakingExam = 'IELTS_SPEAKING' | 'TOEIC_SPEAKING'
@@ -18,12 +19,12 @@ export type SpeakingFeedback = {
   fluency: { wordsPerMinute: number; fillerCount: number; repetitionCount: number; longPauseCount: number; speechSeconds: number }
   pronunciationNote: string; modelUsed?: string
 }
-export type SpeakingClip = { id: string; blob: Blob; metrics: SpeakingMetrics; createdAt: number }
-export type SpeakingSubmissionItem = { question: SpeakingQuestion; audioHash: string; metrics: SpeakingMetrics }
+export type SpeakingClip = { id: string; blob: Blob; metrics: SpeakingMetrics; createdAt: number; delivery?: SpeakingDelivery }
+export type SpeakingSubmissionItem = { question: SpeakingQuestion; audioHash: string; metrics: SpeakingMetrics; delivery?: SpeakingDelivery }
 export type SpeakingReport = {
   id: string; examType: SpeakingExam; mode: 'practice' | 'exam'; fullTest: boolean
   feedbackLang: string; createdAt: number; status: string
-  items: { id: string; question: SpeakingQuestion; result: SpeakingFeedback | null; status: string; audioAvailable?: boolean; metrics?: SpeakingMetrics }[]
+  items: { id: string; question: SpeakingQuestion; result: SpeakingFeedback | null; status: string; audioAvailable?: boolean; metrics?: SpeakingMetrics; delivery?: SpeakingDelivery }[]
 }
 
 export const SPEAKING_PARTS: Record<SpeakingExam, PracticePart[]> = {

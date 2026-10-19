@@ -83,6 +83,14 @@ export const systemConfigs = sqliteTable("system_config", {
   value: text("value").notNull(),
 })
 
+export const writingExamSets = sqliteTable('writing_exam_set', {
+  id: text('id').primaryKey(), title: text('title').notNull(),
+  picturePromptId: text('picturePromptId').notNull(), email6PromptId: text('email6PromptId').notNull(),
+  email7PromptId: text('email7PromptId').notNull(), essayPromptId: text('essayPromptId').notNull(),
+  isPublished: integer('isPublished', { mode: 'boolean' }).default(true).notNull(),
+  createdAt: integer('createdAt').notNull(),
+})
+
 export const apiUsages = sqliteTable(
   "api_usage",
   {

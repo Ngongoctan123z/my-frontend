@@ -1,5 +1,6 @@
 'use client'
 
+import { FloatingToolPanel } from './FloatingToolPanel'
 import React, { useState, useEffect, useRef } from 'react'
 import { 
   MessageSquare, X, Send, ShieldAlert, Paperclip, 
@@ -273,26 +274,26 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <div className="w-[360px] max-w-[calc(100vw-32px)] h-[540px] max-h-[calc(100vh-80px)] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <FloatingToolPanel title="Hỗ trợ VNDocs" onClose={onClose}>
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-3.5 text-white flex justify-between items-center shadow-md">
+        <div className="bg-white px-4 py-3.5 text-slate-800 flex justify-between items-center border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <div className="relative">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                <ShieldAlert size={18} className="text-white" />
+              <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <ShieldAlert size={18} className="text-blue-600" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-indigo-600 rounded-full"></div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full"></div>
             </div>
             <div>
-              <h3 className="font-bold text-sm leading-tight">Admin VNDocs</h3>
-              <p className="text-[11px] text-blue-100">Hỗ trợ trực tuyến & giải đáp thắc mắc</p>
+              <h3 className="font-bold text-sm leading-tight">Hỗ trợ VNDocs</h3>
+              <p className="text-[11px] text-slate-400">Gửi câu hỏi đến đội ngũ hỗ trợ</p>
             </div>
           </div>
           <button 
             type="button"
-            onClick={onClose}
-            className="p-1.5 hover:bg-white/20 rounded-lg transition-colors text-white"
+            onClick={onClose} aria-label="Đóng hỗ trợ vndocs"
+            className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400"
           >
             <X size={18} />
           </button>
@@ -319,7 +320,7 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
         ) : (
           <>
             {/* Messages Feed */}
-            <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-slate-50 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 custom-scrollbar">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 space-y-2 p-4">
                   <MessageSquare size={40} className="opacity-20 text-blue-600" />
@@ -335,7 +336,7 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
 
                   return (
                     <div key={msg.id || i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] rounded-2xl p-3 shadow-xs space-y-2 ${
+                      <div className={`max-w-[85%] rounded-2xl p-3.5 space-y-2 ${
                         isUser 
                           ? 'bg-blue-600 text-white rounded-tr-none' 
                           : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
@@ -388,7 +389,7 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
 
                         {/* Text Caption / Message */}
                         {parsed.text && (
-                          <p className="text-xs whitespace-pre-wrap leading-relaxed">{parsed.text}</p>
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed">{parsed.text}</p>
                         )}
 
                         {/* Time */}
@@ -436,7 +437,7 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
             )}
 
             {/* Input Bar */}
-            <div className="p-2.5 bg-white border-t border-slate-200">
+            <div className="p-3 bg-white border-t border-slate-100">
               <form onSubmit={handleSend} className="flex items-center gap-1.5">
                 {/* Hidden File Input */}
                 <input
@@ -464,7 +465,7 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={selectedFile ? "Thêm ghi chú cho tệp..." : "Nhập tin nhắn..."}
-                  className="flex-1 px-3 py-2 bg-slate-100 focus:bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs text-slate-800 transition-all"
+                  aria-label="Tin nhắn hỗ trợ" className="min-w-0 flex-1 px-3 py-3 bg-slate-100 focus:bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-800 transition-all"
                   disabled={loading}
                 />
 
@@ -481,7 +482,7 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
           </>
         )}
 
-      </div>
+      </FloatingToolPanel>
 
       {/* Image Preview Lightbox Modal */}
       {previewImage && (
@@ -508,3 +509,4 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
     </>
   )
 }
+

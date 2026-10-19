@@ -1,3 +1,4 @@
+import type { SpeakingDelivery } from '@/src/lib/speechDelivery'
 import Groq from 'groq-sdk'
 import { inArray, sql } from 'drizzle-orm'
 import { getDb } from '@/src/db'
@@ -39,7 +40,7 @@ export async function transcribeSpeakingAudio(db: Awaited<ReturnType<typeof getD
   const { result } = await generateWithKeyRotation(rotation, ['whisper-large-v3-turbo', 'whisper-large-v3'], async (key, model) => {
     const groq = new Groq({ apiKey: key, maxRetries: 0, timeout: deadlineTimeout(deadline, 20_000) })
     const file = await Groq.toFile(bytes, `recording.${extension(audio.type)}`, { type: audio.type })
-    return groq.audio.transcriptions.create({ file, model, response_format: 'verbose_json', language: 'en', temperature: 0 })
+    return groq.audio.transcriptions.create({ file, model, response_format: 'verbose_json', language: 'en', temperature: 0, prompt: 'Verbatim English speaking practice. Retain audible um, uh, er, hmm, repeated words, false starts and self-corrections. Ignore wind, fan hum and other non-speech noise. Do not add words or fillers that were not spoken.' })
   }, key => countAttempt(db, key))
   const transcript = String((result as any).text || '').trim()
   const segments = (result as any).segments
@@ -55,7 +56,7 @@ function outputText(response: any): string {
   }
   return visit(response)
 }
-export async function gradeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, email: string, audio: File, question: SpeakingQuestion, transcript: string, metrics: SpeakingMetrics, language: string) {
+export async function gradeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, email: string, audio: File, question: SpeakingQuestion, transcript: string, metrics: SpeakingMetrics, language: string, delivery?: SpeakingDelivery) {
   const config = await speakingConfig(db)
   // Audio assessment is optional. A transcript-only fallback never fabricates
   // pronunciation or a complete speaking band when this provider is unavailable.
@@ -71,11 +72,11 @@ export async function gradeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, 
         const modern = !/^gemini-[12]\./.test(model)
         const body = modern ? {
           model, store: false, system_instruction: system,
-          input: [{ type: 'text', text: speakingTaskData(question, transcript, metrics, !!question.imageUrl) }, { type: 'audio', data, mime_type: mime }, ...(question.imageUrl ? [{ type: 'image', uri: question.imageUrl }] : [])],
+          input: [{ type: 'text', text: speakingTaskData(question, transcript, metrics, !!question.imageUrl, delivery) }, { type: 'audio', data, mime_type: mime }, ...(question.imageUrl ? [{ type: 'image', uri: question.imageUrl }] : [])],
           response_format: { type: 'text', mime_type: 'application/json' }, generation_config: { max_output_tokens: 2200 },
         } : {
           systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: speakingTaskData(question, transcript, metrics) }, { inlineData: { mimeType: mime, data } }] }],
+          contents: [{ role: 'user', parts: [{ text: speakingTaskData(question, transcript, metrics, false, delivery) }, { inlineData: { mimeType: mime, data } }] }],
           generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2200 },
         }
         const response = await fetch(modern ? 'https://generativelanguage.googleapis.com/v1beta/interactions' : `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
@@ -98,7 +99,7 @@ export async function gradeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, 
     const groq = new Groq({ apiKey: key, maxRetries: 0, timeout: deadlineTimeout(deadline, 20_000) })
     const response = await groq.chat.completions.create({ model, messages: [
       { role: 'system', content: speakingSystemPrompt(question, false, language) },
-      { role: 'user', content: speakingTaskData(question, transcript, metrics) },
+      { role: 'user', content: speakingTaskData(question, transcript, metrics, false, delivery) },
     ], temperature: 0.2, max_tokens: 2200, response_format: { type: 'json_object' } })
     return normalizeSpeakingFeedback(parseSpeakingJson(response.choices[0]?.message?.content || ''), question, transcript, metrics, false, language)
   }, key => countAttempt(db, key))

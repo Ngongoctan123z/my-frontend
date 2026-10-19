@@ -123,7 +123,7 @@ export class SpeakingStore {
       feedbackLang: submission.feedbackLang, createdAt: submission.createdAt, status: submission.status,
       items: submission.manifest.items.map((item, index) => {
         const row = results.find(row => row.itemIndex === index)
-        return { id: `${id}:${index}`, question: item.question, status: row?.status || 'pending', audioAvailable: !!row?.audioId, metrics: item.metrics, result: row?.result ? JSON.parse(row.result) : null }
+        return { id: `${id}:${index}`, question: item.question, status: row?.status || 'pending', audioAvailable: !!row?.audioId, metrics: item.metrics, delivery: item.delivery, result: row?.result ? JSON.parse(row.result) : null }
       }) }
   }
   async history(email: string) {

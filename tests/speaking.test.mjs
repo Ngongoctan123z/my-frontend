@@ -251,3 +251,43 @@ test('upload-only saves audio before AI; failed storage does not call providers 
   assert.equal((await h.upload(begin.data.id)).response.status,503)
   assert.equal((await h.post({action:'report',submissionId:begin.data.id})).data.report.items[0].audioAvailable,true)
 })
+
+test('live delivery dots use 1.5 seconds then one second and keep filler/repeated words',async()=>{
+ const h=await fixture(),lib=await h.loadModule('src/lib/speechDelivery.ts')
+ assert.deepEqual([0,1499,1500,2499,2500,3500].map(lib.pauseDotCount),[0,0,1,1,2,3])
+ const delivery={recognitionAvailable:true,segments:[{text:'um I I',atMs:100,final:true},{text:'enjoy reading',atMs:3000,final:true}],pauses:[{startMs:400,durationMs:2500}]}
+ assert.equal(lib.deliveryText(delivery),'um I I . . enjoy reading')
+ h.body.items[0].delivery=delivery
+ const begin=await h.post(h.body);assert.equal(begin.response.status,200)
+ const result=await h.upload(begin.data.id);assert.equal(result.response.status,200)
+ const grade=h.state.calls.find(call=>call.kind!=='stt')
+ const data=JSON.parse(grade.payload.messages.find(message=>message.role==='user').content)
+ assert.equal(data.deliveryEvidence.provisionalTranscriptWithPauseDots,'um I I . . enjoy reading')
+ assert.equal(data.deliveryEvidence.pauses[0].durationMs,2500)
+ assert.equal(data.deliveryEvidence.source,'browser_estimate')
+ assert.match(h.state.calls.find(call=>call.kind==='stt').payload.prompt,/um|uh/)
+ const report=await h.post({action:'report',submissionId:begin.data.id});assert.equal(report.data.report.items[0].delivery.segments[0].text,'um I I')
+ assert.equal(result.data.result.criteria.find(row=>row.id==='pronunciation').score,null)
+})
+test('invalid delivery timestamps, overlapping pauses and oversized text fail before quota or providers',async()=>{
+ const h=await fixture()
+ const good={recognitionAvailable:true,segments:[{text:'hello',atMs:20,final:true}],pauses:[]}
+ for(const change of [d=>d.segments[0].atMs=6000,d=>d.segments[0].final='yes',d=>d.segments=Array.from({length:4},()=>({text:'x'.repeat(2000),atMs:0,final:true})),d=>d.pauses=[{startMs:100,durationMs:2000},{startMs:2000,durationMs:2000}],d=>d.pauses=[{startMs:0,durationMs:1499}]]){
+  const body=structuredClone(h.body),delivery=structuredClone(good);change(delivery);body.items[0].delivery=delivery
+  assert.equal((await h.post(body)).response.status,400)
+ }
+ assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM api_usage').get().n,0);assert.equal(h.state.calls.length,0)
+})
+test('voice timing gate ignores low frequency noise and does not learn sustained speech as silence',async()=>{
+ const h=await fixture(),{SpeakingVoiceGate}=await h.loadModule('src/lib/speechDelivery.ts'),gate=new SpeakingVoiceGate()
+ for(let time=0;time<3000;time+=20)assert.equal(gate.update(.015,.08,time),false)
+ for(let time=3000;time<30000;time+=20)assert.equal(gate.update(.05,.8,time),true)
+ // A softer voiced hesitation is retained after sustained speech.
+ assert.equal(gate.update(.025,.7,30000),true)
+ assert.equal(gate.update(.001,.08,30300),false)
+})
+test('filler and repetition metrics preserve audible hesitation without labeling fan noise as words',async()=>{
+ const h=await fixture();h.state.sttHandler=()=>({text:'Um, I, I enjoy reading. Uh, hmm, I do.'})
+ const begin=await h.post(h.body),r=await h.upload(begin.data.id)
+ assert.equal(r.response.status,200);assert.equal(r.data.result.fluency.fillerCount,3);assert.equal(r.data.result.fluency.repetitionCount,1)
+})

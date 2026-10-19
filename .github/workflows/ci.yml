@@ -40,6 +40,9 @@ jobs:
       - name: Test grader submissions
         run: npm run test:grader-submissions
 
+      - name: Test linked TOEIC sets and real photo bank
+        run: node --experimental-vm-modules tests/toeic-sets.test.mjs
+
       - name: Test build-time SEO behavior
         run: npm run test:build-seo
 

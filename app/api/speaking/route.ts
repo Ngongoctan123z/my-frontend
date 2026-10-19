@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
           transcript = await transcribeSpeakingAudio(db, email, audio)
           await store.saveTranscript(row.id, token, transcript)
         }
-        const result = await gradeSpeakingAudio(db, email, audio, item.question, transcript, item.metrics, submission.feedbackLang)
+        const result = await gradeSpeakingAudio(db, email, audio, item.question, transcript, item.metrics, submission.feedbackLang, item.delivery)
         await store.complete(row.id, token, result)
         return NextResponse.json({ recordingId: row.id, result, cached: false })
       } catch (error) {

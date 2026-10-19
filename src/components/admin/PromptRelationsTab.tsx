@@ -1,5 +1,6 @@
 'use client'
 
+import { ToeicExamSetsAdmin } from './ToeicExamSetsAdmin'
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   Link2,
@@ -102,9 +103,7 @@ export function PromptRelationsTab({ onNavigateToPrompts }: { onNavigateToPrompt
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'add_prompt',
-          type: addPromptType,
-          content: addContent.trim(),
-          imageUrl: addImageUrl.trim() || null
+          payload: { type: addPromptType, content: addContent.trim(), imageUrl: addImageUrl.trim() || null }
         })
       })
       const result = await res.json()
@@ -417,7 +416,7 @@ export function PromptRelationsTab({ onNavigateToPrompts }: { onNavigateToPrompt
               </div>
               <div className={`text-xs ${isSelected ? 'text-indigo-100' : 'text-slate-500'}`}>
                 {cat === 'IELTS' && `Task 1 (${count1}) ↔ Task 2 (${count2})`}
-                {cat === 'TOEIC' && `Part 1 (${count1}) ↔ Part 2 (${count2})`}
+                {cat === 'TOEIC' && 'Câu 1–5 + Câu 6–7 + Câu 8'}
                 {cat === 'HSK' && `HSK 5 (${count1}) | HSK 6 (${count2}) - Độc lập`}
                 {cat === 'TOPIK' && `Câu 53 (${count1}) ↔ Câu 54 (${count2})`}
               </div>
@@ -426,7 +425,7 @@ export function PromptRelationsTab({ onNavigateToPrompts }: { onNavigateToPrompt
         })}
       </div>
 
-      {selectedExam === 'HSK' ? (
+      {selectedExam === 'TOEIC' ? <ToeicExamSetsAdmin /> : selectedExam === 'HSK' ? (
         <div className="space-y-6">
           {/* Explanatory Banner for HSK Independence */}
           <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3">

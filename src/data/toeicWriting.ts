@@ -1,5 +1,5 @@
-export type ToeicPicture = { id: number; imageUrl: string; keywords: [string, string]; description: string }
-export type ToeicPictureSet = { title: string; questions: ToeicPicture[] }
+export type ToeicPicture = { id: number; imageUrl: string; keywords: [string, string]; description: string; exampleAnswer?: string; source?: {url:string;credit:string;licenseUrl:string} }
+export type ToeicPictureSet = { title: string; questions: ToeicPicture[]; provenance?: 'original_practice' }
 
 // Original practice tasks. Reference captions deliberately describe visible,
 // broad details rather than guessing the identities or intentions of people.
@@ -21,9 +21,14 @@ export function parseToeicPictures(content: string): ToeicPictureSet {
     if (row.id !== index + 1 || typeof row.imageUrl !== 'string' || row.imageUrl.length > 2000 || (!/^https:\/\//i.test(row.imageUrl) && !/^\/(?!\/)/.test(row.imageUrl))
       || !Array.isArray(row.keywords) || row.keywords.length !== 2 || row.keywords.some((word: any) => typeof word !== 'string' || !word.trim() || word.length > 100)
       || typeof row.description !== 'string' || !row.description.trim() || row.description.length > 2000) throw new Error(`Câu ${index + 1}: cần ảnh hợp lệ, hai từ gợi ý và mô tả ảnh tham chiếu.`)
-    return { id: row.id, imageUrl: row.imageUrl, keywords: row.keywords.map((word: string) => word.trim()) as [string, string], description: row.description.trim() }
+    if(row.exampleAnswer!==undefined && (typeof row.exampleAnswer!=='string'||row.exampleAnswer.length>1000))throw new Error(`Câu ${index+1}: câu mẫu không hợp lệ.`)
+    if(row.source!==undefined && (!row.source || typeof row.source.url!=='string'||!/^https:\/\//i.test(row.source.url)||row.source.url.length>2000||typeof row.source.licenseUrl!=='string'||!/^https:\/\//i.test(row.source.licenseUrl)||row.source.licenseUrl.length>2000||typeof row.source.credit!=='string'||row.source.credit.length>200))throw new Error(`Câu ${index+1}: nguồn ảnh không hợp lệ.`)
+    return { id: row.id, imageUrl: row.imageUrl, keywords: row.keywords.map((word: string) => word.trim()) as [string, string], description: row.description.trim(), ...(row.exampleAnswer?{exampleAnswer:row.exampleAnswer.trim()}:{}),...(row.source?{source:{url:row.source.url,credit:row.source.credit,licenseUrl:row.source.licenseUrl}}:{}) }
   })
-  return { title: parsed.title.trim(), questions }
+  return { title: parsed.title.trim(), questions, ...(parsed.provenance==='original_practice'?{provenance:'original_practice' as const}:{}) }
+}
+export function publicToeicPictures(set: ToeicPictureSet): ToeicPictureSet {
+  return {...set,questions:set.questions.map(({exampleAnswer,...question})=>question)}
 }
 export function parseToeicPictureAnswers(essay: string): { id: number; answer: string }[] {
   const rows = JSON.parse(essay)
