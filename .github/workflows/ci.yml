@@ -49,6 +49,9 @@ jobs:
       - name: Test TOPIK and HSK question bank
         run: node --experimental-vm-modules tests/writing-bank.test.mjs
 
+      - name: Test canonical Writing admin overview
+        run: node --experimental-vm-modules tests/writing-overview.test.mjs
+
       - name: Test build-time SEO behavior
         run: npm run test:build-seo
 
@@ -73,6 +76,9 @@ jobs:
       - name: Test photo bank, exam links, live speech and floating tools
         run: node tests/phase2-ui.test.mjs
 
+      - name: Test unified Writing admin and legacy deep links
+        run: node tests/admin-writing-ui.test.mjs
+
       - name: Verify deployed D1 catalogs and private Speaking routes
         if: github.ref == 'refs/heads/main'
         run: node tests/deployed-speaking.mjs
@@ -86,6 +92,7 @@ jobs:
             test-results/grader-ui
             test-results/speaking-ui
             test-results/phase2-ui
+            test-results/admin-writing-ui
           if-no-files-found: ignore
 
       # Cloudflare Workers Builds deploys main through the existing GitHub App

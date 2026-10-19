@@ -2,11 +2,38 @@ import React, { useEffect, useState } from 'react'
 import { TOEIC_PICTURE_SETS, parseToeicPictures, type ToeicPictureSet } from '@/src/data/toeicWriting'
 import { Loader2, Plus, Trash2, Sparkles, Image, Check, FileText } from 'lucide-react'
 
-export function PromptsTab() {
+const PROMPT_TYPES = [
+  ['IELTS_TASK_1', 'IELTS Task 1'],
+  ['IELTS_TASK_2', 'IELTS Task 2'],
+  ['TOEIC_PICTURE', 'TOEIC Writing Câu 1–5 (theo ảnh)'],
+  ['TOEIC_EMAIL_6', 'TOEIC Writing Câu 6 · Email'],
+  ['TOEIC_EMAIL_7', 'TOEIC Writing Câu 7 · Email'],
+  ['TOEIC_RESPOND', 'TOEIC Email (kho cũ)'],
+  ['TOEIC_ESSAY', 'TOEIC Writing Q8'],
+  ['TOPIK_51', 'TOPIK Câu 51 (Hoàn thành câu - 10đ)'],
+  ['TOPIK_52', 'TOPIK Câu 52 (Hoàn thành câu - 10đ)'],
+  ['TOPIK_53', 'TOPIK Câu 53 (Viết biểu đồ - 30đ)'],
+  ['TOPIK_54', 'TOPIK Câu 54 (Nghị luận xã hội - 50đ)'],
+  ['TOPIK_51_52', 'TOPIK Câu 51-52 (Cũ)'],
+  ['HSK_5', 'HSK 5 Writing (3 phần - 10 câu)'],
+  ['HSK_6', 'HSK 6 Writing (Tóm tắt 400 chữ)'],
+] as const
+
+type PromptsTabProps = {
+  initialType?: string
+  allowedTypes?: string[]
+  onChange?: () => void
+  hideHeader?: boolean
+}
+
+export function PromptsTab({ initialType = 'IELTS_TASK_2', allowedTypes, onChange, hideHeader = false }: PromptsTabProps = {}) {
+  const allowedTypeKey = allowedTypes?.join('|')
+  const typeOptions = PROMPT_TYPES.filter(([value]) => !allowedTypes || allowedTypes.includes(value))
+  const preferredType = typeOptions.some(([value]) => value === initialType) ? initialType : (typeOptions[0]?.[0] || '')
   const [prompts, setPrompts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
-  const [type, setType] = useState('IELTS_TASK_2')
+  const [type, setType] = useState(preferredType)
   const [content, setContent] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [adding, setAdding] = useState(false)
@@ -61,6 +88,7 @@ export function PromptsTab() {
       .then(data => {
         setPrompts(Array.isArray(data) ? data : [])
         setLoading(false)
+        onChange?.()
       })
       .catch(() => setLoading(false))
   }
@@ -68,6 +96,10 @@ export function PromptsTab() {
   useEffect(() => {
     loadPrompts()
   }, [])
+
+  useEffect(() => {
+    setType(preferredType)
+  }, [initialType, allowedTypeKey])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -105,6 +137,7 @@ export function PromptsTab() {
   }
 
   const handleAdd = async () => {
+    if (!typeOptions.some(([value]) => value === type)) return
     let finalContent = content
     let finalImageUrl = imageUrl
 
@@ -171,6 +204,7 @@ export function PromptsTab() {
       setHsk5Part2Keywords('')
       setHsk5Part3Desc('')
       loadPrompts()
+      onChange?.()
     } catch (e: any) {
       alert(e.message || 'Lỗi khi lưu đề.')
     } finally {
@@ -180,15 +214,24 @@ export function PromptsTab() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc muốn xoá đề này?')) return
-    await fetch('/api/admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'delete_prompt',
-        payload: { id }
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_prompt',
+          payload: { id }
+        })
       })
-    })
-    loadPrompts()
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Lỗi khi xoá đề.')
+      }
+      loadPrompts()
+      onChange?.()
+    } catch (error: any) {
+      alert(error.message || 'Lỗi khi xoá đề.')
+    }
   }
 
   const handleCleanText = () => {
@@ -204,16 +247,18 @@ export function PromptsTab() {
 
   if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-blue-600" /></div>
 
+  const visiblePrompts = prompts.filter(prompt => prompt.type === type)
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {!hideHeader && <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-slate-800">Quản Lý Đề Writing (Thực Tế)</h2>
           <p className="text-sm text-slate-500">Quản lý kho đề thi IELTS, TOEIC, TOPIK và HSK (đầy đủ 3 phần 10 câu cho HSK 5).</p>
         </div>
-      </div>
+      </div>}
       
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm">
+      <div id="admin-writing-add" className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm scroll-mt-6">
         <h3 className="font-bold text-base mb-4 text-slate-800 flex items-center gap-2">
           <Plus className="w-5 h-5 text-blue-600" /> Thêm đề mới
         </h3>
@@ -222,24 +267,12 @@ export function PromptsTab() {
           <div>
             <label className="block text-sm font-semibold mb-1 text-slate-700">Loại đề</label>
             <select
+              aria-label="Loại đề Writing"
               value={type}
               onChange={(e) => setType(e.target.value)}
               className="w-full md:w-72 p-2.5 border border-gray-300 rounded-lg outline-none focus:border-blue-500 bg-white text-sm font-medium"
             >
-              <option value="IELTS_TASK_1">IELTS Task 1</option>
-              <option value="IELTS_TASK_2">IELTS Task 2</option>
-              <option value="TOEIC_PICTURE">TOEIC Writing Câu 1–5 (theo ảnh)</option>
-              <option value="TOEIC_EMAIL_6">TOEIC Writing Câu 6 · Email</option>
-              <option value="TOEIC_EMAIL_7">TOEIC Writing Câu 7 · Email</option>
-              <option value="TOEIC_RESPOND">TOEIC Email (kho cũ)</option>
-              <option value="TOEIC_ESSAY">TOEIC Writing Q8</option>
-              <option value="TOPIK_51">TOPIK Câu 51 (Hoàn thành câu - 10đ)</option>
-              <option value="TOPIK_52">TOPIK Câu 52 (Hoàn thành câu - 10đ)</option>
-              <option value="TOPIK_53">TOPIK Câu 53 (Viết biểu đồ - 30đ)</option>
-              <option value="TOPIK_54">TOPIK Câu 54 (Nghị luận xã hội - 50đ)</option>
-              <option value="TOPIK_51_52">TOPIK Câu 51-52 (Cũ)</option>
-              <option value="HSK_5">HSK 5 Writing (3 phần - 10 câu)</option>
-              <option value="HSK_6">HSK 6 Writing (Tóm tắt 400 chữ)</option>
+              {typeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </div>
 
@@ -452,7 +485,7 @@ export function PromptsTab() {
 
           <button
             onClick={handleAdd}
-            disabled={adding}
+            disabled={adding || !type}
             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50 shadow-sm"
           >
             {adding ? <Loader2 className="animate-spin w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -462,9 +495,9 @@ export function PromptsTab() {
       </div>
 
       <div>
-        <h3 className="font-bold text-base mb-4 text-slate-800">Danh sách đề đã lưu ({prompts.length})</h3>
+        <h3 className="font-bold text-base mb-4 text-slate-800">Danh sách đề đã lưu ({visiblePrompts.length})</h3>
         <div className="space-y-4">
-          {prompts.map(p => {
+          {visiblePrompts.map(p => {
             let hsk5Parsed: any = null
             if (p.type === 'HSK_5') {
               try {
@@ -537,7 +570,7 @@ export function PromptsTab() {
               </div>
             )
           })}
-          {prompts.length === 0 && <p className="text-gray-500 text-center py-8">Chưa có đề nào trong kho dữ liệu.</p>}
+          {visiblePrompts.length === 0 && <p className="text-gray-500 text-center py-8">Chưa có đề nào cho loại đề đang chọn.</p>}
         </div>
       </div>
     </div>

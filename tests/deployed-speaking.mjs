@@ -52,6 +52,7 @@ for (let attempt = 1; attempt <= 24; attempt++) {
     }
     const speaking=await request('/api/speaking',{action:'catalog',examType:'TOEIC_SPEAKING'}),speakingBank=await speaking.json();assert.ok(speakingBank.catalog.Q11.some(q=>q.id==='ets-sample-vacation-opinion'))
     const privateBank=await request('/api/admin?type=writing_catalog&exam=TOPIK');assert.equal(privateBank.status,401)
+    for(const type of ['writing_overview','ielts_preview_sets'])assert.equal((await request('/api/admin?type='+type)).status,401,'Writing administration must remain private')
     console.log('PASS deployed D1 Writing/Speaking catalogs, chart assets and private audio/admin auth guards')
     process.exit(0)
   } catch (error) {

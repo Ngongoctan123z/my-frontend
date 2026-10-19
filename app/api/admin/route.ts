@@ -13,6 +13,7 @@ import { desc, eq } from 'drizzle-orm'
 import { ensureQuestionBank, mutateQuestionBank } from '../speaking/question-bank'
 import { SpeakingRequestError } from '../speaking/validation'
 import type { SpeakingD1 } from '../speaking/store'
+import { writingOverview, ieltsPreviewSets } from './writing-overview'
 
 async function sha256Hex(text: string) {
   const msgBuffer = new TextEncoder().encode(text)
@@ -26,6 +27,9 @@ export async function GET(req: NextRequest) {
     await checkAdmin()
     const db = await getDb()
     const type = req.nextUrl.searchParams.get('type')
+
+    if (type === 'writing_overview') return NextResponse.json(await writingOverview(db.$client as SpeakingD1))
+    if (type === 'ielts_preview_sets') return NextResponse.json(await ieltsPreviewSets(db.$client as SpeakingD1))
 
     if (type === 'users') {
       const allUsers = await db.select().from(users).orderBy(users.name)

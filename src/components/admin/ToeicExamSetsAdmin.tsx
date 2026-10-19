@@ -16,13 +16,13 @@ function promptName(prompt: Prompt) {
   if(prompt.type==='TOEIC_PICTURE'){try{return JSON.parse(prompt.content).title}catch{return 'Bộ ảnh không hợp lệ'}}
   return prompt.content.replace(/\s+/g,' ').slice(0,100)
 }
-export function ToeicExamSetsAdmin() {
+export function ToeicExamSetsAdmin({onChange}:{onChange?:()=>void}={}) {
   const [sets,setSets]=useState<ExamSet[]>([]),[prompts,setPrompts]=useState<Prompt[]>([]),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false)
   const [form,setForm]=useState<ExamSet|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[query,setQuery]=useState('')
-  async function load(){setLoading(true);setError('');try{const rows=await adminRequest('toeic_exam_sets');const bank=await adminRequest('prompts');setSets(rows);setPrompts(bank)}catch(failure:any){setError(failure.message)}finally{setLoading(false)}}
+  async function load(){setLoading(true);setError('');try{const rows=await adminRequest('toeic_exam_sets');const bank=await adminRequest('prompts');setSets(rows);setPrompts(bank);onChange?.()}catch(failure:any){setError(failure.message)}finally{setLoading(false)}}
   useEffect(()=>{const selected=new URLSearchParams(window.location.search).get('set')||new URLSearchParams(window.location.search).get('picture');if(selected)setQuery(selected);void load()},[])
-  async function save(event:FormEvent){event.preventDefault();if(!form||saving)return;setSaving(true);setError('');setNotice('');try{const saved=await adminRequest(form.id?'update_toeic_exam_set':'add_toeic_exam_set',form);setSets(previous=>[saved,...previous.filter(s=>s.id!==saved.id)]);setForm(null);setNotice('Đã lưu ID bộ đề và các liên kết vào D1.')}catch(failure:any){setError(failure.message)}finally{setSaving(false)}}
-  async function remove(row:ExamSet){if(saving||!confirm('Xoá bộ đề ghép này? Các câu hỏi trong kho vẫn được giữ.'))return;setSaving(true);setError('');try{await adminRequest('delete_toeic_exam_set',{id:row.id});setSets(previous=>previous.filter(s=>s.id!==row.id));setNotice('Đã xoá bộ đề ghép.')}catch(failure:any){setError(failure.message)}finally{setSaving(false)}}
+  async function save(event:FormEvent){event.preventDefault();if(!form||saving)return;setSaving(true);setError('');setNotice('');try{const saved=await adminRequest(form.id?'update_toeic_exam_set':'add_toeic_exam_set',form);setSets(previous=>[saved,...previous.filter(s=>s.id!==saved.id)]);setForm(null);setNotice('Đã lưu ID bộ đề và các liên kết vào D1.');onChange?.()}catch(failure:any){setError(failure.message)}finally{setSaving(false)}}
+  async function remove(row:ExamSet){if(saving||!confirm('Xoá bộ đề ghép này? Các câu hỏi trong kho vẫn được giữ.'))return;setSaving(true);setError('');try{await adminRequest('delete_toeic_exam_set',{id:row.id});setSets(previous=>previous.filter(s=>s.id!==row.id));setNotice('Đã xoá bộ đề ghép.');onChange?.()}catch(failure:any){setError(failure.message)}finally{setSaving(false)}}
   const fields=[{key:'picturePromptId',label:'Câu 1–5 · Bộ 5 ảnh',type:'TOEIC_PICTURE'},{key:'email6PromptId',label:'Câu 6 · Email thứ nhất',type:'TOEIC_EMAIL_6'},{key:'email7PromptId',label:'Câu 7 · Email thứ hai',type:'TOEIC_EMAIL_7'},{key:'essayPromptId',label:'Câu 8 · Bài luận',type:'TOEIC_ESSAY'}] as const
   const visible=sets.filter(row=>`${row.id} ${row.title} ${row.picturePromptId} ${row.email6PromptId} ${row.email7PromptId} ${row.essayPromptId}`.toLowerCase().includes(query.toLowerCase()))
   return <section className="min-w-0 space-y-4">

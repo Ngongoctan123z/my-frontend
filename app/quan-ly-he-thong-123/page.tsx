@@ -1,115 +1,27 @@
 'use client'
-import {WritingBankAdmin} from '@/src/components/admin/WritingBankAdmin'
-
-import React, { useEffect, useState } from 'react'
-import { Users, Settings, FileText, MessageSquare, Wallet, ArrowDownLeft, Link2, Mic } from 'lucide-react'
+import {useEffect,useState} from 'react'
+import {Users,Settings,FileText,MessageSquare,Wallet,ArrowDownLeft,Mic} from 'lucide-react'
 import Link from 'next/link'
-
-// Tabs components
-import { UsersTab } from '@/src/components/admin/UsersTab'
-import { ModelsTab } from '@/src/components/admin/ModelsTab'
-import { PromptsTab } from '@/src/components/admin/PromptsTab'
-import { ToeicEmailBankAdmin } from '@/src/components/admin/ToeicEmailBankAdmin'
-import { ToeicPictureBankAdmin } from '@/src/components/admin/ToeicPictureBankAdmin'
-import { PromptRelationsTab } from '@/src/components/admin/PromptRelationsTab'
-import { SpeakingAdminTab } from '@/src/components/admin/SpeakingAdminTab'
-import { SeoTab } from '@/src/components/admin/SeoTab'
-import { ChatTab } from '@/src/components/admin/ChatTab'
-import { BankHookTab } from '@/src/components/admin/BankHookTab'
-
-export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState('relations')
-  useEffect(()=>{{const tab=new URLSearchParams(window.location.search).get('tab');if(tab==='toeic-photos'||tab==='toeic-emails'||tab==='topik-hsk')setActiveTab(tab)}},[])
-
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto p-6 mt-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h1 className="text-3xl font-black text-slate-800">Quản Trị Hệ Thống</h1>
-        <Link href="/quan-ly-de-thi-123" className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700">Bộ đề TOEIC · Câu 1–8</Link>
-        <Link
-          href="/quan-ly-he-thong-123/bankhook"
-          className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-bold border border-emerald-200 transition-colors shadow-sm"
-        >
-          <ArrowDownLeft size={16} />
-          Trang Giao Dịch BankHook
-        </Link>
-      </div>
-      
-      <div className="flex items-center gap-2 sm:gap-4 border-b border-gray-200 overflow-x-auto pb-1 no-scrollbar">
-        <button type="button" onClick={()=>setActiveTab('topik-hsk')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='topik-hsk'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOPIK & HSK · Kho 150 bộ</button>
-        <button type="button" onClick={()=>setActiveTab('toeic-emails')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='toeic-emails'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOEIC · Email câu 6/7</button>
-        <button type="button" onClick={()=>setActiveTab('toeic-photos')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='toeic-photos'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOEIC · Bộ ảnh câu 1–5</button>
-        <button
-          onClick={() => setActiveTab('relations')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'relations' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-        >
-          <Link2 size={18} />
-          Quan Hệ Bộ Đề (1+2)
-        </button>
-        <button
-          onClick={() => setActiveTab('prompts')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'prompts' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-        >
-          <FileText size={18} />
-          Kho Đề Writing
-        </button>
-        <button
-          onClick={() => setActiveTab('speaking')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'speaking' ? 'border-violet-600 text-violet-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-        >
-          <Mic size={18} />
-          Quản Lý Speaking
-        </button>
-        <button
-          onClick={() => setActiveTab('users')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'users' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-        >
-          <Users size={18} />
-          Người Dùng
-        </button>
-        <button
-          onClick={() => setActiveTab('models')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'models' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-        >
-          <Settings size={18} />
-          Cấu hình Groq AI
-        </button>
-        <button
-          onClick={() => setActiveTab('seo')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'seo' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-        >
-          <FileText size={18} />
-          Cấu hình SEO
-        </button>
-        <button
-          onClick={() => setActiveTab('chat')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'chat' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-        >
-          <MessageSquare size={18} />
-          Hỗ Trợ Khách
-        </button>
-        <button
-          onClick={() => setActiveTab('bankhook')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${activeTab === 'bankhook' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-        >
-          <Wallet size={18} />
-          Giao Dịch BankHook
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm min-h-[500px]">
-        {activeTab === 'relations' && <PromptRelationsTab onNavigateToPrompts={() => setActiveTab('prompts')} />}
-        {activeTab === 'prompts' && <PromptsTab />}
-        {activeTab === 'toeic-photos' && <ToeicPictureBankAdmin />}
-        {activeTab === 'toeic-emails' && <ToeicEmailBankAdmin />}
-        {activeTab === 'topik-hsk' && <WritingBankAdmin />}
-        {activeTab === 'speaking' && <SpeakingAdminTab />}
-        {activeTab === 'users' && <UsersTab />}
-        {activeTab === 'models' && <ModelsTab />}
-        {activeTab === 'seo' && <SeoTab />}
-        {activeTab === 'chat' && <ChatTab />}
-        {activeTab === 'bankhook' && <BankHookTab />}
-      </div>
-    </div>
-  )
+import {UsersTab} from '@/src/components/admin/UsersTab'
+import {ModelsTab} from '@/src/components/admin/ModelsTab'
+import {PromptRelationsTab} from '@/src/components/admin/PromptRelationsTab'
+import {SpeakingAdminTab} from '@/src/components/admin/SpeakingAdminTab'
+import {SeoTab} from '@/src/components/admin/SeoTab'
+import {ChatTab} from '@/src/components/admin/ChatTab'
+import {BankHookTab} from '@/src/components/admin/BankHookTab'
+import {writingAdminSelection,type WritingAdminSelection} from '@/src/lib/adminWritingNavigation'
+const navigation=[{id:'writing',label:'Quản Lý Writing',icon:FileText},{id:'speaking',label:'Quản Lý Speaking',icon:Mic},{id:'users',label:'Người Dùng',icon:Users},{id:'models',label:'Cấu hình Groq AI',icon:Settings},{id:'seo',label:'Cấu hình SEO',icon:FileText},{id:'chat',label:'Hỗ Trợ Khách',icon:MessageSquare},{id:'bankhook',label:'Giao Dịch BankHook',icon:Wallet}]
+export default function AdminPage(){
+ const[activeTab,setActiveTab]=useState('writing'),[selection,setSelection]=useState<WritingAdminSelection|null>(null)
+ useEffect(()=>{const query=new URLSearchParams(window.location.search),chosen=writingAdminSelection(query);setSelection(chosen);const tab=query.get('tab');if(tab&&navigation.some(item=>item.id===tab)&&tab!=='writing')setActiveTab(tab);else{const url=new URL(location.href);url.searchParams.set('tab','writing');url.searchParams.set('exam',chosen.exam);url.searchParams.set('view',chosen.view);if(chosen.exam==='HSK')url.searchParams.set('level',chosen.promptType||'HSK_5');history.replaceState(null,'',url)}},[])
+ function openTab(tab:string){if(tab==='writing')setSelection(writingAdminSelection(new URLSearchParams(location.search)));setActiveTab(tab);const url=new URL(location.href);url.searchParams.set('tab',tab);history.replaceState(null,'',url)}
+ return <div className="mx-auto mt-6 max-w-7xl space-y-5 p-3 sm:mt-10 sm:p-6">
+  <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"><h1 className="text-2xl font-black text-slate-800 sm:text-3xl">Quản Trị Hệ Thống</h1><Link href="/quan-ly-he-thong-123/bankhook" className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-700"><ArrowDownLeft size={16}/>Trang Giao Dịch BankHook</Link></div>
+  <nav aria-label="Quản trị hệ thống" className="flex snap-x items-center gap-2 overflow-x-auto border-b border-slate-200 pb-1 [scrollbar-width:none]">{navigation.map(item=><button type="button" key={item.id} onClick={()=>openTab(item.id)} aria-pressed={activeTab===item.id} className={`flex shrink-0 snap-start items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab===item.id?'border-indigo-600 text-indigo-600':'border-transparent text-slate-500 hover:text-slate-800'}`}><item.icon size={18}/>{item.label}</button>)}</nav>
+  <div className="min-h-[500px] min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
+   {activeTab==='writing'&&selection&&<PromptRelationsTab key={selection.exam+'-'+selection.view+'-'+selection.promptType} initialExam={selection.exam} initialView={selection.view} initialPromptType={selection.promptType}/>}
+   {activeTab==='writing'&&!selection&&<p className="p-6 text-sm text-slate-400">Đang mở kho đề…</p>}
+   {activeTab==='speaking'&&<SpeakingAdminTab/>}{activeTab==='users'&&<UsersTab/>}{activeTab==='models'&&<ModelsTab/>}{activeTab==='seo'&&<SeoTab/>}{activeTab==='chat'&&<ChatTab/>}{activeTab==='bankhook'&&<BankHookTab/>}
+  </div>
+ </div>
 }
