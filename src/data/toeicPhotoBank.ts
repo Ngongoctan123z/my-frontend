@@ -115,7 +115,10 @@ export function toeicPhotoPracticeSets(): (ToeicPictureSet & {id:string})[] {
     const variant=Math.floor(setIndex/10),column=setIndex%10
     return {id:`toeic-photo-practice-${String(setIndex+1).padStart(2,'0')}`,title:`TOEIC Writing · Bộ ảnh ${String(setIndex+1).padStart(2,'0')}`,provenance:'original_practice',
       questions:Array.from({length:5},(_,i)=>{
-        const row=TOEIC_REAL_PHOTOS[(column+i*10+variant*7)%50], [first,second,exampleAnswer]=row.variants[variant]
+        // Each round permutes all 50 photos exactly once. Coprime strides also
+        // give every set a distinct combination instead of repeating ten groups.
+        const stride=[9,11,13,17,19][variant]
+        const row=TOEIC_REAL_PHOTOS[((column*5+i)*stride+variant*7)%50], [first,second,exampleAnswer]=row.variants[variant]
         return {id:i+1,imageUrl:`https://images.unsplash.com/photo-${row.id}?w=1000&auto=format&fit=max&q=85`,keywords:[first,second] as [string,string],description:row.description,exampleAnswer,
           source:{url:`https://images.unsplash.com/photo-${row.id}`,credit:'Unsplash',licenseUrl:'https://unsplash.com/license'}}
       })}

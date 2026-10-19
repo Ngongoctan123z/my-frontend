@@ -45,6 +45,7 @@ test('50 five-picture sets contain 250 distinct word/example tasks with licensed
   for(const q of parsed.questions){assert.ok(q.exampleAnswer);assert.match(q.source.licenseUrl,/unsplash.com\/license$/);photos.add(q.imageUrl);exercises.add(q.imageUrl+'|'+q.keywords.join('|'))}
  }
  assert.equal(photos.size,50);assert.equal(exercises.size,250)
+ assert.equal(new Set(sets.map(set=>set.questions.map(q=>q.imageUrl).sort().join('|'))).size,50)
 })
 test('photo seeding is atomic, idempotent and never overwrites edited or resurrects deleted questions',async()=>{
  const h=await fixture(),bank=await h.loadModule('app/api/ai-grader/toeic-photo-bank.ts')
