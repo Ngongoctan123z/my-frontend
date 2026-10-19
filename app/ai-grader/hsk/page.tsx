@@ -174,18 +174,13 @@ export default async function HskPage() {
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
-            Tài liệu ôn thi và các phòng thực hành bổ trợ
+            Các phòng luyện Writing và Speaking
           </h3>
           <p className="text-slate-600 leading-relaxed mb-4">
             Để mở rộng vốn từ vựng và ngữ pháp, bạn có thể tham khảo thêm các tài nguyên học tập hữu ích tại VNDocs:
           </p>
           <ul className="text-slate-600 space-y-2 mb-8">
-            <li>
-              Tải miễn phí các bộ tài liệu từ vựng HSK và đề thi thử chọn lọc tại{' '}
-              <Link href="/ai-grader/tai-lieu-tong-hop" className="text-blue-600 font-semibold hover:underline">
-                Kho tài liệu luyện thi tổng hợp
-              </Link>.
-            </li>
+            <li><Link href="/speaking" className="text-blue-600 font-semibold hover:underline">Luyện Speaking IELTS và TOEIC</Link>: ghi âm, nghe lại và nhận góp ý cho bài nói.</li>
             <li>
               Thực hành thêm kỹ năng viết cho các chứng chỉ ngoại ngữ khác: phòng thi{' '}
               <Link href="/ai-grader/ielts" className="text-blue-600 font-semibold hover:underline">

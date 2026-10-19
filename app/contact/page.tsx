@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Liên hệ & Hợp tác | VNDocs',
-  description: 'Liên hệ với VNDocs để phản hồi, đóng góp tài liệu, đề xuất hợp tác hoặc báo cáo sự cố. Đội ngũ VNDocs luôn sẵn sàng hỗ trợ.',
+  description: 'Liên hệ với VNDocs để phản hồi, góp ý về Writing/Speaking, đề xuất hợp tác hoặc báo cáo sự cố. Đội ngũ VNDocs luôn sẵn sàng hỗ trợ.',
   robots: { index: false, follow: false }
 }
 
@@ -16,8 +16,8 @@ export default function ContactPage() {
       <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">Phản hồi & Hỗ trợ</h2>
       <p className="text-[var(--text-secondary)] text-base">Nếu bạn gặp sự cố kỹ thuật, phát hiện lỗi trên website, hoặc có ý tưởng cải tiến tính năng, đừng ngần ngại cho chúng tôi biết. Mọi đóng góp của bạn đều là tài sản quý giá giúp VNDocs hoàn thiện hơn mỗi ngày.</p>
 
-      <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">Đóng góp tài liệu</h2>
-      <p className="text-[var(--text-secondary)] text-base">Bạn là giáo viên hoặc học sinh có bộ tài liệu, đề thi hay muốn chia sẻ cho hàng ngàn người học khác? Hãy gửi tài liệu cho chúng tôi. VNDocs sẽ ghi rõ nguồn và tác giả trên mỗi tài liệu được xuất bản nhằm tôn trọng công sức của bạn.</p>
+      <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">Góp ý nội dung luyện tập</h2>
+      <p className="text-[var(--text-secondary)] text-base">Bạn có góp ý cho bài luyện Writing hoặc Speaking? Hãy liên hệ để giúp chúng tôi cải thiện nội dung, nhận xét và trải nghiệm luyện tập.</p>
 
       <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">Hợp tác phát triển & Quảng cáo</h2>
       <p className="text-[var(--text-secondary)] text-base">Chúng tôi mở rộng cửa chào đón các cơ hội hợp tác với các tổ chức giáo dục, trung tâm Tiếng Anh, hoặc các đối tác muốn quảng bá sản phẩm giáo dục đến tệp người dùng học sinh, sinh viên năng động của VNDocs.</p>

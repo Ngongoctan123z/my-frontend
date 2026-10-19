@@ -1,5 +1,1 @@
-import { SearchResults } from './SearchResults'
-
-export function Home() {
-  return <SearchResults />
-}
+export { HomeClient as Home } from '../../app/HomeClient'

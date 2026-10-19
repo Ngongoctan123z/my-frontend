@@ -47,61 +47,18 @@ export function Header() {
   }, [session])
 
   const vnNavLinks = [
-    { 
-      href: '/tai-lieu', 
-      label: 'Đề thi',
-      dropdown: [
-        { href: '/tai-lieu?examType=VAO_10', label: 'Đề thi vào 10' },
-        { href: '/tai-lieu?examType=THPT', label: 'Đề thi THPT' },
-      ]
-    },
-    { 
-      href: '/ai-grader', 
-      label: 'Luyện Writing',
-      dropdown: [
-        { href: '/ai-grader/ielts', label: 'Luyện IELTS' },
-        { href: '/ai-grader/toeic', label: 'Luyện TOEIC' },
-        { href: '/ai-grader/hsk', label: 'Luyện HSK' },
-        { href: '/ai-grader/topik', label: 'Luyện TOPIK' },
-      ]
-    },
-    { 
-      href: '/tools',
-      label: 'Công cụ',
-      dropdown: [
-        { href: '/tools/casio', label: 'Máy tính Khoa học' },
-        { href: '/tools/convert', label: 'Chuyển đổi ảnh' },
-        { href: '/tools/compress', label: 'Nén Ảnh/File' },
-        { href: '/tools/lock', label: 'Khóa/Mở PDF' },
-        { href: '/tools/remove-pages', label: 'Xóa trang PDF' },
-        { href: '/tools/merge-files', label: 'Gộp PDF' },
-      ]
-    },
+    { href: '/speaking', label: 'Luyện Speaking', dropdown: [{ href: '/speaking', label: 'IELTS & TOEIC Speaking' }] },
+    { href: '/ai-grader', label: 'Luyện Writing', dropdown: [
+      { href: '/ai-grader/ielts', label: 'Luyện IELTS' }, { href: '/ai-grader/toeic', label: 'Luyện TOEIC' },
+      { href: '/ai-grader/hsk', label: 'Luyện HSK' }, { href: '/ai-grader/topik', label: 'Luyện TOPIK' },
+    ] },
   ]
-
   const enNavLinks = [
-    { 
-      href: '/en/ai-grader', 
-      label: 'Writing Grader',
-      dropdown: [
-        { href: '/en/ai-grader/ielts', label: 'IELTS Grader' },
-        { href: '/en/ai-grader/toeic', label: 'TOEIC Grader' },
-        { href: '/en/ai-grader/hsk', label: 'HSK Grader' },
-        { href: '/en/ai-grader/topik', label: 'TOPIK Grader' },
-      ]
-    },
-    { 
-      href: '/en/tools',
-      label: 'Tools',
-      dropdown: [
-        { href: '/en/tools/casio', label: 'Scientific Calculator' },
-        { href: '/en/tools/convert', label: 'Image Converter' },
-        { href: '/en/tools/compress', label: 'File Compressor' },
-        { href: '/en/tools/lock', label: 'Lock/Unlock PDF' },
-        { href: '/en/tools/remove-pages', label: 'Remove Pages' },
-        { href: '/en/tools/merge-files', label: 'Merge PDFs' },
-      ]
-    },
+    { href: '/speaking', label: 'Speaking Practice', dropdown: [{ href: '/speaking', label: 'IELTS & TOEIC Speaking' }] },
+    { href: '/en/ai-grader', label: 'Writing Practice', dropdown: [
+      { href: '/en/ai-grader/ielts', label: 'IELTS Writing' }, { href: '/en/ai-grader/toeic', label: 'TOEIC Writing' },
+      { href: '/en/ai-grader/hsk', label: 'HSK Writing' }, { href: '/en/ai-grader/topik', label: 'TOPIK Writing' },
+    ] },
   ]
 
   const navLinks = isEnRoute ? enNavLinks : vnNavLinks
@@ -208,7 +165,7 @@ export function Header() {
 
           <Link 
             prefetch={false}
-            href={isEnRoute ? (pathname.replace(/^\/en/, '') || '/') : (`/en${pathname === '/' ? '' : pathname}`)} 
+            href={pathname === '/speaking' ? '/en' : isEnRoute ? (pathname.replace(/^\/en/, '') || '/') : (`/en${pathname === '/' ? '' : pathname}`)}
             className="flex items-center gap-1.5 h-9 px-2.5 rounded-[6px] border border-[var(--border-color)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-color-hover)] transition-all"
             aria-label="Toggle Language"
             title={isEnRoute ? 'Chuyển sang Tiếng Việt' : 'Switch to English'}
@@ -232,7 +189,7 @@ export function Header() {
           {/* Drawer */}
           <div className="fixed top-0 left-0 bottom-0 z-[110] w-[300px] max-w-[85vw] bg-white dark:bg-[#0D1117] border-r border-[var(--border-color)] shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-color)]">
-              <Link prefetch={false} href={isEnRoute ? "/en/tools" : "/"} className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+              <Link prefetch={false} href={isEnRoute ? "/en" : "/"} className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
                 <Image src="/logo.jpg" alt="VNDocs" width={36} height={36} className="rounded-md" />
                 <span className="text-xl font-[900] tracking-tight text-[var(--text-primary)]">VNDocs</span>
               </Link>

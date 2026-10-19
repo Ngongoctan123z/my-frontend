@@ -8,8 +8,9 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
         disallow: [
-          '/quan-tri-he-thong-123/',
-          '/quan-ly-he-thong-123/',
+          // Retired URLs remain crawlable so Google can see their 410/noindex.
+          '/quan-ly-de-thi-123',
+          '/quan-ly-he-thong-123',
           '/about',
           '/contact',
           '/privacy',

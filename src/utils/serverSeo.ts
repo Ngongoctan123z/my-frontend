@@ -1,9 +1,11 @@
+import { isRetiredPath, hasRetiredSeo } from '@/src/lib/siteSections'
 import type { Metadata } from 'next'
 import { getOptionalDb } from '@/src/db'
 import { systemConfigs } from '@/src/db/schema'
 import { inArray, eq } from 'drizzle-orm'
 
 export async function getRouteMetadata(path: string, fallbackTitle: string, fallbackDesc: string): Promise<Metadata> {
+  if (isRetiredPath(path)) return { title: 'Nội dung đã được gỡ | VNDocs', robots: { index: false, follow: false, noarchive: true } }
   let title = fallbackTitle;
   let description = fallbackDesc;
   let ogImage = '';
@@ -22,19 +24,21 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       for (const row of rows) configMap[row.key] = row.value
 
       // 1. Lấy cấu hình Global trước làm mặc định
-      if (path === '/' || path === 'GLOBAL') {
+      if ((path === '/' || path === 'GLOBAL') && !hasRetiredSeo(configMap.SEO_TITLE) && !hasRetiredSeo(configMap.SEO_DESCRIPTION)) {
         title = configMap.SEO_TITLE || title;
         description = configMap.SEO_DESCRIPTION || description;
       }
-      ogImage = configMap.SEO_OG_IMAGE || ogImage;
+      if (!hasRetiredSeo(configMap.SEO_TITLE) && !hasRetiredSeo(configMap.SEO_DESCRIPTION) && !hasRetiredSeo(configMap.SEO_OG_IMAGE)) ogImage = configMap.SEO_OG_IMAGE || ogImage;
 
       // 2. Ghi đè bằng cấu hình riêng của từng trang (nếu có)
       if (configMap[routeKey]) {
         try {
           const routeSeo = JSON.parse(configMap[routeKey])
-          if (routeSeo.title) title = routeSeo.title
-          if (routeSeo.description) description = routeSeo.description
-          if (routeSeo.ogImage) ogImage = routeSeo.ogImage
+          if (!hasRetiredSeo(routeSeo.title) && !hasRetiredSeo(routeSeo.description)) {
+            if (routeSeo.title) title = routeSeo.title
+            if (routeSeo.description) description = routeSeo.description
+            if (routeSeo.ogImage && !hasRetiredSeo(routeSeo.ogImage)) ogImage = routeSeo.ogImage
+          }
         } catch(e) {}
       }
     }
@@ -79,6 +83,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
 }
 
 export async function getCustomRouteSeo(path: string) {
+  if (isRetiredPath(path)) return null
   try {
     const db = await getOptionalDb()
     if (db) {
@@ -90,7 +95,8 @@ export async function getCustomRouteSeo(path: string) {
         .where(eq(systemConfigs.key, routeKey))
         .limit(1)
       if (rows[0]?.value) {
-        return JSON.parse(rows[0].value)
+        const saved = JSON.parse(rows[0].value)
+        return hasRetiredSeo(saved.title) || hasRetiredSeo(saved.description) || hasRetiredSeo(saved.h1) ? null : saved
       }
     }
   } catch (e) {}

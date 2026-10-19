@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Contact & Partnership | VNDocs',
-  description: 'Contact VNDocs for feedback, document contributions, partnership inquiries, or bug reports. Our team is always ready to help.',
+  description: 'Contact VNDocs for feedback, Writing/Speaking suggestions, partnership inquiries, or bug reports. Our team is always ready to help.',
   robots: { index: false, follow: false }
 }
 
