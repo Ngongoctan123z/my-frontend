@@ -1,31 +1,25 @@
+import { isRetiredPath, hasRetiredSeo, SITE_TITLE, SITE_DESCRIPTION } from '@/src/lib/siteSections'
 import React, { useEffect, useState } from 'react'
 import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map, X } from 'lucide-react'
 
 const SEO_ROUTES = [
+  { path: '/speaking', name: 'Luyện Speaking IELTS & TOEIC', category: 'Luyện Speaking', icon: PenTool, defaultTitle: 'Luyện IELTS & TOEIC Speaking Online | VNDocs', defaultDesc: 'Ghi âm, nghe lại, xem bản chép lời và nhận góp ý cho bài nói IELTS, TOEIC.' },
   // 1. Cơ bản & Hệ thống
   { 
     path: 'GLOBAL', 
     name: 'SEO Toàn Trang (Mặc định)', 
     category: 'Cơ bản & Hệ thống',
     icon: Globe,
-    defaultTitle: 'VNDocs - Kho tài liệu miễn phí',
-    defaultDesc: 'Mô tả ngắn gọn về trang web...'
+    defaultTitle: SITE_TITLE,
+    defaultDesc: SITE_DESCRIPTION
   },
   { 
     path: '/', 
     name: 'Trang Chủ', 
     category: 'Cơ bản & Hệ thống',
     icon: LayoutTemplate,
-    defaultTitle: 'VNDocs - Trang đề thi, công cụ học tập và làm việc miễn phí',
-    defaultDesc: 'Nền tảng học tập trực tuyến cung cấp kho đề thi vào 10, đề thi THPT, luyện writing IELTS, TOEIC, cùng bộ công cụ xử lý file hoàn toàn miễn phí.'
-  },
-  { 
-    path: '/tai-lieu', 
-    name: 'Kho Đề Thi & Tài Liệu', 
-    category: 'Cơ bản & Hệ thống',
-    icon: FileText,
-    defaultTitle: 'Thư Viện Đề Thi & Tài Liệu Miễn Phí (PDF) | VNDocs',
-    defaultDesc: 'Tải miễn phí hàng ngàn tài liệu luyện thi, đề thi vào 10, đề thi THPT Quốc gia (Toán, Văn, Anh), PDF ôn thi IELTS, TOEIC cập nhật mới nhất có đáp án.'
+    defaultTitle: SITE_TITLE,
+    defaultDesc: SITE_DESCRIPTION
   },
   { 
     path: '/premium', 
@@ -84,62 +78,6 @@ const SEO_ROUTES = [
   },
 
   // 3. Công Cụ & Tiện Ích
-  { 
-    path: '/tools', 
-    name: 'Công Cụ Tiện Ích (Tổng hợp)', 
-    category: 'Công Cụ & Tiện Ích',
-    icon: Layers,
-    defaultTitle: 'Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs',
-    defaultDesc: 'Công cụ gộp PDF, cắt PDF, khóa PDF, chuyển đổi định dạng, và máy tính khoa học ảo miễn phí 100%.'
-  },
-  { 
-    path: '/tools/merge-files', 
-    name: 'Gộp File PDF Online', 
-    category: 'Công Cụ & Tiện Ích',
-    icon: Layers,
-    defaultTitle: 'Gộp File PDF Trực Tuyến Miễn Phí | VNDocs',
-    defaultDesc: 'Ghép nhiều file PDF hoặc ảnh thành một tài liệu duy nhất. Kéo thả sắp xếp thứ tự trang nhanh chóng, bảo mật tuyệt đối trên trình duyệt.'
-  },
-  { 
-    path: '/tools/remove-pages', 
-    name: 'Tách & Xóa Trang PDF', 
-    category: 'Công Cụ & Tiện Ích',
-    icon: Layers,
-    defaultTitle: 'Xóa Trang PDF & Cắt File PDF Trực Tuyến | VNDocs',
-    defaultDesc: 'Tách trang, xóa trang thừa hoặc trích xuất trang cần thiết từ tài liệu PDF dễ dàng, bảo mật và hoàn toàn miễn phí.'
-  },
-  { 
-    path: '/tools/lock', 
-    name: 'Khóa / Mở Khóa PDF', 
-    category: 'Công Cụ & Tiện Ích',
-    icon: Layers,
-    defaultTitle: 'Đặt Mật Khẩu & Mở Khóa File PDF | VNDocs',
-    defaultDesc: 'Mã hóa tài liệu PDF bằng mật khẩu chống sao chép in ấn, hoặc mở khóa bảo vệ file PDF nhanh chóng ngay trên trình duyệt.'
-  },
-  { 
-    path: '/tools/compress', 
-    name: 'Nén Ảnh & File ZIP', 
-    category: 'Công Cụ & Tiện Ích',
-    icon: Layers,
-    defaultTitle: 'Nén Ảnh & Đóng Gói File ZIP Trực Tuyến | VNDocs',
-    defaultDesc: 'Giảm dung lượng ảnh JPG, PNG và nén nhiều file vào tập tin .zip an toàn, xử lý 100% trên trình duyệt không tải lên máy chủ.'
-  },
-  { 
-    path: '/tools/convert', 
-    name: 'Chuyển Đổi Định Dạng Ảnh', 
-    category: 'Công Cụ & Tiện Ích',
-    icon: Layers,
-    defaultTitle: 'Chuyển Đổi Định Dạng Ảnh Trực Tuyến | VNDocs',
-    defaultDesc: 'Chuyển đổi linh hoạt giữa các định dạng ảnh JPG, PNG, WEBP, BMP, GIF, ICO hoàn toàn miễn phí với chất lượng cao.'
-  },
-  { 
-    path: '/tools/casio', 
-    name: 'Máy Tính Casio 580 Online', 
-    category: 'Công Cụ & Tiện Ích',
-    icon: Layers,
-    defaultTitle: 'Giả Lập Máy Tính Casio Fx-580VN X Online | VNDocs',
-    defaultDesc: 'Trình giả lập máy tính khoa học Casio fx-580VN X và fx-570VN Plus trực tuyến, giải toán nhanh, tính phương trình, ma trận miễn phí.'
-  },
 
   // 4. Quốc Tế & Tiếng Anh (/en)
   { 
@@ -147,8 +85,8 @@ const SEO_ROUTES = [
     name: 'EN: Homepage', 
     category: 'English Pages (/en)',
     icon: Globe,
-    defaultTitle: 'VNDocs — Free Online Exam Prep, Writing Practice & PDF Utilities',
-    defaultDesc: 'All-in-one learning and productivity platform: free exam preparation, automated writing evaluation for IELTS, TOEIC, TOPIK, HSK, and essential PDF utilities.'
+    defaultTitle: 'VNDocs — Writing and Speaking Practice',
+    defaultDesc: 'Practice Writing and Speaking with detailed feedback, recordings, transcripts and learning history.'
   },
   { 
     path: '/en/ai-grader', 
@@ -196,62 +134,6 @@ const SEO_ROUTES = [
     defaultH1: 'HSK Online Writing Practice'
   },
   { 
-    path: '/en/tools', 
-    name: 'EN: PDF & Productivity Tools', 
-    category: 'English Pages (/en)',
-    icon: Layers,
-    defaultTitle: 'Free PDF & Productivity Tools Online | VNDocs',
-    defaultDesc: '100% Free browser-based tools: merge PDF, remove PDF pages, protect PDF, compress images, and use the online scientific calculator emulator.'
-  },
-  { 
-    path: '/en/tools/merge-files', 
-    name: 'EN: Merge PDF Online', 
-    category: 'English Pages (/en)',
-    icon: Layers,
-    defaultTitle: 'Merge PDF Online — Combine PDF Files & Images Free | VNDocs',
-    defaultDesc: 'Combine multiple PDF documents and images into a single file easily. Reorder pages with intuitive drag-and-drop. 100% private, processed directly in your browser.'
-  },
-  { 
-    path: '/en/tools/remove-pages', 
-    name: 'EN: Remove PDF Pages', 
-    category: 'English Pages (/en)',
-    icon: Layers,
-    defaultTitle: 'Remove PDF Pages — Split & Delete Pages Online Free | VNDocs',
-    defaultDesc: 'Easily delete unwanted pages, extract specific pages, or split PDF documents online. Fast, secure, and entirely processed client-side without server uploads.'
-  },
-  { 
-    path: '/en/tools/lock', 
-    name: 'EN: Protect & Lock PDF', 
-    category: 'English Pages (/en)',
-    icon: Layers,
-    defaultTitle: 'Protect PDF — Encrypt & Password Protect PDF Files | VNDocs',
-    defaultDesc: 'Secure sensitive PDF documents with strong AES encryption and password protection. Prevent unauthorized viewing or printing directly in your browser.'
-  },
-  { 
-    path: '/en/tools/compress', 
-    name: 'EN: Compress Images & ZIP', 
-    category: 'English Pages (/en)',
-    icon: Layers,
-    defaultTitle: 'Compress Images & Create ZIP Archives Online Free | VNDocs',
-    defaultDesc: 'Reduce JPG, PNG, and WebP image file sizes without quality loss. Compress multiple files into .zip directly in your browser with zero server uploads.'
-  },
-  { 
-    path: '/en/tools/convert', 
-    name: 'EN: Image Format Converter', 
-    category: 'English Pages (/en)',
-    icon: Layers,
-    defaultTitle: 'Image Format Converter — Convert JPG, PNG, WEBP, GIF Online | VNDocs',
-    defaultDesc: 'Quickly convert images between JPG, PNG, WEBP, BMP, GIF, and ICO formats in high quality. Free batch conversion processed securely in your browser.'
-  },
-  { 
-    path: '/en/tools/casio', 
-    name: 'EN: Casio Calculator Emulator', 
-    category: 'English Pages (/en)',
-    icon: Layers,
-    defaultTitle: 'Online Scientific Calculator (Casio Fx-580VN X Emulator) | VNDocs',
-    defaultDesc: 'Free online scientific calculator simulator compatible with Casio fx-580VN X and fx-570VN Plus. Solve equations, fractions, matrices, and statistics instantly in browser.'
-  },
-  { 
     path: '/en/premium', 
     name: 'EN: Premium Upgrade', 
     category: 'English Pages (/en)',
@@ -274,6 +156,7 @@ export function SeoTab() {
   
   // Custom paths created by user
   const [customRoutes, setCustomRoutes] = useState<string[]>([])
+  const [retiredConfigKeys, setRetiredConfigKeys] = useState<string[]>([])
   
   // Lưu state cho toàn bộ routes
   const [configs, setConfigs] = useState<Record<string, any>>({})
@@ -289,11 +172,13 @@ export function SeoTab() {
     fetch('/api/admin?type=configs')
       .then(res => res.json())
       .then(data => {
+        const obsoleteGlobal = hasRetiredSeo(data.SEO_TITLE) || hasRetiredSeo(data.SEO_DESCRIPTION)
+        setRetiredConfigKeys(Object.keys(data).filter(key => key.startsWith('SEO_ROUTE_') && isRetiredPath(key.slice(10))))
         const loadedConfigs: Record<string, any> = {
           GLOBAL: {
-            SEO_TITLE: data.SEO_TITLE || '',
-            SEO_DESCRIPTION: data.SEO_DESCRIPTION || '',
-            SEO_OG_IMAGE: data.SEO_OG_IMAGE || ''
+            SEO_TITLE: obsoleteGlobal ? '' : data.SEO_TITLE || '',
+            SEO_DESCRIPTION: obsoleteGlobal ? '' : data.SEO_DESCRIPTION || '',
+            SEO_OG_IMAGE: obsoleteGlobal ? '' : data.SEO_OG_IMAGE || ''
           }
         }
         
@@ -303,8 +188,10 @@ export function SeoTab() {
         Object.keys(data).forEach(key => {
           if (key.startsWith('SEO_ROUTE_')) {
             const path = key.replace('SEO_ROUTE_', '')
+            if (isRetiredPath(path)) return
             try {
-              const parsed = JSON.parse(data[key])
+              let parsed = JSON.parse(data[key])
+              if (hasRetiredSeo(parsed.title) || hasRetiredSeo(parsed.description) || hasRetiredSeo(parsed.h1)) parsed = {}
               loadedConfigs[path] = {
                 SEO_TITLE: parsed.title || '',
                 SEO_DESCRIPTION: parsed.description || '',
@@ -353,6 +240,7 @@ export function SeoTab() {
       path = '/' + path
     }
     
+    if (isRetiredPath(path)) { alert('Mục này đã được gỡ và không còn nhận cấu hình SEO.'); return }
     if (SEO_ROUTES.some(r => r.path === path) || customRoutes.includes(path)) {
       alert('Đường dẫn này đã tồn tại trong danh sách!')
       return
@@ -377,6 +265,7 @@ export function SeoTab() {
       SEO_OG_IMAGE: configs.GLOBAL.SEO_OG_IMAGE,
     }
 
+    for (const key of retiredConfigKeys) payload[key] = ''
     const allPaths = [...SEO_ROUTES.map(r => r.path).filter(p => p !== 'GLOBAL'), ...customRoutes]
 
     allPaths.forEach(path => {

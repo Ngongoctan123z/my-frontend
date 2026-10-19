@@ -324,7 +324,7 @@ export function ChatBubble({ onClose }: { onClose: () => void }) {
                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 space-y-2 p-4">
                   <MessageSquare size={40} className="opacity-20 text-blue-600" />
                   <p className="text-xs leading-relaxed">
-                    Chào bạn! Bạn cần hỗ trợ về đề thi, phòng luyện thi hay tài khoản?<br />
+                    Chào bạn! Bạn cần hỗ trợ luyện Writing, Speaking hay tài khoản?<br />
                     Hãy gửi tin nhắn hoặc tài liệu cho đội ngũ hỗ trợ nhé.
                   </p>
                 </div>

@@ -174,18 +174,13 @@ export default async function ToeicPage() {
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
-            Tài liệu ôn thi và các phòng thực hành bổ trợ
+            Các phòng luyện Writing và Speaking
           </h3>
           <p className="text-slate-600 leading-relaxed mb-4">
             Để nâng cao kỹ năng toàn diện, bạn có thể kết hợp ôn luyện với các tài nguyên học tập hữu ích tại VNDocs:
           </p>
           <ul className="text-slate-600 space-y-2 mb-8">
-            <li>
-              Tải tài liệu từ vựng công sở và đề thi mẫu tại{' '}
-              <Link href="/ai-grader/tai-lieu-tong-hop" className="text-blue-600 font-semibold hover:underline">
-                Kho tài liệu luyện thi miễn phí
-              </Link>.
-            </li>
+            <li><Link href="/speaking" className="text-blue-600 font-semibold hover:underline">Luyện Speaking IELTS và TOEIC</Link>: ghi âm, nghe lại và nhận góp ý cho bài nói.</li>
             <li>
               Khám phá thêm các phòng luyện viết khác: phòng luyện{' '}
               <Link href="/ai-grader/ielts" className="text-blue-600 font-semibold hover:underline">

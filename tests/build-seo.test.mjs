@@ -29,14 +29,15 @@ async function loadSeo({ bindingAvailable = true, rows = [], dbError = null, roo
       }, { context })
     } else {
       let source = await readFile(new URL('../src/utils/serverSeo.ts', import.meta.url), 'utf8')
-      if (rootMetadata) {
+      if (id === '@/src/lib/siteSections') source = await readFile(new URL('../src/lib/siteSections.ts', import.meta.url), 'utf8')
+      if (rootMetadata && id === 'seo') {
         // Execute the actual metadata function from the TSX layout without
         // requiring React/Next's unrelated JSX rendering dependencies.
         const layout = await readFile(new URL('../app/layout.tsx', import.meta.url), 'utf8')
         const start = layout.indexOf('export async function generateMetadata')
         const end = layout.indexOf('export default function RootLayout')
         assert.ok(start >= 0 && end > start)
-        source = `import { getOptionalDb } from '@/src/db';\nimport { systemConfigs } from '@/src/db/schema';\nimport { inArray } from 'drizzle-orm';\n${layout.slice(start, end)}`
+        source = `import { SITE_TITLE, SITE_DESCRIPTION, hasRetiredSeo } from '@/src/lib/siteSections';\nimport { getOptionalDb } from '@/src/db';\nimport { systemConfigs } from '@/src/db/schema';\nimport { inArray } from 'drizzle-orm';\n${layout.slice(start, end)}`
       }
       module = new SourceTextModule(stripTypeScriptTypes(source), { context })
     }
@@ -174,4 +175,17 @@ test('invalid saved SEO JSON does not break metadata generation', async () => {
   const { seo } = await loadSeo({ rows: [{ key: 'SEO_ROUTE_/', value: '{broken' }] })
   assert.equal((await seo.getRouteMetadata('/', 'Fallback', 'Description')).title, 'Fallback')
   assert.equal(await seo.getCustomRouteSeo('/'), null)
+})
+
+test('saved global exam SEO cannot restore the removed library in root metadata', async () => {
+  const {seo}=await loadSeo({rootMetadata:true,rows:[{key:'SEO_TITLE',value:'VNDocs - Trang đề thi vào 10 và THPT'},{key:'SEO_DESCRIPTION',value:'Kho đề thi THPT miễn phí'},{key:'SEO_OG_IMAGE',value:'https://vndocs.net/old-exams.png'}]})
+  const metadata=await seo.generateMetadata();assert.match(metadata.title,/Writing.*Speaking/);assert.ok(!metadata.description.includes('THPT'));assert.ok(!metadata.openGraph.images[0].url.includes('old-exams.png'))
+})
+test('retired route metadata is noindex and never reads its old saved D1 SEO', async () => {
+ const {seo,state}=await loadSeo({rows:[{value:JSON.stringify({title:'Old exam title'})}]})
+ const metadata=await seo.getRouteMetadata('/exams/vao-10/toan/ha-noi/2026','Old exam','Old description');assert.equal(metadata.robots.index,false);assert.equal(await seo.getCustomRouteSeo('/tai-lieu'),null);assert.equal(state.dbCalls,0)
+})
+test('old custom homepage exam SEO falls back to Writing and Speaking',async()=>{
+ const {seo}=await loadSeo({rows:[{key:'SEO_ROUTE_/',value:JSON.stringify({title:'Đề thi vào lớp 10',description:'Kho tài liệu THPT',ogImage:'https://vndocs.net/old.png'})}]})
+ const metadata=await seo.getRouteMetadata('/','Writing and Speaking','Language practice');assert.equal(metadata.title,'Writing and Speaking');assert.equal(metadata.description,'Language practice');assert.ok(!metadata.openGraph.images[0].url.includes('old.png'))
 })

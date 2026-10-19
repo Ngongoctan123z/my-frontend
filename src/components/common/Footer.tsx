@@ -9,74 +9,24 @@ export function Footer() {
   const isEn = pathname.startsWith('/en/') || pathname === '/en'
 
   const vnContent = {
-    desc: 'Nền tảng đề thi & công cụ học tập miễn phí. Kho tài liệu phong phú cùng hệ thống luyện thi và bộ công cụ học tập mạnh mẽ.',
-    col1: {
-      title: 'Học Tập',
-      links: [
-        { href: '/tai-lieu?examType=VAO_10', label: 'Đề thi vào lớp 10' },
-        { href: '/tai-lieu?examType=THPT', label: 'Đề thi THPT Quốc Gia' },
-        { href: '/tai-lieu', label: 'Tất cả tài liệu' },
-        { href: '/ai-grader/tai-lieu-tong-hop', label: 'Tài liệu miễn phí' },
-      ]
-    },
-    col2: {
-      title: 'Tiện Ích & Luyện Thi',
-      links: [
-        { href: '/ai-grader', label: 'Luyện Writing IELTS/TOEIC' },
-        { href: '/tools/merge-files', label: 'Gộp file PDF' },
-        { href: '/tools/remove-pages', label: 'Xóa trang PDF' },
-        { href: '/tools/lock', label: 'Đặt mật khẩu PDF' },
-        { href: '/tools/casio', label: 'Máy tính Casio online' },
-      ]
-    },
-    col3: {
-      title: 'Hỗ Trợ',
-      links: [
-        { href: '/about', label: 'Về chúng tôi' },
-        { href: '/terms', label: 'Điều khoản sử dụng' },
-        { href: '/privacy', label: 'Chính sách bảo mật' },
-        { href: '/contact', label: 'Liên hệ hợp tác' },
-      ]
-    },
-    bottom: [
-      { href: '/', label: 'Trang chủ' },
-      { href: '/tai-lieu', label: 'Tài liệu' },
-    ]
+    desc: 'Luyện Writing và Speaking trực tuyến. Nhận góp ý chi tiết, xem lại bài làm và theo dõi tiến bộ.',
+    col1: { title: 'Luyện Writing', links: [
+      { href: '/ai-grader/ielts', label: 'IELTS Writing' }, { href: '/ai-grader/toeic', label: 'TOEIC Writing' },
+      { href: '/ai-grader/topik', label: 'TOPIK Writing' }, { href: '/ai-grader/hsk', label: 'HSK Writing' },
+    ] },
+    col2: { title: 'Luyện Speaking', links: [{ href: '/speaking', label: 'IELTS & TOEIC Speaking' }] },
+    col3: { title: 'Hỗ trợ', links: [{ href: '/about', label: 'Về chúng tôi' }, { href: '/terms', label: 'Điều khoản sử dụng' }, { href: '/privacy', label: 'Chính sách bảo mật' }, { href: '/contact', label: 'Liên hệ' }] },
+    bottom: [{ href: '/', label: 'Trang chủ' }, { href: '/ai-grader', label: 'Writing' }, { href: '/speaking', label: 'Speaking' }],
   }
-
   const enContent = {
-    desc: 'Free learning tools platform. Enhance your language skills with smart grading and streamline your workflow with our PDF toolset.',
-    col1: {
-      title: 'Language Writing Grader',
-      links: [
-        { href: '/en/ai-grader/ielts', label: 'IELTS Writing Grader' },
-        { href: '/en/ai-grader/toeic', label: 'TOEIC Writing Grader' },
-        { href: '/en/ai-grader/hsk', label: 'HSK Writing Grader' },
-        { href: '/en/ai-grader/topik', label: 'TOPIK Writing Grader' },
-      ]
-    },
-    col2: {
-      title: 'PDF Tools',
-      links: [
-        { href: '/en/tools/merge-files', label: 'Merge PDF' },
-        { href: '/en/tools/remove-pages', label: 'Remove PDF Pages' },
-        { href: '/en/tools/lock', label: 'Lock/Unlock PDF' },
-        { href: '/en/tools/convert', label: 'Image to PDF' },
-        { href: '/en/tools/compress', label: 'Compress PDF' },
-      ]
-    },
-    col3: {
-      title: 'Support',
-      links: [
-        { href: '/en/about', label: 'About Us' },
-        { href: '/en/terms', label: 'Terms of Use' },
-        { href: '/en/privacy', label: 'Privacy Policy' },
-        { href: '/en/contact', label: 'Contact Us' },
-      ]
-    },
-    bottom: [
-      { href: '/en', label: 'Home' },
-    ]
+    desc: 'Online Writing and Speaking practice with detailed feedback, recordings and learning history.',
+    col1: { title: 'Writing Practice', links: [
+      { href: '/en/ai-grader/ielts', label: 'IELTS Writing' }, { href: '/en/ai-grader/toeic', label: 'TOEIC Writing' },
+      { href: '/en/ai-grader/topik', label: 'TOPIK Writing' }, { href: '/en/ai-grader/hsk', label: 'HSK Writing' },
+    ] },
+    col2: { title: 'Speaking Practice', links: [{ href: '/speaking', label: 'IELTS & TOEIC Speaking' }] },
+    col3: { title: 'Support', links: [{ href: '/en/about', label: 'About Us' }, { href: '/en/terms', label: 'Terms of Use' }, { href: '/en/privacy', label: 'Privacy Policy' }, { href: '/en/contact', label: 'Contact Us' }] },
+    bottom: [{ href: '/en', label: 'Home' }, { href: '/en/ai-grader', label: 'Writing' }, { href: '/speaking', label: 'Speaking' }],
   }
 
   const content = isEn ? enContent : vnContent

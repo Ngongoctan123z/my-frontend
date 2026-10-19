@@ -1,8 +1,11 @@
+import { isRetiredPath, retiredSectionResponse } from './src/lib/siteSections'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  if (isRetiredPath(pathname)) return retiredSectionResponse()
 
   // Ignore API routes, static files, and _next
   if (
@@ -23,14 +26,14 @@ export function middleware(request: NextRequest) {
 
   // If user is NOT from VN and is NOT on an English route yet
   if (country !== 'VN' && !isEnRoute) {
-    // Only AI Grader and Tools are supported for non-VN users
-    if (pathname.startsWith('/ai-grader') || pathname.startsWith('/tools')) {
+    // Localize active Writing pages for non-VN users
+    if (pathname.startsWith('/ai-grader')) {
       const url = request.nextUrl.clone()
       url.pathname = `/en${pathname}`
       return NextResponse.redirect(url)
     } else if (pathname === '/') {
       const url = request.nextUrl.clone()
-      url.pathname = `/en/ai-grader`
+      url.pathname = '/en'
       return NextResponse.redirect(url)
     }
   }
