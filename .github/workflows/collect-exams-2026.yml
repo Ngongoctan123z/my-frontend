@@ -1,6 +1,11 @@
 name: Collect 2026 exam PDFs
 
 on:
+  pull_request:
+    paths:
+      - resources/exams-2026/sources.json
+      - scripts/collect-exams-2026.py
+      - .github/workflows/collect-exams-2026.yml
   push:
     branches: [codex/exams-2026]
     paths:
