@@ -1,0 +1,575 @@
+{
+  "requested": 101,
+  "downloaded": 7,
+  "unavailable": [
+    {
+      "id": 260000001,
+      "slug": "vao-10-ngu-van-can-tho-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-can-tho-2026-c29a90433.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 4}]"
+    },
+    {
+      "id": 260000002,
+      "slug": "vao-10-tieng-anh-can-tho-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-2026-can-tho-c29a90436.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000003,
+      "slug": "vao-10-ngu-van-gia-lai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-gia-lai-2026-c29a90421.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 6}]"
+    },
+    {
+      "id": 260000004,
+      "slug": "vao-10-tieng-anh-gia-lai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-gia-lai-mon-anh-2026-c29a90427.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 3}]"
+    },
+    {
+      "id": 260000005,
+      "slug": "vao-10-toan-gia-lai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-gia-lai-2026-c29a90428.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 9}]"
+    },
+    {
+      "id": 260000006,
+      "slug": "vao-10-ngu-van-quang-ninh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-ngu-van-quang-ninh-2026-c29a90362.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000007,
+      "slug": "vao-10-toan-quang-ninh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-toan-quang-ninh-2026-c29a90364.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 11}]"
+    },
+    {
+      "id": 260000008,
+      "slug": "vao-10-ngu-van-thanh-hoa-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-van-thanh-hoa-2026-c29a89882.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000009,
+      "slug": "vao-10-toan-thanh-hoa-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-thanh-hoa-2026-c29a89893.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 11}]"
+    },
+    {
+      "id": 260000010,
+      "slug": "vao-10-ngu-van-tp-ho-chi-minh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-tphcm-mon-van-2026-c29a89827.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 7}]"
+    },
+    {
+      "id": 260000011,
+      "slug": "vao-10-tieng-anh-tp-ho-chi-minh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-anh-tp-hcm-2026-c29a89839.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000012,
+      "slug": "vao-10-toan-tp-ho-chi-minh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-toan-tp-hcm-c29a89848.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 6}]"
+    },
+    {
+      "id": 260000016,
+      "slug": "vao-10-ngu-van-an-giang-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-van-an-giang-2026-c29a89845.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000017,
+      "slug": "vao-10-tieng-anh-an-giang-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-anh-an-giang-2026-c29a89855.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000018,
+      "slug": "vao-10-toan-an-giang-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-toan-an-giang-2026-c29a89863.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 10}]"
+    },
+    {
+      "id": 260000019,
+      "slug": "vao-10-ngu-van-bac-ninh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-bac-ninh-2026-c29a89721.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000020,
+      "slug": "vao-10-tieng-anh-bac-ninh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-mon-anh-vao-lop-10-bac-ninh-2026-c29a89728.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000021,
+      "slug": "vao-10-toan-bac-ninh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-mon-toan-vao-lop-10-bac-ninh-2026-c29a89735.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 11}]"
+    },
+    {
+      "id": 260000022,
+      "slug": "vao-10-ngu-van-da-nang-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-nam-2026-mon-van-da-nang-c29a89647.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000023,
+      "slug": "vao-10-toan-da-nang-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-da-nang-2026-c29a89666.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 10}]"
+    },
+    {
+      "id": 260000024,
+      "slug": "vao-10-toan-dong-nai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-dap-an-lop-10-mon-toan-dong-nai-c29a89763.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 10}]"
+    },
+    {
+      "id": 260000026,
+      "slug": "vao-10-ngu-van-dong-nai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-dong-nai-mon-van-2026-c29a89787.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000027,
+      "slug": "vao-10-ngu-van-dong-thap-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-dong-thap-2026-c29a89731.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000028,
+      "slug": "vao-10-tieng-anh-dong-thap-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-2026-dong-thap-c29a89754.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000029,
+      "slug": "vao-10-toan-dong-thap-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-2026-dong-thap-c29a89755.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 9}]"
+    },
+    {
+      "id": 260000030,
+      "slug": "vao-10-toan-ha-tinh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-ha-tinh-2026-c29a89707.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 20}]"
+    },
+    {
+      "id": 260000031,
+      "slug": "vao-10-tieng-anh-ha-tinh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-ha-tinh-2026-c29a89706.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 8}]"
+    },
+    {
+      "id": 260000032,
+      "slug": "vao-10-ngu-van-ha-tinh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-ha-tinh-2026-c29a89719.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000033,
+      "slug": "vao-10-tieng-anh-hai-phong-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-2026-hai-phong-c29a89826.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000034,
+      "slug": "vao-10-ngu-van-hai-phong-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-hai-phong-2026-c29a89828.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 6}]"
+    },
+    {
+      "id": 260000035,
+      "slug": "vao-10-toan-hai-phong-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-toan-hai-phong-2026-c29a89837.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000036,
+      "slug": "vao-10-ngu-van-hue-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-nam-2026-mon-van-hue-c29a89734.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 6}]"
+    },
+    {
+      "id": 260000037,
+      "slug": "vao-10-toan-hue-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-2026-hue-c29a89752.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 11}]"
+    },
+    {
+      "id": 260000038,
+      "slug": "vao-10-tieng-anh-hue-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-2026-hue-c29a89750.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000039,
+      "slug": "vao-10-ngu-van-hung-yen-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-hung-yen-2026-c29a89700.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000040,
+      "slug": "vao-10-toan-hung-yen-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-hung-yen-2026-c29a89709.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000041,
+      "slug": "vao-10-tieng-anh-hung-yen-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-tieng-anh-hung-yen-2026-c29a89722.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000043,
+      "slug": "vao-10-toan-khanh-hoa-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-2026-khanh-hoa-c29a89729.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 14}]"
+    },
+    {
+      "id": 260000044,
+      "slug": "vao-10-tieng-anh-khanh-hoa-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-khanh-hoa-2026-c29a89788.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000045,
+      "slug": "vao-10-ngu-van-lai-chau-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-lai-chau-2026-c29a89703.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000046,
+      "slug": "vao-10-tieng-anh-lai-chau-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-mon-anh-vao-lop-10-lai-chau-2026-c29a89714.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000047,
+      "slug": "vao-10-toan-lai-chau-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-lai-chau-2026-c29a89712.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 10}]"
+    },
+    {
+      "id": 260000049,
+      "slug": "vao-10-ngu-van-lang-son-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-lang-son-2026-c29a89723.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 4}]"
+    },
+    {
+      "id": 260000050,
+      "slug": "vao-10-toan-lang-son-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-2026-lang-son-c29a89738.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 9}]"
+    },
+    {
+      "id": 260000051,
+      "slug": "vao-10-ngu-van-lao-cai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-mon-van-vao-lop-10-lao-cai-2026-c29a89733.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000052,
+      "slug": "vao-10-tieng-anh-lao-cai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-2026-lao-cai-c29a89753.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000053,
+      "slug": "vao-10-ngu-van-nghe-an-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-nghe-an-2026-c29a89701.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000054,
+      "slug": "vao-10-tieng-anh-nghe-an-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-2026-nghe-an-c29a89713.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 10}]"
+    },
+    {
+      "id": 260000055,
+      "slug": "vao-10-toan-nghe-an-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-nghe-an-2026-c29a89724.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 11}]"
+    },
+    {
+      "id": 260000056,
+      "slug": "vao-10-ngu-van-ninh-binh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-ninh-binh-nam-2026-c29a89648.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000057,
+      "slug": "vao-10-toan-ninh-binh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-nam-2026-mon-toan-ninh-binh-c29a89667.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 9}]"
+    },
+    {
+      "id": 260000058,
+      "slug": "vao-10-ngu-van-ninh-binh-2026-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-mon-ngu-van-chuyen-ninh-binh-c29a89718.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 1}]"
+    },
+    {
+      "id": 260000059,
+      "slug": "vao-10-ngu-van-phu-tho-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-mon-van-vao-lop-10-phu-tho-2026-c29a89829.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000060,
+      "slug": "vao-10-tieng-anh-phu-tho-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-anh-phu-tho-2026-c29a89840.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000061,
+      "slug": "vao-10-toan-phu-tho-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-toan-phu-tho-2026-c29a89847.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 10}]"
+    },
+    {
+      "id": 260000062,
+      "slug": "vao-10-ngu-van-quang-ngai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-quang-ngai-2026-c29a89822.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000063,
+      "slug": "vao-10-toan-quang-ngai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-2026-quang-ngai-c29a89825.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 10}]"
+    },
+    {
+      "id": 260000064,
+      "slug": "vao-10-tieng-anh-quang-ngai-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-2026-quang-ngai-c29a89831.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000065,
+      "slug": "vao-10-toan-quang-tri-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-quang-tri-2026-c29a89704.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 21}]"
+    },
+    {
+      "id": 260000066,
+      "slug": "vao-10-ngu-van-quang-tri-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-quang-tri-2026-c29a89716.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000067,
+      "slug": "vao-10-tieng-anh-quang-tri-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-anh-quang-tri-2026-c29a89730.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 6}]"
+    },
+    {
+      "id": 260000068,
+      "slug": "vao-10-ngu-van-son-la-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-2026-son-la-c29a89830.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000069,
+      "slug": "vao-10-tieng-anh-son-la-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-anh-son-la-2026-c29a89849.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000070,
+      "slug": "vao-10-ngu-van-tay-ninh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-van-tay-ninh-2026-c29a89846.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000071,
+      "slug": "vao-10-toan-tay-ninh-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-lop-10-mon-toan-tay-ninh-2026-c29a89862.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 9}]"
+    },
+    {
+      "id": 260000072,
+      "slug": "vao-10-ngu-van-thai-nguyen-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-mon-van-vao-lop-10-thai-nguyen-2026-c29a89732.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 4}]"
+    },
+    {
+      "id": 260000073,
+      "slug": "vao-10-toan-thai-nguyen-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-2026-thai-nguyen-c29a89756.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 9}]"
+    },
+    {
+      "id": 260000074,
+      "slug": "vao-10-tieng-anh-thai-nguyen-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-dap-an-lop-10-mon-anh-thai-nguyen-c29a89760.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000075,
+      "slug": "vao-10-toan-tuyen-quang-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-toan-tuyen-quang-2026-c29a89740.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000077,
+      "slug": "vao-10-ngu-van-tuyen-quang-2026-khong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/dap-an-de-thi-vao-lop-10-mon-van-2026-tuyen-quang-c29a89751.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000078,
+      "slug": "vao-10-ngu-van-ha-noi-2026-thpt-chuyen-khoa-hoc-xa-hoi-va-nhan-van-de-chung-truong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-mon-van-vao-lop-10-chuyen-khoa-hoc-xa-hoi-va-nhan-van-hn-2026-c29a89650.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000079,
+      "slug": "vao-10-toan-ha-noi-2026-thpt-chuyen-khoa-hoc-xa-hoi-va-nhan-van-de-chung-truong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-mon-toan-2026-chuyen-khoa-hoc-xa-hoi-va-nhan-van-hn-c29a89660.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000080,
+      "slug": "vao-10-tieng-anh-ha-noi-2026-thpt-chuyen-khoa-hoc-xa-hoi-va-nhan-van-de-chung-truong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-mon-anh-chuyen-khoa-hoc-xa-hoi-va-nhan-van-hn-2026-c29a89665.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000081,
+      "slug": "vao-10-ngu-van-ha-noi-2026-thpt-chuyen-khoa-hoc-xa-hoi-va-nhan-van-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-mon-van-chuyen-2026-chuyen-khoa-hoc-xa-hoi-va-nhan-van-hn-c29a89686.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 1}]"
+    },
+    {
+      "id": 260000082,
+      "slug": "vao-10-lich-su-ha-noi-2026-thpt-chuyen-khoa-hoc-xa-hoi-va-nhan-van-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-tuyen-sinh-lop-10-mon-su-chuyen-2026-dh-khxhnv-c29a89694.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 1}]"
+    },
+    {
+      "id": 260000083,
+      "slug": "vao-10-dia-ly-ha-noi-2026-thpt-chuyen-khoa-hoc-xa-hoi-va-nhan-van-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-nam-2026-mon-dia-chuyen-khoa-hoc-xa-hoi-nhan-van-hn-c29a89688.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 1}]"
+    },
+    {
+      "id": 260000084,
+      "slug": "vao-10-ngu-van-ha-noi-2026-thpt-chuyen-khoa-hoc-tu-nhien-de-chung-truong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-mon-van-2026-chuyen-khoa-hoc-tu-nhien-c29a89649.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000085,
+      "slug": "vao-10-toan-ha-noi-2026-thpt-chuyen-khoa-hoc-tu-nhien-de-chung-truong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-nam-2026-mon-toan-chuyen-khoa-hoc-tu-nhien-hn-c29a89659.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 9}]"
+    },
+    {
+      "id": 260000086,
+      "slug": "vao-10-tieng-anh-ha-noi-2026-thpt-chuyen-khoa-hoc-tu-nhien-de-chung-truong-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-mon-anh-2026-chuyen-khoa-hoc-tu-nhien-hn-c29a89664.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000087,
+      "slug": "vao-10-toan-ha-noi-2026-thpt-chuyen-khoa-hoc-tu-nhien-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-mon-toan-vong-2-thpt-chuyen-khoa-hoc-tu-nhien-hn-2026-c29a89683.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 1}]"
+    },
+    {
+      "id": 260000088,
+      "slug": "vao-10-sinh-hoc-ha-noi-2026-thpt-chuyen-khoa-hoc-tu-nhien-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-nam-2026-mon-sinh-chuyen-truong-thpt-chuyen-khtn-c29a89695.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 5}]"
+    },
+    {
+      "id": 260000089,
+      "slug": "vao-10-vat-ly-ha-noi-2026-thpt-chuyen-khoa-hoc-tu-nhien-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-nam-2026-mon-ly-chuyen-chuyen-khoa-hoc-tu-nhien-hn-c29a89690.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 2}]"
+    },
+    {
+      "id": 260000090,
+      "slug": "vao-10-hoa-hoc-ha-noi-2026-thpt-chuyen-khoa-hoc-tu-nhien-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-10-mon-hoa-chuyen-2026-chuyen-khoa-hoc-tu-nhien-hn-c29a89691.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 2}]"
+    },
+    {
+      "id": 260000091,
+      "slug": "vao-10-tin-hoc-ha-noi-2026-thpt-chuyen-khoa-hoc-tu-nhien-chuyen",
+      "sourceUrl": "https://thi.tuyensinh247.com/de-thi-vao-lop-10-mon-tin-chuyen-2026-khoa-hoc-tu-nhien-hn-c29a89662.html",
+      "error": "Article container not recognized: [{\"tag\": \"div\", \"id\": \"mainContent\", \"class\": null, \"images\": 4}]"
+    },
+    {
+      "id": 260000092,
+      "slug": "thpt-ngu-van-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-mon-ngu-van-11926061110312488.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000093,
+      "slug": "thpt-toan-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-mon-toan-vua-suc-co-tinh-phan-hoa-ro-ret-119260611164121523.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000094,
+      "slug": "thpt-vat-ly-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-mon-vat-li-va-goi-y-dap-an-119260612135353486.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000095,
+      "slug": "thpt-hoa-hoc-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-mon-hoa-hoc-goi-y-dap-an-11926061210550049.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000096,
+      "slug": "thpt-sinh-hoc-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-mon-sinh-hoc-va-goi-y-dap-an-119260612144308789.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000097,
+      "slug": "thpt-tin-hoc-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-mon-tin-hoc-goi-y-dap-an-119260612145639712.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000098,
+      "slug": "thpt-lich-su-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-mon-lich-su-va-goi-y-dap-an-119260612112703181.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000099,
+      "slug": "thpt-dia-ly-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-mon-dia-li-va-goi-y-dap-an-119260612141919076.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000100,
+      "slug": "thpt-giao-duc-kinh-te-va-phap-luat-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-goi-y-dap-an-mon-giao-duc-kinh-te-va-phap-luat-11926061215251866.htm",
+      "error": "Asset host not in source allowlist"
+    },
+    {
+      "id": 260000101,
+      "slug": "thpt-tieng-anh-bo-gd-dt-2026",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/thi-tot-nghiep-thpt-2026-de-thi-tieng-anh-va-goi-y-dap-an-119260612132828853.htm",
+      "error": "Asset host not in source allowlist"
+    }
+  ],
+  "provincesWithFiles": [
+    "Hà Nội"
+  ],
+  "thptSubjects": [],
+  "note": "Metadata follows the source article. No question text or OCR was extracted. Separate official answer files have not been imported."
+}
