@@ -12,9 +12,10 @@ import { AdBanner } from '../components/common/AdBanner'
 import { getExams } from '../services/examService'
 import type { ExamType } from '../types/exam'
 import { SUBJECTS, YEARS } from '../utils/constants'
+import { archivedExams2026 } from '../lib/exams2026'
 import { useSeo } from '../utils/seo'
 
-export function SearchResults({ initialExams }: { initialExams?: import('../types/exam').ExamListResponse }) {
+export function SearchResults({ initialExams, initialFilterKey }: { initialFilterKey?: string; initialExams?: import('../types/exam').ExamListResponse }) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -57,7 +58,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
   const results = useQuery({
     queryKey: ['exams-search', filters],
     queryFn: () => getExams(filters),
-    initialData: (!q && !examType && !subject && !province && !year && sort === 'recent' && page === 0) ? initialExams : undefined
+    initialData: (page === 0 && initialFilterKey === JSON.stringify([q, examType, subject, province, year, sort])) ? initialExams : undefined
   })
 
   const totalCount = results.data?.total ?? 0
@@ -129,6 +130,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
 
   return (
     <div className="space-y-6">
+      {archivedExams2026.length > 0 && <Link href="/tai-lieu?year=2026" className="mx-1 flex items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700"><span><strong>Kho đề thi 2026</strong> · {archivedExams2026.length} PDF Vào 10 và THPT</span><span className="shrink-0 font-semibold">Xem kho →</span></Link>}
       {/* Quick Filters Banner */}
       <section className="sticky top-[66px] z-30 -mx-3 sm:-mx-6 md:-mx-8 mb-6 bg-surface/95 px-3 sm:px-6 md:px-8 pb-2 pt-3 backdrop-blur-md border-b border-line shadow-sm">
         <div className="mx-auto max-w-5xl relative">
@@ -374,6 +376,7 @@ export function SearchResults({ initialExams }: { initialExams?: import('../type
             </div>
           )}
 
+          {results.isError && <p role="alert" className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">Chưa kết nối được kho đề. Vui lòng thử lại; kho PDF năm 2026 có thể mở qua liên kết phía trên.</p>}
           {/* Exam Grid */}
           <ExamList
             exams={results.data?.data ?? []}

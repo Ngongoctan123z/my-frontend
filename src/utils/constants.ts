@@ -6,7 +6,9 @@ export const SAMPLE_PDF =
 
 export const SUBJECTS = [
   'Toán', 'Ngữ văn', 'Tiếng Anh', 'Vật lý', 'Hóa học', 'Sinh học', 
-  'Lịch sử', 'Địa lý', 'GDCD'
+  'Lịch sử', 'Địa lý', 'GDCD', 'Giáo dục kinh tế và pháp luật', 'Tin học',
+  'Công nghệ Công nghiệp', 'Công nghệ Nông nghiệp', 'Khoa học tự nhiên',
+  'Tiếng Pháp', 'Tiếng Đức', 'Tiếng Nga', 'Tiếng Trung Quốc', 'Tiếng Nhật', 'Tiếng Hàn'
 ] as const
 
 export const PROVINCES = [
@@ -20,8 +22,8 @@ export const PROVINCES = [
   'Phú Thọ', 'Phú Yên', 'Quảng Bình', 'Quảng Nam', 'Quảng Ngãi', 'Quảng Ninh',
   'Quảng Trị', 'Sóc Trăng', 'Sơn La', 'Tây Ninh', 'Thái Bình', 'Thái Nguyên',
   'Thanh Hóa', 'Thừa Thiên Huế', 'Tiền Giang', 'TP. Hồ Chí Minh', 'Trà Vinh',
-  'Tuyên Quang', 'Vĩnh Long', 'Vĩnh Phúc', 'Yên Bái'
+  'Huế', 'Tuyên Quang', 'Vĩnh Long', 'Vĩnh Phúc', 'Yên Bái'
 ] as const
 
-export const YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017] as const
+export const YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017] as const
 

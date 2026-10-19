@@ -109,7 +109,7 @@ export function Admin() {
         </button>
       </div>
       
-      <div className="flex gap-4 mb-6 border-b border-line pb-2">
+      <div className="flex gap-4 mb-6 overflow-x-auto border-b border-line pb-2 [&_button]:shrink-0 [&_button]:whitespace-nowrap">
         <button
           onClick={() => setActiveTab('list')}
           className={`font-medium pb-2 ${activeTab === 'list' ? 'text-primary border-b-2 border-primary' : 'text-ink-muted'}`}

@@ -90,8 +90,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pathName = examPath(exam as any)
   const canonical = `${FRONTEND_URL}${pathName}`
 
-  let finalTitle = title
-  let finalDesc = desc
+  let finalTitle = exam.seoTitle || title
+  let finalDesc = exam.sourceUrl && exam.description ? exam.description : desc
   let ogImage = `${FRONTEND_URL}/api/og?slug=${slug.join('/')}`
 
   const customSeo = await getCustomRouteSeo(pathName)
@@ -141,6 +141,9 @@ export default async function ExamPage({ params }: Props) {
   
   let relatedExams: import('../../../src/types/exam').Exam[] = []
   try {
+    if (exam.sourceUrl) {
+      relatedExams = await getRelatedExams(exam.id)
+    } else {
     const [p1, p2, p3] = await Promise.all([
       getExams({ examType: exam.examType, subject: exam.subject, year: exam.year, limit: 5 }),
       getExams({ examType: exam.examType, year: exam.year, limit: 5 }),
@@ -154,6 +157,7 @@ export default async function ExamPage({ params }: Props) {
       seen.add(e.id);
       return true;
     }).slice(0, 6);
+    }
   } catch (e) {}
 
   let desc = `${prefix}. Tải tài liệu định dạng ${exam.fileUrl?.endsWith('.pdf') ? 'PDF' : 'DOCX'} hoàn toàn miễn phí.`
@@ -176,7 +180,7 @@ export default async function ExamPage({ params }: Props) {
         '@type': 'LearningResource',
         '@id': `${FRONTEND_URL}${examPath(exam as any)}#resource`,
         name: exam.title || titleText,
-        description: desc,
+        description: exam.sourceUrl && exam.description ? exam.description : desc,
         inLanguage: 'vi',
         educationalLevel: examTypeLabel(exam.examType),
         learningResourceType: 'Đề thi',
@@ -195,7 +199,8 @@ export default async function ExamPage({ params }: Props) {
           url: FRONTEND_URL
         },
         encodingFormat: exam.fileUrl?.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        contentUrl: `${FRONTEND_URL}/files/${exam.slugIdentifier || exam.examCode}`
+        contentUrl: exam.sourceUrl ? exam.fileUrl : `${FRONTEND_URL}/files/${exam.slugIdentifier || exam.examCode}`,
+        ...(exam.sourceUrl ? { isBasedOn: exam.sourceUrl, citation: exam.sourceUrl } : {})
       },
       {
         '@type': 'BreadcrumbList',
@@ -211,19 +216,19 @@ export default async function ExamPage({ params }: Props) {
             '@type': 'ListItem',
             position: 2,
             name: examTypeLabel(exam.examType),
-            item: `${FRONTEND_URL}/category/${slug[0]}`,
+            item: `${FRONTEND_URL}/tai-lieu?examType=${encodeURIComponent(exam.examType)}`,
           },
           {
             '@type': 'ListItem',
             position: 3,
             name: exam.subject,
-            item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}`,
+            item: `${FRONTEND_URL}/tai-lieu?examType=${encodeURIComponent(exam.examType)}&subject=${encodeURIComponent(exam.subject)}`,
           },
           {
             '@type': 'ListItem',
             position: 4,
             name: exam.province,
-            item: `${FRONTEND_URL}/exams/${slug[0]}/${slug[1]}/${slug[2]}`,
+            item: `${FRONTEND_URL}/tai-lieu?examType=${encodeURIComponent(exam.examType)}&subject=${encodeURIComponent(exam.subject)}&province=${encodeURIComponent(exam.province)}`,
           },
           {
             '@type': 'ListItem',

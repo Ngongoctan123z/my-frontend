@@ -1,0 +1,24 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { archivedExams2026, filterArchivedExams, archiveProvinces2026, archiveThptSubjects2026 } from '@/src/lib/exams2026'
+import { examPath } from '@/src/utils/slug'
+import type { ExamType } from '@/src/types/exam'
+
+export function ExamArchive2026Tab() {
+  const [examType, setExamType] = useState<ExamType | ''>(''), [subject, setSubject] = useState(''), [province, setProvince] = useState(''), [q, setQ] = useState(''), [page, setPage] = useState(0)
+  const rows = filterArchivedExams({ examType, subject, province, q }), pageCount = Math.max(1, Math.ceil(rows.length / 15))
+  const missingProvinces = archiveProvinces2026.filter(province => !archivedExams2026.some(row => row.examType === 'VAO_10' && row.province === province))
+  const missingSubjects = archiveThptSubjects2026.filter(subject => !archivedExams2026.some(row => row.examType === 'THPT' && row.subject === subject))
+  const inputClass = 'min-h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700'
+  return <section className="min-w-0 space-y-4">
+    <div><h2 className="text-lg font-bold text-slate-800">Kho PDF đề thi 2026</h2><p className="mt-1 text-xs leading-5 text-slate-500">{archivedExams2026.length} file đã tải và lưu trên website. Mỗi đề có trang riêng, tiêu đề SEO và liên kết nguồn. Các lượt tải chưa được thống kê cho kho này.</p></div>
+    <details className="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-500"><summary className="cursor-pointer font-semibold text-slate-700">Đã có file Vào 10 từ {34 - missingProvinces.length}/34 tỉnh · THPT {18 - missingSubjects.length}/18 môn</summary><p className="mt-2">Chưa có PDF Vào 10: {missingProvinces.join(', ') || 'Đã có đại diện tất cả tỉnh'}. Một tỉnh có file chưa đồng nghĩa đã đủ mọi môn.</p><p className="mt-1">Môn THPT chưa có PDF: {missingSubjects.join(', ') || 'Đã đủ các môn'}. Các mục này chưa được đăng thành trang đề.</p></details>
+    <div className="flex gap-2 overflow-x-auto pb-1"><select aria-label="Loại đề PDF 2026" value={examType} onChange={e => { setExamType(e.target.value as ExamType | ''); setPage(0) }} className={`${inputClass} shrink-0`}><option value="">Tất cả kỳ thi</option><option value="VAO_10">Vào 10</option><option value="THPT">THPT</option></select><select aria-label="Môn PDF 2026" value={subject} onChange={e => { setSubject(e.target.value); setPage(0) }} className={`${inputClass} shrink-0`}><option value="">Tất cả môn</option>{[...new Set(archivedExams2026.map(row => row.subject))].sort().map(value => <option key={value}>{value}</option>)}</select><select aria-label="Tỉnh PDF 2026" value={province} onChange={e => { setProvince(e.target.value); setPage(0) }} className={`${inputClass} shrink-0`}><option value="">Tất cả tỉnh / đơn vị</option>{[...new Set(archivedExams2026.map(row => row.province))].sort().map(value => <option key={value}>{value}</option>)}</select></div>
+    <input aria-label="Tìm PDF 2026" value={q} onChange={e => { setQ(e.target.value); setPage(0) }} placeholder="Tìm đề, tỉnh, trường…" className={`${inputClass} w-full`} />
+    <p className="text-xs text-slate-500">{rows.length} đề phù hợp · Trang {Math.min(page + 1, pageCount)}/{pageCount}</p>
+    <div className="space-y-3">{rows.slice(page * 15, (page + 1) * 15).map(row => <article key={row.id} className="min-w-0 rounded-xl border border-slate-200 p-4"><p className="text-[11px] text-blue-600">{row.examType === 'THPT' ? 'THPT' : 'Vào 10'} · {row.subject} · {row.province} · {row.pdfPageCount} trang</p><h3 className="mt-1 break-words text-sm font-bold text-slate-800">{row.title}</h3><div className="mt-3 flex gap-3 overflow-x-auto text-xs font-semibold"><Link href={examPath(row)} target="_blank" className="shrink-0 text-blue-600 underline">Xem trang đề</Link><a href={row.fileUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-blue-600 underline">Mở PDF</a><a href={row.sourceUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-slate-500 underline">Nguồn</a></div><details className="mt-3 text-xs text-slate-500"><summary className="cursor-pointer">Tiêu đề & mô tả SEO</summary><p className="mt-2 break-words font-semibold text-slate-700">{row.seoTitle}</p><p className="mt-1 break-words leading-5">{row.description}</p></details></article>)}</div>
+    <div className="flex justify-between gap-3"><button type="button" disabled={page <= 0} onClick={() => setPage(value => value - 1)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:opacity-40">Trang trước</button><button type="button" disabled={page + 1 >= pageCount} onClick={() => setPage(value => value + 1)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs disabled:opacity-40">Trang sau</button></div>
+  </section>
+}

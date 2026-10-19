@@ -7,6 +7,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Eye, Pencil, Trash2, Sparkles } from 'lucide-react'
 import { apiFetch } from '../../services/api'
 import { API_BASE } from '../../utils/constants'
+import { ExamArchive2026Tab } from './ExamArchive2026Tab'
+import { archivedExams2026 } from '../../lib/exams2026'
 import type { Exam } from '../../types/exam'
 
 interface ExamListAdminProps {
@@ -20,7 +22,15 @@ interface ExamListResponse {
   limit: number;
 }
 
-export default function ExamListAdmin({ 
+export default function ExamListAdmin(props: ExamListAdminProps) {
+  const [source, setSource] = useState(archivedExams2026.length ? 'archive' : 'legacy')
+  return <div className="min-w-0 space-y-4">
+    <div aria-label="Kho đề trong danh sách đề" className="flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSource('archive')} aria-pressed={source === 'archive'} className={`shrink-0 rounded-lg border px-3 py-2 text-sm font-semibold ${source === 'archive' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600'}`}>Đề 2026 ({archivedExams2026.length})</button><button type="button" onClick={() => setSource('legacy')} aria-pressed={source === 'legacy'} className={`shrink-0 rounded-lg border px-3 py-2 text-sm font-semibold ${source === 'legacy' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600'}`}>Đề tải lên trước đây</button></div>
+    {source === 'archive' ? <ExamArchive2026Tab /> : <LegacyExamListAdmin {...props} />}
+  </div>
+}
+
+function LegacyExamListAdmin({
   onEdit 
 }: ExamListAdminProps) {
   const [page, setPage] = useState(0)

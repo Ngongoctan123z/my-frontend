@@ -2,6 +2,8 @@
 // Catalog requests also initialize the idempotent D1 question bank.
 // No microphone upload, user submission, provider call or paid grading is made.
 import assert from 'node:assert/strict'
+import {readFile} from 'node:fs/promises'
+const examArchive=JSON.parse(await readFile('src/data/exams2026.json','utf8'))
 
 const origin = 'https://vndocs.net'
 async function request(path, body) {
@@ -53,6 +55,14 @@ for (let attempt = 1; attempt <= 24; attempt++) {
     const speaking=await request('/api/speaking',{action:'catalog',examType:'TOEIC_SPEAKING'}),speakingBank=await speaking.json();assert.ok(speakingBank.catalog.Q11.some(q=>q.id==='ets-sample-vacation-opinion'))
     const privateBank=await request('/api/admin?type=writing_catalog&exam=TOPIK');assert.equal(privateBank.status,401)
     for(const type of ['writing_overview','ielts_preview_sets'])assert.equal((await request('/api/admin?type='+type)).status,401,'Writing administration must remain private')
+    const sample=examArchive[0],pdf=await fetch(sample.fileUrl,{headers:{Range:'bytes=0-127'},signal:AbortSignal.timeout(15000)})
+    assert.ok([200,206].includes(pdf.status),'Archived PDF is deployed on the website')
+    assert.match(pdf.headers.get('content-type')||'',/pdf/)
+    assert.equal(Buffer.from(await pdf.arrayBuffer()).subarray(0,5).toString(),'%PDF-')
+    const slug=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replaceAll('đ','d').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')
+    const pagePath='/exams/'+(sample.examType==='THPT'?'thpt':'vao-10')+'/'+slug(sample.subject)+'/'+slug(sample.province)+'/2026/'+sample.slugIdentifier
+    const detail=await request(pagePath),html=await detail.text();assert.equal(detail.status,200);assert.ok(html.includes(sample.seoTitle),'Per-paper SEO title is server-rendered')
+    console.log('PASS deployed '+examArchive.length+' archived PDF pages and sample PDF bytes')
     console.log('PASS deployed D1 Writing/Speaking catalogs, chart assets and private audio/admin auth guards')
     process.exit(0)
   } catch (error) {
