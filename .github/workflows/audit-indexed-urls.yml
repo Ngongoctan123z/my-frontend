@@ -1,0 +1,25 @@
+name: Audit indexed legacy URLs
+on:
+  push:
+    branches: [codex/search-index-cleanup]
+    paths:
+      - scripts/audit-indexed-urls.mjs
+      - .github/workflows/audit-indexed-urls.yml
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+      - name: Inspect live HTML, noindex and removed routes on both hostnames
+        run: node scripts/audit-indexed-urls.mjs
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: indexed-url-audit
+          path: test-results/seo-index-audit.json
