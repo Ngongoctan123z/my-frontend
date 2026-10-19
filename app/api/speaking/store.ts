@@ -9,6 +9,7 @@ export interface D1Statement {
   run(): Promise<unknown>
 }
 export interface SpeakingD1 { prepare(query: string): D1Statement; batch(queries: D1Statement[]): Promise<any[]> }
+type StoredSubmission = { id: string; email: string; fingerprint: string; feedbackLang: string; status: string; createdAt: number; manifest: SubmissionManifest }
 
 export const SPEAKING_SCHEMA = [
   `CREATE TABLE IF NOT EXISTS speaking_submission (
@@ -71,7 +72,7 @@ export class SpeakingStore {
       VALUES(?,?,?,?,'pending',?) ON CONFLICT(id) DO NOTHING`).bind(`${id}:${index}`, id, index, item.audioHash, now)))
     return { id, ...(await this.usage(email)), report: await this.report(email, id) }
   }
-  async submission(email: string, id: string) {
+  async submission(email: string, id: string): Promise<StoredSubmission> {
     if (!/^[a-f\d]{64}$/i.test(id)) throw new SpeakingRequestError(400, 'Mã bài nộp không hợp lệ.')
     const row = await this.db.prepare('SELECT * FROM speaking_submission WHERE id=? AND email=?').bind(id, email).first()
     if (!row) throw new SpeakingRequestError(404, 'Không tìm thấy bài luyện của tài khoản này.')

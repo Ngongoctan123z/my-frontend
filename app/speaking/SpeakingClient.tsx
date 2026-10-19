@@ -208,7 +208,7 @@ export function SpeakingClient() {
     setExam(source.examType); setTab(source.fullTest ? 'FULL' : source.items[0].question.part); setMode(source.mode)
     setQuestions(source.items.map(item => item.question)); setClips(nextClips); setReport(source); setSubmissionId(source.id); setFeedbackLang(source.feedbackLang)
     setIndex(Math.max(0, source.items.findIndex(item => !item.result))); setHistoryOpen(false); setRestoredNotice(true); touched.current = true
-    if (source.items.some(item => !item.result && !nextClips[item.question.id])) setError('Bản thu chưa chấm được lưu trên thiết bị đã thu. Hãy tiếp tục trên thiết bị đó, hoặc thu lại câu cần làm trên thiết bị này.')
+    if (source.items.some(item => !item.result && !nextClips[item.question.id])) setError('Bản thu chưa chấm được lưu trên thiết bị đã thu. Hãy tiếp tục nộp trên thiết bị đó. Thu lại sẽ tạo một lần nộp mới.')
   }
   const retryResult = (resultIndex: number) => {
     const question = displayReport?.items[resultIndex]?.question

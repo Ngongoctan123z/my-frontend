@@ -17,7 +17,7 @@ export async function loadSpeakingCatalog(exam: SpeakingExam) {
           const list = value ? JSON.parse(value) : []
           return Array.isArray(list) ? list.filter(v => typeof v === 'string').slice(0, 15) : []
         }
-        const prompt = { ...row, part, examType: exam, cueCard: row.cueCard || undefined, imageUrl: row.imageUrl || undefined,
+        const prompt = { ...row, part, examType: exam, setId: row.setId || undefined, cueCard: row.cueCard || undefined, imageUrl: row.imageUrl || undefined,
           subQuestions: parseList(row.subQuestions), suggestedVocabulary: parseList(row.suggestedVocabulary), criteria: parseList(row.criteria),
           difficulty: ['easy', 'medium', 'hard'].includes(row.difficulty) ? row.difficulty as 'easy' | 'medium' | 'hard' : 'medium' as const }
         ;(catalog[part] ||= []).push(prompt)
