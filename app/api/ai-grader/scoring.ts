@@ -131,48 +131,34 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
       c[k].maxScore = maxScore
     }
 
-    const wc = countWords(essay)
-    const rawHolistic = Number(parsed.holisticScore)
-    if (Number.isFinite(rawHolistic)) {
-      parsed.holisticScore = Math.round(rawHolistic)
-    } else {
-      const sum = keys.reduce((acc, k) => acc + (Number(c[k].score) || 0), 0)
-      parsed.holisticScore = Math.round(sum / keys.length)
+    const wc=countWords(essay),holistic=parsed.holisticScore
+    if(typeof holistic!=='number'||!Number.isInteger(holistic)||holistic<0||holistic>maxScore)throw new Error('invalid_toeic_holistic_score')
+    let score=holistic
+    if(!isEssay){
+      if(!Array.isArray(parsed.requirementChecks)||!parsed.requirementChecks.length||parsed.requirementChecks.length>8)throw new Error('missing_toeic_requirement_checks')
+      const seen=new Set<string>()
+      parsed.requirementChecks=parsed.requirementChecks.map((row:any)=>{
+        if(!row||typeof row.requirement!=='string'||!row.requirement.trim()||row.requirement.length>1000||!['met','partial','missing'].includes(row.status)||seen.has(row.requirement.trim().toLowerCase()))throw new Error('invalid_toeic_requirement_check')
+        seen.add(row.requirement.trim().toLowerCase())
+        const evidence=typeof row.evidence==='string'?row.evidence.trim():''
+        if(evidence&&!essay.includes(evidence))throw new Error('invented_toeic_requirement_evidence')
+        return {requirement:row.requirement.trim(),status:row.status,evidence}
+      })
+      const incomplete=parsed.requirementChecks.filter((row:any)=>row.status!=='met').length
+      if(incomplete===1)score=Math.min(score,3)
+      else if(incomplete>=2)score=Math.min(score,2)
+      if(parsed.requirementChecks.every((row:any)=>row.status==='missing'))score=Math.min(score,1)
     }
-    
-    // Ràng buộc trần điểm theo tiêu chí nhiệm vụ (chuẩn ETS):
-    const taskKey = isEssay ? 'reasonsAndExamples' : 'taskFulfillment'
-    if (c[taskKey].score === 0) {
-      parsed.holisticScore = 0
-    } else if (c[taskKey].score <= 1) {
-      parsed.holisticScore = Math.min(parsed.holisticScore, 1)
-    } else if (c[taskKey].score <= 2) {
-      parsed.holisticScore = Math.min(parsed.holisticScore, 2)
-    } else if (c[taskKey].score <= 3 && !isEssay) {
-      // Chuẩn ETS Email câu 6-7: Nếu không hoàn thành đủ 100% yêu cầu Directions thì tối đa mức 3
-      parsed.holisticScore = Math.min(parsed.holisticScore, 3)
-    }
-
-    if (isEssay) {
-      if (wc < 100) {
-        parsed.holisticScore = Math.min(parsed.holisticScore, 2)
-      } else if (wc < 250) {
-        parsed.holisticScore = Math.min(parsed.holisticScore, 3)
-      }
-    } else {
-      if (wc < 25) {
-        parsed.holisticScore = Math.min(parsed.holisticScore, 1)
-      }
-    }
-
-    parsed.overallBand = parsed.holisticScore + calib
-    if (parsed.overallBand > maxScore) parsed.overallBand = maxScore
-    if (parsed.overallBand < 0) parsed.overallBand = 0
-    
-    parsed.scoreScale = maxScore
-    parsed.overallBandFormatted = `${parsed.overallBand}/${maxScore}`
+    // Holistic native rating only: no criterion averaging, arbitrary length
+    // ceiling or calibration that could turn a native integer into a fake band.
+    parsed.overallBand=score
+    parsed.scoreScale=maxScore
+    parsed.overallBandFormatted=`${score}/${maxScore}`
+    parsed.scoreLabel=isEssay?'Điểm bài luận · 0–5':'Điểm email · 0–4'
+    parsed.criteriaNote='Các tiêu chí giúp phân tích bài luyện tập; điểm tổng là đánh giá holistic, không phải trung bình cộng.'
+    parsed.assessmentNote='Điểm AI dùng để luyện tập theo barem từng dạng TOEIC; không phải điểm ETS chính thức.'
     delete parsed.holisticScore
-    parsed.wordCount = wc
+    parsed.wordCount=wc
   } else if (type === 'HSK_5') {
     // If model returned legacy keys, map them gracefully
     if (c.grammar && !c.part1_ordering) {

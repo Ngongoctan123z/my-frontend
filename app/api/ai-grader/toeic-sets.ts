@@ -2,6 +2,7 @@ import { TOEIC_PAIRED_SETS, TOEIC_RESPOND_FALLBACKS } from '@/src/data/fallbackP
 import { TOEIC_PICTURE_SETS, parseToeicPictures, publicToeicPictures } from '@/src/data/toeicWriting'
 import { ensureToeicPhotoBank } from './toeic-photo-bank'
 import { ensurePhotoFullSets } from './toeic-photo-full-sets'
+import { ensureToeicEmailBank } from './toeic-email-bank'
 import type { CompleteToeicSet } from '@/src/lib/toeicExamSets'
 import type { D1Statement, SpeakingD1 } from '../speaking/store'
 import { SpeakingRequestError } from '../speaking/validation'
@@ -14,6 +15,7 @@ export const TOEIC_SET_SCHEMA = `CREATE TABLE IF NOT EXISTS writing_exam_set (
 const seedKey = 'TOEIC_LINKED_SETS_SEEDED_V1'
 export async function ensureToeicExamSets(db: SpeakingD1) {
   await ensureDefaultToeicExamSets(db)
+  await ensureToeicEmailBank(db)
   await ensurePhotoFullSets(db)
 }
 async function ensureDefaultToeicExamSets(db: SpeakingD1) {
@@ -50,7 +52,7 @@ export async function listToeicExamSets(db: SpeakingD1) {
     LEFT JOIN prompt e ON e.id=s.essayPromptId ORDER BY s.createdAt DESC,s.id`).all()
   return results.map(row => {
     let issue = ''
-    if (row.pictureType !== 'TOEIC_PICTURE' || row.email6Type !== 'TOEIC_RESPOND' || row.email7Type !== 'TOEIC_RESPOND' || row.essayType !== 'TOEIC_ESSAY') issue = 'Thiếu đề thành phần hoặc liên kết sai loại câu.'
+    if (row.pictureType !== 'TOEIC_PICTURE' || !['TOEIC_RESPOND','TOEIC_EMAIL_6'].includes(row.email6Type) || !['TOEIC_RESPOND','TOEIC_EMAIL_7'].includes(row.email7Type) || row.essayType !== 'TOEIC_ESSAY') issue = 'Thiếu đề thành phần hoặc liên kết sai loại câu.'
     else if (row.email6PromptId === row.email7PromptId || row.email6Content === row.email7Content) issue = 'Câu 6 và câu 7 cần hai email khác nhau.'
     else { try { parseToeicPictures(row.pictureContent) } catch { issue = 'Bộ ảnh cần đủ 5 câu hợp lệ.' } }
     return { ...row, isPublished: !!row.isPublished, issue, valid: !issue }
@@ -75,8 +77,8 @@ export async function mutateToeicExamSet(db: SpeakingD1, action: string, payload
   const title = typeof payload.title === 'string' ? payload.title.trim() : ''
   if (!title || title.length > 200 || keys.some(key => typeof payload[key] !== 'string' || !payload[key] || payload[key].length > 200) || typeof payload.isPublished !== 'boolean') throw new SpeakingRequestError(422,'Cần tên đề, đủ ID của 3 nhóm câu và trạng thái xuất bản.')
   const rows = await db.prepare(`SELECT id,type,content FROM prompt WHERE id IN (?,?,?,?)`).bind(...keys.map(key => payload[key])).all()
-  const expected = ['TOEIC_PICTURE','TOEIC_RESPOND','TOEIC_RESPOND','TOEIC_ESSAY']
-  if (keys.some((key,i) => !rows.results.some(row => row.id === payload[key] && row.type === expected[i]))) throw new SpeakingRequestError(422,'ID được chọn không tồn tại hoặc không đúng loại câu.')
+  const expected = [['TOEIC_PICTURE'],['TOEIC_RESPOND','TOEIC_EMAIL_6'],['TOEIC_RESPOND','TOEIC_EMAIL_7'],['TOEIC_ESSAY']]
+  if (keys.some((key,i) => !rows.results.some(row => row.id === payload[key] && expected[i].includes(row.type)))) throw new SpeakingRequestError(422,'ID được chọn không tồn tại hoặc không đúng loại câu.')
   if (payload.email6PromptId === payload.email7PromptId || rows.results.find(row => row.id === payload.email6PromptId)?.content === rows.results.find(row => row.id === payload.email7PromptId)?.content) throw new SpeakingRequestError(422,'Câu 6 và câu 7 phải là hai email khác nhau.')
   try { parseToeicPictures(rows.results.find(row => row.id === payload.picturePromptId)!.content) } catch { throw new SpeakingRequestError(422,'Bộ ảnh chưa đủ 5 câu hợp lệ.') }
   const values = [title,...keys.map(key => payload[key]),payload.isPublished ? 1 : 0]

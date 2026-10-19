@@ -30,7 +30,7 @@ const chineseSummary = `乡村图书馆的变化
 
 export const gradingSamples = [
   { name: 'TOEIC câu 6–7: trả lời email', type: 'TOEIC_RESPOND', prompt: 'Reply to Ms. Brown: confirm the training time, explain what participants should bring, and ask one question about attendance.', essay: email,
-    provider: { ...result({ taskFulfillment: 4, organization: 4, grammar: 4, vocabulary: 4 }), holisticScore: 4 }, expected: '4/4' },
+    provider: { ...result({ taskFulfillment: 4, organization: 4, grammar: 4, vocabulary: 4 }), holisticScore: 4, requirementChecks:[{requirement:'confirm the training time',status:'met',evidence:'Friday at 9 a.m.'},{requirement:'explain what participants should bring',status:'met',evidence:'Participants should bring their laptops'},{requirement:'ask one question about attendance',status:'met',evidence:'how many people from your team will attend?'}] }, expected: '4/4' },
   { name: 'TOEIC câu 8: bài luận', type: 'TOEIC_ESSAY', prompt: 'Should companies allow employees to work from home? Give reasons and examples.', essay: opinion,
     provider: { ...result({ reasonsAndExamples: 5, organization: 5, grammar: 5, vocabulary: 5 }), holisticScore: 5 }, expected: '5/5' },
   { name: 'TOPIK câu 51', type: 'TOPIK_51', prompt: '친구에게 도서관 모임 시간을 안내하는 글의 빈칸 두 개를 완성하십시오.', essay: '㉠ 오후 세 시에 도서관에서 만날까요?\n㉡ 시간이 바뀌면 미리 연락해 주시기 바랍니다.',

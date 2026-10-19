@@ -2,9 +2,8 @@ import { parseToeicPictures } from '@/src/data/toeicWriting'
 import type { SpeakingD1, D1Statement } from '../speaking/store'
 const marker='TOEIC_PHOTO_FULL_LINKS_V1'
 
-// Add stable full-exam parents for the new photo groups. Emails 6/7 and essay 8
-// stay together exactly as already approved in an existing published parent;
-// they are referenced by ID, never randomly sampled or copied into new prompts.
+// Add stable full-exam parents for the new photo groups. The 60 new email rows form 30 fixed pairs; the essay ID comes from an existing
+// published parent. References are persisted once, never randomly reassigned.
 export async function ensurePhotoFullSets(db:SpeakingD1){
  if(await db.prepare('SELECT value FROM system_config WHERE key=?').bind(marker).first())return
  const candidates=await db.prepare(`SELECT s.*,p.content AS pictureContent
@@ -19,14 +18,18 @@ export async function ensurePhotoFullSets(db:SpeakingD1){
  const groups=candidates.results.filter(row=>{try{parseToeicPictures(row.pictureContent);return true}catch{return false}})
  if(!groups.length)return
  const pictures=await db.prepare("SELECT id,content FROM prompt WHERE type='TOEIC_PICTURE' AND id LIKE 'toeic-photo-practice-%' ORDER BY id").all()
+ const emailRows=await db.prepare("SELECT id,type FROM prompt WHERE type IN ('TOEIC_EMAIL_6','TOEIC_EMAIL_7')").all()
+ const emails=new Set(emailRows.results.map(row=>row.id))
  const now=Date.now()
  const rows=pictures.results.flatMap(row=>{
   const match=/^toeic-photo-practice-(\d{2})$/.exec(row.id)
   if(!match||Number(match[1])<1||Number(match[1])>50)return []
   try{
-   const picture=parseToeicPictures(row.content),group=groups[(Number(match[1])-1)%groups.length]
+   const picture=parseToeicPictures(row.content),group=groups[(Number(match[1])-1)%groups.length],pair=String((Number(match[1])-1)%30+1).padStart(2,'0')
+   const email6PromptId='toeic-email-6-'+pair,email7PromptId='toeic-email-7-'+pair
+   if(!emails.has(email6PromptId)||!emails.has(email7PromptId))return []
    return [{id:'toeic-photo-full-'+match[1],title:picture.title.replace('Bộ ảnh','Bộ đề')+' · Câu 1–8',picturePromptId:row.id,
-    email6PromptId:group.email6PromptId,email7PromptId:group.email7PromptId,essayPromptId:group.essayPromptId}]
+    email6PromptId,email7PromptId,essayPromptId:group.essayPromptId}]
   }catch{return []}
  })
  const statements:D1Statement[]=[]

@@ -12,6 +12,8 @@ const css=(await Promise.all(names.map(name=>readFile(path.join('.next/static/cs
 const entry=`
 import React,{useState} from 'react';import {createRoot} from 'react-dom/client';
 import {ToeicPictureBankAdmin} from './src/components/admin/ToeicPictureBankAdmin';
+import {ToeicEmailBankAdmin} from './src/components/admin/ToeicEmailBankAdmin';
+import {toeicEmailBank} from './src/data/toeicEmails';
 import {ToeicExamSetsAdmin} from './src/components/admin/ToeicExamSetsAdmin';
 import {ChatWidget} from './src/components/chat/ChatWidget';
 import {SpeakingRecorder} from './src/components/speaking/SpeakingRecorder';
@@ -19,7 +21,7 @@ import {toeicPhotoPracticeSets} from './src/data/toeicPhotoBank';
 import {fallbackToeicExamSets} from './src/lib/toeicExamSets';
 import {buildSpeakingSet} from './src/lib/speaking';
 window.requests=[];const photos=toeicPhotoPracticeSets();
-const prompts=photos.map(set=>({id:set.id,type:'TOEIC_PICTURE',content:JSON.stringify(set)}));
+const prompts=[...photos.map(set=>({id:set.id,type:'TOEIC_PICTURE',content:JSON.stringify(set)})),...toeicEmailBank()];
 const original=fallbackToeicExamSets()[0];for(const [id,type,content] of [['email6','TOEIC_RESPOND',original.part1.content],['email7','TOEIC_RESPOND',original.email7.content],['essay','TOEIC_ESSAY',original.part2.content]])prompts.push({id,type,content});
 window.fetch=async(url,options={})=>{let body=options.body?JSON.parse(options.body):{};window.requests.push({url,body,method:options.method||'GET'});
  if(String(url).includes('translate_a'))return Response.json(['Xin chào']);
@@ -35,7 +37,7 @@ window.fetch=async(url,options={})=>{let body=options.body?JSON.parse(options.bo
  throw new Error('Unexpected service '+url);
 };
 function RecorderFixture(){const[clip,setClip]=useState();return <SpeakingRecorder question={buildSpeakingSet('IELTS_SPEAKING','PART_2',undefined,undefined,()=>0)[0]} clip={clip} strict={false} autoStart={false} canRecord={true} busy={false} processing='' footer={<span>Local fixture</span>} onLogin={()=>{}} onComplete={next=>{window.savedClip=next;setClip(next)}} onClear={()=>setClip(undefined)} onActiveChange={()=>{}} onStartExam={()=>{}} onAutoError={()=>{}}/>}
-const mode=new URL(location.href).searchParams.get('mode');createRoot(document.getElementById('root')).render(React.createElement({photos:ToeicPictureBankAdmin,sets:ToeicExamSetsAdmin,tools:ChatWidget,recorder:RecorderFixture}[mode]));
+const mode=new URL(location.href).searchParams.get('mode');createRoot(document.getElementById('root')).render(React.createElement({emails:ToeicEmailBankAdmin,photos:ToeicPictureBankAdmin,sets:ToeicExamSetsAdmin,tools:ChatWidget,recorder:RecorderFixture}[mode]));
 `
 const stubs={
  'next-auth/react':`export const useSession=()=>({data:{user:{email:'fixture@example.invalid'}},status:'authenticated'});export const signIn=()=>{};`,
@@ -79,6 +81,20 @@ try{
   await layout(page);await page.screenshot({path:output+'/linked-admin.png',fullPage:true});await page.close()
  }
  console.log('PASS explicit linked admin child IDs, failed-save retention, server ID edits and reload')
+ for(const width of [320,375,1280]){
+  const page=await open('emails',width)
+  await page.getByText('30 câu 6 · 30 câu 7.',{exact:false}).waitFor()
+  for(const number of [6,7]){
+   await page.getByRole('button',{name:'Câu '+number+' · 30 email',exact:true}).click()
+   await page.getByLabel('Tìm email TOEIC').fill('toeic-email-'+number+'-30')
+   const card=page.getByRole('button').filter({hasText:'Xem email và yêu cầu →'});assert.equal(await card.count(),1);await card.click()
+   const dialog=page.getByRole('dialog');const text=await dialog.textContent();for(const field of ['From:','Subject:','Directions:','10 minutes'])assert.ok(text.includes(field),field)
+   await layout(page);await page.screenshot({path:output+'/email-'+number+'-'+width+'.png'});await page.keyboard.press('Escape');await page.getByLabel('Tìm email TOEIC').fill('')
+  }
+  await page.close()
+ }
+ console.log('PASS all 60 separate emails, position filters, source directions, search and mobile previews')
+
  for(const width of [320,375,1280]){
   const page=await open('tools',width)
   for(const [label,title] of [['Máy tính Casio Online','Máy tính khoa học'],['Dịch thuật nhanh','Dịch thuật nhanh'],['Hỗ trợ & Chat với Admin','Hỗ trợ VNDocs']]){

@@ -12,7 +12,7 @@ for (const sample of gradingSamples) {
     assert.equal(response.status, 200, JSON.stringify(data))
     assert.equal(data.overallBandFormatted, sample.expected)
     assert.equal(data.scoreScale, Number(sample.expected.split('/')[1]))
-    assert.equal(data.assessmentStatus, 'verified')
+    assert.equal(data.assessmentStatus,sample.type.startsWith('TOEIC')?'practice_estimate':'verified')
     assert.equal(data.modelUsed, 'grading-primary')
     assert.ok(Array.isArray(data.corrections))
     assert.equal(harness.state.calls.length, 1)
@@ -139,4 +139,11 @@ test('TOEIC complete writing has five pictures, two distinct emails and one essa
   const total=scores.toeicWritingRawScore(results)
   assert.equal(total.scoreScale,28);assert.equal(total.overallBand,28);assert.equal(total.overallBandFormatted,'28/28')
   assert.equal(h.state.calls.length,4);assert.equal(new Set(h.state.calls.map(c=>c.apiKey)).size,4)
+})
+
+test('Complete TOEIC totals reject missing, duplicate-scale and invalid task marks',async()=>{
+ const h=await createGraderHarness(),scores=await h.loadModule('src/lib/examScores.ts')
+ const valid=[15,4,4,5].map(scoreScale=>({scoreScale,overallBand:0}))
+ assert.equal(scores.toeicWritingRawScore(valid).overallBand,0)
+ for(const rows of [valid.slice(1),[...valid,{scoreScale:4,overallBand:0}],valid.map((row,i)=>i===0?{scoreScale:4,overallBand:0}:row),valid.map((row,i)=>i===1?{...row,overallBand:4.5}:row),valid.map((row,i)=>i===1?{...row,overallBand:5}:row)])assert.throws(()=>scores.toeicWritingRawScore(rows))
 })

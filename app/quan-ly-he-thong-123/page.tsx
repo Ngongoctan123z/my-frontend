@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { UsersTab } from '@/src/components/admin/UsersTab'
 import { ModelsTab } from '@/src/components/admin/ModelsTab'
 import { PromptsTab } from '@/src/components/admin/PromptsTab'
+import { ToeicEmailBankAdmin } from '@/src/components/admin/ToeicEmailBankAdmin'
 import { ToeicPictureBankAdmin } from '@/src/components/admin/ToeicPictureBankAdmin'
 import { PromptRelationsTab } from '@/src/components/admin/PromptRelationsTab'
 import { SpeakingAdminTab } from '@/src/components/admin/SpeakingAdminTab'
@@ -17,7 +18,7 @@ import { BankHookTab } from '@/src/components/admin/BankHookTab'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('relations')
-  useEffect(()=>{if(new URLSearchParams(window.location.search).get('tab')==='toeic-photos')setActiveTab('toeic-photos')},[])
+  useEffect(()=>{{const tab=new URLSearchParams(window.location.search).get('tab');if(tab==='toeic-photos'||tab==='toeic-emails')setActiveTab(tab)}},[])
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-6 mt-10">
@@ -34,6 +35,7 @@ export default function AdminPage() {
       </div>
       
       <div className="flex items-center gap-2 sm:gap-4 border-b border-gray-200 overflow-x-auto pb-1 no-scrollbar">
+        <button type="button" onClick={()=>setActiveTab('toeic-emails')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='toeic-emails'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOEIC · Email câu 6/7</button>
         <button type="button" onClick={()=>setActiveTab('toeic-photos')} className={`flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-bold ${activeTab==='toeic-photos'?'border-blue-600 text-blue-600':'border-transparent text-gray-500'}`}><FileText size={18}/>TOEIC · Bộ ảnh câu 1–5</button>
         <button
           onClick={() => setActiveTab('relations')}
@@ -97,6 +99,7 @@ export default function AdminPage() {
         {activeTab === 'relations' && <PromptRelationsTab onNavigateToPrompts={() => setActiveTab('prompts')} />}
         {activeTab === 'prompts' && <PromptsTab />}
         {activeTab === 'toeic-photos' && <ToeicPictureBankAdmin />}
+        {activeTab === 'toeic-emails' && <ToeicEmailBankAdmin />}
         {activeTab === 'speaking' && <SpeakingAdminTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'models' && <ModelsTab />}

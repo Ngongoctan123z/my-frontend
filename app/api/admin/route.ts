@@ -1,5 +1,6 @@
 import { checkAdmin } from '@/src/lib/adminAccess'
 import { ensureToeicPhotoBank } from '../ai-grader/toeic-photo-bank'
+import { ensureToeicEmailBank } from '../ai-grader/toeic-email-bank'
 import { listToeicExamSets, mutateToeicExamSet } from '../ai-grader/toeic-sets'
 import { parseToeicPictures } from '@/src/data/toeicWriting'
 import { NextRequest, NextResponse } from 'next/server'
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest) {
 
     if (type === 'prompts') {
       await ensureToeicPhotoBank(db.$client as SpeakingD1)
+      await ensureToeicEmailBank(db.$client as SpeakingD1)
       const allPrompts = await db.select().from(prompts).orderBy(desc(prompts.createdAt))
       return NextResponse.json(allPrompts)
     }

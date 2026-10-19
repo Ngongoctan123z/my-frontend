@@ -5,6 +5,9 @@ import { fallbackToeicExamSets } from '@/src/lib/toeicExamSets'
 import type { SpeakingD1 } from '../speaking/store'
 import { TOEIC_PICTURE_SETS, parseToeicPictures, parseToeicPictureAnswers, publicToeicPictures } from '@/src/data/toeicWriting'
 import { ensureToeicPhotoBank } from './toeic-photo-bank'
+import { emailPracticePrompts } from './toeic-email-bank'
+import { toeicNativeRubric } from './toeic-native-rubric'
+import { toeicEmailBank } from '@/src/data/toeicEmails'
 import { PICTURE_RUBRIC, normalizePictureResult } from './toeic-pictures'
 import { createKeyRotation, generateWithKeyRotation, normalizeApiKeys, sha256Hex, KeyPoolExhaustedError } from '@/src/lib/aiKeyRotation'
 import { createDbKeyRotationStore } from './keyRotationStore'
@@ -196,7 +199,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { action, type, prompt, essay, feedbackLang } = body
+    const { action, prompt, essay, feedbackLang } = body
+    const requestedType=body.type
+    const emailNumber=requestedType==='TOEIC_EMAIL_6'?6:requestedType==='TOEIC_EMAIL_7'?7:undefined
+    const type=emailNumber?'TOEIC_RESPOND':requestedType
     // TOPIK clients send chartExtra; retain imageDescription compatibility.
     const imageDescription = body.imageDescription ?? body.chartExtra
 
@@ -332,6 +338,11 @@ export async function POST(req: NextRequest) {
         console.warn('[AI-Grader] get_paired_full_test DB error, using fallback sets:', e.message)
         return NextResponse.json({ sets: fallbackSets })
       }
+    }
+
+    if(emailNumber && (action==='generate_prompt_batch'||action==='generate_prompt')){
+      try{const db=await getDb();return NextResponse.json(await emailPracticePrompts(db.$client as SpeakingD1,requestedType,Array.isArray(body.donePrompts)?body.donePrompts.filter((v:any)=>typeof v==='string'):[]))}
+      catch{return NextResponse.json({error:'Không tải được kho email. Hãy thử lại; đề đang làm vẫn được giữ.'},{status:503})}
     }
 
     // Handle prompt batch generation from Database with intelligent random weighting (0% chance for completed prompts until all done)
@@ -549,58 +560,10 @@ Cấu trúc JSON bắt buộc:
 Viết toàn bộ nhận xét bằng tiếng Việt.
 `
         userContent = buildUserContent(prompt, essay, `Số từ: ${countWords(essay)} (yêu cầu tối thiểu 150 từ)`, imageDescAddon)
-      } else if (type === 'TOEIC_RESPOND') {
-        systemPrompt = basePrompt + TOEIC_67_RUBRIC + `
-ĐÁNH GIÁ VỚI BẢN LĨNH GIÁM KHẢO ETS CHÍNH THỨC (ETS TOEIC EXAMINER EVALUATION):
-Chấm điểm theo 4 tiêu chí chuẩn ETS cho TOEIC Writing câu 6-7 (Phản hồi email công sở):
-1. taskFulfillment (0-4): Kiểm tra 100% các chỉ thị trong "Directions"; thí sinh phải đáp ứng đủ số lượng và đúng loại yêu cầu; không được copy nguyên văn từ đề bài; giọng điệu chuyên nghiệp, lịch sự.
-2. organization (0-4): Bố cục email hoàn chỉnh (Lời chào, Mục đích, Thân bài, Kêu gọi hành động, Ký tên).
-3. grammar (0-4): Cấu trúc câu đa dạng, chia thì và hòa hợp chủ-vị chuẩn xác.
-4. vocabulary (0-4): Tiếng Anh thương mại chuẩn mực (Polite Business English), đúng ngữ cảnh công sở.
-
-Mỗi tiêu chí chấm số nguyên 0-4. Điểm tổng holisticScore chấm số nguyên 0-4 (Nếu thiếu 1 yêu cầu trong Directions hoặc sai register: trần điểm tối đa 3, không được chấm 4).
-
-Cấu trúc JSON bắt buộc:
-{
-  "holisticScore": 0,
-  "criteria": {
-    "taskFulfillment": ${CRIT},
-    "organization": ${CRIT},
-    "grammar": ${CRIT},
-    "vocabulary": ${CRIT}
-  },
-  "detailedFeedback": "Trình bày nhận xét súc tích bằng tiếng Việt theo 3 phần rõ rệt:\\n1. [Đánh giá tổng quan]: Đối chiếu từng chỉ thị trong Directions xem thí sinh đã hoàn thành đầy đủ chưa.\\n2. [Fatal Errors & Score Limiters]: Trích dẫn NGUYÊN VĂN các cụm từ/câu từ bài viết có giọng điệu cộc lốc/thiếu lịch sự, câu copy từ đề bài hoặc chỉ thị bị bỏ sót.\\n3. [Hướng dẫn đạt điểm tối đa 4/4]: Mẫu câu tiếng Anh thương mại lịch sự (Polite Business English) phù hợp bối cảnh.",
-  ${correctionsSchema('Giọng điệu công sở | Chỉ thị đề bài | Ngữ pháp | Nâng cấp tiếng Anh thương mại')}
-}
-Viết toàn bộ nhận xét bằng tiếng Việt.
-`
-        userContent = buildUserContent(prompt, essay, `Số từ: ${countWords(essay)} (Độ dài chuẩn ETS TOEIC Email: 60-120 từ. Tuyệt đối không phạt vì ngắn nếu đã trả lời đầy đủ các yêu cầu trong Directions)`)
-      } else if (type === 'TOEIC_ESSAY') {
-        systemPrompt = basePrompt + TOEIC_8_RUBRIC + `
-ĐÁNH GIÁ VỚI BẢN LĨNH GIÁM KHẢO ETS CHÍNH THỨC (ETS TOEIC EXAMINER EVALUATION):
-Chấm điểm theo 4 tiêu chí chuẩn ETS cho TOEIC Writing câu 8 (Bài luận quan điểm):
-1. reasonsAndExamples (0-5): Lập trường rõ ràng, không nước đôi; phát triển sâu theo cấu trúc PEEL; BẮT BUỘC có ví dụ thực tế cụ thể từ đời sống hoặc môi trường công việc.
-2. organization (0-5): Bố cục Mở - Thân - Kết chặt chẽ, câu chủ đề rõ ràng, tiến triển ý mạch lạc.
-3. grammar (0-5): Đa dạng cú pháp ở mức cao (câu điều kiện, đảo ngữ, mệnh đề nhượng bộ); không mắc lỗi ngữ pháp cơ bản lặp lại.
-4. vocabulary (0-5): Vốn từ phong phú, collocation chuẩn xác trong ngữ cảnh công sở/học thuật.
-
-Mỗi tiêu chí chấm số nguyên 0-5. Điểm tổng holisticScore chấm số nguyên 0-5. Dưới 250 từ là Fatal Error, trần điểm tối đa 3/5.
-
-Cấu trúc JSON bắt buộc:
-{
-  "holisticScore": 0,
-  "criteria": {
-    "reasonsAndExamples": ${CRIT},
-    "organization": ${CRIT},
-    "grammar": ${CRIT},
-    "vocabulary": ${CRIT}
-  },
-  "detailedFeedback": "Trình bày nhận xét súc tích bằng tiếng Việt theo 3 phần rõ rệt:\\n1. [Đánh giá tổng quan]: Tóm tắt điểm số theo barem ETS, đánh giá luận điểm và ví dụ dẫn chứng.\\n2. [Fatal Errors & Score Limiters]: Trích dẫn NGUYÊN VĂN các câu thiếu dẫn chứng cụ thể, lỗi ngữ pháp cơ bản lặp lại, hoặc quan điểm chưa dứt khoát.\\n3. [Chiến lược đạt điểm tối đa 5/5]: Hướng dẫn viết ví dụ thực tế sắc bén và nâng cấp cú pháp nâng cao (đảo ngữ, câu điều kiện).",
-  ${correctionsSchema('Lập luận & Dẫn chứng | Cú pháp nâng cao | Ngữ pháp | Nâng cấp từ vựng')}
-}
-Viết toàn bộ nhận xét bằng tiếng Việt.
-`
-        userContent = buildUserContent(prompt, essay, `Số từ: ${countWords(essay)} (chuẩn ETS: tối thiểu 250 từ, tối ưu 300-350 từ)`)
+      } else if (type === 'TOEIC_RESPOND' || type === 'TOEIC_ESSAY') {
+        systemPrompt = toeicNativeRubric(type==='TOEIC_ESSAY')+'\nFeedback language: '+(feedbackLang||'Tiếng Việt')+'\nKeep requirement and evidence strings in their original English; do not translate these fields.'
+        const emailTask=type==='TOEIC_RESPOND'?toeicEmailBank().find(row=>row.content===prompt):undefined
+        userContent = buildUserContent(prompt,essay,`Word count: ${countWords(essay)}. ${emailNumber?'Question '+emailNumber+'. ':''}Keep the exact prompt and candidate response separate. ${emailTask?'Directions requirements (copy these exact strings into requirementChecks): '+JSON.stringify(emailTask.requirements):''}`)
       } else if (type === 'HSK_5') {
         systemPrompt = basePrompt + HSK5_RUBRIC + `
 Hãy chấm điểm khách quan, chuẩn xác toàn diện cả 3 phần của bài thi viết HSK 5:
@@ -769,12 +732,14 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
         try {
           const parsed = parseModelJson(textRes.text)
           const calibValue = gradingSettings.calibration[type] || 0
+          if(type==='TOEIC_RESPOND'){const task=toeicEmailBank().find(row=>row.content===prompt);if(task&&(!Array.isArray(parsed.requirementChecks)||parsed.requirementChecks.length!==task.requirements.length||task.requirements.some(requirement=>!parsed.requirementChecks.some((row:any)=>row.requirement===requirement))))throw new Error('email_directions_coverage_mismatch')}
           const finalResult: any = type === 'TOEIC_PICTURE' ? normalizePictureResult(parsed, prompt, essay) : postProcessResult(parsed, type, essay, calibValue)
           
           // Metadata
-          finalResult.assessmentStatus = type === 'TOEIC_PICTURE' ? 'reference_based' : 'verified'
+          finalResult.assessmentStatus = type === 'TOEIC_PICTURE' ? 'reference_based' : type.startsWith('TOEIC')?'practice_estimate':'verified'
           finalResult.modelUsed = textRes.model
-          finalResult.rubricVersion = '1.0'
+          finalResult.rubricVersion = type.startsWith('TOEIC')?'toeic-native-2':'1.0'
+          if(emailNumber)finalResult.questionNumber=emailNumber
           finalResult.scoreKind = type.includes('IELTS') ? 'band' : 'score'
           // postProcessResult already sets the task-specific scale and text
           // (TOPIK 51/52: 10, 53: 30, 54: 50). Preserve that scoring contract.

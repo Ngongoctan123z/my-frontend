@@ -11,13 +11,14 @@ async function request(path, body) {
 let lastError
 for (let attempt = 1; attempt <= 24; attempt++) {
   try {
-    const [ielts,toeic,audio,admin,pictures,linked] = await Promise.all([
+    const [ielts,toeic,audio,admin,pictures,linked,email6,email7] = await Promise.all([
       request('/api/speaking',{action:'catalog',examType:'IELTS_SPEAKING'}),
       request('/api/speaking',{action:'catalog',examType:'TOEIC_SPEAKING'}),
       request('/api/speaking/audio/'+encodeURIComponent('0'.repeat(64)+':0')),
       request('/api/admin?type=speaking_prompts'),
       request('/api/ai-grader',{action:'generate_prompt_batch',type:'TOEIC_PICTURE'}),
       request('/api/ai-grader',{action:'get_paired_full_test',exam:'TOEIC'}),
+      ...[6,7].map(number=>request('/api/ai-grader',{action:'generate_prompt_batch',type:'TOEIC_EMAIL_'+number})),
     ])
     assert.equal(audio.status,401,'Private audio route must reject anonymous playback')
     assert.equal(admin.status,401,'Speaking administration must reject anonymous requests')
@@ -37,6 +38,8 @@ for (let attempt = 1; attempt <= 24; attempt++) {
     assert.equal(linkedData.source,'database','Full Writing sets must use explicit D1 child IDs')
     assert.equal(linkedData.sets.filter(row=>row.id.startsWith('toeic-photo-full-')).length,50,'Every added photo group must belong to a complete Writing exam')
     for(const row of linkedData.sets){assert.ok(row.picturePromptId && row.part1.id && row.email7.id && row.part2.id);assert.notEqual(row.part1.id,row.email7.id)}
+    for(const [number,response] of [[6,email6],[7,email7]]){assert.equal(response.status,200);const catalog=await response.json();assert.equal(catalog.totalPrompts,30);assert.ok(catalog.prompts.every(row=>row.id.startsWith('toeic-email-'+number+'-')))}
+    for(const row of linkedData.sets.filter(row=>row.id.startsWith('toeic-photo-full-'))){assert.ok(row.part1.id.startsWith('toeic-email-6-'));assert.ok(row.email7.id.startsWith('toeic-email-7-'))}
     console.log('PASS deployed D1 catalogs, TOEIC picture bank, private audio and admin auth guards')
     process.exit(0)
   } catch (error) {

@@ -229,7 +229,9 @@ export function PromptsTab() {
               <option value="IELTS_TASK_1">IELTS Task 1</option>
               <option value="IELTS_TASK_2">IELTS Task 2</option>
               <option value="TOEIC_PICTURE">TOEIC Writing Câu 1–5 (theo ảnh)</option>
-              <option value="TOEIC_RESPOND">TOEIC Writing Q6-7</option>
+              <option value="TOEIC_EMAIL_6">TOEIC Writing Câu 6 · Email</option>
+              <option value="TOEIC_EMAIL_7">TOEIC Writing Câu 7 · Email</option>
+              <option value="TOEIC_RESPOND">TOEIC Email (kho cũ)</option>
               <option value="TOEIC_ESSAY">TOEIC Writing Q8</option>
               <option value="TOPIK_51">TOPIK Câu 51 (Hoàn thành câu - 10đ)</option>
               <option value="TOPIK_52">TOPIK Câu 52 (Hoàn thành câu - 10đ)</option>

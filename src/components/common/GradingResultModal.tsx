@@ -84,7 +84,7 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
   }, [internalResult, selectedSubTab])
 
   // Compute maximum scale for active result
-  const activeExamType = activeResult?.examType || (
+  const rawActiveExamType = activeResult?.examType || (
     internalResult?.isFullTest ? (
       (internalResult.fullTestType === 'TOEIC' || isToeic)
         ? (selectedSubTab === 'part2' ? 'TOEIC_ESSAY' : 'TOEIC_RESPOND')
@@ -99,6 +99,7 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
         : examType
     ) : examType
   )
+  const activeExamType=['TOEIC_EMAIL_6','TOEIC_EMAIL_7'].includes(rawActiveExamType)?'TOEIC_RESPOND':rawActiveExamType
   const isSubTopik51 = activeExamType === 'TOPIK_51'
   const isSubTopik52 = activeExamType === 'TOPIK_52'
   const isSubTopik53 = activeExamType === 'TOPIK_53'
@@ -273,6 +274,8 @@ export function GradingResultModal({ isOpen, onClose, isGrading, result, examTyp
               {activeResult?.scoreNote && <p className="text-xs leading-relaxed text-slate-500">{activeResult.scoreNote}</p>}
               {activeResult?.assessmentNote && <p className="text-xs leading-relaxed text-slate-500">{activeResult.assessmentNote}</p>}
               {Array.isArray(activeResult?.pictureTasks) && <div className="space-y-3">{activeResult.pictureTasks.map((task:any)=><div key={task.id} className="rounded-lg border border-slate-200 p-4"><div className="flex items-center justify-between gap-3"><h3 className="text-sm font-bold">{isEn?'Question':'Câu'} {task.id}</h3><span className="text-sm font-bold text-blue-600">{task.score}/{task.maxScore}</span></div><p className="mt-2 text-xs font-semibold text-slate-400">{task.keywords?.join(' / ')}</p><p className="mt-2 text-sm text-slate-700">{task.answer}</p><p className="mt-3 text-sm leading-relaxed text-slate-500">{task.feedback}</p>{task.correctedSentence&&<p className="mt-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">{isEn?'Suggested sentence: ':'Gợi ý: '}{task.correctedSentence}</p>}</div>)}</div>}
+              {activeResult?.criteriaNote&&<p className="text-xs leading-relaxed text-slate-500">{activeResult.criteriaNote}</p>}
+              {Array.isArray(activeResult?.requirementChecks)&&<div className="space-y-2 rounded-xl border border-slate-200 p-4"><h3 className="text-sm font-bold text-slate-800">{isEn?'Directions checklist':'Đối chiếu yêu cầu đề'}</h3>{activeResult.requirementChecks.map((row:any,index:number)=><div key={index} className="rounded-lg bg-slate-50 p-3 text-xs leading-relaxed"><p className="font-semibold text-slate-700">{index+1}. {row.requirement}</p><p className={`mt-1 ${row.status==='met'?'text-emerald-700':'text-amber-700'}`}>{row.status==='met'?(isEn?'Addressed':'Đã đáp ứng'):row.status==='partial'?(isEn?'Partly addressed':'Đáp ứng một phần'):(isEn?'Missing':'Chưa đáp ứng')}</p>{row.evidence&&<p className="mt-1 text-slate-500">“{row.evidence}”</p>}</div>)}</div>}
               {/* Criteria Scores Grid */}
               {activeResult?.criteria && Object.keys(activeResult.criteria).length > 0 && (
                 <div className="space-y-3">
