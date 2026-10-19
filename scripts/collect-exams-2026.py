@@ -22,8 +22,8 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'public/exam-papers/2026'
 MAX_BYTES = 22 * 1024 * 1024
 SOURCE_HOSTS = {'thi.tuyensinh247.com', 'www.hanoi.edu.vn', 'xaydungchinhsach.chinhphu.vn'}
-ASSET_SUFFIXES = ('tuyensinh247.com', 'cdnchinhphu.vn', 'shieldix.app', 'moet.gov.vn', 'hanoi.edu.vn', 'mediacdn.vn')
-SELECTORS = ['#news-content', '#news_content', '#news_detail', '.content_detail', '.news-content', '.news-detail-content', '.news_detail_content', '#main-detail-body', '.detail__content', '.detail-content', '[itemprop="articleBody"]', '.singular-content']
+ASSET_SUFFIXES = ('chinhphu.vn', 'tuyensinh247.com', 'cdnchinhphu.vn', 'shieldix.app', 'moet.gov.vn', 'hanoi.edu.vn', 'mediacdn.vn')
+SELECTORS = ['#mainContent', '#news-content', '#news_content', '#news_detail', '.content_detail', '.news-content', '.news-detail-content', '.news_detail_content', '#main-detail-body', '.detail__content', '.detail-content', '[itemprop="articleBody"]', '.singular-content']
 
 
 def folded(text):
