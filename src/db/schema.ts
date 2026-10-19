@@ -3,6 +3,7 @@ import {
   text,
   integer,
   primaryKey,
+  index,
 } from "drizzle-orm/sqlite-core"
 import type { AdapterAccountType } from "next-auth/adapters"
 
@@ -180,6 +181,20 @@ export const speakingSessions = sqliteTable("speaking_session", {
     .$defaultFn(() => new Date()),
 })
 
+export const speakingSubmissions = sqliteTable('speaking_submission', {
+  id: text('id').primaryKey(), email: text('email').notNull(), fingerprint: text('fingerprint').notNull(),
+  examType: text('examType').notNull(), mode: text('mode').notNull(), feedbackLang: text('feedbackLang').notNull(),
+  manifest: text('manifest').notNull(), quotaDate: text('quotaDate').notNull(), status: text('status').notNull(),
+  createdAt: integer('createdAt').notNull(),
+}, table => [index('speaking_submission_owner_created').on(table.email, table.createdAt)])
+
+export const speakingRecordings = sqliteTable('speaking_recording', {
+  id: text('id').primaryKey(), submissionId: text('submissionId').notNull(), itemIndex: integer('itemIndex').notNull(),
+  contentHash: text('contentHash').notNull(), transcript: text('transcript'), result: text('result'),
+  status: text('status').default('pending').notNull(), leaseToken: text('leaseToken'), leaseUntil: integer('leaseUntil'),
+  error: text('error'), chatLog: text('chatLog'), updatedAt: integer('updatedAt').notNull(),
+}, table => [index('speaking_recording_submission').on(table.submissionId, table.itemIndex)])
+
 export const speakingPrompts = sqliteTable("speaking_prompt", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   examType: text("examType").notNull(), // 'IELTS_SPEAKING' | 'TOEIC_SPEAKING'
@@ -213,5 +228,6 @@ export const speakingChats = sqliteTable("speaking_chat", {
     .notNull()
     .$defaultFn(() => new Date()),
 })
+
 
 

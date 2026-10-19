@@ -40,6 +40,12 @@ jobs:
       - name: Test build-time SEO behavior
         run: npm run test:build-seo
 
+      - name: Test Speaking submissions and question formats
+        run: npm run test:speaking
+
+      - name: Check Speaking TypeScript
+        run: node tests/check-speaking-types.mjs
+
       - name: Build Next.js and OpenNext
         run: npm run pages:build
 
@@ -49,12 +55,17 @@ jobs:
       - name: Test grader inputs and mobile layouts
         run: npm run test:grader-ui
 
+      - name: Test Speaking recording and mobile layouts
+        run: npm run test:speaking-ui
+
       - name: Save grader screenshots
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: grader-ui-screenshots
-          path: test-results/grader-ui
+          path: |
+            test-results/grader-ui
+            test-results/speaking-ui
           if-no-files-found: ignore
 
       # Cloudflare Workers Builds deploys main through the existing GitHub App

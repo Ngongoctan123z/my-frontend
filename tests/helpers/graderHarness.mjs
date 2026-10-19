@@ -42,6 +42,7 @@ const schema = {
   apiUsages: table('api_usage', ['userId', 'date', 'count']),
   users: table('user', ['email', 'plan']),
   essayHistory: table('essay_history', ['email', 'prompt']),
+  speakingPrompts: table('speaking_prompt', ['examType']),
 }
 
 function makeDb(connection) {
@@ -54,6 +55,7 @@ function makeDb(connection) {
     onConflictDoNothing() { this.ignoreConflict = true; return this }
     onConflictDoUpdate(update) { this.conflictUpdate = update; return this }
     returning(fields) { this.returnFields = fields; return this }
+    limit(value) { this.limitValue = value; return this }
     then(onResolve, onReject) { return Promise.resolve().then(() => this.execute()).then(onResolve, onReject) }
     execute() {
       let text = ''
@@ -91,11 +93,27 @@ function makeDb(connection) {
         params.push(...this.condition.params)
       }
       if (this.returnFields) text += ' RETURNING ' + fieldsSql(this.returnFields)
+      if (this.limitValue) text += ' LIMIT ' + Number(this.limitValue)
       const statement = connection.prepare(text)
       return this.kind === 'select' || this.returnFields ? statement.all(...params) : statement.run(...params)
     }
   }
+  const raw = {
+    prepare(query) {
+      const statement = { params: [], bind(...params) { this.params = params; return this },
+        execute() { const prepared = connection.prepare(query); return prepared.columns().length ? { results: prepared.all(...this.params) } : { results: [], meta: prepared.run(...this.params) } },
+        async all() { return this.execute() }, async first() { return this.execute().results[0] || null }, async run() { return this.execute() },
+      }
+      return statement
+    },
+    async batch(statements) {
+      connection.exec('BEGIN')
+      try { const results = statements.map(statement => statement.execute()); connection.exec('COMMIT'); return results }
+      catch (error) { connection.exec('ROLLBACK'); throw error }
+    },
+  }
   return {
+    $client: raw,
     select: fields => new Query('select', fields),
     insert: source => new Query('insert', undefined, source),
     update: source => new Query('update', undefined, source),
@@ -113,7 +131,7 @@ function makeDb(connection) {
   }
 }
 
-export async function createGraderHarness() {
+export async function createGraderHarness({ route = 'app/api/ai-grader/route.ts' } = {}) {
   const sqlite = new DatabaseSync(':memory:')
   sqlite.exec(`
     CREATE TABLE system_config (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -132,7 +150,13 @@ export async function createGraderHarness() {
   sqlite.prepare('INSERT INTO user VALUES (?, ?)').run(state.email, 'pro')
   const database = makeDb(sqlite)
   class FakeGroq {
+    static async toFile(bytes, name, options) { return new File([bytes], name, options) }
     constructor(options) {
+      this.audio = { transcriptions: { create: async payload => {
+        const call = { kind: 'stt', apiKey: options.apiKey, options, payload }
+        state.calls.push(call)
+        return state.sttHandler ? state.sttHandler(call) : { text: 'I enjoy reading books because they help me learn new things.', segments: [{ no_speech_prob: 0.01 }] }
+      } } }
       this.chat = { completions: { create: async payload => {
         const call = { apiKey: options.apiKey, options, payload }
         state.calls.push(call)
@@ -151,13 +175,15 @@ export async function createGraderHarness() {
   }
   const context = createContext({
     crypto: globalThis.crypto, TextEncoder, TextDecoder, Headers, Request, Response,
-    setTimeout, clearTimeout,
+    setTimeout, clearTimeout, Buffer, Blob, File, FormData, AbortController, AbortSignal, Uint8Array, DOMException,
+    fetch: (...args) => state.fetchHandler ? state.fetchHandler(...args) : Promise.reject(new Error('UNEXPECTED_FETCH')),
     console: Object.fromEntries(['log', 'warn', 'error'].map(level => [level, (...args) => state.logs.push([level, ...args])])),
     process: { env: {} },
   })
   const modules = new Map()
   async function load(identifier) {
     if (modules.has(identifier)) return modules.get(identifier)
+    const loading = (async () => {
     let module
     if (external[identifier]) {
       const exports = external[identifier]
@@ -168,19 +194,30 @@ export async function createGraderHarness() {
       const source = await readFile(identifier, 'utf8')
       module = new SourceTextModule(stripTypeScriptTypes(source), { context, identifier })
     }
-    modules.set(identifier, module)
     await module.link((specifier, parent) => {
       if (external[specifier]) return load(specifier)
       const absolute = specifier.startsWith('@/') ? resolve(root, specifier.slice(2)) : resolve(dirname(parent.identifier), specifier)
       return load(absolute.endsWith('.ts') ? absolute : absolute + '.ts')
     })
     return module
+    })()
+    modules.set(identifier, loading)
+    return loading
   }
-  const module = await load(resolve(root, 'app/api/ai-grader/route.ts'))
+  const module = await load(resolve(root, route))
   await module.evaluate()
   let requestId = 0
   return {
     state, sqlite, keys,
+    async loadModule(path) { const target = await load(resolve(root, path)); if (target.status !== 'evaluated') await target.evaluate(); return target.namespace },
+    async post(body) {
+      const response = await module.namespace.POST(new Request('http://test.local/api/speaking', {
+        method: 'POST', headers: body instanceof FormData ? undefined : { 'Content-Type': 'application/json' },
+        body: body instanceof FormData ? body : JSON.stringify(body),
+      }))
+      return { response, data: await response.json() }
+    },
+    async get() { const response = await module.namespace.GET(); return { response, data: await response.json() } },
     async grade(body, headers = {}) {
       const { provider, expected, name, ...submission } = body
       const response = await module.namespace.POST(new Request('http://test.local/api/ai-grader', {

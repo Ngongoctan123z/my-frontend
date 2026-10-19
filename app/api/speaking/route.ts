@@ -1,618 +1,154 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
 import { checkRateLimit } from '@/src/lib/rateLimit'
-import { systemConfigs, speakingSessions, speakingPrompts, speakingChats, apiUsages, users } from '@/src/db/schema'
-import { eq, sql, and, desc } from 'drizzle-orm'
-import { getPromptsForPart, SpeakingPart, SpeakingPrompt } from '@/src/data/speakingPrompts'
+import { KeyPoolExhaustedError } from '@/src/lib/aiKeyRotation'
+import { canonicalPart, hashSpeakingAudio, type SpeakingExam, type SpeakingReport } from '@/src/lib/speaking'
+import { SpeakingStore, type SpeakingD1 } from './store'
+import { SpeakingRequestError, validateManifest } from './validation'
+import { loadSpeakingCatalog } from './catalog'
+import { speakingConfig, transcribeSpeakingAudio, gradeSpeakingAudio, speakingCoachReply } from './providers'
 
-// ─── Groq Config ─────────────────────────────────────────────────────────────
-
-async function getGroqKeys(): Promise<string[]> {
-  let keys = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.split(',').map(k => k.trim()).filter(Boolean) : []
+async function account() {
+  const session = await auth()
+  const email = session?.user?.email?.trim().toLowerCase()
+  if (!email) throw new SpeakingRequestError(401, 'Vui lòng đăng nhập để nộp và lưu bài nói.')
+  return email
+}
+function responseError(error: unknown) {
+  if (error instanceof SpeakingRequestError) return NextResponse.json({ error: error.message }, { status: error.status, headers: error.retryAfterSeconds ? { 'Retry-After': String(error.retryAfterSeconds) } : undefined })
+  if (error instanceof KeyPoolExhaustedError) return NextResponse.json({ error: 'Dịch vụ AI đang chạm giới hạn. Bản thu vẫn được giữ; vui lòng thử lại sau.' }, { status: 429, headers: { 'Retry-After': String(error.retryAfterSeconds) } })
+  const message = error instanceof Error ? error.message : ''
+  console.error('[Speaking] Request failed:', /GROQ_API_KEY_MISSING|API_KEY_INVALID/.test(message) ? 'provider_configuration' : 'processing_error')
+  return NextResponse.json({ error: /GROQ_API_KEY_MISSING|API_KEY_INVALID/.test(message) ? 'Dịch vụ Speaking chưa có API key hợp lệ. Vui lòng liên hệ quản trị viên.' : 'Chưa xử lý được bài nói. Bản thu vẫn được giữ để bạn gửi lại.' }, { status: 503 })
+}
+function rateLimit(email: string, action: string, max: number, windowMs: number) {
+  const result = checkRateLimit(`speaking:v2:${action}:${email}`, max, windowMs)
+  if (!result.allowed) throw new SpeakingRequestError(429, `Thao tác quá nhanh. Vui lòng chờ ${result.retryAfterSeconds} giây.`, result.retryAfterSeconds)
+}
+async function boundedBody(req: Request, limit: number) {
+  const length = Number(req.headers.get('content-length'))
+  if (Number.isFinite(length) && length > limit) throw new SpeakingRequestError(413, 'Bản thu hoặc dữ liệu gửi lên quá lớn.')
+  const reader = req.body?.getReader()
+  if (!reader) throw new SpeakingRequestError(400, 'Không có dữ liệu bài nói.')
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > limit) { await reader.cancel(); throw new SpeakingRequestError(413, 'Bản thu hoặc dữ liệu gửi lên quá lớn.') }
+    chunks.push(value)
+  }
+  const bytes = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength }
+  return bytes
+}
+async function jsonBody(req: Request) {
+  try { return JSON.parse(new TextDecoder().decode(await boundedBody(req, 200_000))) }
+  catch (error) { if (error instanceof SpeakingRequestError) throw error; throw new SpeakingRequestError(400, 'Dữ liệu JSON không hợp lệ.') }
+}
+async function legacyReports(client: SpeakingD1, email: string): Promise<SpeakingReport[]> {
   try {
-    const db = await getDb()
-    const configs = await db.select().from(systemConfigs)
-    const map = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>)
-    if (map['GROQ_API_KEY']) {
-      keys = map['GROQ_API_KEY'].split(',').map(k => k.trim()).filter(Boolean)
-    }
-  } catch {}
-  return keys
+    const { results } = await client.prepare('SELECT * FROM speaking_session WHERE email=? ORDER BY createdAt DESC LIMIT 20').bind(email).all()
+    return results.flatMap(row => {
+      try {
+        const result = JSON.parse(row.aiResult || '{}'), metrics = JSON.parse(row.fluencyData || '{}')
+        const part = canonicalPart(row.part)
+        const question = { id: row.id, examType: row.examType, part, questionNumber: ({ Q1_2: 1, Q3_4: 3, Q5_7: 5, Q8_10: 8, Q11: 11 } as Record<string, number>)[part] || 1, topic: 'Bài luyện trước đây', questionEn: row.promptEn, questionVi: row.promptVi || '', prepTimeSec: 0, speakTimeSec: 45, startGraceSec: 0, criteria: [], difficulty: 'medium' as const }
+        return [{ id: `legacy:${row.id}`, examType: row.examType, mode: 'practice' as const, fullTest: false, feedbackLang: 'Tiếng Việt', createdAt: row.createdAt, status: 'completed', items: [{ id: row.id, question, status: 'completed', result: {
+          valid: true as const, assessmentStatus: 'content_only' as const, transcript: row.transcript || '', feedback: result.feedback_vi || 'Bài luyện đã lưu từ phiên bản trước.', strengths: result.strengths_vi || '', issues: [], criteria: [], score: null,
+          pronunciationNote: 'Kết quả được lưu từ phiên bản Speaking trước.', fluency: { wordsPerMinute: metrics.wpm || 0, fillerCount: metrics.fillerCount || 0, repetitionCount: metrics.repetitionCount || 0, longPauseCount: metrics.longPauseCount || 0, speechSeconds: Math.round((metrics.speechDurationMs || 0) / 1000) },
+        } }] }]
+      } catch { return [] }
+    })
+  } catch { return [] }
 }
 
-function pickKey(keys: string[]): string {
-  return keys[Math.floor(Math.random() * keys.length)]
+export async function GET() {
+  try {
+    const session = await auth(), email = session?.user?.email?.trim().toLowerCase()
+    if (!email) return NextResponse.json({ authenticated: false, count: 0, limit: 5, audioAssessmentAvailable: false })
+    const db = await getDb(), store = new SpeakingStore(db.$client as SpeakingD1)
+    const [usage, config] = await Promise.all([store.usage(email), speakingConfig(db)])
+    return NextResponse.json({ authenticated: true, count: usage.count, limit: usage.limit, audioAssessmentAvailable: config.audioKeys.length > 0 })
+  } catch (error) { return responseError(error) }
 }
-
-// ─── Rate limit helper ───────────────────────────────────────────────────────
-
-async function checkDailyLimit(userId: string): Promise<{ allowed: boolean; limit: number }> {
-  const db = await getDb()
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })
-
-  let limit = 5 // free: 5 speaking sessions per day
-  const userRows = await db.select().from(users).where(eq(users.email, userId))
-  if (userRows.length > 0) {
-    const plan = userRows[0].plan
-    if (plan === 'pro') limit = 100
-    else if (plan === 'plus') limit = 30
-  }
-
-  const usages = await db.select().from(apiUsages)
-    .where(sql`userId = ${userId + ':speaking'} AND date = ${today}`)
-  const usage = usages[0]
-
-  if (!usage) {
-    await db.insert(apiUsages).values({ userId: userId + ':speaking', date: today, count: 1 })
-    return { allowed: true, limit }
-  }
-  if (usage.count >= limit) return { allowed: false, limit }
-  await db.update(apiUsages).set({ count: usage.count + 1 })
-    .where(sql`userId = ${userId + ':speaking'} AND date = ${today}`)
-  return { allowed: true, limit }
-}
-
-// ─── System Prompt for Speaking Analysis ─────────────────────────────────────
-
-function buildSpeakingSystemPrompt(
-  examType: string,
-  part: string,
-  promptEn: string,
-  transcript: string,
-  fluencyData: Record<string, number | string>
-): string {
-  const isIelts = examType === 'IELTS_SPEAKING'
-  const partLabel = isIelts
-    ? { PART_1: 'Part 1 (Interview)', PART_2: 'Part 2 (Long Turn)', PART_3: 'Part 3 (Discussion)' }[part] ?? part
-    : { Q1_2: 'Q1-2 (Read aloud)', Q3: 'Q3 (Describe picture)', Q4_6: 'Q4-6 (Respond)', Q7_9: 'Q7-9 (Information)', Q10_11: 'Q10-11 (Opinion)' }[part] ?? part
-
-  return `You are a certified ${isIelts ? 'IELTS' : 'TOEIC'} Speaking examiner. You will evaluate a recorded spoken response.
-
-## Exam Context
-- Exam: ${examType}
-- Section: ${partLabel}
-- Prompt given to the candidate: "${promptEn}"
-
-## Candidate's Transcript (from speech-to-text, may contain errors)
-"""
-${transcript}
-"""
-
-## Fluency Metrics (measured during recording)
-- Speech duration: ${fluencyData.speechDurationMs}ms
-- Total duration: ${fluencyData.totalDurationMs}ms
-- Pause count: ${fluencyData.pauseCount}
-- Long pause count (>1.5s): ${fluencyData.longPauseCount}
-- Total pause time: ${fluencyData.totalPauseSec}s
-- Words per minute: ${fluencyData.wpm}
-- Filler words (um, uh, like, etc.): ${fluencyData.fillerCount}
-- Repeated words/phrases: ${fluencyData.repetitionCount}
-
-## Your Task
-Evaluate the response and return a JSON object. CRITICAL rules:
-1. Do NOT grade if transcript is empty or fewer than 5 words — return error instead.
-2. Do NOT fabricate content. Only evaluate what is in the transcript.
-3. Pauses are natural; only penalize excessive or mid-phrase pauses.
-4. Note words that seem phonetically plausible but contextually wrong (possible misheard by STT).
-5. Feedback must be in Vietnamese (feedback_vi). Max 4 sentences.
-6. next_question_en: only for Part 1 / TOEIC Q4-6. One follow-up only. Empty string otherwise.
-7. transcript_clean: Candidate's spoken text where you insert "..." at long pause/hesitation points (candidate had ${fluencyData.longPauseCount} long pauses).
-
-## Return this exact JSON structure:
-{
-  "valid": true,
-  "transcript_clean": "transcript with ... inserted at long pause points",
-  "fluency": {
-    "speech_duration_seconds": 0,
-    "total_duration_seconds": 0,
-    "pause_count": 0,
-    "long_pause_count": 0,
-    "total_pause_seconds": 0,
-    "words_per_minute": 0,
-    "repetition_count": 0,
-    "filler_count": 0,
-    "level": "low | medium | high"
-  },
-  "possible_misheard_words": [
-    {
-      "heard": "word from transcript",
-      "suggested": "likely intended word",
-      "reason": "brief contextual reason",
-      "confirmed": false
-    }
-  ],
-  "feedback_vi": "Nhận xét bằng tiếng Việt, tối đa 4 câu, cụ thể và hành động được.",
-  "strengths_vi": "Điểm mạnh trong 1-2 câu ngắn.",
-  "next_question_en": "",
-  "next_question_vi": ""
-}
-
-If the transcript is empty, too short, or unintelligible, return:
-{"valid": false, "error": "brief reason in Vietnamese"}
-`
-}
-
-// ─── POST Handler ─────────────────────────────────────────────────────────────
-
 export async function POST(req: NextRequest) {
   try {
-    // Check content-length
-    const contentLength = req.headers.get('content-length')
-    if (contentLength && parseInt(contentLength, 10) > 30_000_000) { // 30MB max for audio
-      return NextResponse.json({ error: 'File âm thanh quá lớn (tối đa 30MB).' }, { status: 413 })
-    }
-
-    const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'anon'
-    const contentType = req.headers.get('content-type') || ''
-
-    // ── Route: POST /api/speaking (multipart/form-data with audio)
-    if (contentType.includes('multipart/form-data')) {
-      // Rate limit: 10 transcribe per 30 seconds per IP
-      const rl = checkRateLimit(`speaking:transcribe:${ip}`, 10, 30000)
-      if (!rl.allowed) {
-        return NextResponse.json(
-          { error: `Thao tác quá nhanh. Chờ ${rl.retryAfterSeconds} giây.` },
-          { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
-        )
-      }
-
-      const formData = await req.formData()
-      const audioFile = formData.get('audio') as File | null
-      const action = (formData.get('action') as string) || 'transcribe'
-
-      if (action === 'transcribe') {
-        if (!audioFile || audioFile.size === 0) {
-          return NextResponse.json({ error: 'Không có file âm thanh.' }, { status: 400 })
-        }
-        if (audioFile.size < 1000) { // < 1KB = likely silent/noise
-          return NextResponse.json({ error: 'AUDIO_TOO_SHORT', message: 'Audio quá ngắn hoặc chỉ là tiếng ồn.' }, { status: 422 })
-        }
-        if (audioFile.size > 25_000_000) { // 25MB Groq limit
-          return NextResponse.json({ error: 'File âm thanh quá lớn (tối đa 25MB).' }, { status: 413 })
-        }
-
-        const keys = await getGroqKeys()
-        if (!keys.length) {
-          return NextResponse.json({ error: 'GROQ_API_KEY chưa được cấu hình.' }, { status: 500 })
-        }
-
-        const groq = new Groq({ apiKey: pickKey(keys), maxRetries: 1, timeout: 60000 })
-        const buffer = Buffer.from(await audioFile.arrayBuffer())
-        const mime = audioFile.type || 'audio/webm'
-
-        try {
-          let transcription: any = null
-          for (const model of ['whisper-large-v3', 'whisper-large-v3-turbo']) {
-            try {
-              const file = await Groq.toFile(buffer, 'recording.webm', { type: mime })
-              transcription = await groq.audio.transcriptions.create({
-                file,
-                model,
-                response_format: 'verbose_json',
-                language: 'en',
-                temperature: 0.0,
-              })
-              break
-            } catch (mErr: any) {
-              if (model === 'whisper-large-v3-turbo') throw mErr
-            }
-          }
-
-          const text = transcription?.text?.trim() ?? ''
-          const words = text.split(/\s+/).filter((w: string) => w.length > 0)
-
-          if (!text || words.length < 3) {
-            return NextResponse.json({
-              error: 'NO_SPEECH_DETECTED',
-              message: 'Hệ thống chưa nghe rõ. Hãy nói to và rõ hơn, hoặc kiểm tra microphone.'
-            }, { status: 422 })
-          }
-
-          return NextResponse.json({
-            transcript: text,
-            wordCount: words.length,
-            language: (transcription as any).language ?? 'en',
-          })
-        } catch (err: any) {
-          const msg = (err.message || '').toLowerCase()
-          if (msg.includes('audio file is too short') || msg.includes('no audio')) {
-            return NextResponse.json({
-              error: 'AUDIO_TOO_SHORT',
-              message: 'Audio quá ngắn. Hãy nói ít nhất 3-5 giây.'
-            }, { status: 422 })
-          }
-          console.error('[Speaking] Transcribe error:', err)
-          return NextResponse.json({ error: 'Lỗi khi chuyển giọng nói thành văn bản: ' + err.message }, { status: 500 })
-        }
-      }
-
-      return NextResponse.json({ error: 'Action không hợp lệ.' }, { status: 400 })
-    }
-
-    // ── Route: JSON-based actions ──────────────────────────────────────────────
-    if (!contentType.includes('application/json')) {
-      return NextResponse.json({ error: 'Content-Type không hợp lệ.' }, { status: 415 })
-    }
-
-    const body = await req.json()
-    const { action } = body
-
-    // ── get_prompts ──────────────────────────────────────────────────────────
-    if (action === 'get_prompts') {
-      const { examType, part } = body
-      if (!examType || !part) {
-        return NextResponse.json({ error: 'Thiếu examType hoặc part.' }, { status: 400 })
-      }
-
+    const type = req.headers.get('content-type') || ''
+    if (type.includes('multipart/form-data')) {
+      const email = await account()
+      rateLimit(email, 'audio', 30, 120_000)
+      const bytes = await boundedBody(req, 13_000_000)
+      let form: FormData
+      try { form = await new Request(req.url, { method: 'POST', headers: req.headers, body: bytes }).formData() }
+      catch { throw new SpeakingRequestError(400, 'Dữ liệu bản thu không hợp lệ.') }
+      if (form.get('action') !== 'submit_audio') throw new SpeakingRequestError(426, 'Phiên Speaking đã được cập nhật. Vui lòng tải lại trang trước khi nộp.')
+      const audio = form.get('audio') as File | null, id = String(form.get('submissionId') || ''), index = Number(form.get('itemIndex'))
+      if (!audio || typeof audio.arrayBuffer !== 'function' || audio.size < 500 || audio.size > 12_000_000) throw new SpeakingRequestError(422, 'Bản thu rỗng, quá ngắn hoặc vượt giới hạn 12MB. Vui lòng thu lại.')
+      if (!/^audio\/(webm|ogg|mp4|m4a|wav|mpeg|mp3|aac)(;|$)/i.test(audio.type)) throw new SpeakingRequestError(415, 'Định dạng âm thanh chưa được hỗ trợ. Vui lòng thu lại bằng trình duyệt.')
+      const db = await getDb(), store = new SpeakingStore(db.$client as SpeakingD1)
+      await store.ensure()
+      const submission = await store.submission(email, id)
+      if (!Number.isInteger(index) || !submission.manifest.items[index]) throw new SpeakingRequestError(400, 'Câu trả lời không hợp lệ.')
+      if (submission.status === 'limit' || submission.status === 'pending') throw new SpeakingRequestError(429, 'Bài nói chưa được cấp lượt chấm.')
+      const item = submission.manifest.items[index]
+      if (await hashSpeakingAudio(audio) !== item.audioHash) throw new SpeakingRequestError(409, 'Bản thu đã thay đổi. Vui lòng nộp lại từ đầu.')
+      const { row, token } = await store.claim(email, id, index)
+      if (!token) return NextResponse.json({ recordingId: row.id, result: JSON.parse(row.result), cached: true })
       try {
-        const db = await getDb()
-        const dbRows = await db.select().from(speakingPrompts).where(
-          and(
-            eq(speakingPrompts.examType, examType),
-            eq(speakingPrompts.part, part),
-            eq(speakingPrompts.isPublished, true)
-          )
-        )
-
-        if (dbRows.length > 0) {
-          const mapped: SpeakingPrompt[] = dbRows.map(r => ({
-            id: r.id,
-            examType: r.examType as any,
-            part: r.part as any,
-            topic: r.topic || 'General',
-            questionEn: r.questionEn,
-            questionVi: r.questionVi,
-            cueCard: r.cueCard || undefined,
-            subQuestions: r.subQuestions ? JSON.parse(r.subQuestions) : undefined,
-            suggestedVocabulary: r.suggestedVocabulary ? JSON.parse(r.suggestedVocabulary) : undefined,
-            imageUrl: r.imageUrl || undefined,
-            prepTimeSec: r.prepTimeSec || 0,
-            speakTimeSec: r.speakTimeSec || 45,
-            startGraceSec: r.startGraceSec || 15,
-            criteria: r.criteria ? JSON.parse(r.criteria) : undefined,
-            difficulty: (r.difficulty as any) || 'medium',
-            setId: r.setId || undefined,
-          }))
-          return NextResponse.json({ prompts: mapped, source: 'database' })
+        let transcript = row.transcript
+        if (!transcript) {
+          transcript = await transcribeSpeakingAudio(db, email, audio)
+          await store.saveTranscript(row.id, token, transcript)
         }
-      } catch (dbErr) {
-        // Fallback to static prompts if table not yet migrated
-      }
-
-      const prompts = getPromptsForPart(examType, part as SpeakingPart)
-      return NextResponse.json({ prompts, source: 'static' })
-    }
-
-    // ── analyze ─────────────────────────────────────────────────────────────
-    if (action === 'analyze') {
-      // Require auth for AI analysis
-      const session = await auth()
-      if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Bạn cần đăng nhập để phân tích bài nói.' }, { status: 401 })
-      }
-
-      // Rate limit: 5 per 20 seconds (heavy AI action)
-      const rl = checkRateLimit(`speaking:analyze:${ip}`, 5, 20000)
-      if (!rl.allowed) {
-        return NextResponse.json(
-          { error: `Thao tác quá nhanh. Chờ ${rl.retryAfterSeconds} giây.` },
-          { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
-        )
-      }
-
-      // Daily limit check
-      const { allowed, limit } = await checkDailyLimit(session.user.email)
-      if (!allowed) {
-        return NextResponse.json(
-          { error: `Bạn đã đạt giới hạn ${limit} lần luyện Speaking hôm nay. Quay lại vào ngày mai!` },
-          { status: 429 }
-        )
-      }
-
-      const { examType, part, promptEn, promptVi, transcript, fluencyData, sessionId } = body
-
-      // Validate required fields
-      if (!examType || !part || !promptEn || !transcript || !fluencyData) {
-        return NextResponse.json({ error: 'Thiếu thông tin phân tích.' }, { status: 400 })
-      }
-      if (typeof transcript !== 'string' || transcript.trim().length < 5) {
-        return NextResponse.json({
-          error: 'TRANSCRIPT_EMPTY',
-          message: 'Transcript rỗng hoặc quá ngắn. Không thể phân tích.'
-        }, { status: 422 })
-      }
-      if (transcript.split(/\s+/).length < 3) {
-        return NextResponse.json({
-          error: 'TRANSCRIPT_TOO_SHORT',
-          message: 'Bài nói quá ngắn (dưới 3 từ). Hãy nói thêm.'
-        }, { status: 422 })
-      }
-
-      const keys = await getGroqKeys()
-      if (!keys.length) {
-        return NextResponse.json({ error: 'GROQ_API_KEY chưa được cấu hình.' }, { status: 500 })
-      }
-
-      const systemPrompt = buildSpeakingSystemPrompt(examType, part, promptEn, transcript, fluencyData)
-      const groq = new Groq({ apiKey: pickKey(keys), maxRetries: 1, timeout: 45000 })
-
-      let aiResult: any = null
-      let usedModel = 'llama-3.3-70b-versatile'
-      for (const model of ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']) {
-        try {
-          const response = await groq.chat.completions.create({
-            model,
-            messages: [{ role: 'system', content: systemPrompt }],
-            temperature: 0.3,
-            max_tokens: 1200,
-            response_format: { type: 'json_object' },
-          })
-          const text = response.choices[0]?.message?.content || '{}'
-          aiResult = JSON.parse(text)
-          usedModel = model
-          break
-        } catch (err: any) {
-          if (model === 'llama-3.1-8b-instant') {
-            return NextResponse.json({ error: 'Lỗi phân tích AI: ' + (err.message || 'Unknown') }, { status: 500 })
-          }
-        }
-      }
-
-      if (!aiResult) {
-        return NextResponse.json({ error: 'Không thể phân tích bài nói. Thử lại sau.' }, { status: 500 })
-      }
-
-      if (aiResult.valid === false) {
-        return NextResponse.json({ error: 'INVALID_RESPONSE', message: aiResult.error || 'Bài nói không hợp lệ.' }, { status: 422 })
-      }
-
-      // Save to DB
-      try {
-        const db = await getDb()
-        const id = sessionId || crypto.randomUUID()
-        await db.insert(speakingSessions).values({
-          id,
-          email: session.user.email,
-          examType,
-          part,
-          promptEn,
-          promptVi: promptVi || '',
-          transcript,
-          transcriptWithPauses: aiResult.transcript_clean || transcript,
-          fluencyData: JSON.stringify(fluencyData),
-          aiResult: JSON.stringify(aiResult),
-          audioDurationMs: fluencyData.totalDurationMs || 0,
-          speechDurationMs: fluencyData.speechDurationMs || 0,
-          status: 'analyzed',
-        })
-        aiResult._sessionId = id
-      } catch (dbErr) {
-        console.error('[Speaking] DB save error:', dbErr)
-        // Continue even if DB fails — still return AI result
-      }
-
-      return NextResponse.json({ result: aiResult, model: usedModel })
-    }
-
-    // ── followup ─────────────────────────────────────────────────────────────
-    if (action === 'followup') {
-      const session = await auth()
-      if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Đăng nhập để dùng tính năng này.' }, { status: 401 })
-      }
-
-      const rl = checkRateLimit(`speaking:followup:${ip}`, 5, 20000)
-      if (!rl.allowed) {
-        return NextResponse.json(
-          { error: `Thao tác quá nhanh. Chờ ${rl.retryAfterSeconds} giây.` },
-          { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
-        )
-      }
-
-      const { examType, part, originalQuestion, previousAnswer, followUpQuestion, transcript, fluencyData } = body
-      if (!transcript || transcript.trim().length < 5) {
-        return NextResponse.json({ error: 'Transcript rỗng. Không thể phân tích follow-up.' }, { status: 422 })
-      }
-
-      const keys = await getGroqKeys()
-      if (!keys.length) {
-        return NextResponse.json({ error: 'GROQ_API_KEY chưa được cấu hình.' }, { status: 500 })
-      }
-
-      const systemPrompt = `You are a certified IELTS/TOEIC Speaking examiner conducting a follow-up question.
-
-Original question: "${originalQuestion}"
-Candidate's previous answer: "${previousAnswer}"
-Follow-up question asked: "${followUpQuestion}"
-Candidate's follow-up answer (transcript): "${transcript}"
-
-Fluency metrics: WPM=${fluencyData?.wpm}, pauses=${fluencyData?.pauseCount}, fillers=${fluencyData?.fillerCount}
-
-Provide brief feedback on the follow-up answer. Return JSON:
-{
-  "valid": true,
-  "feedback_vi": "Nhận xét ngắn bằng tiếng Việt (tối đa 3 câu)",
-  "possible_misheard_words": [],
-  "fluency": {
-    "level": "low | medium | high",
-    "words_per_minute": 0,
-    "filler_count": 0
-  }
-}
-If transcript too short: {"valid": false, "error": "reason in Vietnamese"}`
-
-      const groq = new Groq({ apiKey: pickKey(keys), maxRetries: 1, timeout: 30000 })
-      const response = await groq.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
-        messages: [{ role: 'system', content: systemPrompt }],
-        temperature: 0.3,
-        max_tokens: 600,
-        response_format: { type: 'json_object' },
-      })
-      const result = JSON.parse(response.choices[0]?.message?.content || '{}')
-      return NextResponse.json({ result })
-    }
-
-    // ── confirm_misheard ─────────────────────────────────────────────────────
-    if (action === 'confirm_misheard') {
-      const session = await auth()
-      if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Đăng nhập để dùng tính năng này.' }, { status: 401 })
-      }
-
-      const { sessionId, confirmedWords } = body
-      if (!sessionId || !Array.isArray(confirmedWords)) {
-        return NextResponse.json({ error: 'Dữ liệu không hợp lệ.' }, { status: 400 })
-      }
-
-      try {
-        const db = await getDb()
-        await db.update(speakingSessions)
-          .set({ confirmedWords: JSON.stringify(confirmedWords) })
-          .where(sql`id = ${sessionId} AND email = ${session.user.email}`)
-        return NextResponse.json({ success: true })
-      } catch (err) {
-        return NextResponse.json({ error: 'Lỗi lưu dữ liệu.' }, { status: 500 })
+        const result = await gradeSpeakingAudio(db, email, audio, item.question, transcript, item.metrics, submission.feedbackLang)
+        await store.complete(row.id, token, result)
+        return NextResponse.json({ recordingId: row.id, result, cached: false })
+      } catch (error) {
+        await store.fail(row.id, token, error instanceof SpeakingRequestError ? error.message : 'Chưa xử lý được câu này.').catch(() => {})
+        throw error
       }
     }
-
-    // ── report ───────────────────────────────────────────────────────────────
-    if (action === 'report') {
-      const session = await auth()
-      if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Đăng nhập để xem báo cáo.' }, { status: 401 })
-      }
-
-      const { sessionId } = body
-      const db = await getDb()
-
-      if (sessionId) {
-        const rows = await db.select().from(speakingSessions)
-          .where(sql`id = ${sessionId} AND email = ${session.user.email}`)
-        if (!rows.length) {
-          return NextResponse.json({ error: 'Không tìm thấy phiên luyện tập.' }, { status: 404 })
-        }
-        return NextResponse.json({ session: rows[0] })
-      }
-
-      // Return recent sessions for user
-      const list = await db.select().from(speakingSessions)
-        .where(eq(speakingSessions.email, session.user.email))
-        .orderBy(sql`${speakingSessions.createdAt} DESC`)
-        .limit(20)
-      return NextResponse.json({ sessions: list })
+    if (!type.includes('application/json')) throw new SpeakingRequestError(415, 'Định dạng yêu cầu không hợp lệ.')
+    const body = await jsonBody(req)
+    if (body?.action === 'catalog' || body?.action === 'get_prompts') {
+      const exam = body.examType as SpeakingExam
+      if (!['IELTS_SPEAKING', 'TOEIC_SPEAKING'].includes(exam)) throw new SpeakingRequestError(400, 'Kỳ thi không hợp lệ.')
+      const data = await loadSpeakingCatalog(exam)
+      return NextResponse.json(body.action === 'get_prompts' ? { prompts: data.catalog[canonicalPart(body.part || '')] || [], source: data.source } : data)
     }
-
-    // ── chat (AI Speaking Coach) ─────────────────────────────────────────────
-    if (action === 'chat') {
-      const rl = checkRateLimit(`speaking:chat:${ip}`, 12, 30000)
-      if (!rl.allowed) {
-        return NextResponse.json(
-          { error: `Thao tác quá nhanh. Chờ ${rl.retryAfterSeconds} giây.` },
-          { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
-        )
-      }
-
-      const { sessionId, message, history, context } = body
-      if (!message || typeof message !== 'string') {
-        return NextResponse.json({ error: 'Nội dung tin nhắn không hợp lệ.' }, { status: 400 })
-      }
-
-      const keys = await getGroqKeys()
-      if (!keys.length) {
-        return NextResponse.json({ error: 'GROQ_API_KEY chưa được cấu hình.' }, { status: 500 })
-      }
-
-      const examType = context?.examType || 'IELTS_SPEAKING'
-      const part = context?.part || 'Part'
-      const promptEn = context?.promptEn || ''
-      const transcript = context?.transcript || ''
-      const isScored = context?.isScored ?? true
-
-      const coachSystemPrompt = `You are a warm, encouraging, yet rigorous AI Speaking Coach for VNDocs (${examType} - ${part}).
-Current Speaking Prompt:
-"${promptEn}"
-
-Candidate's actual spoken transcript:
-"""
-${transcript || '(Chưa có bài nói hoặc chỉ vừa luyện tập)'}
-"""
-
-Scoring status: ${isScored ? 'Câu này được chấm điểm' : 'Câu này thuộc phần chỉ luyện tập, không tính điểm chính thức'}
-
-Your instructions:
-1. Always respond in natural, concise, helpful Vietnamese.
-2. If asked for a model answer (câu trả lời mẫu), provide an authentic, natural Band 7.5+ (or TOEIC 160-180) spoken response. Highlight 2-3 key collocations with brief Vietnamese definitions.
-3. If asked why their answer wasn't good or how to improve, analyze lexical choices, grammatical cohesion, and clarity.
-4. If asked to raise/change scores, explain clearly and politely that scores are calculated from actual measurable performance and rubric criteria, so you cannot artificially alter scores.
-5. Clearly distinguish between what the user said versus your suggestions. Keep explanations concise, practical, and well-formatted with markdown bullets. Max 250 words.`
-
-      const conversationMessages: any[] = [{ role: 'system', content: coachSystemPrompt }]
-
-      if (Array.isArray(history)) {
-        for (const h of history.slice(-6)) {
-          if (h.role === 'user' || h.role === 'assistant') {
-            conversationMessages.push({ role: h.role, content: String(h.content) })
-          }
-        }
-      }
-
-      conversationMessages.push({ role: 'user', content: message })
-
-      const groq = new Groq({ apiKey: pickKey(keys), maxRetries: 1, timeout: 35000 })
-      let reply = ''
-
-      for (const model of ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant']) {
-        try {
-          const resp = await groq.chat.completions.create({
-            model,
-            messages: conversationMessages,
-            temperature: 0.5,
-            max_tokens: 800,
-          })
-          reply = resp.choices[0]?.message?.content || ''
-          if (reply) break
-        } catch (err: any) {
-          if (model === 'llama-3.1-8b-instant') {
-            return NextResponse.json({ error: 'Lỗi kết nối AI Coach: ' + (err.message || 'Unknown') }, { status: 500 })
-          }
-        }
-      }
-
-      // Optionally save to DB if user is authenticated
-      try {
-        const session = await auth()
-        if (session?.user?.email && sessionId) {
-          const db = await getDb()
-          await db.insert(speakingChats).values([
-            {
-              id: crypto.randomUUID(),
-              sessionId,
-              email: session.user.email,
-              role: 'user',
-              content: message,
-            },
-            {
-              id: crypto.randomUUID(),
-              sessionId,
-              email: session.user.email,
-              role: 'assistant',
-              content: reply,
-            }
-          ])
-        }
-      } catch (dbErr) {
-        // Non-blocking
-      }
-
+    const email = await account()
+    const db = await getDb(), client = db.$client as SpeakingD1, store = new SpeakingStore(client)
+    await store.ensure()
+    if (body?.action === 'begin_submission') {
+      rateLimit(email, 'begin', 8, 30_000)
+      const manifest = validateManifest(body)
+      return NextResponse.json(await store.begin(email, manifest))
+    }
+    if (body?.action === 'report') {
+      if (body.submissionId) return NextResponse.json({ report: await store.report(email, body.submissionId) })
+      const [reports, legacy] = await Promise.all([store.history(email), legacyReports(client, email)])
+      return NextResponse.json({ reports: [...reports, ...legacy].sort((a, b) => b.createdAt - a.createdAt).slice(0, 25) })
+    }
+    if (body?.action === 'chat_history') {
+      if (typeof body.recordingId !== 'string') throw new SpeakingRequestError(400, 'Mã câu trả lời không hợp lệ.')
+      const row = await store.recording(email, body.recordingId)
+      return NextResponse.json({ messages: JSON.parse(row.chatLog || '[]') })
+    }
+    if (body?.action === 'chat') {
+      rateLimit(email, 'chat', 10, 30_000)
+      if (typeof body.message !== 'string' || !body.message.trim() || body.message.length > 1800 || typeof body.recordingId !== 'string') throw new SpeakingRequestError(400, 'Nội dung câu hỏi không hợp lệ.')
+      const row = await store.recording(email, body.recordingId)
+      if (row.status !== 'completed') throw new SpeakingRequestError(409, 'Hãy nộp và nhận kết quả bài nói trước khi hỏi AI.')
+      const submission = await store.submission(email, row.submissionId)
+      const result = JSON.parse(row.result), history = JSON.parse(row.chatLog || '[]')
+      const reply = await speakingCoachReply(db, email, body.message.trim(), history, { question: submission.manifest.items[row.itemIndex].question, result }, submission.feedbackLang)
+      await store.saveChat(row.id, [...history, { role: 'user', content: body.message.trim() }, { role: 'assistant', content: reply }])
       return NextResponse.json({ reply })
     }
-
-    return NextResponse.json({ error: 'Action không hợp lệ.' }, { status: 400 })
-  } catch (err: any) {
-    console.error('[Speaking API] Error:', err)
-    return NextResponse.json({ error: 'Lỗi server: ' + (err.message || 'Unknown') }, { status: 500 })
-  }
+    throw new SpeakingRequestError(400, 'Thao tác Speaking không hợp lệ.')
+  } catch (error) { return responseError(error) }
 }

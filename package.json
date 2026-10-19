@@ -13,7 +13,9 @@
     "test:api-rotation": "node --experimental-strip-types tests/ai-key-rotation.test.mjs",
     "test:grader-submissions": "node --experimental-vm-modules tests/grader-submissions.test.mjs",
     "test:build-seo": "node --experimental-vm-modules tests/build-seo.test.mjs",
-    "test:grader-ui": "node tests/grader-ui.test.mjs"
+    "test:grader-ui": "node tests/grader-ui.test.mjs",
+    "test:speaking": "node --experimental-vm-modules tests/speaking.test.mjs",
+    "test:speaking-ui": "node tests/speaking-ui.test.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

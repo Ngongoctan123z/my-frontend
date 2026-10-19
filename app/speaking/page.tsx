@@ -6,11 +6,11 @@ import { SpeakingClient } from './SpeakingClient'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Luyện IELTS & TOEIC Speaking Online Chuẩn Barem | VNDocs',
-    description: 'Phòng luyện Speaking IELTS và TOEIC trực tuyến với AI. Thu âm giọng nói, phân tích độ trôi chảy, phát hiện khoảng nghỉ, nhận xét chi tiết theo barem khảo thí.',
+    title: 'Luyện IELTS & TOEIC Speaking Online | VNDocs',
+    description: 'Luyện Speaking IELTS và TOEIC: chọn đề, thu âm, nghe lại và nhận góp ý từ AI. Luyện từng phần hoặc thi thử trọn bộ.',
     openGraph: {
       title: 'Luyện Speaking IELTS & TOEIC AI | VNDocs',
-      description: 'Luyện nói IELTS Part 1-3, TOEIC Q1-11. AI phân tích fluency, từ phát âm sai, khoảng nghỉ và đưa ra câu hỏi follow-up.',
+      description: 'Luyện IELTS Part 1–3 và đủ 11 câu TOEIC Speaking. Lưu bản thu, xem nhận xét từng câu và hỏi AI Coach.',
       url: `${FRONTEND_URL}/speaking`,
     }
   }
@@ -23,7 +23,7 @@ const jsonLd = {
   operatingSystem: 'Web',
   applicationCategory: 'EducationalApplication',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'VND' },
-  description: 'Luyện tập nói IELTS và TOEIC với AI. Phân tích fluency, khoảng nghỉ và phát âm sai theo barem chính thức.',
+  description: 'Luyện IELTS và TOEIC Speaking với bản thu, nhận xét luyện tập và lịch sử theo tài khoản.',
   url: `${FRONTEND_URL}/speaking`
 }
 
@@ -41,3 +41,4 @@ export default function SpeakingPage() {
     </div>
   )
 }
+

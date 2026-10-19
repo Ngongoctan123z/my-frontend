@@ -15,6 +15,10 @@ export interface SpeakingPrompt {
   criteria: string[]
   difficulty: 'easy' | 'medium' | 'hard'
   setId?: string // Links Part 2 and Part 3 together in IELTS
+  informationText?: string
+  questionNumber?: number
+  readingTimeSec?: number
+  repeatQuestion?: boolean
 }
 
 // ─── IELTS Speaking ─────────────────────────────────────────────────────────
@@ -500,6 +504,7 @@ export const TOEIC_Q10_11_PROMPTS: SpeakingPrompt[] = [
 export type SpeakingPart =
   | 'PART_1' | 'PART_2' | 'PART_3'
   | 'Q1_2' | 'Q3' | 'Q4_6' | 'Q7_9' | 'Q10_11'
+  | 'Q3_4' | 'Q5_7' | 'Q8_10' | 'Q11'
 
 export function getPromptsForPart(examType: 'IELTS_SPEAKING' | 'TOEIC_SPEAKING', part: SpeakingPart): SpeakingPrompt[] {
   if (examType === 'IELTS_SPEAKING') {
@@ -508,10 +513,10 @@ export function getPromptsForPart(examType: 'IELTS_SPEAKING' | 'TOEIC_SPEAKING',
     if (part === 'PART_3') return IELTS_PART3_PROMPTS
   } else {
     if (part === 'Q1_2') return TOEIC_Q1_2_PROMPTS
-    if (part === 'Q3') return TOEIC_Q3_PROMPTS
-    if (part === 'Q4_6') return TOEIC_Q4_6_PROMPTS
-    if (part === 'Q7_9') return TOEIC_Q7_9_PROMPTS
-    if (part === 'Q10_11') return TOEIC_Q10_11_PROMPTS
+    if (part === 'Q3' || part === 'Q3_4') return TOEIC_Q3_PROMPTS.map(p => ({ ...p, part: 'Q3_4', speakTimeSec: 30 }))
+    if (part === 'Q4_6' || part === 'Q5_7') return TOEIC_Q4_6_PROMPTS.map(p => ({ ...p, part: 'Q5_7', speakTimeSec: 15 }))
+    if (part === 'Q7_9' || part === 'Q8_10') return TOEIC_Q7_9_PROMPTS.map(p => ({ ...p, part: 'Q8_10' }))
+    if (part === 'Q10_11' || part === 'Q11') return TOEIC_Q10_11_PROMPTS.map(p => ({ ...p, part: 'Q11' }))
   }
   return []
 }
@@ -533,4 +538,9 @@ export const PART_META: Record<SpeakingPart, { labelEn: string; labelVi: string;
   Q4_6: { labelEn: 'Q4-6', labelVi: 'Câu 4-6', descVi: 'Respond to questions — Trả lời tình huống phỏng vấn', defaultPrep: 3, defaultSpeak: 30 },
   Q7_9: { labelEn: 'Q7-9', labelVi: 'Câu 7-9', descVi: 'Respond using information — Trả lời theo lịch trình/bảng biểu', defaultPrep: 45, defaultSpeak: 30 },
   Q10_11: { labelEn: 'Q10-11', labelVi: 'Câu 10-11', descVi: 'Express an opinion — Trình bày quan điểm cá nhân', defaultPrep: 45, defaultSpeak: 60 },
+  Q3_4: { labelEn: 'Q3–4', labelVi: 'Câu 3–4', descVi: 'Describe a picture — Miêu tả ảnh', defaultPrep: 45, defaultSpeak: 30 },
+  Q5_7: { labelEn: 'Q5–7', labelVi: 'Câu 5–7', descVi: 'Respond to questions — Trả lời câu hỏi', defaultPrep: 3, defaultSpeak: 15 },
+  Q8_10: { labelEn: 'Q8–10', labelVi: 'Câu 8–10', descVi: 'Use information — Trả lời dựa trên thông tin', defaultPrep: 3, defaultSpeak: 15 },
+  Q11: { labelEn: 'Q11', labelVi: 'Câu 11', descVi: 'Express an opinion — Nêu quan điểm', defaultPrep: 45, defaultSpeak: 60 },
 }
+

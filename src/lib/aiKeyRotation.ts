@@ -134,6 +134,9 @@ export async function generateWithKeyRotation<T>(
       try {
         return { result: await generate(apiKey, model), usedKey: apiKey, model }
       } catch (error) {
+        // Callers can stop retries for invalid user input or an expired request
+        // deadline. Existing provider errors retain their rotation behavior.
+        if (error && typeof error === 'object' && (error as { retryable?: boolean }).retryable === false) throw error
         const kind = classifyProviderError(error)
         if (kind === 'safety') throw error
         if (kind === 'rate') await rotation.coolDown(apiKey, retryAfterMilliseconds(error))

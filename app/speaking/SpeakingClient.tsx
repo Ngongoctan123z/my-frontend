@@ -1,935 +1,251 @@
 'use client'
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import {
-  Mic, Square, Play, RotateCcw, Volume2, ChevronRight,
-  Clock, AlertCircle, CheckCircle2, Loader2,
-  MessageSquare, Sparkles, BookOpen, BarChart3, HelpCircle,
-  ThumbsUp, ThumbsDown, ArrowLeft
-} from 'lucide-react'
-import { useSession } from 'next-auth/react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { signIn, useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
-import confetti from 'canvas-confetti'
+import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, History, Loader2, RefreshCw, Send, Volume2 } from 'lucide-react'
+import { GraderActions } from '@/src/components/common/GraderControls'
+import { SpeakingDialog } from '@/src/components/speaking/SpeakingDialog'
+import { SpeakingRecorder } from '@/src/components/speaking/SpeakingRecorder'
+import { SpeakingResults } from '@/src/components/speaking/SpeakingResults'
+import { buildSpeakingSet, fallbackCatalog, hashSpeakingAudio, mergeCatalog, PART_LABELS, SPEAKING_PARTS, formatSpeakingTime,
+  type SpeakingCatalog, type SpeakingClip, type SpeakingExam, type SpeakingQuestion, type SpeakingReport, type SpeakingTab } from '@/src/lib/speaking'
+import { clearSpeakingDraft, loadSpeakingAudio, loadSpeakingDraft, saveSpeakingAudio, saveSpeakingDraft } from '@/src/utils/speakingStorage'
 
-import {
-  IELTS_PART1_PROMPTS, IELTS_PART2_PROMPTS, IELTS_PART3_PROMPTS,
-  TOEIC_Q1_2_PROMPTS, TOEIC_Q3_PROMPTS, TOEIC_Q4_6_PROMPTS,
-  TOEIC_Q7_9_PROMPTS, TOEIC_Q10_11_PROMPTS,
-  SpeakingPrompt, PART_META, SpeakingPart, getLinkedIeltsPart3
-} from '@/src/data/speakingPrompts'
-
-import { SessionSetup, SessionConfig } from '@/src/components/speaking/SessionSetup'
-import { WheelSpinner } from '@/src/components/speaking/WheelSpinner'
-import { SquarePromptCard } from '@/src/components/speaking/SquarePromptCard'
-import { SpeakingChatCoach } from '@/src/components/speaking/SpeakingChatCoach'
-import { SessionSummaryReport, SessionResultItem } from '@/src/components/speaking/SessionSummaryReport'
-
-// ─── Constants & Types ────────────────────────────────────────────────────────
-
-const FILLER_WORDS = ['um', 'uh', 'er', 'ah', 'like', 'you know', 'i mean', 'sort of', 'kind of', 'basically', 'actually', 'literally', 'right', 'okay so']
-const SILENCE_THRESHOLD = 0.02
-const PAUSE_LOG_THRESHOLD_MS = 1500  // Khoảng nghỉ trên 1.5s được ghi thành pause event
-const AUTO_END_SILENCE_MS = 3500     // Tự kết thúc sau 3.5s im lặng (chỉ sau khi đã có tiếng nói)
-const MIN_SPEECH_DURATION_MS = 1000  // Ít nhất 1s tiếng nói thực tế
-
-type AppScreen = 'setup' | 'wheel' | 'prompt' | 'result' | 'summary'
-
-interface PauseEvent {
-  startMs: number
-  endMs: number
-  durationMs: number
+async function requestSpeaking(body?: object | FormData, signal?: AbortSignal) {
+  const controller = new AbortController(), abort = () => controller.abort()
+  signal?.addEventListener('abort', abort, { once: true })
+  if (signal?.aborted) controller.abort()
+  const timer = setTimeout(abort, 190_000)
+  try {
+    const response = await fetch('/api/speaking', body ? { method: 'POST', headers: body instanceof FormData ? undefined : { 'Content-Type': 'application/json' }, body: body instanceof FormData ? body : JSON.stringify(body), signal: controller.signal } : { signal: controller.signal })
+    if (!(response.headers.get('content-type') || '').includes('application/json')) throw new Error('Máy chủ chưa phản hồi. Bản thu vẫn được giữ để bạn gửi lại.')
+    const data = await response.json()
+    if (!response.ok) {
+      const wait = Number(response.headers.get('retry-after'))
+      throw new Error((data.error || 'Chưa xử lý được yêu cầu.') + (wait > 0 ? ` Có thể thử lại sau ${wait} giây.` : ''))
+    }
+    return data
+  } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort) }
 }
-
-interface MisheardWord {
-  heard: string
-  suggested: string
-  reason: string
-  confirmed: boolean | null
-}
-
-interface AIFluencyResult {
-  speech_duration_seconds?: number
-  total_duration_seconds?: number
-  pause_count?: number
-  long_pause_count?: number
-  total_pause_seconds?: number
-  words_per_minute?: number
-  repetition_count?: number
-  filler_count?: number
-  level?: string
-}
-
-interface AIResult {
-  valid: boolean
-  transcript_clean?: string
-  fluency?: AIFluencyResult
-  possible_misheard_words?: MisheardWord[]
-  feedback_vi?: string
-  strengths_vi?: string
-  next_question_en?: string
-  next_question_vi?: string
-  _sessionId?: string
-  error?: string
-}
-
-// ─── Main Speaking Client Component ──────────────────────────────────────────
 
 export function SpeakingClient() {
-  const { data: session } = useSession()
-  const searchParams = useSearchParams()
-  const tabParam = searchParams.get('tab')
+  const { data: session, status } = useSession(), search = useSearchParams(), tabParam = search.get('tab')
+  const initialExam: SpeakingExam = tabParam === 'toeic' ? 'TOEIC_SPEAKING' : 'IELTS_SPEAKING'
+  const initialTab: SpeakingTab = initialExam === 'IELTS_SPEAKING' ? 'PART_2' : 'Q11'
+  const owner = session?.user?.email?.trim().toLowerCase() || ''
+  const [exam, setExam] = useState<SpeakingExam>(initialExam), [tab, setTab] = useState<SpeakingTab>(initialTab)
+  const [catalogs, setCatalogs] = useState<Record<SpeakingExam, SpeakingCatalog>>(() => ({ IELTS_SPEAKING: fallbackCatalog('IELTS_SPEAKING'), TOEIC_SPEAKING: fallbackCatalog('TOEIC_SPEAKING') }))
+  const [questions, setQuestions] = useState<SpeakingQuestion[]>(() => buildSpeakingSet(initialExam, initialTab, fallbackCatalog(initialExam), undefined, () => 0))
+  const [index, setIndex] = useState(0), [clips, setClips] = useState<Record<string, SpeakingClip>>({})
+  const [mode, setMode] = useState<'practice' | 'exam'>('practice'), [examStarted, setExamStarted] = useState(false)
+  const [active, setActive] = useState(false), [busy, setBusy] = useState(false), [processing, setProcessing] = useState(''), [error, setError] = useState('')
+  const [feedbackLang, setFeedbackLang] = useState('Tiếng Việt'), [clientId, setClientId] = useState(() => crypto.randomUUID())
+  const [submissionId, setSubmissionId] = useState<string | null>(null), [report, setReport] = useState<SpeakingReport | null>(null)
+  const [displayReport, setDisplayReport] = useState<SpeakingReport | null>(null), [resultOpen, setResultOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false), [history, setHistory] = useState<SpeakingReport[]>([]), [historyLoading, setHistoryLoading] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false), [keyword, setKeyword] = useState(''), [showTranslation, setShowTranslation] = useState(false), [showVocabulary, setShowVocabulary] = useState(false)
+  const [restoring, setRestoring] = useState(true), [storageStatus, setStorageStatus] = useState(''), [restoredNotice, setRestoredNotice] = useState(false)
+  const [usage, setUsage] = useState({ count: 0, limit: 5 })
+  const current = questions[index], currentClip = current ? clips[current.id] : undefined
+  const strict = mode === 'exam', ready = questions.length > 0 && questions.every((q, i) => !!clips[q.id] || !!report?.items[i]?.result)
+  const completed = report?.status === 'completed'
+  const locked = active || busy || restoring
+  const ownerRef = useRef(owner); ownerRef.current = owner
+  const touched = useRef(false), pipeline = useRef<AbortController | null>(null), audioHashes = useRef(new Map<string, string>()), loadedOwner = useRef<string | null>(null), queryRef = useRef(tabParam)
+  const restoredOwner = useRef<string | null>(null)
+  const snapshot = useRef({ exam, tab, mode, questions, clips, index, feedbackLang, clientSubmissionId: clientId, report, submissionId })
+  snapshot.current = { exam, tab, mode, questions, clips, index, feedbackLang, clientSubmissionId: clientId, report, submissionId }
 
-  // Screen Flow
-  const [screen, setScreen] = useState<AppScreen>('setup')
-  const [initialExamType, setInitialExamType] = useState<'IELTS_SPEAKING' | 'TOEIC_SPEAKING'>(
-    tabParam === 'toeic' ? 'TOEIC_SPEAKING' : 'IELTS_SPEAKING'
-  )
-
+  const resetAssessment = useCallback(() => { setClientId(crypto.randomUUID()); setSubmissionId(null); setReport(null); setError('') }, [])
+  const login = () => { void signIn('google', { callbackUrl: window.location.href }) }
+  const allowDiscard = () => !Object.keys(clips).length || completed || window.confirm('Bạn còn bản thu chưa nộp. Đổi đề sẽ bỏ bài đang làm trên màn hình này. Tiếp tục?')
+  const changeSet = (nextExam = exam, nextTab = tab, selectedId?: string, nextMode: 'practice' | 'exam' = 'practice') => {
+    if (locked || !allowDiscard()) return
+    touched.current = true
+    setExam(nextExam); setTab(nextTab); setMode(nextMode); setExamStarted(false)
+    setQuestions(buildSpeakingSet(nextExam, nextTab, catalogs[nextExam], selectedId)); setIndex(0); setClips({})
+    setShowTranslation(false); setShowVocabulary(false); setRestoredNotice(false); resetAssessment()
+  }
   useEffect(() => {
-    if (tabParam === 'toeic') setInitialExamType('TOEIC_SPEAKING')
-    else if (tabParam === 'ielts') setInitialExamType('IELTS_SPEAKING')
-  }, [tabParam])
-
-  // Session Queue
-  const [sessionConfig, setSessionConfig] = useState<SessionConfig | null>(null)
-  const [questionsQueue, setQuestionsQueue] = useState<SpeakingPrompt[]>([])
-  const [currentIndex, setCurrentIndex] = useState<number>(0)
-  const [sessionResults, setSessionResults] = useState<SessionResultItem[]>([])
-
-  // Wheel State
-  const [isSpinning, setIsSpinning] = useState(false)
-
-  // Recording & Audio State
-  const [isRecording, setIsRecording] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [recordingMs, setRecordingMs] = useState(0)
-  const [volumeLevel, setVolumeLevel] = useState(0)
-  const [speechDetected, setSpeechDetected] = useState(false)
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
-  const [audioUrl, setAudioUrl] = useState<string | null>(null)
-  const [errorMsg, setErrorMsg] = useState('')
-
-  // Current Question Output
-  const [transcript, setTranscript] = useState('')
-  const [pauseEvents, setPauseEvents] = useState<PauseEvent[]>([])
-  const [aiResult, setAiResult] = useState<AIResult | null>(null)
-  const [misheardWords, setMisheardWords] = useState<MisheardWord[]>([])
-  const [currentSessionId, setCurrentSessionId] = useState<string>('')
-
-  // Refs
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const analyserRef = useRef<AnalyserNode | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const chunksRef = useRef<Blob[]>([])
-  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const startTimeRef = useRef<number>(0)
-  const speechStartRef = useRef<number>(0)
-  const speechDurationRef = useRef<number>(0)
-  const pauseCountRef = useRef<number>(0)
-  const longPauseCountRef = useRef<number>(0)
-  const totalPauseMsRef = useRef<number>(0)
-  const pauseStartRef = useRef<number>(0)
-  const inSilenceRef = useRef<boolean>(false)
-  const pauseEventsRef = useRef<PauseEvent[]>([])
-
-  const currentPrompt: SpeakingPrompt | null = questionsQueue[currentIndex] || null
-
-  // ── Helper: Generate Session Queue with Linked Prompts ───────────────────────
-  const generateQueue = (config: SessionConfig): SpeakingPrompt[] => {
-    const queue: SpeakingPrompt[] = []
-
-    if (config.examType === 'IELTS_SPEAKING') {
-      // IELTS logic: Handle linked Part 2 and Part 3
-      const hasPart1 = config.practiceParts.includes('PART_1')
-      const hasPart2 = config.practiceParts.includes('PART_2')
-      const hasPart3 = config.practiceParts.includes('PART_3')
-
-      if (hasPart1) {
-        const rand = IELTS_PART1_PROMPTS[Math.floor(Math.random() * IELTS_PART1_PROMPTS.length)]
-        queue.push(rand)
-      }
-
-      if (hasPart2 && hasPart3) {
-        // Link Part 2 and Part 3 by topic/set
-        const part2 = IELTS_PART2_PROMPTS[Math.floor(Math.random() * IELTS_PART2_PROMPTS.length)]
-        if (part2) {
-          const linkedPart3 = getLinkedIeltsPart3(part2) || IELTS_PART3_PROMPTS[0]
-          queue.push(part2)
-          if (linkedPart3) queue.push(linkedPart3)
-        }
-      } else if (hasPart2) {
-        const part2 = IELTS_PART2_PROMPTS[Math.floor(Math.random() * IELTS_PART2_PROMPTS.length)]
-        queue.push(part2)
-      } else if (hasPart3) {
-        const part3 = IELTS_PART3_PROMPTS[Math.floor(Math.random() * IELTS_PART3_PROMPTS.length)]
-        queue.push(part3)
-      }
-    } else {
-      // TOEIC logic: Add in natural sequence
-      const order: SpeakingPart[] = ['Q1_2', 'Q3', 'Q4_6', 'Q7_9', 'Q10_11']
-      order.forEach((part) => {
-        if (config.practiceParts.includes(part)) {
-          let pool: SpeakingPrompt[] = []
-          if (part === 'Q1_2') pool = TOEIC_Q1_2_PROMPTS
-          else if (part === 'Q3') pool = TOEIC_Q3_PROMPTS
-          else if (part === 'Q4_6') pool = TOEIC_Q4_6_PROMPTS
-          else if (part === 'Q7_9') pool = TOEIC_Q7_9_PROMPTS
-          else if (part === 'Q10_11') pool = TOEIC_Q10_11_PROMPTS
-
-          if (pool.length > 0) {
-            const rand = pool[Math.floor(Math.random() * pool.length)]
-            queue.push(rand)
-          }
-        }
-      })
-    }
-
-    return queue
-  }
-
-  // ── Start Session Handler ──────────────────────────────────────────────────
-  const handleStartSession = (config: SessionConfig) => {
-    setSessionConfig(config)
-    const queue = generateQueue(config)
-    setQuestionsQueue(queue)
-    setCurrentIndex(0)
-    setSessionResults([])
-    resetQuestionState()
-
-    if (config.source === 'random') {
-      setScreen('wheel')
-    } else {
-      setScreen('prompt')
-    }
-  }
-
-  const resetQuestionState = () => {
-    setIsRecording(false)
-    setIsProcessing(false)
-    setRecordingMs(0)
-    setSpeechDetected(false)
-    setAudioUrl(null)
-    setTranscript('')
-    setPauseEvents([])
-    setAiResult(null)
-    setMisheardWords([])
-    setErrorMsg('')
-    pauseEventsRef.current = []
-  }
-
-  // ── Wheel Logic ─────────────────────────────────────────────────────────────
-  // Extract all topics for current part to populate wheel slices
-  const currentPartTopics = (() => {
-    if (!currentPrompt) return ['Topic A', 'Topic B', 'Topic C', 'Topic D']
-    let pool: SpeakingPrompt[] = []
-    if (currentPrompt.examType === 'IELTS_SPEAKING') {
-      if (currentPrompt.part === 'PART_1') pool = IELTS_PART1_PROMPTS
-      else if (currentPrompt.part === 'PART_2') pool = IELTS_PART2_PROMPTS
-      else pool = IELTS_PART3_PROMPTS
-    } else {
-      if (currentPrompt.part === 'Q1_2') pool = TOEIC_Q1_2_PROMPTS
-      else if (currentPrompt.part === 'Q3') pool = TOEIC_Q3_PROMPTS
-      else if (currentPrompt.part === 'Q4_6') pool = TOEIC_Q4_6_PROMPTS
-      else if (currentPrompt.part === 'Q7_9') pool = TOEIC_Q7_9_PROMPTS
-      else pool = TOEIC_Q10_11_PROMPTS
-    }
-    const set = new Set(pool.map((p) => p.topic).filter(Boolean))
-    const list = Array.from(set)
-    if (list.length < 3) list.push('General Topic', 'Daily Life', 'Career')
-    return list
-  })()
-
-  const wheelTargetIndex = Math.max(0, currentPartTopics.indexOf(currentPrompt?.topic || ''))
-
-  const handleSpinClick = () => {
-    if (isSpinning) return
-    setIsSpinning(true)
-  }
-
-  const handleSpinEnd = () => {
-    setIsSpinning(false)
+    if (tabParam) return
     try {
-      confetti({
-        particleCount: 65,
-        spread: 60,
-        origin: { y: 0.65 },
-      })
+      const last = JSON.parse(localStorage.getItem('vndocs-speaking-last-part') || 'null')
+      if (last && SPEAKING_PARTS[last.exam as SpeakingExam] && (last.tab === 'FULL' || SPEAKING_PARTS[last.exam as SpeakingExam].includes(last.tab))) {
+        setExam(last.exam); setTab(last.tab); setQuestions(buildSpeakingSet(last.exam, last.tab))
+      }
     } catch {}
-
-    setTimeout(() => {
-      setScreen('prompt')
-    }, 1300)
-  }
-
-  const handleQuickPick = () => {
-    setIsSpinning(false)
-    try {
-      confetti({ particleCount: 30, spread: 40 })
-    } catch {}
-    setScreen('prompt')
-  }
-
-  // ── Card Expired (15s grace expired without speaking) ────────────────────────
-  const handleCardExpired = () => {
-    // Exactly as required:
-    // Hết khoảng chờ mà người dùng chưa bấm thu âm:
-    // Thu gọn thẻ đề bằng animation, ghi trạng thái "Hết thời gian bắt đầu", không gọi STT hoặc chấm điểm.
-  }
-
-  // ── Start Recording ─────────────────────────────────────────────────────────
-  const startRecording = async () => {
-    setErrorMsg('')
-    resetQuestionState()
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 16000,
-          channelCount: 1,
-        },
-      })
-      streamRef.current = stream
-
-      const ctx = new AudioContext({ sampleRate: 16000 })
-      audioContextRef.current = ctx
-      const source = ctx.createMediaStreamSource(stream)
-      const analyserNode = ctx.createAnalyser()
-      analyserNode.fftSize = 2048
-      analyserNode.smoothingTimeConstant = 0.8
-      source.connect(analyserNode)
-      analyserRef.current = analyserNode
-      setAnalyser(analyserNode)
-
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : 'audio/ogg;codecs=opus'
-
-      const recorder = new MediaRecorder(stream, { mimeType })
-      mediaRecorderRef.current = recorder
-      chunksRef.current = []
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
-      }
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType })
-        const url = URL.createObjectURL(blob)
-        setAudioUrl(url)
-        processAudio(blob)
-      }
-
-      recorder.start(100)
-      startTimeRef.current = Date.now()
-      speechStartRef.current = 0
-      speechDurationRef.current = 0
-      pauseCountRef.current = 0
-      longPauseCountRef.current = 0
-      totalPauseMsRef.current = 0
-      pauseStartRef.current = 0
-      inSilenceRef.current = false
-      pauseEventsRef.current = []
-
-      setIsRecording(true)
-      setRecordingMs(0)
-
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingMs(Date.now() - startTimeRef.current)
-      }, 100)
-
-      // Maximum speaking duration safety limit
-      const maxSpeakMs = ((currentPrompt?.speakTimeSec || 45) + 3) * 1000
-      maxTimerRef.current = setTimeout(() => {
-        if (mediaRecorderRef.current?.state === 'recording') {
-          stopRecording()
-        }
-      }, maxSpeakMs)
-
-      // VAD Loop with separated thresholds
-      const bufferLength = analyserNode.frequencyBinCount
-      const dataArray = new Uint8Array(bufferLength)
-
-      const vadLoop = () => {
-        if (mediaRecorderRef.current?.state !== 'recording') return
-        analyserNode.getByteTimeDomainData(dataArray)
-
-        let sum = 0
-        for (let i = 0; i < bufferLength; i++) {
-          const norm = (dataArray[i] - 128) / 128
-          sum += norm * norm
-        }
-        const rms = Math.sqrt(sum / bufferLength)
-        setVolumeLevel(Math.min(1, rms * 5))
-
-        const isSpeaking = rms > SILENCE_THRESHOLD
-
-        if (isSpeaking) {
-          setSpeechDetected(true)
-          if (!speechStartRef.current) speechStartRef.current = Date.now()
-
-          if (inSilenceRef.current) {
-            // End of a silence pause
-            const pauseDuration = Date.now() - pauseStartRef.current
-            totalPauseMsRef.current += pauseDuration
-            pauseCountRef.current++
-
-            if (pauseDuration >= PAUSE_LOG_THRESHOLD_MS) {
-              longPauseCountRef.current++
-              pauseEventsRef.current.push({
-                startMs: pauseStartRef.current - startTimeRef.current,
-                endMs: Date.now() - startTimeRef.current,
-                durationMs: pauseDuration,
-              })
-            }
-            inSilenceRef.current = false
-          }
-
-          if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current)
-            silenceTimerRef.current = null
-          }
-        } else {
-          // Silence detected
-          if (!inSilenceRef.current && speechStartRef.current) {
-            pauseStartRef.current = Date.now()
-            inSilenceRef.current = true
-
-            // Auto-stop ONLY after AUTO_END_SILENCE_MS (3.5s) continuous silence
-            if (!silenceTimerRef.current) {
-              silenceTimerRef.current = setTimeout(() => {
-                if (mediaRecorderRef.current?.state === 'recording') {
-                  stopRecording()
-                }
-              }, AUTO_END_SILENCE_MS)
-            }
-          }
-        }
-
-        requestAnimationFrame(vadLoop)
-      }
-
-      vadLoop()
-    } catch (err: any) {
-      setErrorMsg('Không thể mở microphone. Vui lòng kiểm tra quyền thiết bị trong trình duyệt.')
-      setIsRecording(false)
-    }
-  }
-
-  // ── Stop Recording ──────────────────────────────────────────────────────────
-  const stopRecording = useCallback(() => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current)
-      silenceTimerRef.current = null
-    }
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current)
-      recordingTimerRef.current = null
-    }
-    if (maxTimerRef.current) {
-      clearTimeout(maxTimerRef.current)
-      maxTimerRef.current = null
-    }
-
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop()
-    }
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-    }
-
-    setAnalyser(null)
-    analyserRef.current = null
-    setIsRecording(false)
   }, [])
-
-  // ── Process Audio & Call STT / AI Analysis ──────────────────────────────────
-  const processAudio = async (blob: Blob) => {
-    setIsProcessing(true)
-    setErrorMsg('')
-
-    const totalDurationMs = Date.now() - startTimeRef.current
-    const speechDurMs = totalDurationMs - totalPauseMsRef.current
-
-    if (totalDurationMs < MIN_SPEECH_DURATION_MS || blob.size < 1500 || !speechStartRef.current) {
-      setErrorMsg('Hệ thống chưa ghi nhận được âm thanh nói hợp lệ (quá ngắn hoặc im lặng). Không chấm điểm bài này.')
-      setIsProcessing(false)
-      return
+  useEffect(() => { try { localStorage.setItem('vndocs-speaking-last-part', JSON.stringify({ exam, tab })) } catch {} }, [exam, tab])
+  useEffect(() => {
+    if (tabParam !== queryRef.current && !locked) {
+      queryRef.current = tabParam
+      const nextExam = tabParam === 'toeic' ? 'TOEIC_SPEAKING' : 'IELTS_SPEAKING'
+      if (nextExam !== exam) changeSet(nextExam, nextExam === 'IELTS_SPEAKING' ? 'PART_2' : 'Q11')
     }
+  }, [tabParam, locked])
+  useEffect(() => {
+    const controller = new AbortController()
+    requestSpeaking({ action: 'catalog', examType: exam }, controller.signal).then(data => {
+      if (controller.signal.aborted) return
+      const catalog = mergeCatalog(exam, data.catalog)
+      setCatalogs(previous => ({ ...previous, [exam]: catalog }))
+      if (!touched.current && !Object.keys(snapshot.current.clips).length) setQuestions(buildSpeakingSet(exam, snapshot.current.tab, catalog))
+    }).catch(() => {})
+    return () => controller.abort()
+  }, [exam])
+  useEffect(() => {
+    if (status === 'loading' || loadedOwner.current === owner) return
+    loadedOwner.current = owner; restoredOwner.current = null; pipeline.current?.abort(); touched.current = false
+    setDisplayReport(null); setResultOpen(false); setHistoryOpen(false); setPickerOpen(false); setRestoredNotice(false)
+    setActive(false); setBusy(false); setExamStarted(false); setClips({}); resetAssessment(); setRestoring(true); setHistory([])
+    let live = true
+    if (!owner) { setRestoring(false); return }
+    loadSpeakingDraft(owner).then(draft => {
+      if (!live || ownerRef.current !== owner) return
+      if (draft?.owner === owner && draft.questions?.length && draft.clips && draft.updatedAt > Date.now() - 7 * 86_400_000 && draft.report?.status !== 'completed') {
+        touched.current = true; setExam(draft.exam); setTab(draft.tab); setMode(draft.mode); setQuestions(draft.questions)
+        setClips(draft.clips); setIndex(Math.min(draft.index, draft.questions.length - 1)); setFeedbackLang(draft.feedbackLang)
+        setClientId(draft.clientSubmissionId); setSubmissionId(draft.submissionId || null); setReport(draft.report || null); setRestoredNotice(true)
+      }
+    }).catch(() => { if (live) setStorageStatus('Trình duyệt chưa cho lưu bản thu tự động. Hãy giữ trang này mở trong khi luyện.') }).finally(() => { if (live && ownerRef.current === owner) { restoredOwner.current = owner; setRestoring(false) } })
+    requestSpeaking().then(data => { if (live && ownerRef.current === owner) setUsage({ count: data.count, limit: data.limit }) }).catch(() => {})
+    return () => { live = false }
+  }, [owner, status, resetAssessment])
+  useEffect(() => {
+    if (!owner || restoring || restoredOwner.current !== owner) return
+    if (report?.status === 'completed' || !Object.keys(clips).length) { void clearSpeakingDraft(owner).catch(() => {}); return }
+    const timer = setTimeout(() => {
+      saveSpeakingDraft({ owner, ...snapshot.current, updatedAt: Date.now() }).then(() => { if (ownerRef.current === owner) setStorageStatus('Bản thu đã lưu trên thiết bị này.') })
+        .catch(() => { if (ownerRef.current === owner) setStorageStatus('Chưa lưu được bản thu tự động. Hãy giữ trang này mở để tránh mất bài.') })
+    }, 120)
+    return () => clearTimeout(timer)
+  }, [owner, restoring, exam, tab, mode, questions, clips, index, feedbackLang, clientId, report, submissionId])
+  useEffect(() => () => pipeline.current?.abort(), [])
+  useEffect(() => { setShowTranslation(false); setShowVocabulary(false) }, [current?.id])
 
+  const loadHistory = async () => {
+    if (!owner) { login(); return }
+    setHistoryLoading(true)
+    try { const data = await requestSpeaking({ action: 'report' }); if (ownerRef.current === owner) setHistory(data.reports || []) }
+    catch (failure: any) { setError(failure.message) }
+    finally { setHistoryLoading(false) }
+  }
+  const clearCurrent = () => {
+    if (!current) return
+    touched.current = true; setClips(previous => { const next = { ...previous }; delete next[current.id]; return next }); resetAssessment()
+  }
+  const recorded = (clip: SpeakingClip) => {
+    if (!current || ownerRef.current !== owner) return
+    touched.current = true; setClips(previous => ({ ...previous, [current.id]: clip })); setError('')
+    if (strict && examStarted) {
+      if (index < questions.length - 1) setIndex(index + 1)
+      else setExamStarted(false)
+    }
+  }
+  const submit = async () => {
+    if (!owner) { login(); return }
+    if (active || busy) return
+    if (completed) { setDisplayReport(report); setResultOpen(true); return }
+    const missing = questions.findIndex((q, i) => !clips[q.id] && !report?.items[i]?.result)
+    if (missing >= 0) { setIndex(missing); setError('Hãy thu câu này trước. Các bản thu khác vẫn được giữ.'); return }
+    const controller = new AbortController(); pipeline.current?.abort(); pipeline.current = controller
+    const requestOwner = owner
+    setBusy(true); setError(''); setProcessing('Đang chuẩn bị bài nộp')
     try {
-      // 1. Transcribe via backend STT (Groq Whisper)
-      const fd = new FormData()
-      fd.append('audio', blob, 'recording.webm')
-      fd.append('action', 'transcribe')
-
-      const transcribeRes = await fetch('/api/speaking', {
-        method: 'POST',
-        body: fd,
-      })
-      const transcribeData = await transcribeRes.json()
-
-      if (!transcribeRes.ok || transcribeData.error) {
-        setErrorMsg(transcribeData.message || 'Lỗi chuyển giọng nói thành văn bản. Hãy thử nói lại to và rõ ràng hơn.')
-        setIsProcessing(false)
-        return
-      }
-
-      const rawTranscript = transcribeData.transcript
-      if (!rawTranscript || rawTranscript.split(/\s+/).length < 2) {
-        setErrorMsg('Transcript chưa đủ nội dung để đánh giá. Vui lòng nói thành câu hoàn chỉnh.')
-        setIsProcessing(false)
-        return
-      }
-
-      setTranscript(rawTranscript)
-      setPauseEvents([...pauseEventsRef.current])
-
-      // Calculate Fluency Metrics
-      const words = rawTranscript.split(/\s+/).filter((w: string) => w.length > 0)
-      const speechSec = Math.max(1, speechDurMs / 1000)
-      const wpm = Math.min(250, Math.round((words.length / speechSec) * 60))
-
-      const lower = rawTranscript.toLowerCase()
-      const fillerCount = FILLER_WORDS.reduce((acc, f) => acc + (lower.match(new RegExp(`\\b${f}\\b`, 'g')) ?? []).length, 0)
-      let repetitionCount = 0
-      for (let i = 1; i < words.length; i++) {
-        if (words[i].toLowerCase() === words[i - 1].toLowerCase() && words[i].length > 2) repetitionCount++
-      }
-
-      const fData = {
-        speechDurationMs: speechDurMs,
-        totalDurationMs,
-        pauseCount: pauseCountRef.current,
-        longPauseCount: longPauseCountRef.current,
-        totalPauseSec: +(totalPauseMsRef.current / 1000).toFixed(1),
-        wpm,
-        fillerCount,
-        repetitionCount,
-      }
-
-      // Check whether this specific part was selected for GRADING
-      const isGraded = Boolean(
-        currentPrompt && sessionConfig?.gradeParts.includes(currentPrompt.part as SpeakingPart)
-      )
-
-      let aiResp: any = null
-      let newSessionId = crypto.randomUUID()
-
-      // Call AI Grader / Feedback
-      if (isGraded && currentPrompt) {
-        const analyzeRes = await fetch('/api/speaking', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'analyze',
-            sessionId: newSessionId,
-            examType: currentPrompt.examType,
-            part: currentPrompt.part,
-            promptEn: currentPrompt.questionEn,
-            promptVi: currentPrompt.questionVi,
-            transcript: rawTranscript,
-            fluencyData: fData,
-          }),
-        })
-
-        if (analyzeRes.ok) {
-          const analyzeData = await analyzeRes.json()
-          aiResp = analyzeData.result
-          if (aiResp?.possible_misheard_words) {
-            setMisheardWords(aiResp.possible_misheard_words)
-          }
+      let id = submissionId, updated = report
+      if (!id) {
+        const items = []
+        for (const question of questions) {
+          const clip = clips[question.id]
+          let audioHash = audioHashes.current.get(clip.id)
+          if (!audioHash) { audioHash = await hashSpeakingAudio(clip.blob); audioHashes.current.set(clip.id, audioHash) }
+          items.push({ question, audioHash, metrics: clip.metrics })
         }
+        const data = await requestSpeaking({ action: 'begin_submission', clientSubmissionId: clientId, examType: exam, mode, fullTest: tab === 'FULL', feedbackLang, items }, controller.signal)
+        if (controller.signal.aborted || ownerRef.current !== requestOwner) throw new DOMException('Aborted', 'AbortError')
+        id = data.id; updated = data.report; setSubmissionId(id); setReport(updated); setUsage({ count: data.count, limit: data.limit })
+      } else updated = (await requestSpeaking({ action: 'report', submissionId: id }, controller.signal)).report
+      if (!id || !updated) throw new Error('Chưa tạo được bài nộp. Bản thu vẫn được giữ.')
+      for (let i = 0; i < questions.length; i++) {
+        if (controller.signal.aborted || ownerRef.current !== requestOwner) throw new DOMException('Aborted', 'AbortError')
+        const clip = clips[questions[i].id]
+        if (clip) await saveSpeakingAudio(requestOwner, `${id}:${i}`, clip).catch(() => { setStorageStatus('Chưa lưu được âm thanh vào lịch sử thiết bị.') })
+        if (updated.items[i]?.result) continue
+        setProcessing(`Đang nhận xét câu ${i + 1}/${questions.length}`)
+        const form = new FormData(), extension = clip.blob.type.includes('mp4') ? 'm4a' : clip.blob.type.includes('ogg') ? 'ogg' : 'webm'
+        form.append('action', 'submit_audio'); form.append('submissionId', id); form.append('itemIndex', String(i)); form.append('audio', clip.blob, `recording.${extension}`)
+        const data = await requestSpeaking(form, controller.signal)
+        if (ownerRef.current !== requestOwner) throw new DOMException('Aborted', 'AbortError')
+        updated = { ...updated, items: updated.items.map((item, n) => n === i ? { ...item, result: data.result, status: 'completed' } : item) }
+        setReport(updated)
       }
-
-      setAiResult(aiResp)
-      setCurrentSessionId(newSessionId)
-
-      // Add to Session Results
-      if (currentPrompt) {
-        const resultItem: SessionResultItem = {
-          promptId: currentPrompt.id,
-          examType: currentPrompt.examType,
-          part: currentPrompt.part,
-          topic: currentPrompt.topic,
-          questionEn: currentPrompt.questionEn,
-          transcript: rawTranscript,
-          audioUrl: URL.createObjectURL(blob),
-          wpm,
-          speechDurationSec: Math.round(speechSec),
-          pauseCount: pauseCountRef.current,
-          longPauseCount: longPauseCountRef.current,
-          isGraded,
-          aiResult: aiResp,
-        }
-        setSessionResults((prev) => [...prev, resultItem])
-      }
-
-      setScreen('result')
-    } catch (err: any) {
-      setErrorMsg('Có lỗi xảy ra trong quá trình xử lý bài nói. Hãy thử lại.')
-    } finally {
-      setIsProcessing(false)
+      updated = (await requestSpeaking({ action: 'report', submissionId: id }, controller.signal)).report
+      if (ownerRef.current !== requestOwner) return
+      setReport(updated); setDisplayReport(updated); setResultOpen(true); setRestoredNotice(false)
+      await clearSpeakingDraft(requestOwner).catch(() => {})
+      void loadHistory()
+    } catch (failure: any) {
+      if (ownerRef.current === requestOwner) setError(failure?.name === 'AbortError' ? 'Đã dừng gửi. Bản thu và các câu đã chấm vẫn được giữ; bạn có thể tiếp tục nộp.' : failure.message || 'Chưa chấm được bài. Bản thu vẫn được giữ để gửi lại.')
+    } finally { if (ownerRef.current === requestOwner) { setBusy(false); setProcessing('') } }
+  }
+  const advance = () => {
+    if (!owner) { login(); return }
+    if (completed || ready) { void submit(); return }
+    if (!currentClip && !report?.items[index]?.result) { setError('Hãy thu câu trả lời trước khi chuyển câu.'); return }
+    const next = index + 1 < questions.length ? index + 1 : questions.findIndex((q, i) => !clips[q.id] && !report?.items[i]?.result)
+    if (next >= 0) { setIndex(next); setError('') }
+  }
+  const resume = async (source: SpeakingReport) => {
+    if (locked || (source.id !== submissionId && !allowDiscard())) return
+    const requestOwner = owner
+    const nextClips: Record<string, SpeakingClip> = {}
+    for (const item of source.items) {
+      const clip = await loadSpeakingAudio(owner, item.id).catch(() => undefined)
+      if (clip) nextClips[item.question.id] = clip
     }
+    if (ownerRef.current !== requestOwner) return
+    setExam(source.examType); setTab(source.fullTest ? 'FULL' : source.items[0].question.part); setMode(source.mode)
+    setQuestions(source.items.map(item => item.question)); setClips(nextClips); setReport(source); setSubmissionId(source.id); setFeedbackLang(source.feedbackLang)
+    setIndex(Math.max(0, source.items.findIndex(item => !item.result))); setHistoryOpen(false); setRestoredNotice(true); touched.current = true
+    if (source.items.some(item => !item.result && !nextClips[item.question.id])) setError('Bản thu chưa chấm được lưu trên thiết bị đã thu. Hãy tiếp tục trên thiết bị đó, hoặc thu lại câu cần làm trên thiết bị này.')
   }
-
-  // ── Misheard Confirmation ──────────────────────────────────────────────────
-  const handleConfirmMisheard = (heard: string, confirmed: boolean) => {
-    setMisheardWords((prev) =>
-      prev.map((w) => (w.heard === heard ? { ...w, confirmed } : w))
-    )
+  const retryResult = (resultIndex: number) => {
+    const question = displayReport?.items[resultIndex]?.question
+    if (!question || locked || !allowDiscard()) return
+    touched.current = true; setExam(question.examType); setTab(question.part); setMode('practice'); setQuestions([question]); setIndex(0); setClips({}); setExamStarted(false)
+    resetAssessment(); setResultOpen(false)
   }
+  const pickPart = tab === 'FULL' ? exam === 'IELTS_SPEAKING' ? 'PART_2' : 'Q11' : tab
+  const choices = (catalogs[exam][pickPart] || []).filter(prompt => `${prompt.topic} ${prompt.questionEn}`.toLowerCase().includes(keyword.trim().toLowerCase()))
 
-  // ── Next Question / Finish Session ──────────────────────────────────────────
-  const handleNextQuestion = () => {
-    if (currentIndex + 1 < questionsQueue.length) {
-      setCurrentIndex((prev) => prev + 1)
-      resetQuestionState()
-      if (sessionConfig?.source === 'random') {
-        setScreen('wheel')
-      } else {
-        setScreen('prompt')
-      }
-    } else {
-      setScreen('summary')
-    }
-  }
-
-  const handleRetryCurrent = () => {
-    resetQuestionState()
-    setScreen('prompt')
-  }
-
-  // ── Render Screens ──────────────────────────────────────────────────────────
-
-  // SCREEN 1: Setup
-  if (screen === 'setup') {
-    return <SessionSetup initialExamType={initialExamType} onStartSession={handleStartSession} />
-  }
-
-  // SCREEN 2: Wheel Spinner
-  if (screen === 'wheel' && currentPrompt) {
-    const isIelts = currentPrompt.examType === 'IELTS_SPEAKING'
-    const meta = PART_META[currentPrompt.part as SpeakingPart]
-    const partName = meta ? meta.labelEn : currentPrompt.part
-    const examName = isIelts ? 'IELTS Speaking' : 'TOEIC Speaking'
-
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <button
-            onClick={() => setScreen('setup')}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Quay lại thiết lập
-          </button>
-          <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full">
-            {examName} • {partName}
-          </span>
+  if (status === 'loading' || loadedOwner.current !== owner || !current) return <p className="p-6 text-center text-sm text-slate-500">Đang chuẩn bị đề Speaking…</p>
+  return <div className="mx-auto w-full min-w-0 max-w-6xl space-y-4 sm:space-y-5">
+    <header className="rounded-none border-y border-slate-200 bg-white p-4 shadow-xs sm:rounded-xl sm:border sm:p-5">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><h1 className="text-xl font-bold tracking-tight text-slate-800">Phòng Luyện Speaking</h1><p className="mt-1 text-xs text-slate-500">Chọn đề, nói thử và cải thiện từng câu trả lời.</p></div><div className="flex items-center justify-between gap-2 sm:justify-end"><select aria-label="Kỳ thi Speaking" value={exam} disabled={locked} onChange={event => { const value = event.target.value as SpeakingExam; changeSet(value, value === 'IELTS_SPEAKING' ? 'PART_2' : 'Q11') }} className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50"><option value="IELTS_SPEAKING">IELTS Speaking</option><option value="TOEIC_SPEAKING">TOEIC Speaking</option></select><button type="button" disabled={locked} onClick={() => { if (!owner) { login(); return }; setHistoryOpen(true); void loadHistory() }} className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600 disabled:opacity-40"><History className="h-3.5 w-3.5 text-blue-600" />Lịch sử</button></div></div>
+      <nav aria-label="Phần luyện Speaking" className="mt-5 flex min-w-0 items-center gap-2 overflow-x-auto pb-1 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">{(['FULL', ...SPEAKING_PARTS[exam]] as SpeakingTab[]).map(part => <button key={part} type="button" aria-current={tab === part ? 'page' : undefined} disabled={locked} onClick={() => changeSet(exam, part)} className={`min-h-10 shrink-0 snap-start whitespace-nowrap rounded-lg border px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50 ${tab === part ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>{part === 'FULL' ? 'Trọn bộ' : PART_LABELS[part]}</button>)}</nav>
+    </header>
+    {restoredNotice && <div className="mx-4 flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-xs text-blue-700 sm:mx-0"><span>Đã khôi phục bài đang làm và các bản thu trên thiết bị này.</span><button type="button" onClick={() => setRestoredNotice(false)} aria-label="Ẩn thông báo khôi phục" className="shrink-0 px-2 py-1">×</button></div>}
+    {tab === 'FULL' && <div className="mx-4 flex min-w-0 items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 sm:mx-0"><p className="text-xs leading-relaxed text-slate-500"><strong className="font-semibold text-slate-700">{strict ? 'Thi thử' : 'Luyện trọn bộ'}</strong> · {questions.length} câu · {strict ? 'Đúng thời gian từng câu, nhận xét cuối bài.' : 'Thu từng câu, nghe lại và nộp cả bài.'}</p><button type="button" disabled={locked} onClick={() => changeSet(exam, 'FULL', undefined, strict ? 'practice' : 'exam')} className="shrink-0 whitespace-nowrap rounded-md border border-slate-200 px-2 py-1.5 text-[11px] font-semibold text-slate-500 disabled:opacity-40">{strict ? 'Luyện tập' : 'Thi thử'}</button></div>}
+    {error && <div role="alert" className="mx-4 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 p-3 text-xs leading-relaxed text-red-600 sm:mx-0"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p>{error}</p>{report?.items.some(item => item.result) && <button type="button" onClick={() => { setDisplayReport(report); setResultOpen(true) }} className="mt-2 font-semibold underline">Xem các câu đã nhận xét</button>}</div></div>}
+    <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2 sm:gap-5">
+      <section aria-label="Đề bài Speaking" className="min-w-0 rounded-none border-y border-slate-200 bg-white shadow-xs sm:rounded-xl sm:border"><div className="flex min-w-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-4 sm:px-5"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Đề bài</p><p className="mt-1 text-xs font-semibold text-blue-600">{PART_LABELS[current.part]}{questions.length > 1 ? ` · Câu ${index + 1}/${questions.length}` : ''}</p></div><div className="flex shrink-0 items-center gap-1.5"><button type="button" disabled={locked || strict} onClick={() => { setKeyword(''); setPickerOpen(true) }} className="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40">Chọn đề</button><button type="button" aria-label="Đổi đề Speaking" disabled={locked || strict} onClick={() => changeSet()} className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-semibold text-blue-600 disabled:opacity-40"><RefreshCw className="h-3.5 w-3.5" />Đổi đề</button></div></div>
+        <div className="p-4 sm:p-5"><p className="mb-3 text-xs text-slate-400">{current.topic}</p><h2 className="whitespace-pre-wrap text-base font-semibold leading-relaxed text-slate-800 sm:text-lg">{current.questionEn}</h2>
+          {current.cueCard && <div className="mt-4 whitespace-pre-wrap rounded-r-lg border-l-[3px] border-blue-200 bg-blue-50/40 p-4 text-sm leading-relaxed text-slate-600">{current.cueCard}</div>}
+          {current.informationText && <div className="mt-4 whitespace-pre-wrap rounded-lg border border-blue-100 bg-blue-50/30 p-4 text-xs leading-7 text-slate-600">{current.informationText}</div>}
+          {current.imageUrl && <img src={current.imageUrl} alt="Ảnh đề TOEIC Speaking" className="mt-4 max-h-80 w-full rounded-lg border border-slate-100 object-contain" loading="lazy" />}
+          <div className="mt-5 flex items-center justify-between gap-2 border-t border-slate-100 pt-4 text-[11px] text-slate-400"><span>Chuẩn bị <strong className="font-semibold text-slate-600">{formatSpeakingTime(current.prepTimeSec * 1000)}{current.readingTimeSec ? ` + ${current.readingTimeSec}s đọc thông tin` : ''}</strong></span><span>Nói {strict ? 'tối đa' : 'khuyến nghị'} <strong className="font-semibold text-slate-600">{formatSpeakingTime(current.speakTimeSec * 1000)}</strong></span></div>
+          {!strict && <><div className="mt-4 flex items-center gap-2">{!!current.questionVi && <button type="button" onClick={() => setShowTranslation(value => !value)} className="rounded-md bg-slate-50 px-2.5 py-1.5 text-[11px] font-medium text-slate-500">Dịch đề</button>}{!!current.suggestedVocabulary?.length && <button type="button" onClick={() => setShowVocabulary(value => !value)} className="rounded-md bg-slate-50 px-2.5 py-1.5 text-[11px] font-medium text-slate-500">Gợi ý từ vựng</button>}<button type="button" aria-label="Đọc câu hỏi" onClick={() => { if ('speechSynthesis' in window) { speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(current.questionEn); utterance.lang = 'en-US'; speechSynthesis.speak(utterance) } }} className="ml-auto rounded-md p-1.5 text-slate-400 hover:bg-slate-50"><Volume2 className="h-4 w-4" /></button></div>{showTranslation && <p className="mt-3 whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">{current.questionVi}</p>}{showVocabulary && <p className="mt-3 rounded-lg border border-blue-100 bg-blue-50/30 p-3 text-xs leading-relaxed text-slate-500">{current.suggestedVocabulary?.join(' · ')}</p>}<details key={current.id} className="mt-4"><summary className="cursor-pointer text-xs text-slate-400">Ghi chú / dàn ý của bạn</summary><textarea aria-label="Ghi chú bài nói" placeholder="Ghi nhanh các ý chính..." maxLength={2500} className="mt-2 min-h-24 w-full resize-y rounded-lg border border-slate-200 p-3 text-sm text-slate-600 outline-none focus:border-blue-400" /></details></>}
+          {questions.length > 1 && <label className="mt-5 block border-t border-slate-100 pt-4 text-[11px] text-slate-400">Các câu trong bài<select aria-label="Chọn câu trong bài Speaking" value={index} disabled={locked || strict} onChange={event => { setIndex(Number(event.target.value)); setError('') }} className="mt-1.5 block w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-600 disabled:opacity-60">{questions.map((question, i) => <option key={question.id} value={i}>Câu {i + 1} · {PART_LABELS[question.part]}{clips[question.id] || report?.items[i]?.result ? ' · Đã thu' : ''}</option>)}</select></label>}
         </div>
-
-        <WheelSpinner
-          topics={currentPartTopics}
-          targetIndex={wheelTargetIndex}
-          isSpinning={isSpinning}
-          onSpinClick={handleSpinClick}
-          onSpinEnd={handleSpinEnd}
-          onQuickPick={handleQuickPick}
-          currentPartLabel={`${examName} — ${partName}`}
-          progressLabel={`Câu ${currentIndex + 1} / ${questionsQueue.length}`}
-        />
-      </div>
-    )
-  }
-
-  // SCREEN 3: Square Prompt Card
-  if (screen === 'prompt' && currentPrompt) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
-            Tiến độ: Câu {currentIndex + 1} / {questionsQueue.length}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">
-            {sessionConfig?.isPracticeMode ? 'Chế độ luyện tập có gợi ý' : 'Chế độ mô phỏng chuẩn phòng thi'}
-          </span>
-        </div>
-
-        {errorMsg && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-bold text-red-900">{errorMsg}</p>
-              <p className="text-xs text-red-700 mt-1">Bạn có thể bấm &quot;Thử lại&quot; bên dưới hoặc chuyển câu hỏi khác.</p>
-            </div>
-          </div>
-        )}
-
-        <SquarePromptCard
-          prompt={currentPrompt}
-          isPracticeMode={sessionConfig?.isPracticeMode ?? true}
-          onStartRecording={startRecording}
-          onStopRecording={stopRecording}
-          onSkipOrReroll={handleNextQuestion}
-          onCardExpired={handleCardExpired}
-          isRecording={isRecording}
-          isProcessing={isProcessing}
-          recordingMs={recordingMs}
-          volumeLevel={volumeLevel}
-          speechDetected={speechDetected}
-          analyser={analyser}
-        />
-      </div>
-    )
-  }
-
-  // SCREEN 4: Result & Feedback & Chat Coach
-  if (screen === 'result' && currentPrompt) {
-    const isGraded = Boolean(sessionConfig?.gradeParts.includes(currentPrompt.part as SpeakingPart))
-    const isLast = currentIndex + 1 >= questionsQueue.length
-
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Top Header */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div>
-              <span className="text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-md mr-2">
-                {currentPrompt.examType === 'IELTS_SPEAKING' ? 'IELTS' : 'TOEIC'} • {currentPrompt.part}
-              </span>
-              <span className="text-xs font-semibold text-slate-500">Chủ đề: {currentPrompt.topic}</span>
-            </div>
-            {isGraded ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-full">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Đã chấm điểm AI theo Rubric
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold rounded-full">
-                <HelpCircle className="w-3.5 h-3.5" /> Phần luyện tập (Không tính điểm chính thức)
-              </span>
-            )}
-          </div>
-
-          <h2 className="text-lg font-bold text-slate-900 mb-2">{currentPrompt.questionEn}</h2>
-          {currentPrompt.questionVi && (
-            <p className="text-sm text-slate-500 italic mb-4">{currentPrompt.questionVi}</p>
-          )}
-
-          {/* Audio Replay */}
-          {audioUrl && (
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 flex items-center gap-4">
-              <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5 shrink-0">
-                <Volume2 className="w-4 h-4 text-indigo-600" /> Nghe lại bài nói:
-              </span>
-              <audio controls src={audioUrl} className="w-full h-8" />
-            </div>
-          )}
-        </div>
-
-        {/* Read-only Transcript Viewer with Pause Tooltips */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <MessageSquare className="w-4 h-4 text-indigo-600" /> Transcript đã nhận dạng (Chỉ đọc)
-            </span>
-            <span className="text-[11px] text-slate-400 italic">Dấu &quot;...&quot; thể hiện khoảng nghỉ trên 1.5s</span>
-          </div>
-
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 font-mono text-sm leading-relaxed text-slate-800 select-none">
-            {transcript ? (
-              transcript.split(/\s+/).map((word, i) => (
-                <span key={i} className="inline-block mr-1">
-                  {word}
-                </span>
-              ))
-            ) : (
-              <span className="text-slate-400 italic">Không có transcript.</span>
-            )}
-
-            {pauseEvents.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-slate-200 text-xs font-sans text-slate-500 flex flex-wrap gap-2 items-center">
-                <span className="font-bold text-slate-700">Các khoảng nghỉ dài đã ghi nhận:</span>
-                {pauseEvents.map((pe, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center px-2 py-0.5 bg-violet-50 text-violet-700 border border-violet-200 rounded text-[11px] font-semibold"
-                    title={`Nghỉ từ giây thứ ${(pe.startMs / 1000).toFixed(1)}s đến ${(pe.endMs / 1000).toFixed(1)}s`}
-                  >
-                    Nghỉ {(pe.durationMs / 1000).toFixed(1)}s
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Fluency Metrics Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
-            <p className="text-2xl font-black text-indigo-600">
-              {aiResult?.fluency?.words_per_minute || 0}
-              <span className="text-xs font-bold text-slate-400 ml-1">WPM</span>
-            </p>
-            <p className="text-xs text-slate-500 mt-1">Tốc độ nói</p>
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
-            <p className="text-2xl font-black text-purple-600">{pauseEvents.length}</p>
-            <p className="text-xs text-slate-500 mt-1">Khoảng nghỉ dài (&gt;1.5s)</p>
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
-            <p className="text-2xl font-black text-amber-600">{aiResult?.fluency?.filler_count ?? 0}</p>
-            <p className="text-xs text-slate-500 mt-1">Từ đệm (um/uh/like)</p>
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-sm">
-            <p className="text-sm font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-1">
-              {aiResult?.fluency?.level ? aiResult.fluency.level.toUpperCase() : 'KHÁ TỐT'}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">Độ trôi chảy (Fluency)</p>
-          </div>
-        </div>
-
-        {/* AI Feedback if graded */}
-        {isGraded && aiResult && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-600" /> Đánh giá chi tiết từ AI Examiner
-              </h3>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Đánh giá AI tham khảo — không phải điểm chính thức
-              </span>
-            </div>
-
-            {aiResult.feedback_vi && (
-              <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-950 leading-relaxed">
-                <span className="font-bold text-indigo-900 block mb-1">Nhận xét tổng quan:</span>
-                {aiResult.feedback_vi}
-              </div>
-            )}
-
-            {aiResult.strengths_vi && (
-              <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 text-sm text-emerald-950 leading-relaxed">
-                <span className="font-bold text-emerald-900 block mb-1">Điểm nổi bật:</span>
-                {aiResult.strengths_vi}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Possible Misheard Words Card */}
-        {misheardWords.length > 0 && (
-          <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-6 shadow-sm space-y-3">
-            <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600" /> Từ có thể bị hệ thống nghe sai (Contextual Check)
-            </h4>
-            <p className="text-xs text-amber-800">
-              Dựa vào ngữ cảnh đề bài, hệ thống ghi nhận một số từ phát âm tương tự từ mục tiêu:
-            </p>
-
-            <div className="space-y-2 mt-2">
-              {misheardWords.map((item, idx) => (
-                <div key={idx} className="bg-white border border-amber-200 rounded-xl p-3 text-xs flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <span className="text-slate-500">Hệ thống nghe:</span>{' '}
-                    <strong className="text-red-600 font-mono bg-red-50 px-1.5 py-0.5 rounded border border-red-200">{item.heard}</strong>
-                    {' → '}
-                    <span className="text-slate-500">Có thể là:</span>{' '}
-                    <strong className="text-emerald-700 font-mono bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">{item.suggested}</strong>
-                    {item.reason && <p className="text-[11px] text-slate-500 mt-1 italic">{item.reason}</p>}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleConfirmMisheard(item.heard, true)}
-                      className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${
-                        item.confirmed === true
-                          ? 'bg-emerald-600 text-white border-emerald-600'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                      }`}
-                    >
-                      <ThumbsUp className="w-3 h-3 inline mr-1" /> Đúng ý tôi
-                    </button>
-                    <button
-                      onClick={() => handleConfirmMisheard(item.heard, false)}
-                      className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${
-                        item.confirmed === false
-                          ? 'bg-slate-700 text-white border-slate-700'
-                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                      }`}
-                    >
-                      <ThumbsDown className="w-3 h-3 inline mr-1" /> Không đúng
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Embedded AI Speaking Chat Coach */}
-        <SpeakingChatCoach
-          sessionId={currentSessionId}
-          examType={currentPrompt.examType}
-          part={currentPrompt.part}
-          promptEn={currentPrompt.questionEn}
-          transcript={transcript}
-          aiFeedback={aiResult?.feedback_vi}
-          isScored={isGraded}
-        />
-
-        {/* Action Controls Bar */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-          <button
-            onClick={handleRetryCurrent}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" /> Luyện lại câu này
-          </button>
-
-          <button
-            onClick={handleNextQuestion}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-100 transition-all hover:scale-[1.01]"
-          >
-            {isLast ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" /> Hoàn thành & Xem báo cáo phiên
-              </>
-            ) : (
-              <>
-                Câu tiếp theo ({questionsQueue[currentIndex + 1]?.part || 'Part'}) <ChevronRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // SCREEN 5: Summary Report
-  if (screen === 'summary') {
-    return (
-      <SessionSummaryReport
-        examType={sessionConfig?.examType || 'IELTS_SPEAKING'}
-        results={sessionResults}
-        onNewSession={() => {
-          setScreen('setup')
-          setQuestionsQueue([])
-          setSessionResults([])
-          resetQuestionState()
-        }}
-      />
-    )
-  }
-
-  return null
+      </section>
+      <SpeakingRecorder key={`${owner}:${current.id}:${strict}`} question={current} clip={currentClip} strict={strict} autoStart={strict && examStarted} canRecord={!!owner && status === 'authenticated'} busy={busy} processing={processing}
+        onLogin={login} onComplete={recorded} onClear={clearCurrent} onActiveChange={value => { if (value) touched.current = true; setActive(value) }} onStartExam={() => { touched.current = true; setExamStarted(true) }} onAutoError={() => setExamStarted(false)}
+        footer={<><GraderActions value={feedbackLang} onChange={value => { setFeedbackLang(value); resetAssessment() }} languages={['Tiếng Việt', 'English']} isEn={false} disabled={locked || !!submissionId}><div className="flex flex-col gap-2">{index > 0 && !strict && <button type="button" disabled={locked} onClick={() => setIndex(index - 1)} className="flex items-center gap-1 rounded-lg border border-slate-200 py-2 text-xs font-semibold text-slate-500 disabled:opacity-40"><ArrowLeft className="h-3.5 w-3.5" />Câu trước</button>}<button type="button" onClick={advance} disabled={locked || (!!owner && !currentClip && !report?.items[index]?.result)} className="flex items-center gap-1.5 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-40">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : completed ? <BookOpen className="h-4 w-4" /> : ready ? <Send className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}{completed ? 'Xem kết quả' : !owner ? 'Đăng nhập để luyện' : ready ? questions.length > 1 ? 'Nộp bài & Nhận xét trọn bộ' : 'Nộp bài & Nhận xét' : 'Lưu & Câu tiếp theo'}</button></div></GraderActions><p className="mt-2 text-right text-[10px] text-slate-400">Lượt chấm hôm nay: {usage.count}/{usage.limit} · Tính khi nộp bài</p>{!!storageStatus && Object.keys(clips).length > 0 && <p className="mt-1 text-[10px] text-slate-400">{storageStatus}</p>}{busy && <button type="button" onClick={() => pipeline.current?.abort()} className="mt-2 text-[11px] text-slate-400 underline">Dừng gửi và giữ bản thu</button>}</>} />
+    </div>
+    <p className="px-4 text-[11px] leading-relaxed text-slate-400 sm:px-0">Mẹo nhỏ: Nói tự nhiên, dành thời gian nghĩ và bấm dừng khi bạn nói xong. Bản thu chỉ được gửi để xử lý khi bạn nộp bài.</p>
+    <SpeakingDialog open={pickerOpen} title="Chọn đề Speaking" onClose={() => setPickerOpen(false)}><div className="p-4"><input autoFocus aria-label="Tìm chủ đề Speaking" value={keyword} onChange={event => setKeyword(event.target.value)} placeholder="Tìm theo chủ đề hoặc nội dung đề..." className="mb-4 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400" /><div className="max-h-[55dvh] space-y-2 overflow-y-auto">{choices.map(prompt => <button key={prompt.id} type="button" onClick={() => { setPickerOpen(false); changeSet(exam, tab, prompt.id) }} className="block w-full rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50"><p className="text-xs font-semibold text-slate-700">{prompt.topic}</p><p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">{prompt.questionEn}</p></button>)}{!choices.length && <p className="py-6 text-center text-xs text-slate-400">Không tìm thấy chủ đề phù hợp.</p>}</div></div></SpeakingDialog>
+    <SpeakingDialog open={historyOpen} title="Lịch sử Speaking" onClose={() => setHistoryOpen(false)}><div className="max-h-[70dvh] space-y-3 overflow-y-auto p-4">{historyLoading ? <p className="py-8 text-center text-xs text-slate-400">Đang tải lịch sử…</p> : history.length ? history.map(item => <div key={item.id} className="rounded-lg border border-slate-200 p-3"><p className="text-xs font-semibold text-slate-700">{item.examType === 'IELTS_SPEAKING' ? 'IELTS Speaking' : 'TOEIC Speaking'} · {item.fullTest ? 'Trọn bộ' : PART_LABELS[item.items[0]?.question.part]}</p><p className="mt-1 text-[11px] text-slate-400">{new Date(item.createdAt).toLocaleString('vi-VN')} · {item.items.filter(i => i.result).length}/{item.items.length} câu đã nhận xét</p><div className="mt-3 flex gap-2"><button type="button" onClick={() => { setHistoryOpen(false); setDisplayReport(item); setResultOpen(true) }} className="rounded-md bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600">Xem kết quả</button>{item.status !== 'completed' && !item.id.startsWith('legacy:') && <button type="button" onClick={() => void resume(item)} className="rounded-md border border-slate-200 px-3 py-1.5 text-xs text-slate-600">Tiếp tục nộp</button>}</div></div>) : <p className="py-8 text-center text-xs text-slate-400">Chưa có bài Speaking đã nộp.</p>}</div></SpeakingDialog>
+    <SpeakingResults owner={owner} report={displayReport} open={resultOpen} onClose={() => setResultOpen(false)} onRetry={retryResult} onNext={() => { setResultOpen(false); changeSet() }} />
+  </div>
 }
