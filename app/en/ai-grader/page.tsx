@@ -1,13 +1,9 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { getRouteMetadata } from '@/src/utils/serverSeo'
+import { getCoreMetadata } from '@/src/utils/serverSeo'
 
-export async function generateMetadata() {
-  return getRouteMetadata(
-    '/en/ai-grader',
-    'Writing Grader & Practice Hub — IELTS, TOEIC, TOPIK, HSK | VNDocs',
-    'Free online writing practice platform for IELTS, TOEIC, TOPIK, and HSK. Receive instant band score estimation, detailed rubric feedback, and grammar corrections.'
-  )
+export async function generateMetadata(): Promise<Metadata> {
+  return getCoreMetadata('/en/ai-grader')
 }
 
 export default function EnAiGraderIndexPage() {
@@ -16,7 +12,7 @@ export default function EnAiGraderIndexPage() {
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-extrabold tracking-tight">Writing Grader & Practice Hub</h1>
         <p className="text-ink-muted text-lg">
-          Master your language exams with our instant writing evaluator. Completely free.
+          Build your writing skills with focused tasks and clear AI feedback.
         </p>
         <p className="text-slate-500 font-medium max-w-2xl mx-auto">
           Practice writing for IELTS, TOEIC, TOPIK, and HSK. Get instant feedback on grammar, vocabulary, and structure directly aligned with official grading criteria.
@@ -44,7 +40,7 @@ export default function EnAiGraderIndexPage() {
             </div>
             <h2 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">TOEIC Writing</h2>
           </div>
-          <p className="text-slate-500 text-sm leading-relaxed">Master TOEIC Writing parts: Respond to a written request and Write an opinion essay. Enhance your Business English and structure for high scores.</p>
+          <p className="text-slate-500 text-sm leading-relaxed">Practise five picture sentences, two separate email responses and one opinion essay, covering all 8 TOEIC Writing questions.</p>
         </Link>
 
         {/* TOPIK */}
@@ -83,10 +79,10 @@ export default function EnAiGraderIndexPage() {
 
           <h3 className="text-lg font-bold text-slate-800 mt-6 mb-3">Why Use Our AI Grader?</h3>
           <ul className="list-disc pl-5 mb-4">
-            <li><strong>Instant Feedback:</strong> No more waiting for a teacher to mark your essays. Get your results in seconds.</li>
+            <li><strong>Instant Feedback:</strong> No more waiting for a teacher to mark your essays. Review your results after grading.</li>
             <li><strong>Detailed Analysis:</strong> Every sentence is analyzed for grammatical correctness, vocabulary richness, and coherence.</li>
             <li><strong>Official Criteria:</strong> The AI is calibrated to evaluate your writing based on the official rubrics of each specific exam.</li>
-            <li><strong>100% Privacy:</strong> We do not store your essays for any commercial purposes. Your practice sessions remain entirely private.</li>
+            <li><strong>Practice scores:</strong> AI scores are estimates for learning and do not replace an official exam result.</li>
           </ul>
         </article>
       </section>

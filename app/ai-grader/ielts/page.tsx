@@ -1,21 +1,18 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
 import { AiGraderClient } from './AiGraderClient'
-import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return getRouteMetadata(
-    '/ai-grader/ielts',
-    'Luyện Viết IELTS Writing Online Chuẩn Barem | VNDocs',
-    'Phòng luyện IELTS Writing Task 1 & 2 trực tuyến. Đánh giá chi tiết 4 tiêu chí chuẩn giám khảo, phát hiện lỗi ngữ pháp, từ vựng và lưu bài làm an toàn.'
-  )
+  return getCoreMetadata('/ai-grader/ielts')
 }
 
 export default async function IeltsGraderPage() {
   const customSeo = await getCustomRouteSeo('/ai-grader/ielts')
-  const h1Title = customSeo?.h1 || 'Phòng Luyện IELTS Writing Online'
+  const h1Title = customSeo?.h1 || PAGE_SEO["/ai-grader/ielts"].h1
 
   const jsonLd = {
     '@context': 'https://schema.org',

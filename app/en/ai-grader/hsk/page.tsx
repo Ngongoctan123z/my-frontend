@@ -1,21 +1,18 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
 import { HskGraderClient } from '@/app/ai-grader/hsk/HskGraderClient'
-import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return getRouteMetadata(
-    '/en/ai-grader/hsk',
-    'HSK 5 & HSK 6 Writing Practice & Essay Scoring | VNDocs',
-    'Practice HSK 5 (80 chars) & HSK 6 (400 chars) Writing online. Automatic scoring, Chinese grammar correction, and vocabulary suggestions based on HSK standards.'
-  )
+  return getCoreMetadata('/en/ai-grader/hsk')
 }
 
 export default async function EnHskPage() {
   const customSeo = await getCustomRouteSeo('/en/ai-grader/hsk')
-  const h1Title = customSeo?.h1 || 'HSK Online Writing Practice'
+  const h1Title = customSeo?.h1 || PAGE_SEO["/en/ai-grader/hsk"].h1
 
   const jsonLd = {
     '@context': 'https://schema.org',

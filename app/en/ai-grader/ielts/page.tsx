@@ -1,21 +1,18 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
 import { AiGraderClient } from '@/app/ai-grader/ielts/AiGraderClient'
-import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return getRouteMetadata(
-    '/en/ai-grader/ielts',
-    'IELTS Writing Practice & Rubric Scoring | VNDocs',
-    'Practice IELTS Writing Academic & General online with instant scoring across 4 official criteria: TR, CC, LR, and GRA with comprehensive feedback.'
-  )
+  return getCoreMetadata('/en/ai-grader/ielts')
 }
 
 export default async function EnIeltsGraderPage() {
   const customSeo = await getCustomRouteSeo('/en/ai-grader/ielts')
-  const h1Title = customSeo?.h1 || 'IELTS Writing Practice & Instant Scoring'
+  const h1Title = customSeo?.h1 || PAGE_SEO["/en/ai-grader/ielts"].h1
 
   const jsonLd = {
     '@context': 'https://schema.org',

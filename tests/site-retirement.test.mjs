@@ -24,12 +24,19 @@ test('Writing, Speaking, their media and their administration remain available',
  }
 })
 test('active English routing and focused search continue to work',()=>{
- const response=policy.middleware(new NextRequest('https://vndocs.net/',{headers:{'cf-ipcountry':'US'}}));assert.equal(response.headers.get('location'),'https://vndocs.net/en')
+ for(const country of ['US','VN','GB'])for(const path of ['/','/ai-grader/ielts','/en','/en/ai-grader/ielts']){
+  const response=policy.middleware(new NextRequest('https://vndocs.net'+path,{headers:{'cf-ipcountry':country,'User-Agent':'Googlebot','x-vndocs-language':'invalid'}}))
+  const language=path.startsWith('/en')?'en':'vi'
+  assert.equal(response.status,200);assert.equal(response.headers.get('location'),null)
+  assert.equal(response.headers.get('Content-Language'),language)
+  assert.equal(response.headers.get('x-middleware-request-x-vndocs-language'),language)
+ }
  assert.equal(policy.getSmartRoute('luyện nói tiếng Anh'),'/speaking');assert.equal(policy.getSmartRoute('TOEIC'),'/ai-grader/toeic');assert.equal(policy.getSmartRoute('đề thi vào 10'),'/ai-grader')
 })
 test('sitemap contains only active pages; robots allows Google to discover 410 removals',()=>{
  const map=policy.sitemap();assert.ok(map.some(row=>row.url.endsWith('/speaking')));assert.ok(map.some(row=>row.url.endsWith('/en/ai-grader/hsk')))
- for(const row of map)assert.equal(policy.isRetiredPath(new URL(row.url).pathname),false)
+ for(const row of map){assert.equal(policy.isRetiredPath(new URL(row.url).pathname),false);assert.equal(row.alternates.languages['x-default'].startsWith('https://vndocs.net/en'),false)}
+ assert.equal(map.find(row=>row.url.endsWith('/en/ai-grader/ielts')).alternates.languages.vi,'https://vndocs.net/ai-grader/ielts')
  const disallow=policy.robots().rules[0].disallow;for(const path of ['/tai-lieu','/exams','/files','/exam-papers','/quan-tri-he-thong-123'])assert.ok(!disallow.some(rule=>path.startsWith(rule)))
 })
 test('archive metadata and generated PDF files are absent from the active release',async()=>{

@@ -1,21 +1,18 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
 import { TopikGraderClient } from '@/app/ai-grader/topik/TopikGraderClient'
-import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return getRouteMetadata(
-    '/en/ai-grader/topik',
-    'TOPIK II Writing Practice & Correction (Questions 51-54) | VNDocs',
-    'Practice TOPIK II 쓰기 (Questions 51, 52, 53, 54) online. Automated scoring, Korean grammar corrections, spelling feedback, and advanced expressions.'
-  )
+  return getCoreMetadata('/en/ai-grader/topik')
 }
 
 export default async function EnTopikPage() {
   const customSeo = await getCustomRouteSeo('/en/ai-grader/topik')
-  const h1Title = customSeo?.h1 || 'TOPIK II Writing Practice (쓰기)'
+  const h1Title = customSeo?.h1 || PAGE_SEO["/en/ai-grader/topik"].h1
 
   const jsonLd = {
     '@context': 'https://schema.org',

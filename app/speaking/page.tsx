@@ -1,27 +1,18 @@
+import { getCoreMetadata } from '@/src/utils/serverSeo'
 import { Metadata } from 'next'
 import { Suspense } from 'react'
 import Script from 'next/script'
 import { FRONTEND_URL } from '@/src/utils/constants'
 import { SpeakingClient } from './SpeakingClient'
 
-export async function generateMetadata(): Promise<Metadata> {
-  return {
-    alternates: { canonical: `${FRONTEND_URL}/speaking` },
-    title: 'Luyện IELTS & TOEIC Speaking Online | VNDocs',
-    description: 'Luyện Speaking IELTS và TOEIC: chọn đề, thu âm, nghe lại và nhận góp ý từ AI. Luyện từng phần hoặc thi thử trọn bộ.',
-    openGraph: {
-      title: 'Luyện Speaking IELTS & TOEIC AI | VNDocs',
-      description: 'Luyện IELTS Part 1–3 và đủ 11 câu TOEIC Speaking. Lưu bản thu, xem nhận xét từng câu và hỏi AI Coach.',
-      url: `${FRONTEND_URL}/speaking`,
-    }
-  }
-}
+export async function generateMetadata(): Promise<Metadata> { return getCoreMetadata('/speaking') }
 
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
   name: 'Phòng Luyện Speaking IELTS & TOEIC Trực Tuyến VNDocs',
   operatingSystem: 'Web',
+  inLanguage: 'vi',
   applicationCategory: 'EducationalApplication',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'VND' },
   description: 'Luyện IELTS và TOEIC Speaking với bản thu, nhận xét luyện tập và lịch sử theo tài khoản.',
