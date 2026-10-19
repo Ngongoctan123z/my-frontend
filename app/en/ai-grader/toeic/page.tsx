@@ -1,21 +1,18 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
 import { ToeicGraderClient } from '@/app/ai-grader/toeic/ToeicGraderClient'
-import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return getRouteMetadata(
-    '/en/ai-grader/toeic',
-    'TOEIC Writing Practice & Evaluation Online | VNDocs',
-    'Practice TOEIC Writing (Email responses & Opinion essays) online with rubric evaluation. Detect grammar errors and score high-level business vocabulary.'
-  )
+  return getCoreMetadata('/en/ai-grader/toeic')
 }
 
 export default async function EnToeicPage() {
   const customSeo = await getCustomRouteSeo('/en/ai-grader/toeic')
-  const h1Title = customSeo?.h1 || 'TOEIC Writing Online Practice'
+  const h1Title = customSeo?.h1 || PAGE_SEO["/en/ai-grader/toeic"].h1
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -28,7 +25,7 @@ export default async function EnToeicPage() {
       price: '0',
       priceCurrency: 'USD',
     },
-    description: 'Practice TOEIC Writing online with instant evaluation. Refine sentence structures and expand business vocabulary.',
+    description: PAGE_SEO["/en/ai-grader/toeic"].description,
     url: `${FRONTEND_URL}/en/ai-grader/toeic`
   }
 
@@ -66,7 +63,7 @@ export default async function EnToeicPage() {
         name: 'Which tasks are covered in the TOEIC Writing studio?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'The studio covers official ETS task types: Respond to a Written Request (Email questions 6-7) and Write an Opinion Essay (Question 8).'
+          text: 'The studio covers all 8 questions: five picture sentences, two separate email responses and one opinion essay. AI scores are practice estimates.'
         }
       },
       {
@@ -132,7 +129,7 @@ export default async function EnToeicPage() {
 
         <h1 className="text-3xl font-black text-slate-800 mb-2">{h1Title}</h1>
         <p className="text-slate-600 font-medium">
-          Practice official ETS tasks: Respond to written requests (Email Q6-7) and Opinion essays (Q8). Detect grammatical slips, learn business expressions, and improve workplace communication skills.
+          Practise all 8 TOEIC Writing questions: five picture sentences, two separate email responses and an opinion essay. Review AI corrections and estimated practice scores.
         </p>
       </div>
 
@@ -152,7 +149,7 @@ export default async function EnToeicPage() {
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
             1. Core Test Components
           </h3>
-          <ul className="text-slate-600 space-y-2 mb-6">
+          <ul className="text-slate-600 space-y-2 mb-6"><li><strong>Picture sentences (Questions 1–5):</strong> Write one sentence for each photograph using both given words. You have 8 minutes for all five questions. Questions 6 and 7 are separate email tasks; question 8 is an opinion essay.</li>
             <li>
               <strong>Email Responses (Questions 6-7):</strong> Read incoming inquiries from colleagues or clients and compose professional replies within 10 minutes per task. Address all required points with appropriate business register.
             </li>

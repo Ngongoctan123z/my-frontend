@@ -1,21 +1,18 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
 import { TopikGraderClient } from './TopikGraderClient'
-import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return getRouteMetadata(
-    '/ai-grader/topik',
-    'Luyện Viết TOPIK II 쓰기 (Câu 51-54) Online | VNDocs',
-    'Luyện thi phần viết TOPIK II câu 51, 52, 53, 54. Nhận xét ngữ pháp, chính tả tiếng Hàn, gợi ý từ vựng nâng cao và tham khảo bài viết mẫu điểm cao.'
-  )
+  return getCoreMetadata('/ai-grader/topik')
 }
 
 export default async function TopikPage() {
   const customSeo = await getCustomRouteSeo('/ai-grader/topik')
-  const h1Title = customSeo?.h1 || 'Luyện Viết TOPIK II 쓰기 Trực Tuyến'
+  const h1Title = customSeo?.h1 || PAGE_SEO["/ai-grader/topik"].h1
 
   const jsonLd = {
     '@context': 'https://schema.org',

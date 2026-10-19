@@ -13,6 +13,9 @@ import { AuthButton } from '../auth/AuthButton'
 export function Header() {
   const pathname = usePathname()
   const isEnRoute = pathname.startsWith('/en/') || pathname === '/en'
+  useEffect(() => {
+    document.documentElement.lang = isEnRoute ? 'en' : 'vi'
+  }, [isEnRoute])
   const { data: session } = useSession()
 
   const [userPlan, setUserPlan] = useState<string>('free')

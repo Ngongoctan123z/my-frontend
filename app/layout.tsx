@@ -1,5 +1,7 @@
+import { headers } from 'next/headers'
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import type { Metadata } from 'next'
-import { SITE_TITLE, SITE_DESCRIPTION, hasRetiredSeo } from '@/src/lib/siteSections'
+import { hasRetiredSeo } from '@/src/lib/siteSections'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '../src/components/Providers'
@@ -19,8 +21,10 @@ import { systemConfigs } from '@/src/db/schema'
 import { inArray } from 'drizzle-orm'
 
 export async function generateMetadata(): Promise<Metadata> {
-  let title = SITE_TITLE;
-  let description = SITE_DESCRIPTION;
+  const language = (await headers()).get('x-vndocs-language') === 'en' ? 'en' : 'vi'
+  const copy = PAGE_SEO[language === 'en' ? '/en' : '/']
+  let title = copy.title;
+  let description = copy.description;
   let ogImage = '';
   
   try {
@@ -35,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
       const configMap: Record<string, string> = {}
       for (const row of rows) configMap[row.key] = row.value
 
-      if (!hasRetiredSeo(configMap.SEO_TITLE) && !hasRetiredSeo(configMap.SEO_DESCRIPTION)) {
+      if (language === 'vi' && !hasRetiredSeo(configMap.SEO_TITLE) && !hasRetiredSeo(configMap.SEO_DESCRIPTION)) {
         if (configMap.SEO_TITLE) title = configMap.SEO_TITLE;
         if (configMap.SEO_DESCRIPTION) description = configMap.SEO_DESCRIPTION;
         if (configMap.SEO_OG_IMAGE && !hasRetiredSeo(configMap.SEO_OG_IMAGE)) ogImage = configMap.SEO_OG_IMAGE;
@@ -68,7 +72,7 @@ export async function generateMetadata(): Promise<Metadata> {
       url: 'https://vndocs.net',
       siteName: 'VNDocs',
       images: [{ url: finalOgImage, width: 1200, height: 630, alt: title }],
-      locale: 'vi_VN',
+      locale: language === 'en' ? 'en_US' : 'vi_VN',
       type: 'website',
     },
     twitter: {
@@ -85,13 +89,14 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const language = (await headers()).get('x-vndocs-language') === 'en' ? 'en' : 'vi'
   return (
-    <html lang="vi" suppressHydrationWarning className={`scroll-smooth ${inter.variable}`}>
+    <html lang={language} suppressHydrationWarning className={`scroll-smooth ${inter.variable}`}>
       <head>
         {/* Preconnect đến Google Fonts CDN để giảm DNS lookup time */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

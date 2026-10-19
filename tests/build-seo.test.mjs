@@ -4,11 +4,12 @@ import { readFile } from 'node:fs/promises'
 import { stripTypeScriptTypes } from 'node:module'
 import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
 
-async function loadSeo({ bindingAvailable = true, rows = [], dbError = null, rootMetadata = false } = {}) {
+async function loadSeo({ bindingAvailable = true, rows = [], dbError = null, rootMetadata = false, language = 'vi' } = {}) {
   const state = { dbCalls: 0, logs: [] }
   const context = createContext({ URL, console: { error: (...args) => state.logs.push(args) } })
   const query = { from() { return this }, where() { return this }, limit() { return this }, then(resolve) { return Promise.resolve(rows).then(resolve) } }
   const external = {
+    'next/headers': { headers: async () => ({ get: () => language }) },
     '@/src/db': { getOptionalDb: async () => {
       if (!bindingAvailable) return null
       state.dbCalls++
@@ -29,15 +30,16 @@ async function loadSeo({ bindingAvailable = true, rows = [], dbError = null, roo
       }, { context })
     } else {
       let source = await readFile(new URL('../src/utils/serverSeo.ts', import.meta.url), 'utf8')
+      if (id === '@/src/lib/pageSeo') source = await readFile(new URL('../src/lib/pageSeo.ts', import.meta.url), 'utf8')
       if (id === '@/src/lib/siteSections') source = await readFile(new URL('../src/lib/siteSections.ts', import.meta.url), 'utf8')
       if (rootMetadata && id === 'seo') {
         // Execute the actual metadata function from the TSX layout without
         // requiring React/Next's unrelated JSX rendering dependencies.
         const layout = await readFile(new URL('../app/layout.tsx', import.meta.url), 'utf8')
         const start = layout.indexOf('export async function generateMetadata')
-        const end = layout.indexOf('export default function RootLayout')
+        const end = layout.indexOf('export default async function RootLayout')
         assert.ok(start >= 0 && end > start)
-        source = `import { SITE_TITLE, SITE_DESCRIPTION, hasRetiredSeo } from '@/src/lib/siteSections';\nimport { getOptionalDb } from '@/src/db';\nimport { systemConfigs } from '@/src/db/schema';\nimport { inArray } from 'drizzle-orm';\n${layout.slice(start, end)}`
+        source = `import { headers } from 'next/headers';\nimport { PAGE_SEO } from '@/src/lib/pageSeo';\nimport { SITE_TITLE, SITE_DESCRIPTION, hasRetiredSeo } from '@/src/lib/siteSections';\nimport { getOptionalDb } from '@/src/db';\nimport { systemConfigs } from '@/src/db/schema';\nimport { inArray } from 'drizzle-orm';\n${layout.slice(start, end)}`
       }
       module = new SourceTextModule(stripTypeScriptTypes(source), { context })
     }
@@ -70,7 +72,7 @@ test('static build custom SEO returns null without D1 access', async () => {
 test('root layout metadata falls back without D1 and preserves favicon declarations', async () => {
   const { seo, state } = await loadSeo({ bindingAvailable: false, rootMetadata: true })
   const metadata = await seo.generateMetadata()
-  assert.ok(metadata.title.startsWith('VNDocs'))
+  assert.match(metadata.title, /Luyện Writing và Speaking/)
   assert.equal(metadata.icons.shortcut, '/icon.png')
   assert.equal(metadata.icons.icon.length, 2)
   assert.equal(metadata.icons.apple[0].url, '/icon-512.png')
@@ -188,4 +190,20 @@ test('retired route metadata is noindex and never reads its old saved D1 SEO', a
 test('old custom homepage exam SEO falls back to Writing and Speaking',async()=>{
  const {seo}=await loadSeo({rows:[{key:'SEO_ROUTE_/',value:JSON.stringify({title:'Đề thi vào lớp 10',description:'Kho tài liệu THPT',ogImage:'https://vndocs.net/old.png'})}]})
  const metadata=await seo.getRouteMetadata('/','Writing and Speaking','Language practice');assert.equal(metadata.title,'Writing and Speaking');assert.equal(metadata.description,'Language practice');assert.ok(!metadata.openGraph.images[0].url.includes('old.png'))
+})
+
+
+test('English metadata has its own copy, locale and reciprocal language links', async () => {
+ const {seo}=await loadSeo({bindingAvailable:false})
+ const en=await seo.getCoreMetadata('/en/ai-grader/toeic'),vi=await seo.getCoreMetadata('/ai-grader/toeic')
+ assert.match(en.title,/Photos, Emails/);assert.match(vi.title,/ảnh, email/)
+ assert.equal(en.openGraph.locale,'en_US');assert.equal(vi.openGraph.locale,'vi_VN')
+ assert.deepEqual(JSON.parse(JSON.stringify(en.alternates.languages)),JSON.parse(JSON.stringify(vi.alternates.languages)))
+ assert.equal(en.alternates.languages.vi,'https://vndocs.net/ai-grader/toeic')
+ assert.equal(en.alternates.canonical,'https://vndocs.net/en/ai-grader/toeic')
+ const speaking=await seo.getCoreMetadata('/speaking');assert.equal(speaking.alternates.languages.en,undefined)
+})
+test('English root never inherits Vietnamese global title or description',async()=>{
+ const {seo}=await loadSeo({rootMetadata:true,language:'en',rows:[{key:'SEO_TITLE',value:'Tiêu đề tiếng Việt'},{key:'SEO_DESCRIPTION',value:'Mô tả tiếng Việt'}]})
+ const metadata=await seo.generateMetadata();assert.match(metadata.title,/AI Writing/);assert.equal(metadata.openGraph.locale,'en_US');assert.ok(!metadata.description.includes('tiếng Việt'))
 })

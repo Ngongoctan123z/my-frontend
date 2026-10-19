@@ -1,3 +1,4 @@
+import { PAGE_SEO, pageLanguage, pageUrl, languageAlternates } from '@/src/lib/pageSeo'
 import { isRetiredPath, hasRetiredSeo } from '@/src/lib/siteSections'
 import type { Metadata } from 'next'
 import { getOptionalDb } from '@/src/db'
@@ -58,7 +59,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       url: `https://vndocs.net${path}`,
       siteName: 'VNDocs',
       images: [{ url: finalOgImage, width: 1200, height: 630, alt: title }],
-      locale: 'vi_VN',
+      locale: pageLanguage(path) === 'en' ? 'en_US' : 'vi_VN',
       type: 'website',
     },
     twitter: {
@@ -67,14 +68,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       description: description,
       images: [finalOgImage],
     },
-    alternates: {
-      canonical: `https://vndocs.net${path === '/' ? '' : path}`,
-      languages: {
-        'vi-VN': `https://vndocs.net${path.startsWith('/en') ? path.replace('/en', '') || '/' : path}`,
-        'en-US': `https://vndocs.net${path.startsWith('/en') ? path : (path === '/' ? '/en' : `/en${path}`)}`,
-        'x-default': `https://vndocs.net${path.startsWith('/en') ? path.replace('/en', '') || '/' : path}`,
-      }
-    },
+    alternates: { canonical: pageUrl(path), languages: languageAlternates(path) },
     robots: {
       index: true,
       follow: true,
@@ -103,3 +97,9 @@ export async function getCustomRouteSeo(path: string) {
   return null;
 }
 
+
+export async function getCoreMetadata(path: string): Promise<Metadata> {
+  const copy = PAGE_SEO[path]
+  if (!copy) throw new Error('Missing SEO copy for ' + path)
+  return getRouteMetadata(path, copy.title, copy.description)
+}

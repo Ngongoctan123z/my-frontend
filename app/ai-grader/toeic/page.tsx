@@ -1,21 +1,18 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
 import { ToeicGraderClient } from './ToeicGraderClient'
-import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return getRouteMetadata(
-    '/ai-grader/toeic',
-    'Luyện Viết TOEIC Writing Online Chuẩn ETS | VNDocs',
-    'Thực hành TOEIC Writing dạng phản hồi email và viết luận quan điểm. Chấm điểm chi tiết, gợi ý từ vựng công sở và sửa lỗi ngữ pháp chuẩn cấu trúc ETS.'
-  )
+  return getCoreMetadata('/ai-grader/toeic')
 }
 
 export default async function ToeicPage() {
   const customSeo = await getCustomRouteSeo('/ai-grader/toeic')
-  const h1Title = customSeo?.h1 || 'Luyện Thi TOEIC Writing Online Chuẩn ETS'
+  const h1Title = customSeo?.h1 || PAGE_SEO["/ai-grader/toeic"].h1
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -28,7 +25,7 @@ export default async function ToeicPage() {
       price: '0',
       priceCurrency: 'VND',
     },
-    description: 'Thực hành TOEIC Writing dạng phản hồi email và viết luận quan điểm. Chấm điểm chi tiết, gợi ý từ vựng công sở và sửa lỗi ngữ pháp chuẩn cấu trúc ETS.',
+    description: PAGE_SEO["/ai-grader/toeic"].description,
     url: `${FRONTEND_URL}/ai-grader/toeic`
   }
 
@@ -66,7 +63,7 @@ export default async function ToeicPage() {
         name: 'Phòng thi hỗ trợ những dạng bài nào trong TOEIC Writing?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Hệ thống hỗ trợ 2 dạng bài trọng tâm: Viết phản hồi yêu cầu bằng văn bản (Email Questions 6-7) và Viết bài luận trình bày quan điểm cá nhân (Opinion Essay Question 8) theo đúng chuẩn cấu trúc đề thi ETS.'
+          text: 'Phòng luyện gồm 8 câu: câu 1–5 viết câu theo ảnh với hai từ gợi ý, câu 6–7 trả lời hai email riêng, câu 8 viết bài luận quan điểm. Điểm AI là điểm luyện tập tham khảo.'
         }
       },
       {
@@ -139,7 +136,7 @@ export default async function ToeicPage() {
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
             1. Các dạng bài chính trong phần thi TOEIC Writing
           </h3>
-          <ul className="text-slate-600 space-y-2 mb-6">
+          <ul className="text-slate-600 space-y-2 mb-6"><li><strong>Viết câu theo ảnh (Câu 1–5):</strong> Viết một câu mô tả mỗi ảnh, dùng đủ hai từ gợi ý. Tổng thời gian cho năm câu là 8 phút. Câu 6 và câu 7 là hai email riêng; câu 8 là bài luận quan điểm.</li>
             <li>
               <strong>Viết phản hồi thư điện tử (Questions 6-7):</strong> Thí sinh được yêu cầu đọc một email yêu cầu hoặc thắc mắc từ khách hàng, đối tác và viết thư phản hồi trong thời gian quy định (thường là 10 phút/email). Cần chú ý trả lời đầy đủ tất cả các câu hỏi hoặc nhiệm vụ được đề cập.
             </li>

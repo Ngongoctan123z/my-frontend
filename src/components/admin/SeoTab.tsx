@@ -1,3 +1,4 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { isRetiredPath, hasRetiredSeo, SITE_TITLE, SITE_DESCRIPTION } from '@/src/lib/siteSections'
 import React, { useEffect, useState } from 'react'
 import { Loader2, Save, CheckCircle, Search, Globe, FileText, Layers, PenTool, LayoutTemplate, Map, X } from 'lucide-react'
@@ -7,7 +8,7 @@ const SEO_ROUTES = [
   // 1. Cơ bản & Hệ thống
   { 
     path: 'GLOBAL', 
-    name: 'SEO Toàn Trang (Mặc định)', 
+    name: 'SEO tiếng Việt (Mặc định)', 
     category: 'Cơ bản & Hệ thống',
     icon: Globe,
     defaultTitle: SITE_TITLE,
@@ -149,7 +150,10 @@ const SEO_ROUTES = [
     defaultTitle: 'Personal Profile & Submission History | VNDocs',
     defaultDesc: 'Manage your profile, view saved essays, track writing test scores over time, and manage subscription settings.'
   },
-]
+].map(route => {
+  const copy = PAGE_SEO[route.path === 'GLOBAL' ? '/' : route.path]
+  return copy ? { ...route, defaultTitle: copy.title, defaultDesc: copy.description, defaultH1: copy.h1 } : route
+})
 
 export function SeoTab() {
   const [activeRoute, setActiveRoute] = useState('GLOBAL')
@@ -296,6 +300,9 @@ export function SeoTab() {
   if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-blue-600" /></div>
 
   const currentConf = configs[activeRoute] || {}
+  const defaults = SEO_ROUTES.find(route => route.path === activeRoute)
+  const globalTitle = activeRoute === '/' ? configs.GLOBAL?.SEO_TITLE : ''
+  const globalDescription = activeRoute === '/' ? configs.GLOBAL?.SEO_DESCRIPTION : ''
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -363,7 +370,7 @@ export function SeoTab() {
           </div>
           <div>
             <h2 className="text-2xl font-black text-slate-800">
-              {activeRoute === 'GLOBAL' ? 'Cấu hình SEO Toàn Trang' : `Cấu hình SEO: ${SEO_ROUTES.find(r => r.path === activeRoute)?.name}`}
+              {activeRoute === 'GLOBAL' ? 'Cấu hình SEO mặc định tiếng Việt' : `Cấu hình SEO: ${SEO_ROUTES.find(r => r.path === activeRoute)?.name}`}
             </h2>
             <p className="text-sm text-gray-500 font-medium mt-1">
               {activeRoute === 'GLOBAL' 
@@ -461,10 +468,10 @@ export function SeoTab() {
               </div>
             </div>
             <div className="text-[20px] text-[#1a0dab] hover:underline cursor-pointer mb-1 truncate leading-tight">
-              {currentConf.SEO_TITLE || (activeRoute !== 'GLOBAL' ? configs.GLOBAL?.SEO_TITLE : '') || 'Chưa có tiêu đề'}
+              {currentConf.SEO_TITLE || globalTitle || defaults?.defaultTitle || 'Chưa có tiêu đề'}
             </div>
             <div className="text-[14px] text-[#4d5156] line-clamp-2 leading-snug">
-              {currentConf.SEO_DESCRIPTION || (activeRoute !== 'GLOBAL' ? configs.GLOBAL?.SEO_DESCRIPTION : '') || 'Chưa có mô tả'}
+              {currentConf.SEO_DESCRIPTION || globalDescription || defaults?.defaultDesc || 'Chưa có mô tả'}
             </div>
           </div>
         </div>

@@ -16,33 +16,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const country = request.headers.get('cf-ipcountry') || 'VN'
-  const isEnRoute = pathname.startsWith('/en/') || pathname === '/en'
-
-  // If user is from VN and not on /en/ route, let them be.
-  if (country === 'VN') {
-    return NextResponse.next()
-  }
-
-  // If user is NOT from VN and is NOT on an English route yet
-  if (country !== 'VN' && !isEnRoute) {
-    // Localize active Writing pages for non-VN users
-    if (pathname.startsWith('/ai-grader')) {
-      const url = request.nextUrl.clone()
-      url.pathname = `/en${pathname}`
-      return NextResponse.redirect(url)
-    } else if (pathname === '/') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/en'
-      return NextResponse.redirect(url)
-    }
-  }
-
-  return NextResponse.next()
+  const language = pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'vi'
+  const headers = new Headers(request.headers)
+  headers.set('x-vndocs-language', language)
+  const response = NextResponse.next({ request: { headers } })
+  response.headers.set('Content-Language', language)
+  return response
 }
 
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }

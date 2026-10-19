@@ -1,21 +1,18 @@
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
 import { HskGraderClient } from './HskGraderClient'
-import { getRouteMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return getRouteMetadata(
-    '/ai-grader/hsk',
-    'Luyện Viết Tiếng Trung HSK 5 & HSK 6 Online | VNDocs',
-    'Luyện viết phần thi HSK 5 đoạn văn 80 chữ và HSK 6 tóm tắt 400 chữ. Rà soát ngữ pháp, lỗi dùng từ và gợi ý diễn đạt tự nhiên chuẩn bản xứ.'
-  )
+  return getCoreMetadata('/ai-grader/hsk')
 }
 
 export default async function HskPage() {
   const customSeo = await getCustomRouteSeo('/ai-grader/hsk')
-  const h1Title = customSeo?.h1 || 'Phòng Luyện HSK Writing Online'
+  const h1Title = customSeo?.h1 || PAGE_SEO["/ai-grader/hsk"].h1
 
   const jsonLd = {
     '@context': 'https://schema.org',
