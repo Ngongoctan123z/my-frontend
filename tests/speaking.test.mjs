@@ -307,3 +307,21 @@ test('grading uses server transcription, ignoring submitted editable text and pr
  const provider=h.state.calls.find(c=>c.kind!=='stt');assert.ok(provider.payload.messages[1].content.includes(result.data.result.transcript));assert.ok(!provider.payload.messages[1].content.includes('secretly replaced'))
  const report=await h.post({action:'report',submissionId:start.data.id});assert.equal(report.data.report.items[0].result.transcript,result.data.result.transcript);assert.ok(report.data.report.items[0].audioAvailable)
 })
+
+
+test('official library exposes publisher originals and correct PDF pages without inventing complete exams',async()=>{
+ const h=await fixture(),documents=await h.loadModule('src/data/speakingOfficialDocuments.ts'),samples=await h.loadModule('src/data/speakingOfficialSamples.ts')
+ assert.equal(documents.officialSpeakingDocuments.length,2)
+ for(const doc of documents.officialSpeakingDocuments){
+  assert.ok(['www.ets.org','ielts.org'].includes(new URL(doc.url).hostname))
+  assert.ok(doc.sections.every(section=>section.page>=1&&section.page<=doc.pageCount))
+  for(const section of doc.sections.filter(section=>section.promptId)){
+   const sample=samples.officialSpeakingSamples.find(sample=>sample.id===section.promptId)
+   assert.equal(sample.examType,doc.examType);assert.equal(samples.officialSpeakingSource(sample.id).page,section.page)
+  }
+  assert.equal(documents.officialSpeakingDocumentUrl(doc,999),doc.url+'#page='+doc.pageCount)
+ }
+ assert.equal(samples.officialSpeakingSource('ets-sample-television').page,5)
+ assert.equal(samples.officialSpeakingSource('ets-sample-vacation-opinion').page,7)
+ assert.equal(samples.officialSpeakingSource('ets-sample-television','An edited practice question'),null)
+})

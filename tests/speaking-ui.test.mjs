@@ -84,6 +84,16 @@ try{
  for(const width of [320,375,1280]){
   const context=await browser.newContext({viewport:{width,height:900},permissions:['microphone']});const page=await context.newPage();activePage=page;const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(url);await waitReady(page);await assertLayout(page);
+  await page.getByRole('button',{name:'Đề mẫu chính thức',exact:true}).click();
+  const sourceDialog=page.getByRole('dialog',{name:'Đề mẫu Speaking chính thức',exact:true});await sourceDialog.waitFor();
+  assert.equal(await sourceDialog.getByRole('link',{name:'Mở PDF gốc',exact:true}).getAttribute('href'),'https://ielts.org/cdn/ielts-downloadable-assets/ielts-sample-tests/ielts-speaking-sample-tasks-2023.pdf');
+  assert.equal(await sourceDialog.locator('iframe').count(),0,'Publisher PDF loads only when requested');
+  assert.equal(await sourceDialog.getByRole('button',{name:'Luyện trên web',exact:true}).count(),2);
+  await sourceDialog.getByRole('button',{name:'Luyện trên web',exact:true}).first().click();await sourceDialog.waitFor({state:'hidden'});
+  await page.getByText('IELTS sample · An important possession',{exact:true}).waitFor();
+  assert.equal(await page.evaluate(()=>window.requests.filter(r=>['begin_submission','submit_audio'].includes(r.action)).length),0,'Opening an official source does not submit or use AI');
+  await assertLayout(page);
+
   assert.equal(await page.evaluate(()=>window.microphoneStreams.length),0,'No microphone until the user starts');
   assert.equal(await page.getByText(/Chọn mục tiêu|Vòng quay|Bắt đầu phiên/).count(),0);
   await record(page,width===375?4300:1400);
@@ -108,7 +118,13 @@ try{
   assert.deepEqual(errors,[]);await page.screenshot({path:`${output}/speaking-${width}.png`,fullPage:true});await context.close();console.log(`PASS Speaking recording, retry, storage, history, account privacy and layout at ${width}px`);
  }
  const context=await browser.newContext({viewport:{width:375,height:900},permissions:['microphone']});const page=await context.newPage();activePage=page;
- await page.goto(url+'?tab=toeic');await waitReady(page);await page.getByRole('button',{name:'Trọn bộ',exact:true}).click();
+ await page.goto(url+'?tab=toeic');await waitReady(page);
+ await page.getByRole('button',{name:'Đề mẫu chính thức',exact:true}).click();
+ const etsDialog=page.getByRole('dialog',{name:'Đề mẫu Speaking chính thức',exact:true});await etsDialog.waitFor();
+ assert.equal(await etsDialog.getByRole('link',{name:'Mở PDF gốc',exact:true}).getAttribute('href'),'https://www.ets.org/pdfs/toeic/toeic-speaking-writing-sample-tests.pdf');
+ assert.equal(await etsDialog.getByRole('link',{name:'Mở riêng',exact:true}).count(),5);
+ assert.equal(await etsDialog.getByRole('link',{name:'Mở riêng',exact:true}).nth(3).getAttribute('href'),'https://www.ets.org/pdfs/toeic/toeic-speaking-writing-sample-tests.pdf#page=6');
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'Trọn bộ',exact:true}).click();
  assert.equal(await page.getByLabel('Chọn câu trong bài Speaking',{exact:true}).locator('option').count(),11);
  await record(page);await page.getByRole('button',{name:'Lưu & Câu tiếp theo',exact:true}).click();await record(page);
  await page.getByRole('button',{name:'Câu trước',exact:true}).click();await page.getByText('Bản thu đã sẵn sàng',{exact:true}).waitFor();
