@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useId, useRef } from 'react'
 import { 
   X, Search, FileText, ChevronDown, ChevronUp, Mail, Phone, 
   Users, Award, Calendar, Sparkles, Copy, Check, BookOpen, 
-  Briefcase, Globe, Maximize2, Minimize2, Image as ImageIcon
+  Briefcase, Globe, Maximize2, Minimize2, Share2, Image as ImageIcon
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
@@ -15,6 +15,8 @@ interface StudentManagementModalProps {
   studentsData: any[]
   expandedStudentId?: string | null
   setExpandedStudentId?: (id: string | null) => void
+  onCreateShare?: () => void
+  shareUnavailableReason?: string
   examTypePrefix?: 'IELTS' | 'TOEIC' | 'TOPIK' | 'HSK' | 'ALL' | string
 }
 
@@ -25,6 +27,8 @@ export function StudentManagementModal({
   studentsData = [], 
   expandedStudentId: externalExpandedId, 
   setExpandedStudentId: setExternalExpandedId,
+  onCreateShare,
+  shareUnavailableReason,
   examTypePrefix = 'ALL'
 }: StudentManagementModalProps) {
   const pathname = usePathname()
@@ -50,12 +54,51 @@ export function StudentManagementModal({
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isMaximized, setIsMaximized] = useState<boolean>(false)
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null)
+  const [copyError, setCopyError] = useState('')
+  const titleId = useId(), dialogRef = useRef<HTMLDivElement>(null), closeRef = useRef<HTMLButtonElement>(null), imageRef = useRef<HTMLDivElement>(null)
+  const close = useRef(onClose); close.current = onClose
+  const zoom = useRef(zoomImageUrl); zoom.current = zoomImageUrl
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const handleCopy = (text: string, id: string) => {
+  useEffect(() => {
+    if (!isOpen) return
+    setActiveTab(initialTab); setSearchTerm(''); setCopyError(''); setZoomImageUrl(null)
+    const previousFocus = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeRef.current?.focus()
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); if (zoom.current) setZoomImageUrl(null); else close.current(); return }
+      if (event.key !== 'Tab') return
+      const root = zoom.current ? imageRef.current : dialogRef.current
+      const items = Array.from(root?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], select:not([disabled]), textarea:not([disabled]), [tabindex="0"]') || []).filter(el => el.getClientRects().length)
+      const first = items[0], last = items[items.length - 1]
+      if (!first) { event.preventDefault(); root?.focus(); return }
+      if (event.shiftKey && (document.activeElement === first || !root?.contains(document.activeElement))) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && (document.activeElement === last || !root?.contains(document.activeElement))) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', keyboard, true)
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', keyboard, true); previousFocus?.focus(); if (copyTimer.current) clearTimeout(copyTimer.current) }
+  }, [isOpen, initialTab])
+
+  useEffect(() => {
+    if (!zoomImageUrl) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    imageRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    return () => { if (previousFocus?.isConnected) previousFocus.focus() }
+  }, [zoomImageUrl])
+
+
+  const handleCopy = async (text: string, id: string) => {
     if (!text) return
-    navigator.clipboard.writeText(text)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
+    setCopyError('')
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable')
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      if (copyTimer.current) clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopiedId(null), 2000)
+    } catch { setCopyError(isEn ? 'Could not copy. Select the text and copy it manually.' : 'Chưa sao chép được. Bạn có thể chọn nội dung và sao chép thủ công.') }
   }
 
   // Helper: Trích xuất link ảnh biểu đồ/hình vẽ của đề thi
@@ -252,41 +295,42 @@ export function StudentManagementModal({
   return (
     <>
       <div className={`fixed inset-0 z-[200] flex items-center justify-center transition-all duration-200 bg-slate-900/50 backdrop-blur-sm animate-in fade-in ${
-        isMaximized ? 'p-0 sm:p-2' : 'p-3 sm:p-5'
-      }`}>
-        <div className={`bg-white shadow-2xl flex flex-col overflow-hidden border border-slate-200 relative transition-all duration-200 ${
+        isMaximized ? 'p-0 sm:p-2' : 'p-2 sm:p-6'
+      }`} onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={`bg-white shadow-2xl flex flex-col overflow-hidden border border-slate-200 relative transition-all duration-200 ${
           isMaximized 
             ? 'w-full h-full max-w-none max-h-none rounded-none sm:rounded-2xl' 
-            : 'w-full max-w-5xl max-h-[92vh] rounded-2xl'
+            : 'w-full max-w-6xl h-[92dvh] rounded-2xl'
         }`}>
           
           {/* Header - Thiết kế nhẹ nhàng, đồng bộ màu sắc với web */}
-          <div className="px-5 py-4 bg-white border-b border-slate-200 text-slate-800 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+          <div className="px-4 py-4 sm:px-6 sm:py-5 bg-white border-b border-slate-200 text-slate-800 flex justify-between items-start gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="w-10 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-base sm:text-lg tracking-tight text-slate-900 leading-tight">
-                    {isEn ? 'Student Submissions & Management' : 'Quản Lý Bài Nộp Học Viên'}
+                <div className="min-w-0">
+                  <h3 id={titleId} className="font-bold text-base sm:text-lg tracking-tight text-slate-900 leading-tight">
+                    {isEn ? 'Students & submissions' : 'Học viên & bài nộp'}
                   </h3>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  <span className="mt-1 inline-block text-[10px] font-semibold uppercase tracking-wide text-blue-600">
                     Pro & Plus
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {isEn ? 'Review student submissions, band scores, and grading reports' : 'Xem lại điểm số, kết quả chấm điểm và bài làm chi tiết của học viên'}
+                  {isEn ? 'Assign a shared exam and review each student’s response in one place.' : 'Giao bài bằng liên kết và xem từng bài làm, điểm luyện tập của học viên.'}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-1.5">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
               <button 
                 type="button"
                 onClick={() => setIsMaximized(!isMaximized)}
                 className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
                 title={isMaximized ? (isEn ? 'Restore down' : 'Thu nhỏ lại') : (isEn ? 'Maximize full screen' : 'Phóng to toàn màn hình')}
+                aria-label={isMaximized ? (isEn ? 'Restore student management' : 'Thu nhỏ quản lý học viên') : (isEn ? 'Expand student management' : 'Phóng to quản lý học viên')}
               >
                 {isMaximized ? (
                   <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -296,6 +340,8 @@ export function StudentManagementModal({
               </button>
               <button 
                 type="button"
+                ref={closeRef}
+                aria-label={isEn ? 'Close student management' : 'Đóng quản lý học viên'}
                 onClick={onClose}
                 className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
                 title={isEn ? 'Close' : 'Đóng'}
@@ -305,17 +351,27 @@ export function StudentManagementModal({
             </div>
           </div>
 
+          <div className="grid gap-4 border-b border-slate-200 bg-slate-50/70 px-4 py-4 sm:grid-cols-[1fr_auto] sm:px-6">
+            <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3"><p className="text-[11px] font-medium text-slate-500">{isEn ? 'Student submissions' : 'Bài nộp đã nhận'}</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{studentsData.length}</p></div>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3"><p className="text-[11px] font-medium text-slate-500">{isEn ? 'With feedback' : 'Đã có nhận xét'}</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{studentsData.filter(sub => !!sub.gradingResult).length}</p></div>
+            </div>
+            <div className="min-w-0 sm:max-w-xs"><p className="text-xs leading-6 text-slate-500">{isEn ? 'Students use the shared link without signing in. Their grading uses your plan allowance.' : 'Học viên mở liên kết để làm bài, không cần đăng nhập. Lượt chấm sử dụng hạn mức của tài khoản giao bài.'}</p>{onCreateShare ? <button type="button" onClick={() => { onClose(); onCreateShare() }} className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"><Share2 size={15} />{isEn ? 'Create assignment link' : 'Tạo liên kết giao bài'}</button> : shareUnavailableReason && <p className="mt-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs leading-6 text-slate-600">{shareUnavailableReason}</p>}</div>
+          </div>
+
           {/* Tab Selector Bar - Màu sắc hài hòa theo tone xanh web */}
           <div className="bg-slate-50 border-b border-slate-200 px-4 sm:px-6 py-2.5">
-            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
                 return (
                   <button
                     key={tab.id}
+                    type="button"
+                    aria-pressed={activeTab === tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 snap-start min-h-10 ${
                       isActive 
                         ? 'bg-blue-600 text-white shadow-xs' 
                         : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
@@ -340,7 +396,8 @@ export function StudentManagementModal({
             <div className="relative w-full sm:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input 
-                type="text" 
+                type="search" 
+                aria-label={isEn ? 'Search student submissions' : 'Tìm bài nộp học viên'}
                 placeholder={isEn ? "Search by Name, Phone, Email..." : "Tìm theo Tên, SĐT, Email..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -348,6 +405,8 @@ export function StudentManagementModal({
               />
               {searchTerm && (
                 <button 
+                  type="button"
+                  aria-label={isEn ? 'Clear search' : 'Xóa tìm kiếm'}
                   onClick={() => setSearchTerm('')} 
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                 >
@@ -364,13 +423,15 @@ export function StudentManagementModal({
             </div>
           </div>
 
+          {copyError && <p role="alert" className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-800 sm:px-6">{copyError}</p>}
+
           {/* Content Body */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-slate-50/60 custom-scrollbar">
             {loading ? (
               <div className="min-h-[350px] flex flex-col items-center justify-center text-center">
                 <div className="w-10 h-10 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
                 <p className="text-slate-700 font-semibold text-sm">{isEn ? 'Loading student submissions...' : 'Đang tải danh sách bài làm của học viên...'}</p>
-                <p className="text-xs text-slate-400 mt-1">{isEn ? 'Fetching data securely from D1 Cloud database' : 'Đang đồng bộ dữ liệu an toàn từ hệ thống'}</p>
+                <p className="text-xs text-slate-400 mt-1">{isEn ? 'Your students’ latest submissions will appear here.' : 'Các bài học viên đã nộp sẽ hiển thị tại đây.'}</p>
               </div>
             ) : filteredSubmissions.length === 0 ? (
               <div className="min-h-[350px] flex flex-col items-center justify-center text-center p-8 bg-white rounded-2xl border border-dashed border-slate-200">
@@ -420,8 +481,7 @@ export function StudentManagementModal({
                     >
                       {/* Header Row: Chỉ hiển thị Band điểm và Nút Xem bài chi tiết */}
                       <div 
-                        className="px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-3 cursor-pointer select-none"
-                        onClick={() => setExpandedId(isExpanded ? null : sub.id)}
+                        className="px-4 py-4 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                       >
                         {/* Left: Student Info */}
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -429,49 +489,49 @@ export function StudentManagementModal({
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <h4 className="font-bold text-slate-800 text-xs sm:text-sm leading-tight truncate">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <h4 className="min-w-0 font-semibold text-slate-900 text-sm leading-6 truncate">
                                 {sub.studentName}
                               </h4>
-                              <span className={`px-2 py-0.2 rounded-full text-[10px] font-semibold border ${badge.bg}`}>
+                              <span className={`shrink-0 text-[10px] font-semibold ${badge.bg}`}>
                                 {badge.name}
                               </span>
                             </div>
                             
                             {/* Contact Info Pills */}
-                            <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                            <div className="mt-1 grid min-w-0 gap-1 text-[11px] text-slate-500">
                               {sub.studentPhone && (
-                                <span 
+                                <button type="button"
                                   onClick={(e) => { e.stopPropagation(); handleCopy(sub.studentPhone, `phone-${sub.id}`); }}
                                   className="inline-flex items-center gap-1 hover:text-blue-600 transition-colors bg-slate-100/70 hover:bg-blue-50 px-1.5 py-0.2 rounded"
-                                  title="Click để copy số điện thoại"
+                                  aria-label={isEn ? `Copy phone number ${sub.studentPhone}` : `Sao chép số điện thoại ${sub.studentPhone}`}
                                 >
                                   <Phone className="w-2.5 h-2.5 text-slate-400" />
-                                  <span className="font-medium text-[11px]">{sub.studentPhone}</span>
+                                  <span className="break-all text-left font-medium text-[11px]">{sub.studentPhone}</span>
                                   {copiedId === `phone-${sub.id}` && <Check className="w-2.5 h-2.5 text-emerald-600" />}
-                                </span>
+                                </button>
                               )}
                               {sub.studentEmail && (
-                                <span 
+                                <button type="button"
                                   onClick={(e) => { e.stopPropagation(); handleCopy(sub.studentEmail, `email-${sub.id}`); }}
                                   className="inline-flex items-center gap-1 hover:text-blue-600 transition-colors bg-slate-100/70 hover:bg-blue-50 px-1.5 py-0.2 rounded"
-                                  title="Click để copy email"
+                                  aria-label={isEn ? `Copy email ${sub.studentEmail}` : `Sao chép email ${sub.studentEmail}`}
                                 >
                                   <Mail className="w-2.5 h-2.5 text-slate-400" />
-                                  <span className="font-medium text-[11px]">{sub.studentEmail}</span>
+                                  <span className="break-all text-left font-medium text-[11px]">{sub.studentEmail}</span>
                                   {copiedId === `email-${sub.id}` && <Check className="w-2.5 h-2.5 text-emerald-600" />}
-                                </span>
+                                </button>
                               )}
                               <span className="inline-flex items-center gap-1 text-slate-400 text-[10px]">
                                 <Calendar className="w-2.5 h-2.5" />
-                                {new Date(sub.createdAt).toLocaleString('vi-VN')}
+                                {new Date(sub.createdAt).toLocaleString(isEn ? 'en-US' : 'vi-VN')}
                               </span>
                             </div>
                           </div>
                         </div>
 
                         {/* Right: Band điểm & Nút Xem bài chi tiết (Đã lược bỏ các tag Xuất sắc/Khá/Tốt rườm rà) */}
-                        <div className="flex items-center gap-2.5 shrink-0">
+                        <div className="flex min-w-0 items-center justify-between gap-2 sm:justify-end">
                           {/* Band Score Pill */}
                           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs sm:text-sm">
                             <Award className="w-3.5 h-3.5 text-blue-600" />
@@ -481,6 +541,8 @@ export function StudentManagementModal({
                           {/* Nút Xem bài chi tiết */}
                           <button 
                             type="button"
+                            aria-expanded={isExpanded}
+                            aria-controls={`${titleId}-${sub.id}`}
                             onClick={(e) => {
                               e.stopPropagation()
                               setExpandedId(isExpanded ? null : sub.id)
@@ -499,7 +561,7 @@ export function StudentManagementModal({
 
                       {/* Expanded Detail Section */}
                       {isExpanded && (
-                        <div className="p-4 sm:p-5 bg-slate-50/80 border-t border-slate-200 space-y-4 animate-in slide-in-from-top-2 duration-150">
+                        <div id={`${titleId}-${sub.id}`} className="p-4 sm:p-5 bg-slate-50/80 border-t border-slate-200 space-y-4 animate-in slide-in-from-top-2 duration-150">
                           
                           {/* Two Column: Prompt (Biểu đồ / Ảnh nếu có) & Student Essay */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -524,8 +586,9 @@ export function StudentManagementModal({
                               {/* Hiển thị ảnh biểu đồ nếu có */}
                               {chartImageUrl && (
                                 <div className="mb-3">
-                                  <div 
+                                  <button type="button"
                                     onClick={() => setZoomImageUrl(chartImageUrl)}
+                                    aria-label={isEn ? 'Enlarge exam image' : 'Phóng to ảnh đề bài'}
                                     className="group relative border border-slate-200 rounded-xl overflow-hidden bg-slate-50/70 flex items-center justify-center cursor-zoom-in hover:border-blue-300 transition-all max-h-64"
                                   >
                                     <img 
@@ -539,13 +602,13 @@ export function StudentManagementModal({
                                         <span>{isEn ? 'Click to zoom' : 'Bấm để phóng to biểu đồ'}</span>
                                       </div>
                                     </div>
-                                  </div>
+                                  </button>
                                 </div>
                               )}
 
                               {/* Nội dung chữ của đề bài (nếu có) */}
                               {cleanedPrompt && (
-                                <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar font-normal">
+                                <div className="break-words text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar font-normal">
                                   {cleanedPrompt}
                                 </div>
                               )}
@@ -575,7 +638,7 @@ export function StudentManagementModal({
                                   {copiedId === `essay-${sub.id}` ? 'Đã copy' : 'Copy bài'}
                                 </button>
                               </div>
-                              <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto custom-scrollbar font-normal">
+                              <div className="break-words text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto custom-scrollbar font-normal">
                                 {sub.studentEssay}
                               </div>
                             </div>
@@ -624,9 +687,9 @@ export function StudentManagementModal({
                           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
                             <h5 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-2.5 flex items-center gap-2">
                               <Sparkles className="w-4 h-4 text-blue-600" />
-                              {isEn ? 'Detailed Examiner Feedback' : 'Nhận xét tổng quan từ giám khảo'}
+                              {isEn ? 'AI practice feedback' : 'Nhận xét AI cho bài luyện'}
                             </h5>
-                            <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-normal bg-blue-50/40 p-3.5 rounded-lg border border-blue-100">
+                            <div className="break-words text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-normal bg-blue-50/40 p-3.5 rounded-lg border border-blue-100">
                               {scoreInfo.res?.detailedFeedback || scoreInfo.res?.feedback || (isEn ? 'No feedback recorded.' : 'Không có nhận xét chi tiết.')}
                             </div>
                           </div>
@@ -720,12 +783,14 @@ export function StudentManagementModal({
       {/* Lightbox Modal để phóng to biểu đồ */}
       {zoomImageUrl && (
         <div 
-          className="fixed inset-0 z-[250] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          ref={imageRef} role="dialog" aria-modal="true" aria-label={isEn ? 'Exam image' : 'Ảnh đề bài'} tabIndex={-1} className="fixed inset-0 z-[250] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
           onClick={() => setZoomImageUrl(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2 border border-slate-200" onClick={e => e.stopPropagation()}>
             <button
+              type="button"
               onClick={() => setZoomImageUrl(null)}
+              aria-label={isEn ? 'Close exam image' : 'Đóng ảnh đề bài'}
               className="absolute top-4 right-4 z-10 p-2 bg-slate-900/70 hover:bg-slate-900 text-white rounded-full transition-colors shadow-lg"
               title="Đóng ảnh"
             >
@@ -742,3 +807,4 @@ export function StudentManagementModal({
     </>
   )
 }
+

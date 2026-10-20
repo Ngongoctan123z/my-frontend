@@ -9,6 +9,8 @@ import {
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
 import dynamic from 'next/dynamic'
+import { PracticeAccessGate } from '@/src/components/auth/PracticeAccessGate'
+import { StudentAccessButton } from '@/src/components/common/StudentAccessButton'
 import { fallbackToeicExamSets } from '@/src/lib/toeicExamSets'
 import { toeicWritingRawScore } from '@/src/lib/examScores'
 import { TOEIC_PICTURE_SETS, parseToeicPictures, type ToeicPictureSet } from '@/src/data/toeicWriting'
@@ -41,6 +43,9 @@ export function ToeicGraderClient() {
   const isEn = pathname.startsWith('/en/') || pathname === '/en'
 
   const { data: session, status } = useSession()
+  const practiceOwner = status === 'authenticated' ? session?.user?.email || null : null
+  const practiceOwnerRef = useRef(practiceOwner)
+  practiceOwnerRef.current = practiceOwner
   const [activeTab, setActiveTab] = useState<ToeicMode>('TOEIC_FULL')
   const [fullTestStep, setFullTestStep] = useState<0 | 1 | 2 | 3>(0)
   const [feedbackLang, setFeedbackLang] = useState<string>(isEn ? 'English' : 'Tiếng Việt')
@@ -97,15 +102,17 @@ export function ToeicGraderClient() {
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null)
 
   const loadStudentsData = async () => {
+    const email = practiceOwner
+    if (!email) return
     setLoadingStudents(true)
     try {
       const res = await fetch('/api/shared-exams/submissions')
       const data = await res.json()
-      setStudentsData(data.submissions || [])
+      if (practiceOwnerRef.current === email) setStudentsData(data.submissions || [])
     } catch (e) {
       console.error(e)
     } finally {
-      setLoadingStudents(false)
+      if (practiceOwnerRef.current === email) setLoadingStudents(false)
     }
   }
 
@@ -143,11 +150,15 @@ export function ToeicGraderClient() {
 
   // Load usage
   useEffect(() => {
+    const email = practiceOwner
+    let active = true
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
+      if (!active || practiceOwnerRef.current !== email) return
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 7)
     }).catch(() => {})
-  }, [session?.user?.email])
+    return () => { active = false }
+  }, [status, session?.user?.email])
 
   const isSetAlreadyDone = (set: { title?: string; id?: string | number; part1?: any; part2?: any }, historyList = history) => {
     return historyList.some(h => {
@@ -171,9 +182,31 @@ export function ToeicGraderClient() {
     })
   }
 
-  // Load history (Database for logged in, localStorage for guests)
+  // History is private to the authenticated account.
+
+  useEffect(() => {
+    setHistory([])
+    setStudentsData([])
+    setShowStudentsModal(false)
+    setShowHistoryModal(false)
+    setIsShareModalOpen(false)
+    setExpandedStudentId(null)
+    setLoadingStudents(false)
+    setResult(null)
+    setIsEditorExpanded(false)
+    setEssayPart1('')
+    setEssayPart2('')
+    setEssayEmail7('')
+    setSingleEmailAnswers({ 6: '', 7: '' })
+    setSingleEssayAnswer('')
+    setFullPictureAnswers(Array(5).fill(''))
+    setSinglePictureAnswers(Array(5).fill(''))
+    gradedCache.current.clear()
+  }, [practiceOwner])
+
   const loadHistory = async () => {
-    const email = session?.user?.email || 'anonymous'
+    const email = session?.user?.email
+    if (status !== 'authenticated' || !email) { setHistory([]); return }
     const data = await getEssayHistory(email, 'TOEIC')
     if (ownerRef.current === email) setHistory(data)
 
@@ -339,8 +372,7 @@ export function ToeicGraderClient() {
 
   const handleCreateSharedLink = async (reqPhone: boolean, reqEmail: boolean): Promise<string | void> => {
     if (!activePrompt?.content?.trim()) {
-      alert(isEn ? 'Please draw a prompt first.' : 'Vui lòng bốc đề thi trước.')
-      return
+      throw new Error(isEn ? 'Please draw a prompt first.' : 'Vui lòng bốc đề thi trước.')
     }
     try {
       const currentType = activeTab === 'TOEIC_FULL'
@@ -360,13 +392,12 @@ export function ToeicGraderClient() {
       })
       const data = await res.json()
       if (res.ok) {
-        alert(isEn ? 'Share link generated! Valid for 24h.' : 'Đã tạo link chia sẻ thành công! Link có hiệu lực 24h.\nBạn có thể gửi link này cho học viên.')
         return `${window.location.origin}${isEn ? '/en' : ''}/shared/${data.id}`
       } else {
-        alert(data.error || (isEn ? 'Failed to create link' : 'Không thể tạo liên kết, vui lòng thử lại sau.'))
+        throw new Error(data.error || (isEn ? 'Failed to create link' : 'Không thể tạo liên kết, vui lòng thử lại sau.'))
       }
-    } catch (e) {
-      alert(isEn ? 'Error creating link' : 'Không thể tạo liên kết, vui lòng thử lại sau.')
+    } catch (failure) {
+      throw failure instanceof Error ? failure : new Error(isEn ? 'Error creating link' : 'Không thể tạo liên kết, vui lòng thử lại sau.')
     }
   }
 
@@ -494,17 +525,11 @@ export function ToeicGraderClient() {
           {/* Action buttons - shown on upper row when screen touches edge (< xl) */}
           <div className="flex xl:hidden min-w-0 max-w-full items-center gap-1.5 overflow-x-auto snap-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
-            <button
-              onClick={() => {
-                if (!session) return signIn('google')
+            <StudentAccessButton isEn={isEn} onClick={() => {
+                if (!session?.user?.email) return void signIn('google', { callbackUrl: window.location.href })
                 setShowStudentsModal(true)
-                loadStudentsData()
-              }}
-              className="text-xs font-semibold flex items-center gap-1 px-2 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 shrink-0 whitespace-nowrap"
-            >
-              <Users className="w-3 h-3" />
-              <span>{isEn ? 'Students' : 'Học viên'}</span>
-            </button>
+                void loadStudentsData()
+              }} />
 
             <button
               onClick={() => setShowHistoryModal(true)}
@@ -564,17 +589,11 @@ export function ToeicGraderClient() {
           {/* Desktop action buttons - same row as tabs only on large screen (>= xl) */}
           <div className="hidden xl:flex items-center gap-2 shrink-0">
 
-            <button
-              onClick={() => {
-                if (!session) return signIn('google')
+            <StudentAccessButton isEn={isEn} onClick={() => {
+                if (!session?.user?.email) return void signIn('google', { callbackUrl: window.location.href })
                 setShowStudentsModal(true)
-                loadStudentsData()
-              }}
-              className="text-xs font-semibold flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 whitespace-nowrap active:scale-95 duration-75"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>{isEn ? 'Students' : 'Học viên'}</span>
-            </button>
+                void loadStudentsData()
+              }} />
 
             <button
               onClick={() => setShowHistoryModal(true)}
@@ -592,9 +611,11 @@ export function ToeicGraderClient() {
       <details className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">{isEn?'How are scores calculated?':'Cách tính điểm TOEIC Writing'}</summary><p className="mt-2 leading-relaxed">{isEn?'Pictures: 5 × 3 = 15 raw marks. Emails: 2 × 4 = 8. Opinion essay: 5. Total: 28 raw marks. ETS converts the ratings to a 0–200 scaled score; there is no published fixed share of 200 for each section.':'Theo ảnh: 5 × 3 = 15 điểm thô. Hai email: 2 × 4 = 8. Bài luận: 5. Tổng: 28 điểm thô. ETS quy đổi tổng sang thang 0–200; không có mức điểm cố định từng phần trên thang 200.'}</p></details>
       {pictureView ? <div className="rounded-none border-y border-slate-200 bg-white p-4 shadow-xs sm:rounded-xl sm:border sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="text-sm font-bold text-blue-700">{isEn?'Picture sentences · Q1–5':'Viết câu theo ảnh · Câu 1–5'}</h3><button type="button" disabled={isGenerating || isGrading} onClick={()=>{if(activeTab==='TOEIC_FULL'){if((essayPart1||essayPart2||essayEmail7||pictureAnswers.some(Boolean))&&!confirm(isEn?'Change the complete exam and clear all answers?':'Đổi cả bộ đề và xoá bài đang viết?'))return;void switchPairedSet();return}if(pictureAnswers.some(Boolean)&&!confirm(isEn?'Discard the five answers and change pictures?':'Đổi bộ ảnh và xoá 5 câu đang viết?'))return;void loadPictures(true)}} className="shrink-0 rounded border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-600 disabled:opacity-50">{isGenerating?(isEn?'Loading…':'Đang tải…'):(activeTab==='TOEIC_FULL'?(isEn?'Change exam':'Đổi bộ đề'):(isEn?'New pictures':'Đổi bộ ảnh'))}</button></div>
-        <ToeicPictureQuestions set={pictureSet} answers={pictureAnswers} onAnswer={(index,value)=>{pictureTouched.current=true;setPictureAnswers(previous=>previous.map((answer,i)=>i===index?value:answer))}} disabled={!session || isGrading} isEn={isEn}/>
+        <ToeicPictureQuestions showAnswers={!!practiceOwner} set={pictureSet} answers={pictureAnswers} onAnswer={(index,value)=>{pictureTouched.current=true;setPictureAnswers(previous=>previous.map((answer,i)=>i===index?value:answer))}} disabled={!session || isGrading} isEn={isEn}/>
         {error&&<p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
+        <PracticeAccessGate authenticated={status === 'authenticated' && !!session?.user?.email} loading={status === 'loading'} isEn={isEn}>
         <div className="mt-5 border-t border-slate-100 pt-4"><GraderActions value={feedbackLang} onChange={setFeedbackLang} isEn={isEn} disabled={isGrading} languages={['Tiếng Việt','English']}><button type="button" disabled={isGrading} onClick={()=>{if(!session)return signIn('google');if(activeTab==='TOEIC_FULL')setFullTestStep(1);else void gradePictures()}} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">{isGrading?<Loader2 className="h-4 w-4 animate-spin"/>:null}{!session?(isEn?'Sign in to continue':'Đăng nhập để tiếp tục'):activeTab==='TOEIC_FULL'?(isEn?'Continue to question 6 →':'Chuyển sang câu 6 →'):(isEn?'Submit questions 1–5':'Nộp bài câu 1–5')}</button></GraderActions><p className="mt-2 text-center text-[11px] text-slate-400">{isEn?'Daily quota:':'Lượt chấm hôm nay:'} {usageCount}/{usageLimit}</p></div>
+        </PracticeAccessGate>
       </div> : <>
       {activeTab==='TOEIC_FULL'&&fullTestStep===1&&<p className="rounded-lg border border-blue-100 bg-blue-50/40 px-4 py-3 text-xs leading-relaxed text-slate-600">{isEn?'Questions 6–7 contain two separate emails, with ten minutes per email. Answer question 6 below, then question 7.':'Nhóm câu 6–7 gồm hai email riêng, mỗi câu 10 phút. Hoàn thành câu 6 rồi bấm chuyển sang câu 7.'}</p>}
       {/* Main Two-Column Layout */}
@@ -648,29 +669,7 @@ export function ToeicGraderClient() {
           </div>
 
           <div className="flex-1">
-            {!session ? (
-              <div className="min-h-[220px] p-6 rounded-xl border border-blue-100 bg-linear-to-b from-blue-50/70 to-white flex flex-col items-center justify-center text-center shadow-xs">
-                <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2.5 shadow-xs">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <h4 className="font-extrabold text-slate-800 text-sm">
-                  {isEn ? 'Sign in to view TOEIC prompt' : 'Đăng nhập để xem đề thi TOEIC'}
-                </h4>
-                <p className="text-xs text-slate-500 max-w-sm mt-1 mb-3.5 leading-relaxed">
-                  {isEn 
-                    ? 'Please sign in with Google to view the official prompt, write your response, and receive detailed AI evaluation.' 
-                    : 'Vui lòng đăng nhập bằng Google để mở khóa đề thi, điền bài làm và nhận điểm số đánh giá từ AI.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => signIn('google')}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 flex items-center gap-1.5"
-                >
-                  <LogIn className="w-4 h-4" />
-                  {isEn ? 'Sign in with Google' : 'Đăng nhập bằng Google'}
-                </button>
-              </div>
-            ) : !activePrompt ? (
+            {!activePrompt ? (
               <div className="min-h-[260px] flex flex-col items-center justify-center p-6 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
                 <Loader2 className="w-6 h-6 animate-spin text-blue-600 mb-2" />
                 <p className="text-xs text-slate-500 mb-2">{isEn ? 'Loading prompt...' : 'Đang tải đề thi...'}</p>
@@ -697,6 +696,7 @@ export function ToeicGraderClient() {
         </div>
 
         {/* Right Column: Editor */}
+        <PracticeAccessGate authenticated={status === 'authenticated' && !!session?.user?.email} loading={status === 'loading'} isEn={isEn}>
         <div className={`h-full ${isEditorExpanded ? 'fixed inset-0 z-50 bg-slate-100 p-4 sm:p-8 flex flex-col overflow-y-auto' : ''}`}>
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-xs font-semibold">
@@ -729,27 +729,7 @@ export function ToeicGraderClient() {
             </div>
 
             <div className="relative flex-1 flex flex-col">
-              {!session && (
-                <div 
-                  onClick={() => signIn('google')}
-                  className="absolute inset-0 z-10 bg-white/75 backdrop-blur-[2px] rounded-lg flex flex-col items-center justify-center cursor-pointer p-4 transition-all hover:bg-white/65"
-                >
-                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mb-2 shadow-xs">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <p className="text-xs font-bold text-slate-800 mb-2.5">
-                    {isEn ? 'Sign in to write and type your TOEIC essay' : 'Đăng nhập để điền vào ô làm bài và nộp chấm điểm'}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => signIn('google')}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 flex items-center gap-1.5"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    {isEn ? 'Sign in with Google' : 'Đăng nhập Google ngay'}
-                  </button>
-                </div>
-              )}
+
               <AnswerTextarea isEn={isEn} answerLabel={activeTab==='TOEIC_FULL'&&fullTestStep===2?(isEn?'TOEIC question 7':'TOEIC câu 7'):(isEn ? "Your answer" : "Bài làm của bạn")}
                 value={activeEssay}
                 onValueChange={value => setActiveEssay(value)}
@@ -834,6 +814,7 @@ export function ToeicGraderClient() {
             </div>
           </div>
         </div>
+        </PracticeAccessGate>
       </div>
 
       </>}
@@ -936,6 +917,8 @@ export function ToeicGraderClient() {
         isOpen={showStudentsModal}
         onClose={() => setShowStudentsModal(false)}
         loading={loadingStudents}
+        onCreateShare={pictureView ? undefined : () => { setShowStudentsModal(false); setIsShareModalOpen(true) }}
+        shareUnavailableReason={pictureView ? (isEn ? 'Select an Email or Opinion essay question to create an assignment link. Picture questions do not support shared links yet.' : 'Chọn câu Email hoặc Bài luận để tạo liên kết giao bài. Câu theo ảnh hiện chưa hỗ trợ liên kết.') : undefined}
         studentsData={studentsData}
         expandedStudentId={expandedStudentId}
         setExpandedStudentId={setExpandedStudentId}
@@ -960,4 +943,5 @@ export function ToeicGraderClient() {
     </div>
   )
 }
+
 

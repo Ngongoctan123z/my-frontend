@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { SpeakingVoiceGate, deliveryText, pauseDots, PAUSE_START_MS, type SpeakingDelivery } from '../lib/speechDelivery'
 import type { SpeakingClip, SpeakingMetrics } from '../lib/speaking'
+import { startLiveSpeakingTranscription, trimTranscriptOverlap } from '../lib/liveSpeakingTranscription'
 
 type RecognitionLike = {
   continuous:boolean;interimResults:boolean;lang:string;maxAlternatives:number
@@ -14,7 +15,9 @@ export function useSpeakingRecorder(options: Options) {
   const callbacks = useRef(options); callbacks.current = options
   const [recording, setRecording] = useState(false), [requesting, setRequesting] = useState(false)
   const [elapsedMs, setElapsedMs] = useState(0), [signalDetected, setSignalDetected] = useState(false), [error, setError] = useState('')
-  const [liveText,setLiveText]=useState(''),[pauseMs,setPauseMs]=useState(0),[recognitionState,setRecognitionState]=useState<'unavailable'|'listening'|'interrupted'>('unavailable')
+  const [liveText,setLiveText]=useState(''),[pauseMs,setPauseMs]=useState(0),[recognitionState,setRecognitionState]=useState<'unavailable'|'listening'|'server'|'interrupted'>('unavailable')
+  const [liveError, setLiveError] = useState('')
+  const live = useRef<ReturnType<typeof startLiveSpeakingTranscription> | null>(null)
   const delivery=useRef<SpeakingDelivery>({recognitionAvailable:false,segments:[],pauses:[]}),recognition=useRef<RecognitionLike|null>(null),recognitionActive=useRef(false)
   const recorder = useRef<MediaRecorder | null>(null), stream = useRef<MediaStream | null>(null), context = useRef<AudioContext | null>(null)
   const analyser = useRef<AnalyserNode | null>(null), frame = useRef<number | null>(null), interval = useRef<ReturnType<typeof setInterval> | null>(null), maxTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -27,6 +30,7 @@ export function useSpeakingRecorder(options: Options) {
     if (maxTimer.current) clearTimeout(maxTimer.current)
     frame.current = null; interval.current = null; maxTimer.current = null
     recognitionActive.current=false
+    live.current?.stop(); live.current = null
     if(recognition.current){recognition.current.onresult=null;recognition.current.onend=null;recognition.current.onerror=null;try{recognition.current.stop()}catch{};recognition.current=null}
     stream.current?.getTracks().forEach(track => track.stop()); stream.current = null
     if (context.current && context.current.state !== 'closed') void context.current.close().catch(() => {})
@@ -47,7 +51,7 @@ export function useSpeakingRecorder(options: Options) {
       setError('Trình duyệt chưa hỗ trợ thu âm. Hãy mở trang bằng Chrome, Edge hoặc Safari phiên bản mới qua HTTPS.'); return
     }
     const token = ++generation.current
-    pending.current = true; discard.current = false; setRequesting(true); setError('')
+    pending.current = true; discard.current = false; setRequesting(true); setError(''); setLiveError('')
     callbacks.current.onActiveChange(true)
     try {
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } })
@@ -92,39 +96,71 @@ export function useSpeakingRecorder(options: Options) {
         callbacks.current.onComplete({ id: crypto.randomUUID(), blob, metrics, createdAt: Date.now(),delivery:{...delivery.current,segments:delivery.current.segments.map(s=>({...s})),pauses:delivery.current.pauses.map(p=>({...p}))} })
       }
       mediaRecorder.start(250)
-      const Recognition=(window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      if(Recognition){
-        recognitionActive.current=true
-        let restarts=0
-        const listen=()=>{
-          if(!recognitionActive.current || token!==generation.current || mediaRecorder.state!=='recording')return
+      let lastNativeAt = 0, serverActive = false, bridgeNative = false
+      const useServer = () => {
+        if (serverActive || token !== generation.current || mediaRecorder.state !== 'recording') return
+        serverActive = true; bridgeNative = lastNativeAt > 0; recognitionActive.current = false
+        if (recognition.current) {
+          recognition.current.onresult = null; recognition.current.onerror = null; recognition.current.onend = null
+          try { recognition.current.stop() } catch {}
+          recognition.current = null
+        }
+        live.current?.activate(lastNativeAt)
+      }
+      live.current = startLiveSpeakingTranscription({
+        stream: audioStream, mimeType, startedAt: startedAt.current,
+        isCurrent: () => mounted.current && token === generation.current && mediaRecorder.state === 'recording',
+        onServer: () => setRecognitionState('server'),
+        onError: message => { setLiveError(message); if (message) setRecognitionState('interrupted'); else setRecognitionState('server') },
+        onText: (text, atMs) => {
+          const incoming = bridgeNative ? trimTranscriptOverlap(deliveryText(delivery.current), text) : text
+          bridgeNative = false
+          const used = delivery.current.segments.reduce((sum, segment) => sum + segment.text.length, 0)
+          if (incoming && used < 6000 && delivery.current.segments.length < 120) delivery.current.segments.push({ text: incoming.slice(0, Math.min(2000, 6000 - used)), atMs, final: true })
+          delivery.current.recognitionAvailable = true; setLiveText(deliveryText(delivery.current))
+        },
+      })
+      const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      if (Recognition) {
+        recognitionActive.current = true
+        let restarts = 0
+        const listen = () => {
+          if (!recognitionActive.current || token !== generation.current || mediaRecorder.state !== 'recording') return
           let engine: RecognitionLike
-          try { engine=new Recognition() as RecognitionLike }
-          catch { recognitionActive.current=false;setRecognitionState('interrupted');return }
-          recognition.current=engine;engine.continuous=true;engine.interimResults=true;engine.lang='en-US';engine.maxAlternatives=1
-          const positions=new Map<number,number>()
-          engine.onresult=event=>{
-            if(!mounted.current || !recognitionActive.current || token!==generation.current || mediaRecorder.state!=='recording')return
-            for(let i=event.resultIndex;i<event.results.length;i++){
-              const result=event.results[i],text=String(result[0]?.transcript || '').trim().slice(0,2000)
-              if(!text)continue
-              const existing=positions.get(i)
-              const used=delivery.current.segments.reduce((n,s,j)=>n+(j===existing?0:s.text.length),0)
-              if(used+text.length>6000)break
-              if(existing!==undefined)delivery.current.segments[existing]={...delivery.current.segments[existing],text,final:!!result.isFinal}
-              else if(delivery.current.segments.length<120){positions.set(i,delivery.current.segments.length);delivery.current.segments.push({text,atMs:Math.min(Date.now()-startedAt.current,stoppedAt.current?stoppedAt.current-startedAt.current:300_000),final:!!result.isFinal})}
+          try { engine = new Recognition() as RecognitionLike } catch { useServer(); return }
+          recognition.current = engine; engine.continuous = true; engine.interimResults = true; engine.lang = 'en-US'; engine.maxAlternatives = 1
+          const positions = new Map<number, number>()
+          engine.onresult = event => {
+            if (!mounted.current || !recognitionActive.current || token !== generation.current || mediaRecorder.state !== 'recording') return
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const result = event.results[i], text = String(result[0]?.transcript || '').trim().slice(0, 2000)
+              if (!text) continue
+              const existing = positions.get(i), used = delivery.current.segments.reduce((n, segment, j) => n + (j === existing ? 0 : segment.text.length), 0)
+              if (used + text.length > 6000) break
+              if (existing !== undefined) delivery.current.segments[existing] = { ...delivery.current.segments[existing], text, final: !!result.isFinal }
+              else if (delivery.current.segments.length < 120) {
+                positions.set(i, delivery.current.segments.length)
+                delivery.current.segments.push({ text, atMs: Date.now() - startedAt.current, final: !!result.isFinal })
+              }
+              lastNativeAt = Date.now() - startedAt.current
+              delivery.current.recognitionAvailable = true
             }
-            delivery.current.recognitionAvailable=true;setRecognitionState('listening');setLiveText(deliveryText(delivery.current))
+            setRecognitionState('listening'); setLiveText(deliveryText(delivery.current))
           }
-          engine.onerror=event=>{if(!recognitionActive.current||token!==generation.current)return;setRecognitionState('interrupted');if(!['no-speech','network','aborted'].includes(event.error))recognitionActive.current=false}
-          engine.onend=()=>{if(recognition.current===engine)recognition.current=null;if(recognitionActive.current && token===generation.current){if(restarts++<20)setTimeout(listen,500);else{recognitionActive.current=false;setRecognitionState('interrupted')}}}
-          try{engine.start();setRecognitionState('listening')}catch{recognitionActive.current=false;setRecognitionState('interrupted')}
+          engine.onerror = () => { if (recognitionActive.current && token === generation.current) useServer() }
+          engine.onend = () => {
+            if (recognition.current === engine) recognition.current = null
+            if (recognitionActive.current && token === generation.current) {
+              if (restarts++ < 20) setTimeout(listen, 500); else useServer()
+            }
+          }
+          try { engine.start(); setRecognitionState('listening') } catch { useServer() }
         }
         listen()
-      }
+      } else useServer()
 
       callbacks.current.onStarted(); setRecording(true); setRequesting(false); pending.current = false
-      interval.current = setInterval(() => { if (mounted.current) {setElapsedMs(Date.now() - startedAt.current);const silence=stats.current.silenceStarted?Date.now()-stats.current.silenceStarted:0;setPauseMs(silence);setLiveText(deliveryText(delivery.current))} }, 250)
+      interval.current = setInterval(() => { if (mounted.current) {setElapsedMs(Date.now() - startedAt.current);if (!serverActive && Date.now() - startedAt.current - lastNativeAt > 4500) useServer();const silence=stats.current.silenceStarted?Date.now()-stats.current.silenceStarted:0;setPauseMs(silence);setLiveText(deliveryText(delivery.current))} }, 250)
       maxTimer.current = setTimeout(stop, Math.min(300_000, callbacks.current.maxDurationMs))
       const buffer = new Uint8Array(node?.frequencyBinCount || 512), frequencies=new Uint8Array(node?.frequencyBinCount || 512),voiceGate=new SpeakingVoiceGate()
       const sample = () => {
@@ -163,7 +199,7 @@ export function useSpeakingRecorder(options: Options) {
     window.addEventListener('beforeunload', beforeUnload)
     return () => { mounted.current = false; generation.current++; discard.current = true; stop(); window.removeEventListener('beforeunload', beforeUnload) }
   }, [stop])
-  return { recording, requesting, elapsedMs, signalDetected, error, analyser, start, stop, cancel,liveText,pauseMs,pauseDots:pauseDots(pauseMs),recognitionState }
+  return { recording, requesting, elapsedMs, signalDetected, error, analyser, start, stop, cancel,liveText,pauseMs,pauseDots:pauseDots(pauseMs),recognitionState,liveError }
 }
 
 export function useSpeakingAudioUrl(blob?: Blob | null) {
@@ -178,7 +214,8 @@ export function useSpeakingAudioUrl(blob?: Blob | null) {
 
 // A deliberate server preview works even without the browser's SpeechRecognition
 // service. It does not grade, submit, or trust user-supplied transcript text.
-export function useSpeakingTranscript(clip?: SpeakingClip) {
+export function useSpeakingTranscript(clip?: SpeakingClip, auto = false) {
+  const mountedAt = useRef(Date.now()), attempted = useRef(new Set<string>())
   const [transcript, setTranscript] = useState(''), [transcribing, setTranscribing] = useState(false), [transcriptError, setTranscriptError] = useState('')
   const request = useRef<AbortController | null>(null)
   const current = useRef(clip); current.current = clip
@@ -209,6 +246,12 @@ export function useSpeakingTranscript(clip?: SpeakingClip) {
       if (request.current === controller) { request.current = null; setTranscribing(false) }
     }
   }, [])
+  useEffect(() => {
+    if (auto && clip && clip.createdAt >= mountedAt.current && !attempted.current.has(clip.id)) {
+      attempted.current.add(clip.id); void transcribe()
+    }
+  }, [clip?.id, auto, transcribe])
   return { transcript, transcribing, transcriptError, transcribe }
 }
+
 

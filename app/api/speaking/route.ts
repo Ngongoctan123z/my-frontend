@@ -81,22 +81,28 @@ export async function POST(req: NextRequest) {
     const type = req.headers.get('content-type') || ''
     if (type.includes('multipart/form-data')) {
       const email = await account()
-      rateLimit(email, 'audio', 30, 120_000)
+      // Bound body parsing for every upload; live excerpts have their own
+      // allowance so a normal three-second cadence does not exhaust grading.
+      rateLimit(email, 'multipart', 90, 60_000)
       const bytes = await boundedBody(req, 13_000_000)
       let form: FormData
       try { form = await new Request(req.url, { method: 'POST', headers: req.headers, body: bytes }).formData() }
       catch { throw new SpeakingRequestError(400, 'Dữ liệu bản thu không hợp lệ.') }
-      if (!['submit_audio','upload_audio','transcribe_audio'].includes(String(form.get('action')))) throw new SpeakingRequestError(426, 'Phiên Speaking đã được cập nhật. Vui lòng tải lại trang trước khi nộp.')
+      const action = String(form.get('action'))
+      if (!['submit_audio','upload_audio','transcribe_audio','transcribe_live'].includes(action)) throw new SpeakingRequestError(426, 'Phiên Speaking đã được cập nhật. Vui lòng tải lại trang trước khi nộp.')
+      if (action === 'transcribe_live') rateLimit(email, 'transcribe_live', 30, 60_000)
+      else rateLimit(email, 'audio', 30, 120_000)
       const audio = form.get('audio') as File | null, id = String(form.get('submissionId') || ''), index = Number(form.get('itemIndex'))
       if (!audio || typeof audio.arrayBuffer !== 'function' || audio.size < 500 || audio.size > 12_000_000) throw new SpeakingRequestError(422, 'Bản thu rỗng, quá ngắn hoặc vượt giới hạn 12MB. Vui lòng thu lại.')
       if (!/^audio\/(webm|ogg|mp4|m4a|wav|mpeg|mp3|aac)(;|$)/i.test(audio.type)) throw new SpeakingRequestError(415, 'Định dạng âm thanh chưa được hỗ trợ. Vui lòng thu lại bằng trình duyệt.')
-      if (form.get('action') === 'transcribe_audio') {
+      if (action === 'transcribe_live' && audio.size > 600_000) throw new SpeakingRequestError(413, 'Đoạn nhận dạng trực tiếp vượt giới hạn 600KB. Bản thu đầy đủ vẫn được giữ.')
+      if (action === 'transcribe_audio' || action === 'transcribe_live') {
         // Explicit preview from real audio, never a client-editable grading transcript.
-        rateLimit(email, 'transcribe', 6, 60_000)
+        if (action === 'transcribe_audio') rateLimit(email, 'transcribe', 6, 60_000)
         const db = await getDb(), store = new SpeakingStore(db.$client as SpeakingD1)
         const usage = await store.usage(email)
         if (usage.count >= usage.limit) throw new SpeakingRequestError(429, 'Bạn đã dùng hết lượt Speaking hôm nay.')
-        const transcript = await transcribeSpeakingAudio(db, email, audio)
+        const transcript = await transcribeSpeakingAudio(db, email, audio, { live: action === 'transcribe_live' })
         return NextResponse.json({ transcript }, { headers: { 'Cache-Control': 'no-store' } })
       }
       const db = await getDb(), store = new SpeakingStore(db.$client as SpeakingD1)
@@ -170,4 +176,5 @@ export async function POST(req: NextRequest) {
     throw new SpeakingRequestError(400, 'Thao tác Speaking không hợp lệ.')
   } catch (error) { return responseError(error) }
 }
+
 
