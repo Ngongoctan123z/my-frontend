@@ -51,7 +51,7 @@ window.fetch=async(url,options={})=>{const target=new URL(String(url),location.o
 const fixture=new URLSearchParams(location.search).get('fixture');
 createRoot(document.getElementById('root')).render(React.createElement(fixture==='admin'?AdminPage:fixture==='exams'?WritingExamsAdmin:PromptRelationsTab));
 `
-const unrelated=['UsersTab','ModelsTab','SpeakingAdminTab','SeoTab','ChatTab','BankHookTab']
+const unrelated=['UsersTab','ModelsTab','SpeakingAdminTab','SeoTab','ChatTab','PaymentsTab']
 const stubs={
  'next-auth/react':`export const useSession=()=>({data:{user:{email:'fixture@example.invalid'}},status:'authenticated'});export const signIn=()=>{};`,
  'next/link':`import React from 'react';export default function Link({children,...props}){return React.createElement('a',props,children)}`,
@@ -129,3 +129,4 @@ try{
  console.log('PASS failed overview refresh keeps prior counts, exposes the D1 error, retries and never sends an admin mutation')
 }catch(error){if(active&&!active.isClosed())await active.screenshot({path:output+'/failure.png',fullPage:true});throw error}
 finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+

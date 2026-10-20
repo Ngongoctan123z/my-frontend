@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'configs') {
-      const allConfigs = await db.select().from(systemConfigs)
+      const allConfigs = (await db.select().from(systemConfigs)).filter(row => row.key !== 'GPMPAY_CONFIG')
       const configMap = allConfigs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
       
       if (!configMap.TOTAL_API_REQUESTS) {
@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'save_configs') {
+      if (payload && Object.prototype.hasOwnProperty.call(payload, 'GPMPAY_CONFIG')) return NextResponse.json({ error: 'Dùng trang cấu hình GPMPay để cập nhật thanh toán.' }, { status: 400 })
       for (const [k, v] of Object.entries(payload)) {
         if (v !== undefined && typeof v === 'string') {
           // Bảo vệ: Nếu GROQ_API_KEY bị gửi lên dưới dạng đã mask (chứa ***), không ghi đè vào DB
@@ -305,3 +306,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
