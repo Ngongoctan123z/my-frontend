@@ -1,7 +1,6 @@
 import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
-import Script from 'next/script'
 import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
 import { ArrowRight, Sparkles, CheckCircle2, History } from 'lucide-react'
@@ -38,6 +37,7 @@ export default async function AiGraderHubPage() {
     '@type': 'WebApplication',
     name: 'Phòng Luyện Viết Ngoại Ngữ Trực Tuyến VNDocs',
     operatingSystem: 'Web',
+    inLanguage: 'vi',
     applicationCategory: 'EducationalApplication',
     offers: {
       '@type': 'Offer',
@@ -97,12 +97,12 @@ export default async function AiGraderHubPage() {
 
   return (
     <div className="py-4 sm:py-8 max-w-5xl mx-auto px-4 sm:px-6 space-y-8">
-      <Script
+      <script
         id="software-jsonld-ai-grader-hub"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="breadcrumb-jsonld-ai-grader-hub"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
@@ -178,3 +178,4 @@ export default async function AiGraderHubPage() {
     </div>
   )
 }
+

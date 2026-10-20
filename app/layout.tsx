@@ -69,7 +69,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: title,
       description: description,
-      url: 'https://vndocs.net',
+      url: language === 'en' ? 'https://vndocs.net/en' : 'https://vndocs.net',
       siteName: 'VNDocs',
       images: [{ url: finalOgImage, width: 1200, height: 630, alt: title }],
       locale: language === 'en' ? 'en_US' : 'vi_VN',
@@ -116,4 +116,5 @@ export default async function RootLayout({
     </html>
   )
 }
+
 

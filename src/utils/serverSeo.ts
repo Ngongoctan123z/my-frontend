@@ -35,10 +35,11 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       if (configMap[routeKey]) {
         try {
           const routeSeo = upgradeSavedPageSeo(path, JSON.parse(configMap[routeKey]))
+          if (!routeSeo || typeof routeSeo !== 'object' || Array.isArray(routeSeo)) throw new Error('Invalid saved SEO object')
           if (!hasRetiredSeo(routeSeo.title) && !hasRetiredSeo(routeSeo.description)) {
-            if (routeSeo.title) title = routeSeo.title
-            if (routeSeo.description) description = routeSeo.description
-            if (routeSeo.ogImage && !hasRetiredSeo(routeSeo.ogImage)) ogImage = routeSeo.ogImage
+            if (typeof routeSeo.title === 'string' && routeSeo.title) title = routeSeo.title
+            if (typeof routeSeo.description === 'string' && routeSeo.description) description = routeSeo.description
+            if (typeof routeSeo.ogImage === 'string' && routeSeo.ogImage && !hasRetiredSeo(routeSeo.ogImage)) ogImage = routeSeo.ogImage
           }
         } catch(e) {}
       }
@@ -90,6 +91,7 @@ export async function getCustomRouteSeo(path: string) {
         .limit(1)
       if (rows[0]?.value) {
         const saved = upgradeSavedPageSeo(path, JSON.parse(rows[0].value))
+        if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return null
         return hasRetiredSeo(saved.title) || hasRetiredSeo(saved.description) || hasRetiredSeo(saved.h1) ? null : saved
       }
     }
@@ -103,3 +105,4 @@ export async function getCoreMetadata(path: string): Promise<Metadata> {
   if (!copy) throw new Error('Missing SEO copy for ' + path)
   return getRouteMetadata(path, copy.title, copy.description)
 }
+

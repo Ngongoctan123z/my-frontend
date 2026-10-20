@@ -1,7 +1,6 @@
 import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
-import Script from 'next/script'
 import { AiGraderClient } from './AiGraderClient'
 import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
@@ -19,6 +18,7 @@ export default async function IeltsGraderPage() {
     '@type': 'WebApplication',
     name: 'Phòng Luyện Viết IELTS Writing Trực Tuyến VNDocs',
     operatingSystem: 'Web',
+    inLanguage: 'vi',
     applicationCategory: 'EducationalApplication',
     offers: {
       '@type': 'Offer',
@@ -95,17 +95,17 @@ export default async function IeltsGraderPage() {
 
   return (
     <div className="py-2.5 sm:py-6 md:px-16 lg:px-20 max-w-[1248px] mx-auto">
-      <Script
+      <script
         id="software-jsonld-ielts"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="breadcrumb-jsonld-ielts"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="faq-jsonld-ielts"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
@@ -218,3 +218,4 @@ export default async function IeltsGraderPage() {
     </div>
   )
 }
+

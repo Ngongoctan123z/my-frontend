@@ -1,7 +1,6 @@
 import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
-import Script from 'next/script'
 import { TopikGraderClient } from '@/app/ai-grader/topik/TopikGraderClient'
 import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
@@ -19,6 +18,7 @@ export default async function EnTopikPage() {
     '@type': 'WebApplication',
     name: 'TOPIK II Writing Practice & Correction Tool VNDocs',
     operatingSystem: 'Web',
+    inLanguage: 'en',
     applicationCategory: 'EducationalApplication',
     offers: {
       '@type': 'Offer',
@@ -95,17 +95,17 @@ export default async function EnTopikPage() {
 
   return (
     <div className="py-8 md:px-8 max-w-[1312px] mx-auto">
-      <Script
+      <script
         id="software-jsonld-TopikGraderClient-en"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="breadcrumb-jsonld-TopikGraderClient-en"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="faq-jsonld-TopikGraderClient-en"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
@@ -234,3 +234,4 @@ export default async function EnTopikPage() {
     </div>
   )
 }
+

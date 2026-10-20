@@ -4,6 +4,54 @@ import { readFile } from 'node:fs/promises'
 import { stripTypeScriptTypes } from 'node:module'
 import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
 
+test('malformed saved SEO values cannot replace text metadata', async () => {
+  for (const value of [null, [], 42, 'text', { title: { invalid: true }, description: 123, ogImage: ['bad'] }]) {
+    const { seo } = await loadSeo({ rows: [{ key: 'SEO_ROUTE_/ai-grader/toeic', value: JSON.stringify(value) }] })
+    const metadata = await seo.getCoreMetadata('/ai-grader/toeic')
+    assert.equal(typeof metadata.title, 'string')
+    assert.equal(typeof metadata.description, 'string')
+    assert.equal(typeof metadata.openGraph.images[0].url, 'string')
+    assert.match(metadata.title, /TOEIC Writing/)
+  }
+})
+
+test('English root Open Graph URL matches the English homepage', async () => {
+  const { seo } = await loadSeo({ rootMetadata: true, bindingAvailable: false, language: 'en' })
+  assert.equal((await seo.generateMetadata()).openGraph.url, 'https://vndocs.net/en')
+})
+
+test('robots allows crawling noindex pages and advertises the canonical sitemap', async () => {
+  const context = createContext({})
+  const module = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../app/robots.ts', import.meta.url), 'utf8')), { context })
+  await module.link(async () => new SyntheticModule(['FRONTEND_URL'], function () { this.setExport('FRONTEND_URL', 'https://vndocs.net') }, { context }))
+  await module.evaluate()
+  const robots = module.namespace.default()
+  assert.equal(robots.sitemap, 'https://vndocs.net/sitemap.xml')
+  for (const path of ['/login', '/profile', '/en/profile', '/privacy', '/shared/example']) {
+    assert.ok(!robots.rules[0].disallow.some(rule => path.startsWith(rule)), path)
+  }
+})
+
+test('private route metadata explicitly prevents indexing', async () => {
+  for (const path of ['app/login/layout.tsx', 'app/shared/layout.tsx', 'app/en/shared/layout.tsx', 'app/profile/page.tsx', 'app/en/profile/page.tsx']) {
+    const source = await readFile(new URL('../' + path, import.meta.url), 'utf8')
+    assert.match(source, /robots:\s*\{\s*index:\s*false/, path)
+  }
+})
+
+test('all core practice pages emit escaped JSON-LD without client script scheduling', async () => {
+  for (const prefix of ['', '/en']) {
+    for (const suffix of ['', '/ielts', '/toeic', '/topik', '/hsk']) {
+      const path = `app${prefix}/ai-grader${suffix}/page.tsx`
+      const source = await readFile(new URL('../' + path, import.meta.url), 'utf8')
+      assert.ok(!source.includes('next/script'), path)
+      assert.match(source, /<script\s+id=/, path)
+      assert.ok(source.includes(String.raw`.replace(/</g, '\\u003c')`), path)
+      assert.ok(source.includes(`inLanguage: '${prefix ? 'en' : 'vi'}'`), path)
+    }
+  }
+})
+
 async function loadSeo({ bindingAvailable = true, rows = [], dbError = null, rootMetadata = false, language = 'vi' } = {}) {
   const state = { dbCalls: 0, logs: [] }
   const context = createContext({ URL, console: { error: (...args) => state.logs.push(args) } })
@@ -216,3 +264,4 @@ test('known legacy production copy upgrades field by field without dropping admi
  const {seo:custom}=await loadSeo({rows:[{key:'SEO_ROUTE_/ai-grader/ielts',value:JSON.stringify({title:'An intentional custom title',description:'Custom text'})}]})
  assert.equal((await custom.getCoreMetadata('/ai-grader/ielts')).title,'An intentional custom title')
 })
+
