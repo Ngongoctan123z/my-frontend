@@ -5,10 +5,11 @@ import { stripTypeScriptTypes } from 'node:module'
 import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
 
 // Execute the real hook, replacing browser devices and React's hook storage.
-async function harness({ audioContext = 'pending', recognition = 'missing', fetchImpl } = {}) {
+async function harness({ audioContext = 'pending', recognition = 'missing', fetchImpl, signal = true } = {}) {
   const slots = [], effects = [], timers = new Map(), streams = [], engines = [], clips = [], active = [], recorders = []
   let nextTimer = 1
   let cursor = 0, now = 1000
+  const frames = new Map(), filters = [], destinations = []
   const react = {
     useRef(value) { const i = cursor++; return slots[i] ||= { current: value } },
     useState(value) { const i = cursor++; if (!(i in slots)) slots[i] = value; return [slots[i], next => { slots[i] = typeof next === 'function' ? next(slots[i]) : next }] },
@@ -18,20 +19,22 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
   const track = { readyState: 'live', stop() { this.readyState = 'ended' } }
   class Recorder {
     static isTypeSupported() { return true }
-    constructor(stream, options) { this.state = 'inactive'; this.mimeType = options?.mimeType || 'audio/webm'; this.header = 'container-' + recorders.length; recorders.push(this) }
-    start() { this.state = 'recording' }
-    stop() { this.state = 'inactive'; this.ondataavailable?.({ data: new Blob([this.header, new Uint8Array(1500)]) }); queueMicrotask(() => this.onstop?.()) }
+    constructor(stream, options) { this.stream=stream;this.state = 'inactive'; this.mimeType = options?.mimeType || 'audio/webm'; this.header = 'container-' + recorders.length; recorders.push(this) }
+    start() { this.state = 'recording';this.startedAt=now }
+    stop() { this.state = 'inactive';this.stoppedAt=now; this.ondataavailable?.({ data: new Blob([this.header, new Uint8Array(1500)]) }); queueMicrotask(() => this.onstop?.()) }
   }
   class Context {
-    state = 'suspended'; sampleRate = 48000
+    state = audioContext==='running'?'running':'suspended'; sampleRate = 48000
     resume() { if (audioContext === 'reject') return Promise.reject(new Error('blocked')); return new Promise(() => {}) }
     close() { this.state = 'closed'; return Promise.resolve() }
-    createAnalyser() { return { fftSize: 1024, frequencyBinCount: 512, getByteTimeDomainData(bytes) { bytes.fill(128) }, getByteFrequencyData(bytes) { bytes.fill(0) } } }
+    createAnalyser() { return { fftSize: 1024, frequencyBinCount: 512, getByteTimeDomainData(bytes) { bytes.fill(signal?132:128) }, getByteFrequencyData(bytes) { bytes.fill(0);if(signal)bytes.fill(100,4,80) } } }
     createMediaStreamSource() { return { connect() {} } }
+    createBiquadFilter() {const filter={frequency:{value:0},Q:{value:0},connect(target){this.target=target}};filters.push(filter);return filter}
+    createMediaStreamDestination() {const track={kind:'audio',readyState:'live',stop(){this.readyState='ended'}},destination={stream:{getTracks:()=>[track],getAudioTracks:()=>[track]}};destinations.push(destination);return destination}
   }
   class Recognition {
     constructor() { if (recognition === 'throw') throw new Error('Service blocked'); engines.push(this) }
-    start() { this.started = true }
+    start(track) { this.started = true;this.track=track }
     stop() {}
   }
   const context = createContext({
@@ -40,7 +43,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
     navigator: { mediaDevices: { getUserMedia: async () => { const stream = { getTracks: () => [track] }; streams.push(stream); return stream } } },
     window: { AudioContext: audioContext === 'missing' ? undefined : Context, ...(recognition === 'missing' ? {} : { SpeechRecognition: Recognition }), addEventListener() {}, removeEventListener() {} },
     MediaRecorder: Recorder,
-    requestAnimationFrame: () => 1, cancelAnimationFrame() {},
+    requestAnimationFrame(fn) {const id=nextTimer++;frames.set(id,fn);return id}, cancelAnimationFrame(id) {frames.delete(id)},
     setTimeout(fn, ms = 0) { const id = nextTimer++; timers.set(id, { fn, at: now + ms }); return id },
     clearTimeout(id) { timers.delete(id) },
     setInterval(fn, ms) { const id = nextTimer++; timers.set(id, { fn, at: now + ms, ms }); return id },
@@ -49,10 +52,14 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
   })
   const delivery = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/speechDelivery.ts', import.meta.url), 'utf8')), { context })
   await delivery.link(() => {}); await delivery.evaluate()
+  const speech = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/speechTranscription.ts', import.meta.url), 'utf8')), { context })
+  await speech.link(()=>{});await speech.evaluate()
+  const input = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/speakingAudioInput.ts', import.meta.url), 'utf8')), { context })
+  await input.link(()=>{});await input.evaluate()
   const live = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/liveSpeakingTranscription.ts', import.meta.url), 'utf8')), { context })
-  await live.link(() => {}); await live.evaluate()
+  await live.link(() => speech); await live.evaluate()
   const module = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/hooks/useSpeakingRecorder.ts', import.meta.url), 'utf8')), { context })
-  await module.link(name => name === '../lib/speechDelivery' ? delivery : name === '../lib/liveSpeakingTranscription' ? live : new SyntheticModule(Object.keys(react), function () { for (const [key, value] of Object.entries(react)) this.setExport(key, value) }, { context }))
+  await module.link(name => name === '../lib/speechDelivery' ? delivery : name === '../lib/liveSpeakingTranscription' ? live : name === '../lib/speechTranscription' ? speech : name === '../lib/speakingAudioInput' ? input : new SyntheticModule(Object.keys(react), function () { for (const [key, value] of Object.entries(react)) this.setExport(key, value) }, { context }))
   await module.evaluate()
   const render = (hook = 'useSpeakingRecorder', value, ...args) => {
     cursor = 0
@@ -61,7 +68,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
     return result
   }
   const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve() }
-  return { render, clips, active, streams, engines, recorders, timers, flush,
+  return { render, clips, active, streams, engines, recorders, timers, flush, filters, destinations,
     tick(ms) { now += ms },
     async advance(ms) {
       const target = now + ms
@@ -70,6 +77,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
         if (!next) break
         const [id, timer] = next; now = timer.at
         if (timer.ms) timer.at += timer.ms; else timers.delete(id)
+        for(const [frameId,fn] of [...frames]){frames.delete(frameId);fn()}
         timer.fn(); await flush()
       }
       now = target; await flush()
@@ -104,7 +112,7 @@ test('missing browser recognition displays server words before stopping, using i
     return Response.json({ transcript: calls.length === 1 ? 'I enjoy reading, um, books.' : 'Books help me learn.' })
   } })
   const recorder = h.render(); await recorder.start()
-  await h.advance(3100)
+  await h.advance(4100)
   assert.equal(h.render().recording, true)
   assert.match(h.render().liveText, /um, books/)
   assert.equal(h.clips.length, 0, 'Words arrive before a completed clip exists')
@@ -129,15 +137,15 @@ test('browser recognition failure switches to server text while full recording c
   h.engines[0].onerror({ error: 'network' })
   assert.equal(h.render().recognitionState, 'server')
   assert.equal(h.engines[0].onresult, null, 'Late native events are disconnected')
-  await h.advance(3100)
+  await h.advance(4100)
   assert.equal(h.render().recording, true)
   assert.match(h.render().liveText, /um, books/)
   recorder.stop(); await h.flush(); assert.equal(h.clips.length, 1)
   h.unmount()
 })
 test('browser recognition that starts but returns no words falls back automatically', async () => {
-  const h = await harness({ recognition: 'available', fetchImpl: async () => Response.json({ transcript: 'My microphone is working.' }) })
-  await h.render().start(); await h.advance(5000)
+  const h = await harness({ audioContext:'running',recognition: 'available', fetchImpl: async () => Response.json({ transcript: 'My microphone is working.' }) })
+  await h.render().start(); await h.advance(6500)
   assert.equal(h.render().recognitionState, 'server')
   assert.match(h.render().liveText, /microphone is working/)
   assert.equal(h.render().recording, true)
@@ -159,7 +167,7 @@ for (const operation of ['stop', 'cancel', 'unmount']) {
   test(`late live transcription is aborted and ignored after ${operation}`, async () => {
     let resolve, signal
     const h = await harness({ fetchImpl: (url, options) => { signal = options.signal; return new Promise(done => { resolve = done }) } })
-    await h.render().start(); await h.advance(3100)
+    await h.render().start(); await h.advance(4100)
     assert.equal(signal.aborted, false)
     if (operation === 'unmount') h.unmount(); else h.render()[operation]()
     assert.equal(signal.aborted, true)
@@ -173,7 +181,7 @@ for (const operation of ['stop', 'cancel', 'unmount']) {
 test('silent chunks never fabricate words, and provider errors preserve the complete recording', async () => {
   let calls = 0
   const h = await harness({ fetchImpl: async () => ++calls === 1 ? Response.json({ error: 'Silence' }, { status: 422 }) : Response.json({ error: 'Dịch vụ nhận dạng tạm ngắt' }, { status: 503 }) })
-  const recorder = h.render(); await recorder.start(); await h.advance(3100)
+  const recorder = h.render(); await recorder.start(); await h.advance(4100)
   assert.equal(h.render().liveText, '')
   assert.equal(h.render().liveError, '')
   await h.advance(3000)
@@ -191,7 +199,7 @@ test('a transient server failure retries the same audio once and then resumes li
     uploads.push(options.body.get('audio'))
     return uploads.length === 1 ? Response.json({ error: 'Temporary network failure' }, { status: 503 }) : Response.json({ transcript: 'The recovered first sentence.' })
   } })
-  await h.render().start(); await h.advance(3100)
+  await h.render().start(); await h.advance(4100)
   assert.match(h.render().liveError, /Temporary network failure/)
   await h.advance(1100)
   assert.equal(uploads.length, 2)
@@ -255,3 +263,54 @@ test('new recordings are completed automatically while restored clips do not tri
   assert.equal(calls.length, 1, 'Renders do not repeatedly transcribe a clip')
   h.unmount()
 })
+
+test('noise-filtered audio feeds both recorders and native English recognition, then releases every track',async()=>{
+ const h=await harness({audioContext:'running',recognition:'available'})
+ await h.render().start()
+ assert.equal(h.filters.length,2);assert.equal(h.filters[0].type,'highpass');assert.equal(h.filters[0].frequency.value,80)
+ assert.equal(h.filters[1].type,'lowpass');assert.equal(h.filters[1].frequency.value,8000)
+ assert.ok(h.recorders.every(recorder=>recorder.stream===h.destinations[0].stream))
+ assert.equal(h.engines[0].lang,'en-US');assert.equal(h.engines[0].track,h.destinations[0].stream.getAudioTracks()[0])
+ h.render().cancel();assert.equal(h.destinations[0].stream.getTracks()[0].readyState,'ended');assert.equal(h.streams[0].getTracks()[0].readyState,'ended');h.unmount()
+})
+test('overlapping complete files cover boundary words and timestamps keep genuine repetitions',async()=>{
+ let calls=0
+ const h=await harness({fetchImpl:async()=>Response.json(++calls===1?{transcript:'I really',words:[{word:'I',start:2.1,end:2.5},{word:'really',start:2.6,end:3.4}]}:{transcript:'really really enjoy',words:[{word:'really',start:0,end:.4},{word:'really',start:.6,end:.9},{word:'enjoy',start:1.1,end:1.5}]})})
+ await h.render().start();await h.advance(7100)
+ assert.equal(h.recorders[2].startedAt,h.recorders[1].startedAt+3000)
+ assert.equal(h.recorders[1].stoppedAt,h.recorders[2].startedAt+1000,'Shared audio protects words at the boundary')
+ assert.equal(h.render().liveText,'I really really enjoy','Shared word is removed, actual second really is kept')
+ h.render().cancel();assert.equal(h.timers.size,0);h.unmount()
+})
+test('fallback responses without timestamps reconcile only the actual overlapping text',async()=>{
+ let calls=0
+ const h=await harness({fetchImpl:async()=>Response.json({transcript:++calls===1?'I enjoy reading books.':'reading books every day.'})})
+ await h.render().start();await h.advance(7100)
+ assert.equal(h.render().liveText,'I enjoy reading books. every day.')
+ h.render().cancel();h.unmount()
+})
+test('measured near-silence makes no live uploads, while unavailable analysis never blocks audio',async()=>{
+ let calls=0
+ const h=await harness({audioContext:'running',signal:false,fetchImpl:async()=>{calls++;return Response.json({transcript:'Invented from silence'})}})
+ await h.render().start();await h.advance(11000)
+ assert.equal(calls,0);assert.equal(h.render().liveText,'');assert.equal(h.render().recording,true)
+ h.render().stop();await h.flush();assert.equal(h.clips.length,1);h.unmount()
+})
+test('a natural pause and no-speech event never disable working native English recognition',async()=>{
+ const h=await harness({audioContext:'running',signal:false,recognition:'available'})
+ await h.render().start();const engine=h.engines[0]
+ engine.onresult({resultIndex:0,results:[Object.assign([{transcript:'I enjoy reading.'}],{isFinal:true})]})
+ engine.onerror({error:'no-speech'});await h.advance(12000)
+ assert.equal(h.render().recognitionState,'listening');assert.equal(h.render().liveText,'I enjoy reading.')
+ h.render().cancel();h.unmount()
+})
+test('native hypotheses are replaced on fallback and obvious foreign script is not shown',async()=>{
+ const h=await harness({recognition:'available',fetchImpl:async()=>Response.json({transcript:'I enjoy reading books.'})})
+ await h.render().start();const engine=h.engines[0]
+ engine.onresult({resultIndex:0,results:[Object.assign([{transcript:'你好世界'}],{isFinal:true})]});assert.equal(h.render().liveText,'')
+ engine.onresult({resultIndex:0,results:[Object.assign([{transcript:'I enjoy read'}],{isFinal:false})]})
+ assert.equal(h.render().liveText,'I enjoy read');engine.onerror({error:'network'});await h.advance(4100)
+ assert.equal(h.render().liveText,'I enjoy reading books.')
+ h.render().cancel();h.unmount()
+})
+

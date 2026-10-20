@@ -18,6 +18,9 @@ test('live audio excerpts recognize actual bytes within a short timeout without 
   assert.equal(result.response.headers.get('cache-control'), 'no-store')
   const call = h.state.calls[0]
   assert.equal(call.kind, 'stt'); assert.equal(call.options.maxRetries, 0)
+  assert.equal(call.payload.language, 'en')
+  assert.equal(call.payload.prompt, undefined, 'Instructional ASR prompts must not be echoed as learner speech')
+  assert.deepEqual(Array.from(call.payload.timestamp_granularities), ['word', 'segment'])
   assert.ok(call.options.timeout <= 5000)
   assert.deepEqual(new Uint8Array(await call.payload.file.arrayBuffer()), new Uint8Array(await h.audio.arrayBuffer()))
   assert.equal((await h.get()).data.count, 0)
@@ -67,6 +70,33 @@ test('live silence produces no invented words and live provider failures retain 
   assert.equal(result.response.status, 200); assert.equal(result.data.transcript, 'Real spoken words.')
   assert.equal(h.state.calls.length, 3)
   assert.equal((await h.get()).data.count, 0)
+})
+test('live recognition removes noise segments while retaining English words and their timestamps',async()=>{
+ const h=await fixture(),form=new FormData();form.set('action','transcribe_live');form.set('audio',h.audio)
+ h.state.sttHandler=()=>({language:'english',text:'I enjoy reading. Noise hallucination.',segments:[{text:'I enjoy reading.',start:0,end:2,no_speech_prob:0.01,avg_logprob:-0.15},{text:'Noise hallucination.',start:2,end:4,no_speech_prob:0.96,avg_logprob:-1.1}],words:[{word:'I',start:0,end:0.2},{word:'enjoy',start:0.3,end:0.8},{word:'reading.',start:0.9,end:1.4},{word:'Noise',start:2.1,end:2.5}]})
+ const result=await h.post(form);assert.equal(result.response.status,200)
+ assert.equal(result.data.transcript,'I enjoy reading.')
+ assert.deepEqual(result.data.words.map(word=>word.word),['I','enjoy','reading.'])
+})
+test('the reported prompt echo retries a speech model instead of displaying fabricated instructions',async()=>{
+ const h=await fixture(),form=new FormData();form.set('action','transcribe_live');form.set('audio',h.audio)
+ h.state.sttHandler=call=>call.payload.model==='whisper-large-v3-turbo'?{text:'Retain audible. Retain audible um uh. Ignore, ignore.'}:{text:'I enjoy reading.',segments:[{text:'I enjoy reading.',no_speech_prob:0.02,avg_logprob:-0.2}]}
+ const result=await h.post(form);assert.equal(result.response.status,200);assert.equal(result.data.transcript,'I enjoy reading.')
+ assert.deepEqual(h.state.calls.map(call=>call.payload.model),['whisper-large-v3-turbo','whisper-large-v3'])
+ assert.ok(h.state.calls.every(call=>call.payload.prompt===undefined))
+})
+test('English mode retains short, quiet, numeric and repeated speech without inventing filler words',async()=>{
+ for(const text of ['Yes.','I','Um, I I enjoy reading.','2026']){
+  const h=await fixture(),form=new FormData();form.set('action','transcribe_live');form.set('audio',h.audio)
+  h.state.sttHandler=()=>({language:'en',text,segments:[{text,no_speech_prob:0.88,avg_logprob:-0.1}]})
+  const result=await h.post(form);assert.equal(result.response.status,200);assert.equal(result.data.transcript,text)
+ }
+})
+test('foreign-language and low-confidence noise results cannot be displayed as English speaking',async()=>{
+ for(const result of [{text:'Xin chào các bạn',language:'vietnamese'},{text:'你好世界'},{text:'Random guessed words.',segments:[{text:'Random guessed words.',no_speech_prob:0.98,avg_logprob:-1.7}]}]){
+  const h=await fixture(),form=new FormData();form.set('action','transcribe_live');form.set('audio',h.audio);h.state.sttHandler=()=>result
+  assert.equal((await h.post(form)).response.status,422)
+ }
 })
 test('explicit audio preview returns server-recognized text without grading or reserving a submission', async () => {
   const h = await fixture()
@@ -436,7 +466,7 @@ test('live delivery dots use 1.5 seconds then one second and keep filler/repeate
  assert.equal(data.deliveryEvidence.provisionalTranscriptWithPauseDots,'um I I . . enjoy reading')
  assert.equal(data.deliveryEvidence.pauses[0].durationMs,2500)
  assert.equal(data.deliveryEvidence.source,'browser_estimate')
- assert.match(h.state.calls.find(call=>call.kind==='stt').payload.prompt,/um|uh/)
+ assert.equal(h.state.calls.find(call=>call.kind==='stt').payload.prompt,undefined)
  const report=await h.post({action:'report',submissionId:begin.data.id});assert.equal(report.data.report.items[0].delivery.segments[0].text,'um I I')
  assert.equal(result.data.result.criteria.find(row=>row.id==='pronunciation').score,null)
 })
@@ -495,5 +525,6 @@ test('official library exposes publisher originals and correct PDF pages without
  assert.equal(samples.officialSpeakingSource('ets-sample-vacation-opinion').page,7)
  assert.equal(samples.officialSpeakingSource('ets-sample-television','An edited practice question'),null)
 })
+
 
 

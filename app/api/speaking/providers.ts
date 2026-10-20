@@ -1,4 +1,5 @@
 import type { SpeakingDelivery } from '@/src/lib/speechDelivery'
+import { inspectSpeechTranscription, type SpeechWord } from '@/src/lib/speechTranscription'
 import Groq from 'groq-sdk'
 import { inArray, sql } from 'drizzle-orm'
 import { getDb } from '@/src/db'
@@ -45,7 +46,7 @@ function checkedFeedback(text: string, question: SpeakingQuestion, transcript: s
   }
 }
 const extension = (mime: string) => mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : 'webm'
-export async function transcribeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, email: string, audio: File, options: { live?: boolean } = {}) {
+export async function transcribeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, email: string, audio: File, options: { live?: boolean; onWords?: (words: SpeechWord[]) => void } = {}) {
   const config = await speakingConfig(db)
   const rotation = await createKeyRotation(config.transcriptionKeys, email, createDbKeyRotationStore(db))
   // Live excerpts must not leave a growing queue of slow transcription jobs.
@@ -55,18 +56,20 @@ export async function transcribeSpeakingAudio(db: Awaited<ReturnType<typeof getD
   const { result: transcript } = await generateWithKeyRotation(rotation, config.transcriptionModels, async (key, model) => {
     const groq = new Groq({ apiKey: key, maxRetries: 0, timeout: deadlineTimeout(deadline, options.live ? 5000 : 20_000) })
     const file = await Groq.toFile(bytes, `recording.${extension(audio.type)}`, { type: audio.type })
-    const result = await groq.audio.transcriptions.create({ file, model, response_format: 'verbose_json', language: 'en', temperature: 0, prompt: 'Verbatim English speaking practice. Retain audible um, uh, er, hmm, repeated words, false starts and self-corrections. Ignore wind, fan hum and other non-speech noise. Do not add words or fillers that were not spoken.' })
+    // Whisper's prompt is transcript context, not an instruction channel. On
+    // quiet clips it can repeat instructional phrases as invented speech.
+    const result = await groq.audio.transcriptions.create({ file, model, response_format: 'verbose_json', language: 'en', temperature: 0, timestamp_granularities: options.live ? ['word', 'segment'] : ['segment'] })
     // Validate before accepting this provider attempt. A malformed response
     // moves to another model; actual silence is a final, non-billable 422.
-    if (typeof (result as any)?.text !== 'string') throw invalidModelResponse()
-    const text = (result as any).text.trim(), segments = (result as any).segments
-    if (!text || (Array.isArray(segments) && segments.length && segments.every(s => Number(s.no_speech_prob) > 0.9))) {
-      throw Object.assign(new SpeakingRequestError(422, 'Không nghe rõ nội dung nói. Hãy kiểm tra micro hoặc thu lại.'), { retryable: false })
+    const checked = inspectSpeechTranscription(result)
+    if (checked.status === 'invalid') throw invalidModelResponse()
+    if (checked.status === 'silence') {
+      throw Object.assign(new SpeakingRequestError(422, 'Chưa nghe rõ lời nói tiếng Anh. Hãy kiểm tra micro hoặc nói lại.'), { retryable: false })
     }
-    if (text.length > 12_000) throw invalidModelResponse()
-    return text
+    return checked
   }, key => countAttempt(db, key))
-  return transcript
+  options.onWords?.(transcript.words)
+  return transcript.text
 }
 function outputText(response: any): string {
   if (typeof response.output_text === 'string') return response.output_text
@@ -151,5 +154,6 @@ export async function speakingCoachReply(db: Awaited<ReturnType<typeof getDb>>, 
   }, key => countAttempt(db, key))
   return result
 }
+
 
 

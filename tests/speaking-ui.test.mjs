@@ -16,6 +16,12 @@ import React from 'react'; import {createRoot} from 'react-dom/client';
 import {SpeakingClient} from './app/speaking/SpeakingClient';
 import {fallbackCatalog} from './src/lib/speaking';
 import * as storage from './src/utils/speakingStorage';
+import {connectSpeakingAudioInput} from './src/lib/speakingAudioInput';
+window.auditSpeechFilter=async()=>{
+ const context=new AudioContext();await context.resume();const input=context.createMediaStreamDestination(),tone=context.createOscillator(),gain=context.createGain();gain.gain.value=.03;tone.connect(gain);gain.connect(input);const clean=connectSpeakingAudioInput(context,input.stream),analyser=context.createAnalyser();analyser.fftSize=2048;clean.output.connect(analyser);tone.start();
+ const rms=async frequency=>{tone.frequency.value=frequency;await new Promise(resolve=>setTimeout(resolve,160));const values=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(values);return Math.sqrt(values.reduce((sum,value)=>sum+value*value,0)/values.length)};
+ try{const rumble=await rms(30),voice=await rms(300);gain.gain.value=.004;const quiet=await rms(300);return{rumble,voice,quiet}}finally{tone.stop();input.stream.getTracks().forEach(track=>track.stop());clean.stream.getTracks().forEach(track=>track.stop());await context.close()}
+};
 window.storage=storage; window.requests=[]; window.microphoneStreams=[]; window.rejectMicrophone=false; window.liveDecodedDurations=[];
 window.owner=localStorage.getItem('fixture-owner') || 'speaking-ui@example.test';
 window.changeOwner=email=>{window.owner=email;localStorage.setItem('fixture-owner',email);window.dispatchEvent(new Event('fixture-owner'));};
@@ -90,7 +96,7 @@ const record=async(page,duration=1400,checkLive=false)=>{
   await page.locator('[data-live-speaking-text]').filter({hasText:'They introduce me to new ideas.'}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Dừng thu âm',exact:true}).isVisible(),true,'Live words appear while recording, before Stop');
   assert.equal(await page.evaluate(()=>window.requests.some(r=>['transcribe_audio','begin_submission','submit_audio'].includes(r.action))),false,'Live text neither waits for final transcription nor grades');
-  assert.equal(await page.evaluate(()=>window.liveDecodedDurations.every(duration=>duration>2&&duration<5)),true,'Every uploaded segment independently decodes as a complete short recording');
+  assert.equal(await page.evaluate(()=>window.liveDecodedDurations.every(duration=>duration>3&&duration<5)),true,'Every overlapping upload independently decodes as a complete four-second recording');
   assert.equal(await page.locator('[data-live-speaking-text]').getAttribute('contenteditable'),null);
   await page.screenshot({path:`${output}/live-recording.png`,fullPage:true});
  }
@@ -116,6 +122,7 @@ try{
   await assertLayout(page);
 
   assert.equal(await page.evaluate(()=>window.microphoneStreams.length),0,'No microphone until the user starts');
+  if(width===1280){const filter=await page.evaluate(()=>window.auditSpeechFilter());assert.ok(filter.voice>.01,'Speech-band audio reaches the output');assert.ok(filter.rumble<filter.voice*.25,'Low rumble is attenuated');assert.ok(filter.quiet>.0015,'Quiet speech-band audio is preserved without a hard noise gate')}
   assert.equal(await page.getByText(/Chọn mục tiêu|Vòng quay|Bắt đầu phiên/).count(),0);
   await page.evaluate(()=>{window.SpeechRecognition=undefined;window.webkitSpeechRecognition=undefined});
   await page.evaluate(()=>window.failPreview=true);
@@ -176,5 +183,6 @@ try{
  await context.close();console.log('PASS TOEIC eleven-question practice, partial-result resume and exam preparation cancellation');
 }catch(error){if(activePage&&!activePage.isClosed())await activePage.screenshot({path:`${output}/failure.png`,fullPage:true}).catch(()=>{});await writeFile(`${output}/failure.txt`,String(error.stack||error));throw error}
 finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+
 
 
