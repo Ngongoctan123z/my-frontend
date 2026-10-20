@@ -15,7 +15,7 @@
     "test:build-seo": "node --experimental-vm-modules tests/build-seo.test.mjs && node tests/seo-rendering.test.mjs",
     "test:grader-ui": "node tests/grader-ui.test.mjs && node tests/learner-access-ui.test.mjs && node tests/gpmpay-ui.test.mjs",
     "test:speaking": "node --experimental-vm-modules tests/speaking.test.mjs && node --experimental-vm-modules tests/speaking-recorder.test.mjs",
-    "test:speaking-ui": "node tests/speaking-ui.test.mjs",
+    "test:speaking-ui": "node tests/speaking-ui.test.mjs && node tests/google-speaking-ui.test.mjs",
     "prepare:writing-bank": "node scripts/build-writing-bank.mjs",
     "prebuild": "npm run prepare:writing-bank && node scripts/prepare-pdf-worker.mjs",
     "predev": "npm run prepare:writing-bank && node scripts/prepare-pdf-worker.mjs",
@@ -75,3 +75,4 @@
     "wrangler": "^4.140.0"
   }
 }
+
