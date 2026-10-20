@@ -8,6 +8,44 @@ const rawFeedback = (score = 6) => ({ valid: true, feedback: 'Câu trả lời r
   modelAnswer: 'I enjoy reading because books introduce me to new ideas. For example, I recently read about science.',
 })
 const metrics = { totalDurationMs: 5000, speechDurationMs: 4000, pauseCount: 1, longPauseCount: 0, totalPauseSec: 1, signalDetected: true }
+test('explicit audio preview returns server-recognized text without grading or reserving a submission', async () => {
+  const h = await fixture()
+  const form = new FormData(); form.set('action', 'transcribe_audio'); form.set('audio', h.audio)
+  form.set('transcript', 'Invented client transcript must be ignored')
+  const result = await h.post(form)
+  assert.equal(result.response.status, 200)
+  assert.equal(result.data.transcript, 'I enjoy reading books because they help me learn new things.')
+  assert.equal(result.response.headers.get('cache-control'), 'no-store')
+  assert.equal(h.state.calls.length, 1); assert.equal(h.state.calls[0].kind, 'stt')
+  assert.equal((await h.get()).data.count, 0)
+  assert.equal(h.state.r2Writes, 0)
+})
+test('audio preview requires auth, valid audio and available usage; limits repeated STT calls', async () => {
+  const h = await fixture()
+  const form = new FormData(); form.set('action', 'transcribe_audio'); form.set('audio', h.audio)
+  h.state.email = null
+  assert.equal((await h.post(form)).response.status, 401)
+  h.state.email = 'grader-test@example.test'
+  const invalid = new FormData(); invalid.set('action', 'transcribe_audio'); invalid.set('audio', new File(['text'.repeat(200)], 'data.txt', {type:'text/plain'}))
+  assert.equal((await h.post(invalid)).response.status, 415)
+  assert.equal(h.state.calls.length, 0)
+  for (let i = 0; i < 6; i++) assert.equal((await h.post(form)).response.status, 200)
+  assert.equal((await h.post(form)).response.status, 429)
+  assert.equal(h.state.calls.length, 6)
+  const exhausted = await fixture()
+  exhausted.sqlite.prepare('UPDATE user SET plan=?').run('free')
+  const today = new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Ho_Chi_Minh' })
+  exhausted.sqlite.prepare('INSERT INTO api_usage VALUES (?,?,?)').run(exhausted.state.email+':speaking',today,5)
+  assert.equal((await exhausted.post(form)).response.status, 429)
+  assert.equal(exhausted.state.calls.length, 0)
+})
+test('preview silence and provider errors preserve a retryable recording rather than fake text', async () => {
+  const h = await fixture()
+  const form = new FormData(); form.set('action','transcribe_audio'); form.set('audio',h.audio)
+  h.state.sttHandler = () => ({text:'',segments:[{no_speech_prob:0.99}]})
+  assert.equal((await h.post(form)).response.status,422)
+  assert.equal((await h.get()).data.count,0)
+})
 async function fixture(exam = 'IELTS_SPEAKING', tab = 'PART_2') {
   const h = await createGraderHarness({ route: 'app/api/speaking/route.ts' })
   const lib = await h.loadModule('src/lib/speaking.ts')
@@ -325,3 +363,4 @@ test('official library exposes publisher originals and correct PDF pages without
  assert.equal(samples.officialSpeakingSource('ets-sample-vacation-opinion').page,7)
  assert.equal(samples.officialSpeakingSource('ets-sample-television','An edited practice question'),null)
 })
+

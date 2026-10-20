@@ -34,6 +34,7 @@ window.fetch=async(url,options={})=>{
  window.requests.push({action:body.action||'usage',index:body.itemIndex,clientId:body.clientSubmissionId});
  const respond=(data,status=200)=>Response.json(data,{status});
  if(!options.body)return respond({count:load().length,limit:100});
+ if(body.action==='transcribe_audio')return window.failPreview?respond({error:'Nhận dạng tạm gián đoạn'},503):respond({transcript:feedback.transcript});
  if(body.action==='catalog')return respond({catalog:fallbackCatalog(body.examType),source:'fixture'});
  if(body.action==='begin_submission'){
   const reports=load();let report=reports.find(r=>r.clientId===body.clientSubmissionId);
@@ -96,10 +97,21 @@ try{
 
   assert.equal(await page.evaluate(()=>window.microphoneStreams.length),0,'No microphone until the user starts');
   assert.equal(await page.getByText(/Chọn mục tiêu|Vòng quay|Bắt đầu phiên/).count(),0);
+  await page.evaluate(()=>{window.SpeechRecognition=undefined;window.webkitSpeechRecognition=undefined});
   await record(page,width===375?4300:1400);
   assert.equal(await page.getByLabel('Nghe lại bản thu',{exact:true}).count(),1);
   assert.equal(await page.evaluate(()=>window.requests.filter(r=>['begin_submission','submit_audio'].includes(r.action)).length),0,'No AI before Submit');
   assert.equal(await page.evaluate(()=>window.microphoneStreams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))),true,'Microphone released after stop');
+  assert.equal(await page.evaluate(()=>window.requests.filter(r=>r.action==='transcribe_audio').length),0,'No server STT until explicitly requested');
+  await page.evaluate(()=>window.failPreview=true);
+  await page.getByRole('button',{name:'Chuyển bản thu thành chữ',exact:true}).click();await page.getByRole('alert').filter({hasText:'Nhận dạng tạm gián đoạn'}).waitFor();
+  await page.evaluate(()=>window.failPreview=false);
+  await page.getByRole('button',{name:'Chuyển bản thu thành chữ',exact:true}).click();
+  await page.getByRole('button',{name:'Nhận dạng lại bản thu',exact:true}).waitFor();
+  assert.equal(await page.locator('[data-live-speaking-text]').textContent(),'I enjoy reading books because they help me learn new things.');
+  assert.equal(await page.locator('[data-live-speaking-text]').getAttribute('contenteditable'),null);
+  assert.equal(await page.evaluate(()=>window.requests.filter(r=>['begin_submission','submit_audio'].includes(r.action)).length),0,'Preview never grades or reserves a submission');
+  await assertLayout(page);
   await page.waitForTimeout(300);await page.reload();await waitReady(page);await page.getByText('Bản thu đã sẵn sàng',{exact:true}).waitFor();
   assert.equal(await page.getByLabel('Nghe lại bản thu',{exact:true}).count(),1,'IndexedDB restored Blob');
   await page.evaluate(()=>window.rejectMicrophone=true);await page.getByRole('button',{name:'Thu lại',exact:true}).click();await page.getByRole('alert').filter({hasText:'Chưa được cấp quyền micro'}).waitFor();
@@ -143,3 +155,4 @@ try{
  await context.close();console.log('PASS TOEIC eleven-question practice, partial-result resume and exam preparation cancellation');
 }catch(error){if(activePage&&!activePage.isClosed())await activePage.screenshot({path:`${output}/failure.png`,fullPage:true}).catch(()=>{});await writeFile(`${output}/failure.txt`,String(error.stack||error));throw error}
 finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+
