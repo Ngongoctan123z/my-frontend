@@ -80,7 +80,7 @@ export function PremiumClient({ isEn=false }: { isEn?:boolean }) {
  useEffect(()=>{let live=true;fetch('/api/gpmpay/config').then(async res=>{if(!res.ok)throw new Error();return res.json()}).then(data=>{if(live)setReady(data.ready===true)}).catch(()=>{}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[])
  useEffect(()=>{
   const token=++generation.current;activeRequest.current?.abort();locked.current=false;setBusy(false);setOrder(null);setError('');request.current=null
-  if(owner){const code=sessionStorage.getItem('vndocs-payment:'+owner);if(code&&/^VD[A-F0-9]{20}$/.test(code))void fetch('/api/gpmpay/status?code='+code).then(res=>res.ok?res.json():null).then(data=>{if(token===generation.current&&data?.order)setOrder(data.order)}).catch(()=>{})}
+  if(owner){const code=sessionStorage.getItem('vndocs-payment:'+owner);if(code&&/^(?:[A-Z0-9]{6}|VD[A-F0-9]{20})$/.test(code))void fetch('/api/gpmpay/status?code='+code).then(res=>res.ok?res.json():null).then(data=>{if(token===generation.current&&data?.order)setOrder(data.order)}).catch(()=>{})}
   return()=>{generation.current++;activeRequest.current?.abort()}
  },[owner])
  useEffect(()=>{

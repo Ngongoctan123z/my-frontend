@@ -20,10 +20,16 @@ Git, logs or chat. No GPMPay API token is needed for webhook-only settlement.
 
 ## Behavior
 
-- Each authenticated checkout creates a persistent order with a random reference,
+- Each authenticated checkout creates a persistent order with a random six-character
+  uppercase letter/digit reference (for example `K7M4Q9`),
   fixed server price, exact owner and receiving-account snapshot. The browser
   cannot choose the price or beneficiary user. Checkout retries reuse the same
   request ID; only the order's owner can read its status.
+  References are reserved permanently by a database unique key; a collision
+  generates a new code without overwriting another order. Existing 22-character
+  references remain valid for previously issued QR codes. A short code must be a
+  complete memo token. Ordinary six-letter words are ignored unless they name an
+  actual order; a memo naming multiple orders is held for manual investigation.
 - HMAC uses X-GPMPay-Signature: t=unix,v1=hex and SHA-256 over `t.raw_body`,
   with a five-minute timestamp tolerance. Unsigned/stale requests are rejected.
 - Authenticated test:true probes return 200 without creating payments. SIMULATED

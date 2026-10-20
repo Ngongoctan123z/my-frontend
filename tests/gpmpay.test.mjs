@@ -10,10 +10,11 @@ import { createHmac } from 'node:crypto'
 const secret='test-only-secret-000000000000000000000000'
 async function harness(){
  const sqlite=new DatabaseSync(':memory:');sqlite.exec(`CREATE TABLE user(id TEXT PRIMARY KEY,email TEXT UNIQUE,plan TEXT,planExpiresAt INTEGER,status TEXT);CREATE TABLE system_config(key TEXT PRIMARY KEY,value TEXT);INSERT INTO user VALUES('owner','owner@example.test','free',NULL,'active'),('other','other@example.test','free',NULL,'active')`)
- const state={email:'owner@example.test',admin:true,failReceipt:false,env:{},calls:0}
+ const state={email:'owner@example.test',admin:true,failReceipt:false,env:{},calls:0,randomBytes:[]}
  const db={prepare(query){return{query,params:[],bind(...params){this.params=params;return this},async first(){return sqlite.prepare(query).get(...this.params)||null},async all(){return{results:sqlite.prepare(query).all(...this.params)}},async run(){return{meta:sqlite.prepare(query).run(...this.params)}}}},async batch(statements){sqlite.exec('BEGIN');try{const result=statements.map(stmt=>{if(state.failReceipt&&stmt.query.startsWith('UPDATE gpm_payment_order')){state.failReceipt=false;throw new Error('D1 failure')}return sqlite.prepare(stmt.query).run(...stmt.params)});sqlite.exec('COMMIT');return result}catch(e){sqlite.exec('ROLLBACK');throw e}}}
  const external={'next/server':{NextResponse:Response},'@/auth':{auth:async()=>state.email?{user:{email:state.email}}:null},'@/src/db':{getDb:async()=>({$client:db})},'@/src/lib/adminAccess':{checkAdmin:async()=>{if(!state.admin)throw new Error(state.email?'Forbidden':'Unauthorized')}},'@/src/lib/rateLimit':{checkRateLimit:()=>({allowed:true,retryAfterSeconds:1})}}
- const context=createContext({crypto,TextEncoder,TextDecoder,Headers,Request,Response,URL,URLSearchParams,Uint8Array,Uint32Array,Date,setTimeout,clearTimeout,console:{error(){}},process:{env:state.env}}),cache=new Map()
+ const fixtureCrypto={subtle:crypto.subtle,randomUUID:()=>crypto.randomUUID(),getRandomValues(bytes){if(state.randomBytes.length){bytes.set(state.randomBytes.shift());return bytes}return crypto.getRandomValues(bytes)}}
+ const context=createContext({crypto:fixtureCrypto,TextEncoder,TextDecoder,Headers,Request,Response,URL,URLSearchParams,Uint8Array,Uint32Array,Date,setTimeout,clearTimeout,console:{error(){}},process:{env:state.env}}),cache=new Map()
  async function load(identifier){if(cache.has(identifier))return cache.get(identifier);const pending=(async()=>{let module;if(external[identifier]){const exports=external[identifier];module=new SyntheticModule(Object.keys(exports),function(){for(const[k,v]of Object.entries(exports))this.setExport(k,v)},{context,identifier})}else module=new SourceTextModule(stripTypeScriptTypes(await readFile(identifier,'utf8')),{context,identifier});await module.link((name,parent)=>{if(external[name])return load(name);let file=name.startsWith('@/')?resolve(name.slice(2)):resolve(dirname(parent.identifier),name);return load(file.endsWith('.ts')?file:file+'.ts')});return module})();cache.set(identifier,pending);return pending}
  const main=await load(resolve('src/lib/gpmpay/handlers.ts'));await main.evaluate();const core=await load(resolve('src/lib/gpmpay/core.ts'));if(core.status!=='evaluated')await core.evaluate()
  const config={enabled:true,secret,bank:'MB',accountNumber:'0565683172',accountName:'TEST OWNER'};sqlite.prepare('INSERT INTO system_config VALUES(?,?)').run('GPMPAY_CONFIG',JSON.stringify(config))
@@ -47,6 +48,46 @@ test('server fixes price and owner; idempotent checkout cannot change the select
  assert.equal(h.sqlite.prepare('SELECT userId FROM gpm_payment_order').get().userId,'owner')
  assert.equal((await h.create('pro',{requestId:id})).response.status,409)
  assert.equal(h.sqlite.prepare('SELECT count(*) AS n FROM gpm_payment_order').get().n,1)
+})
+test('checkout generates six random characters and uses the exact reference in QR and private status',async()=>{
+ const h=await harness(),codes=new Set()
+ for(let i=0;i<40;i++){
+  const {response,data}=await h.create();assert.equal(response.status,200)
+  assert.match(data.order.code,/^[A-HJ-NP-Z2-9]{6}$/);codes.add(data.order.code)
+  assert.equal(new URL(data.order.qrUrl).searchParams.get('addInfo'),data.order.code)
+  assert.equal((await h.call('getStatus',undefined,'https://vndocs.net/api/gpmpay/status?code='+data.order.code)).response.status,200)
+ }
+ assert.equal(codes.size,40)
+})
+test('collisions retry without reusing paid or expired codes, while request retries remain idempotent',async()=>{
+ const h=await harness();h.state.randomBytes=[new Uint8Array(6)];const first=await h.create()
+ assert.equal(first.data.order.code,'AAAAAA');await h.webhook(h.event(first.data.order))
+ h.state.randomBytes=[new Uint8Array(6),new Uint8Array(6).fill(1)];const second=await h.create()
+ assert.equal(second.data.order.code,'BBBBBB')
+ h.sqlite.prepare("UPDATE gpm_payment_order SET expiresAt=0 WHERE code='BBBBBB'").run()
+ h.state.randomBytes=[new Uint8Array(6).fill(1),new Uint8Array(6).fill(2)];const third=await h.create()
+ assert.equal(third.data.order.code,'CCCCCC')
+ const requestId=crypto.randomUUID();const repeated=await Promise.all([h.create('plus',{requestId}),h.create('plus',{requestId})])
+ assert.ok(repeated.every(result=>result.response.status===200));assert.equal(repeated[0].data.order.code,repeated[1].data.order.code)
+ h.state.randomBytes=Array.from({length:10},()=>new Uint8Array(6))
+ assert.equal((await h.create()).response.status,503)
+ assert.equal(h.sqlite.prepare('SELECT count(*) AS n FROM gpm_payment_order').get().n,4)
+})
+test('short references survive bank memo words and case changes but reject embedded codes and ambiguous orders',async()=>{
+ const h=await harness(),first=(await h.create()).data.order,second=(await h.create()).data.order
+ for(const content of ['REF'+first.code+'X',first.code.slice(0,5),first.code+' '+second.code]){
+  assert.equal((await h.webhook(h.event(first,{content}))).data.status,'unmatched')
+  assert.equal(h.sqlite.prepare("SELECT plan FROM user WHERE id='owner'").get().plan,'free')
+ }
+ assert.equal((await h.webhook(h.event(first,{content:'CHUYEN KHOAN ('+first.code.toLowerCase()+'). '+first.code}))).data.status,'paid')
+})
+test('existing long references remain readable, idempotent and payable after six-character rollout',async()=>{
+ const h=await harness(),requestId=crypto.randomUUID(),order=(await h.create('plus',{requestId})).data.order,legacy='VD'+'A'.repeat(20)
+ h.sqlite.prepare('UPDATE gpm_payment_order SET code=? WHERE code=?').run(legacy,order.code)
+ assert.equal((await h.create('plus',{requestId})).data.order.code,legacy)
+ assert.equal((await h.call('getStatus',undefined,'https://vndocs.net/api/gpmpay/status?code='+legacy)).response.status,200)
+ assert.equal((await h.webhook(h.event({...order,code:legacy}))).data.status,'paid')
+ assert.equal(h.sqlite.prepare("SELECT plan FROM user WHERE id='owner'").get().plan,'plus')
 })
 test('real exact payment activates the purchased plan once under duplicate/concurrent deliveries',async()=>{
  const h=await harness(),{data}=await h.create(),event=h.event(data.order)
