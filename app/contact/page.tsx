@@ -1,11 +1,7 @@
+import { getCoreMetadata } from '@/src/utils/serverSeo'
 import React from 'react'
-import { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Liên hệ & Hợp tác | VNDocs',
-  description: 'Liên hệ với VNDocs để phản hồi, góp ý về Writing/Speaking, đề xuất hợp tác hoặc báo cáo sự cố. Đội ngũ VNDocs luôn sẵn sàng hỗ trợ.',
-  robots: { index: false, follow: false }
-}
+export async function generateMetadata() { return getCoreMetadata('/contact') }
 
 export default function ContactPage() {
   return (
@@ -38,3 +34,4 @@ export default function ContactPage() {
     </div>
   )
 }
+

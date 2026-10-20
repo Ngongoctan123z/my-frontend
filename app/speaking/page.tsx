@@ -1,4 +1,5 @@
-import { getCoreMetadata } from '@/src/utils/serverSeo'
+import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
+import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import { Suspense } from 'react'
 import { FRONTEND_URL } from '@/src/utils/constants'
@@ -14,14 +15,18 @@ const jsonLd = {
   operatingSystem: 'Web',
   inLanguage: 'vi',
   applicationCategory: 'EducationalApplication',
-  offers: { '@type': 'Offer', price: '0', priceCurrency: 'VND' },
   description: 'Luyện IELTS và TOEIC Speaking với bản thu, nhận xét luyện tập và lịch sử theo tài khoản.',
   url: `${FRONTEND_URL}/speaking`
 }
 
-export default function SpeakingPage() {
+export default async function SpeakingPage() {
+  const custom = await getCustomRouteSeo('/speaking')
   return (
     <div className="py-2.5 sm:py-6">
+      <header className="mx-auto mb-5 max-w-4xl space-y-2 px-4">
+        <h1 className="text-2xl font-bold text-slate-900">{custom?.h1 || PAGE_SEO['/speaking'].h1}</h1>
+        <p className="text-sm leading-7 text-slate-600">Chọn đề IELTS hoặc TOEIC, ghi âm, nghe lại và xem bản chữ từ giọng nói trước khi nộp bài để nhận góp ý AI.</p>
+      </header>
       <script
         id="speaking-jsonld"
         type="application/ld+json"
@@ -42,5 +47,6 @@ export default function SpeakingPage() {
     </div>
   )
 }
+
 
 

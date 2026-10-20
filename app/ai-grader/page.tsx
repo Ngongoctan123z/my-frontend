@@ -39,56 +39,51 @@ export default async function AiGraderHubPage() {
     operatingSystem: 'Web',
     inLanguage: 'vi',
     applicationCategory: 'EducationalApplication',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'VND',
-    },
-    description: 'Nền tảng luyện viết trực tuyến cho IELTS, TOEIC, TOPIK và HSK. Đánh giá chi tiết theo tiêu chí chính thức và lưu trữ an toàn.',
+    description: 'Nền tảng luyện viết trực tuyến cho IELTS, TOEIC, TOPIK và HSK. Góp ý về nội dung, ngữ pháp, từ vựng và lưu lịch sử luyện tập.',
     url: `${FRONTEND_URL}/ai-grader`
   }
 
   const cards = [
     {
       href: '/ai-grader/ielts',
-      badge: 'Cambridge IELTS',
+      badge: 'Task 1 & Task 2',
       badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
       title: 'IELTS Writing',
       subtitle: 'Academic Task 1 & Task 2',
-      desc: 'Phân tích biểu đồ và viết luận xã hội. Đánh giá chi tiết 4 tiêu chí TR, CC, LR, GRA theo barem 9.0.',
+      desc: 'Phân tích biểu đồ và viết luận xã hội. Góp ý theo 4 nhóm tiêu chí và band luyện tập tham khảo.',
       iconText: 'IELTS',
       iconBg: 'bg-blue-600 text-white',
       accentColor: 'hover:border-blue-500',
     },
     {
       href: '/ai-grader/toeic',
-      badge: 'ETS Standard',
+      badge: 'Questions 1–8',
       badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       title: 'TOEIC Writing',
-      subtitle: 'Email phản hồi & Viết luận',
-      desc: 'Thực hành Email Q6-7 và Luận quan điểm Q8. Chữa lỗi ngữ pháp công sở và từ vựng thương mại.',
+      subtitle: 'Viết câu theo ảnh, email & bài luận',
+      desc: 'Luyện câu theo ảnh Q1–5, email Q6–7 và bài luận Q8. Kiểm tra ngữ pháp và mức độ trả lời đúng yêu cầu.',
       iconText: 'TOEIC',
       iconBg: 'bg-indigo-600 text-white',
       accentColor: 'hover:border-indigo-500',
     },
     {
       href: '/ai-grader/topik',
-      badge: 'NIIED Hàn Quốc',
+      badge: 'Câu 51–54 · PBT',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       title: 'TOPIK II 쓰기',
       subtitle: 'Câu 51, 52, 53 & 54',
-      desc: 'Luyện điền khuyết, miêu tả biểu đồ và bài luận 700 chữ. Sửa lỗi chính tả, trợ từ và đuôi câu văn viết.',
+      desc: 'Luyện điền câu, bài viết 200–300 và bài luận 600–700 ký tự tiếng Hàn theo dạng PBT. Kiểm tra chính tả và văn phong.',
       iconText: 'TOPIK',
       iconBg: 'bg-emerald-600 text-white',
       accentColor: 'hover:border-emerald-500',
     },
     {
       href: '/ai-grader/hsk',
-      badge: 'Hanban Khảo thí',
+      badge: 'HSK 5 & HSK 6',
       badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
       title: 'HSK Writing',
       subtitle: 'HSK 5 & HSK 6 Trọn bộ',
-      desc: 'Sắp xếp câu, viết đoạn văn 80 chữ và tóm tắt 400 chữ. Rà soát trật tự từ và ngữ pháp chuẩn bản ngữ.',
+      desc: 'Sắp xếp câu, viết đoạn văn 80 chữ và tóm tắt 400 chữ. Rà soát trật tự từ và ngữ pháp phù hợp ngữ cảnh.',
       iconText: 'HSK',
       iconBg: 'bg-rose-600 text-white',
       accentColor: 'hover:border-rose-500',
@@ -114,7 +109,7 @@ export default async function AiGraderHubPage() {
           {h1Title}
         </h1>
         <p className="text-slate-500 font-medium text-xs sm:text-sm">
-          Chọn kỳ thi để vào phòng luyện viết và nhận kết quả chấm điểm AI tức thì theo barem quốc tế.
+          Chọn kỳ thi để vào phòng luyện viết và nhận góp ý AI về cách trả lời đề, ngữ pháp và từ vựng.
         </p>
       </div>
 
@@ -160,15 +155,22 @@ export default async function AiGraderHubPage() {
         ))}
       </div>
 
+      <section className="space-y-3 border-t border-slate-200 pt-6 text-sm leading-7 text-slate-600" aria-labelledby="writing-practice-method">
+        <h2 id="writing-practice-method" className="text-lg font-bold text-slate-800">Luyện viết theo một vòng sửa bài có mục tiêu</h2>
+        <p>Chọn kỳ thi và dạng bài, viết câu trả lời của riêng bạn rồi nộp nhận xét. Chọn một hoặc hai lỗi lặp lại để sửa, viết lại đoạn đó và đối chiếu hai phiên bản. Cách này giúp bạn dùng nhận xét vào lần luyện tiếp theo thay vì chỉ theo dõi điểm số.</p>
+        <p>VNDocs là công cụ luyện tập độc lập. Điểm AI có thể sai và không thay thế kết quả từ đơn vị tổ chức kỳ thi. Lượt sử dụng phụ thuộc tài khoản và gói hiện tại; hãy kiểm tra trước khi nộp.</p>
+        <p>Kết hợp với <Link href="/speaking" className="font-semibold text-blue-600 hover:underline">luyện IELTS và TOEIC Speaking</Link> để tập diễn đạt cùng một ý bằng cả văn viết và lời nói.</p>
+      </section>
+
       {/* 3 tính năng cốt lõi tinh giản */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-200">
         <div className="p-3 bg-white rounded-lg border border-slate-200 flex items-center gap-2.5 text-xs">
           <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
-          <span className="font-semibold text-slate-700">Chấm điểm tức thì trong 5 giây</span>
+          <span className="font-semibold text-slate-700">Góp ý để sửa lại bài viết</span>
         </div>
         <div className="p-3 bg-white rounded-lg border border-slate-200 flex items-center gap-2.5 text-xs">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span className="font-semibold text-slate-700">Chuẩn barem khảo thí chính thức</span>
+          <span className="font-semibold text-slate-700">Điểm AI là ước tính luyện tập</span>
         </div>
         <div className="p-3 bg-white rounded-lg border border-slate-200 flex items-center gap-2.5 text-xs">
           <History className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -178,4 +180,5 @@ export default async function AiGraderHubPage() {
     </div>
   )
 }
+
 

@@ -20,12 +20,7 @@ export default async function EnIeltsGraderPage() {
     operatingSystem: 'Web',
     inLanguage: 'en',
     applicationCategory: 'EducationalApplication',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
-    },
-    description: 'Practice IELTS Writing Academic & General online with instant scoring across 4 official criteria: TR, CC, LR, and GRA.',
+    description: 'Practise IELTS Academic Writing Task 1 and Task 2 with estimated bands and feedback on task fulfilment, coherence, vocabulary and grammar.',
     url: `${FRONTEND_URL}/en/ai-grader/ielts`
   }
 
@@ -55,39 +50,47 @@ export default async function EnIeltsGraderPage() {
   }
 
   const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
       {
-        '@type': 'Question',
-        name: 'Which official criteria are evaluated for IELTS Writing?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'The evaluator analyzes essays across all 4 official IELTS criteria: Task Response / Task Achievement (addressing the prompt), Coherence and Cohesion (logical flow and paragraph transitions), Lexical Resource (vocabulary range and precision), and Grammatical Range and Accuracy (sentence structures and syntax correctness).'
+        "@type": "Question",
+        "name": "Which IELTS Writing tasks can I practise?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Practise Task 1 descriptions of charts, maps or processes, and Task 2 essays. IELTS Academic requires at least 150 words for Task 1 and 250 words for Task 2. Select the matching task before you write."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Can I practice both Task 1 and Task 2?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Yes. You can switch between Task 1 (Academic visual data reports & General letters) and Task 2 (Discursive opinion essays). You can generate random prompts or enter your own custom question.'
+        "@type": "Question",
+        "name": "Is the AI score an official exam result?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Scores and feedback are practice estimates and can miss errors or make incorrect suggestions. Check each explanation against the task and ask a teacher when needed. The result is not a certificate from the test provider."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Are my essays saved for future review?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Yes. Once logged in with your account, all submitted essays along with predicted band scores and detailed feedback are securely stored in your personal Essay History tab.'
+        "@type": "Question",
+        "name": "How should I use the feedback to improve?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After feedback, check that Task 1 has a clear overview and relevant comparisons. For Task 2, check that each main point has a reason and a relevant example. Rewrite one weak paragraph and compare it with your first draft instead of tracking the band alone."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Is my submitted writing private?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'All data is encrypted in transit and securely held only within your personal account. We do not share your essays with third parties.'
+        "@type": "Question",
+        "name": "Can I review a previous submission?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After signing in and submitting successfully, you can review the writing and result in your account history. Compare recurring errors across attempts and keep a separate copy of important drafts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is my writing processed for AI feedback?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Submitted content is sent to an AI service to generate feedback. Do not include passwords, customer records or sensitive personal information in practice responses. Read the privacy policy for more about data handling."
         }
       }
     ]
@@ -129,10 +132,10 @@ export default async function EnIeltsGraderPage() {
 
         <h1 className="text-3xl font-black text-slate-800 mb-2">{h1Title}</h1>
         <p className="text-slate-600 font-medium mb-2">
-          Comprehensive evaluation based on 4 official IELTS criteria (TR, CC, LR, GRA), detecting grammar and vocabulary improvements to raise your band score effectively.
+          Comprehensive evaluation based on 4 official IELTS criteria (TR, CC, LR, GRA), detecting grammar and vocabulary improvements to help you identify revisions to try.
         </p>
         <p className="text-slate-600 font-medium">
-          Automated evaluation to refine grammar and elevate your IELTS Writing Task 1 & 2 band score with benchmark feedback and sample answers.
+          Use suggested corrections to revise IELTS Writing Task 1 and Task 2. Check each suggestion against the question and keep the meaning you intended.
         </p>
       </div>
 
@@ -150,13 +153,13 @@ export default async function EnIeltsGraderPage() {
           </p>
           <ul className="text-slate-600 space-y-2 mb-6">
             <li>
-              <strong>Step 1 - Task Selection:</strong> Choose Task 1 or Task 2 and generate an authentic Cambridge-style prompt or paste your own question.
+              <strong>Step 1 - Task Selection:</strong> Choose Task 1 or Task 2 and generate an practice prompt or paste your own question.
             </li>
             <li>
               <strong>Step 2 - Draft Your Essay:</strong> Compose your response keeping appropriate word counts in mind (minimum 150 words for Task 1, 250 words for Task 2).
             </li>
             <li>
-              <strong>Step 3 - Evaluate & Review:</strong> Submit your essay to receive an instant breakdown of your performance across each official criterion and compare with high-scoring sample responses.
+              <strong>Step 3 - Evaluate & Review:</strong> Submit your essay to receive a breakdown of your performance across each official criterion and compare with suggested example responses.
             </li>
           </ul>
 
@@ -164,7 +167,7 @@ export default async function EnIeltsGraderPage() {
             The 4 Core IELTS Grading Criteria
           </h3>
           <p className="text-slate-600 leading-relaxed mb-4">
-            Each essay is examined under the official band descriptors used by certified examiners:
+            Feedback considers the published Writing criteria. AI estimates are not examiner decisions:
           </p>
           <ul className="text-slate-600 space-y-2 mb-6">
             <li>
@@ -185,7 +188,7 @@ export default async function EnIeltsGraderPage() {
             Secure Account History & Privacy
           </h3>
           <p className="text-slate-600 leading-relaxed mb-6">
-            When signed in, all your essays and rubric feedback are automatically saved in your personal <strong>Essay History</strong>. This enables you to track your trajectory over time, revisit grammar suggestions, and reinforce your writing strengths. All practice data is encrypted and strictly kept private.
+            When signed in, all your essays and rubric feedback are automatically saved in your personal <strong>Essay History</strong>. This enables you to track your trajectory over time, revisit grammar suggestions, and reinforce your writing strengths. Submitted content is processed by AI services to create feedback; avoid including sensitive information.
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
@@ -231,9 +234,15 @@ export default async function EnIeltsGraderPage() {
               </div>
             ))}
           </div>
+
+          <aside aria-label="Check the test provider’s guidance" className="mt-8 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-sm leading-7 text-slate-600">
+            <p>AI feedback is a practice estimate; VNDocs does not issue official exam scores.</p>
+            <p><a href="https://ielts.org/cdn/ielts-guides/ielts-writing-key-assessment-criteria.pdf" className="font-semibold text-blue-600 hover:underline">IELTS Writing Key Assessment Criteria</a> · <Link href="/en/privacy" className="text-blue-600 hover:underline">Privacy policy</Link></p>
+          </aside>
         </article>
       </div>
     </div>
   )
 }
+
 

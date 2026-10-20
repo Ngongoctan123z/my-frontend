@@ -4,6 +4,23 @@ import { readFile } from 'node:fs/promises'
 import { stripTypeScriptTypes } from 'node:module'
 import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
 
+test('sitemap includes canonical brand/help pages and excludes legal, private and retired URLs', async () => {
+  const context = createContext({})
+  const registry = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/pageSeo.ts', import.meta.url), 'utf8')), { context })
+  await registry.link(() => {}); await registry.evaluate()
+  const module = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../app/sitemap.ts', import.meta.url), 'utf8')), { context })
+  await module.link(() => registry); await module.evaluate()
+  const rows = module.namespace.default(), urls = rows.map(row => row.url)
+  assert.equal(new Set(urls).size, urls.length)
+  for (const section of ['about', 'contact', 'premium']) for (const prefix of ['', '/en']) assert.ok(urls.includes(`https://vndocs.net${prefix}/${section}`))
+  for (const row of rows) {
+    const path = new URL(row.url).pathname
+    assert.ok(!/\/(?:privacy|terms|profile|login|shared|tools|exams)(?:\/|$)/.test(path), path)
+    assert.ok(!row.lastModified, 'No fabricated content timestamps')
+    assert.equal(row.alternates.languages[registry.namespace.pageLanguage(path)], row.url)
+  }
+})
+
 test('malformed saved SEO values cannot replace text metadata', async () => {
   for (const value of [null, [], 42, 'text', { title: { invalid: true }, description: 123, ogImage: ['bad'] }]) {
     const { seo } = await loadSeo({ rows: [{ key: 'SEO_ROUTE_/ai-grader/toeic', value: JSON.stringify(value) }] })
@@ -57,6 +74,8 @@ async function loadSeo({ bindingAvailable = true, rows = [], dbError = null, roo
   const context = createContext({ URL, console: { error: (...args) => state.logs.push(args) } })
   const query = { from() { return this }, where() { return this }, limit() { return this }, then(resolve) { return Promise.resolve(rows).then(resolve) } }
   const external = {
+    // One simulated RSC render; a new loadSeo creates a fresh request cache.
+    'react': { cache: fn => { const memo = new Map(); return (...args) => { const key = JSON.stringify(args); if (!memo.has(key)) memo.set(key, fn(...args)); return memo.get(key) } } },
     'next/headers': { headers: async () => ({ get: () => language }) },
     '@/src/db': { getOptionalDb: async () => {
       if (!bindingAvailable) return null
@@ -216,9 +235,43 @@ test('explicit runtime binding remains supported', async () => {
 })
 
 test('runtime custom SEO queries D1 and parses the saved object', async () => {
-  const { seo, state } = await loadSeo({ rows: [{ value: JSON.stringify({ title: 'Saved title' }) }] })
+  const { seo, state } = await loadSeo({ rows: [{ key: 'SEO_ROUTE_/', value: JSON.stringify({ title: 'Saved title' }) }] })
   assert.equal((await seo.getCustomRouteSeo('/')).title, 'Saved title')
   assert.equal(state.dbCalls, 1)
+})
+
+test('invalid H1 values never reach visible React children and valid custom fields survive', async () => {
+  for (const h1 of [{ invalid: true }, ['bad'], 123, null, '   ']) {
+    const { seo } = await loadSeo({ rows: [{ key: 'SEO_ROUTE_/ai-grader/ielts', value: JSON.stringify({ h1, title: 'Custom title' }) }] })
+    const custom = await seo.getCustomRouteSeo('/ai-grader/ielts')
+    assert.equal(custom.h1, undefined)
+    assert.equal(custom.title, 'Custom title')
+  }
+})
+
+test('metadata and visible H1 share one request lookup, while later requests read new admin edits', async () => {
+  const first = await loadSeo({ rows: [{ key: 'SEO_ROUTE_/ai-grader/ielts', value: JSON.stringify({ title: 'First title', h1: 'First heading' }) }] })
+  assert.equal((await first.seo.getCoreMetadata('/ai-grader/ielts')).title, 'First title')
+  assert.equal((await first.seo.getCustomRouteSeo('/ai-grader/ielts')).h1, 'First heading')
+  assert.equal(first.state.dbCalls, 1)
+  const second = await loadSeo({ rows: [{ key: 'SEO_ROUTE_/ai-grader/ielts', value: JSON.stringify({ title: 'Updated title' }) }] })
+  assert.equal((await second.seo.getCoreMetadata('/ai-grader/ielts')).title, 'Updated title')
+  assert.equal(second.state.dbCalls, 1)
+})
+
+test('support pages have their own bilingual metadata and legal pages keep noindex', async () => {
+  const { seo } = await loadSeo({ bindingAvailable: false })
+  for (const section of ['about', 'contact', 'premium', 'privacy', 'terms']) {
+    for (const prefix of ['', '/en']) {
+      const path = `${prefix}/${section}`, metadata = await seo.getCoreMetadata(path)
+      assert.equal(metadata.alternates.canonical, 'https://vndocs.net' + path)
+      assert.equal(metadata.openGraph.url, metadata.alternates.canonical)
+      assert.equal(metadata.robots.index, !['privacy', 'terms'].includes(section))
+      assert.equal(metadata.alternates.languages.vi, `https://vndocs.net/${section}`)
+      assert.equal(metadata.alternates.languages.en, `https://vndocs.net/en/${section}`)
+      assert.ok(!/unlimited|không giới hạn/i.test(metadata.description))
+    }
+  }
 })
 
 test('invalid saved SEO JSON does not break metadata generation', async () => {
@@ -264,4 +317,5 @@ test('known legacy production copy upgrades field by field without dropping admi
  const {seo:custom}=await loadSeo({rows:[{key:'SEO_ROUTE_/ai-grader/ielts',value:JSON.stringify({title:'An intentional custom title',description:'Custom text'})}]})
  assert.equal((await custom.getCoreMetadata('/ai-grader/ielts')).title,'An intentional custom title')
 })
+
 

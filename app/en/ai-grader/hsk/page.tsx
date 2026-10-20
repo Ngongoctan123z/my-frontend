@@ -20,11 +20,6 @@ export default async function EnHskPage() {
     operatingSystem: 'Web',
     inLanguage: 'en',
     applicationCategory: 'EducationalApplication',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
-    },
     description: 'Practice HSK 5 & HSK 6 Writing online with rubric scoring, grammar correction, and vocabulary suggestions.',
     url: `${FRONTEND_URL}/en/ai-grader/hsk`
   }
@@ -55,39 +50,47 @@ export default async function EnHskPage() {
   }
 
   const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
       {
-        '@type': 'Question',
-        name: 'Which HSK levels are supported in this studio?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'The studio provides dedicated modules for HSK 4, HSK 5 (80-character paragraph composition with given keywords or pictures), and HSK 6 (400-character narrative summary).'
+        "@type": "Question",
+        "name": "Which HSK writing levels can I practise?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The studio focuses on HSK 5 and HSK 6 tasks from the published level 1–6 sample format: sentence ordering, HSK 5 passages of about 80 Chinese characters and HSK 6 summaries of about 400 characters. Check your test centre announcement for the format you have registered for."
         }
       },
       {
-        '@type': 'Question',
-        name: 'How does the system evaluate Chinese grammar?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'The system inspects Chinese word order, structural particles (的, 地, 得), aspect markers (了, 着, 过), specialized sentences (把 and 被 constructions), and appropriate Hanzi character usage.'
+        "@type": "Question",
+        "name": "Is the AI score an official exam result?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Scores and feedback are practice estimates and can miss errors or make incorrect suggestions. Check each explanation against the task and ask a teacher when needed. The result is not a certificate from the test provider."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Are my practice writings saved?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Yes. Once logged into your account, all submitted essays along with benchmark feedback and corrections are saved in your personal Essay History.'
+        "@type": "Question",
+        "name": "How should I use the feedback to improve?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For HSK 5, check word order and use every required keyword in context rather than writing disconnected sentences. For HSK 6, compare your summary with the main events of the source, remove minor details and avoid adding your own opinion."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Is my submitted work kept private?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'All responses are encrypted and accessible only inside your personal account without third-party sharing.'
+        "@type": "Question",
+        "name": "Can I review a previous submission?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After signing in and submitting successfully, you can review the writing and result in your account history. Compare recurring errors across attempts and keep a separate copy of important drafts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is my writing processed for AI feedback?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Submitted content is sent to an AI service to generate feedback. Do not include passwords, customer records or sensitive personal information in practice responses. Read the privacy policy for more about data handling."
         }
       }
     ]
@@ -129,7 +132,7 @@ export default async function EnHskPage() {
 
         <h1 className="text-3xl font-black text-slate-800 mb-2">{h1Title}</h1>
         <p className="text-slate-600 font-medium">
-          Practice HSK 5 (80 characters) and HSK 6 (400 characters) writing tasks. Instant evaluation, Chinese grammar correction, and vocabulary recommendations aligned with official Hanban criteria.
+          Practice HSK 5 (80 characters) and HSK 6 (400 characters) writing tasks. AI feedback, Chinese grammar correction, and vocabulary recommendations with estimated practice scores.
         </p>
       </div>
 
@@ -180,7 +183,7 @@ export default async function EnHskPage() {
             3. Account History & Progress Tracking
           </h3>
           <p className="text-slate-600 leading-relaxed mb-6">
-            When logged into your account, your writing submissions and benchmark sample answers are automatically preserved in your private <strong>Essay History</strong>. Review earlier errors to build confidence and refine your writing before exam day.
+            When logged into your account, your writing submissions and suggested example answers are automatically preserved in your private <strong>Essay History</strong>. Review earlier errors to build confidence and refine your writing before exam day.
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
@@ -226,9 +229,15 @@ export default async function EnHskPage() {
               </div>
             ))}
           </div>
+
+          <aside aria-label="Check the test provider’s guidance" className="mt-8 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-sm leading-7 text-slate-600">
+            <p>AI feedback is a practice estimate; VNDocs does not issue official exam scores.</p>
+            <p><a href="https://www.chinesetest.cn/HSK/5" className="font-semibold text-blue-600 hover:underline">Chinese Testing International — HSK 5</a> · <a href="https://www.chinesetest.cn/HSK/6" className="font-semibold text-blue-600 hover:underline">HSK 6</a> · <Link href="/en/privacy" className="text-blue-600 hover:underline">Privacy policy</Link></p>
+          </aside>
         </article>
       </div>
     </div>
   )
 }
+
 

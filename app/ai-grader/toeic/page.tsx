@@ -20,11 +20,6 @@ export default async function ToeicPage() {
     operatingSystem: 'Web',
     inLanguage: 'vi',
     applicationCategory: 'EducationalApplication',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'VND',
-    },
     description: PAGE_SEO["/ai-grader/toeic"].description,
     url: `${FRONTEND_URL}/ai-grader/toeic`
   }
@@ -55,39 +50,47 @@ export default async function ToeicPage() {
   }
 
   const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
       {
-        '@type': 'Question',
-        name: 'Phòng thi hỗ trợ những dạng bài nào trong TOEIC Writing?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Phòng luyện gồm 8 câu: câu 1–5 viết câu theo ảnh với hai từ gợi ý, câu 6–7 trả lời hai email riêng, câu 8 viết bài luận quan điểm. Điểm AI là điểm luyện tập tham khảo.'
+        "@type": "Question",
+        "name": "TOEIC Writing có những dạng bài nào?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Luyện đủ 8 câu: câu 1–5 viết câu theo ảnh và dùng cả hai từ gợi ý; câu 6–7 trả lời hai email riêng; câu 8 viết bài luận quan điểm. Theo ETS, bài luận hiệu quả thường có ít nhất 300 từ và bạn có 30 phút để lập ý, viết, sửa."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Tiêu chuẩn đánh giá bài viết TOEIC Writing gồm những gì?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Bài viết được đánh giá theo tiêu chí khảo thí của ETS: mức độ đáp ứng đúng yêu cầu của thư tín hoặc câu hỏi, sự phong phú của từ vựng tiếng Anh công sở (Business English), độ chính xác ngữ pháp và tính mạch lạc của các luận điểm.'
+        "@type": "Question",
+        "name": "Điểm AI có phải điểm thi chính thức không?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Không. Điểm và nhận xét là ước tính luyện tập, có thể bỏ sót hoặc nhận định sai. Hãy đọc lý do sửa lỗi, đối chiếu đề bài và tham khảo giáo viên khi cần; kết quả này không phải chứng nhận của đơn vị tổ chức kỳ thi."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Kết quả làm bài và nhận xét có được lưu lại không?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Có. Khi bạn đăng nhập, toàn bộ bài làm, điểm số ước lượng và bài viết mẫu tham khảo sẽ được tự động lưu trong mục Lịch sử làm bài cá nhân để bạn dễ dàng ôn tập lại.'
+        "@type": "Question",
+        "name": "Tôi nên dùng góp ý để cải thiện bài viết như thế nào?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Khi sửa câu theo ảnh, kiểm tra cả hai từ gợi ý và chi tiết thật sự nhìn thấy. Với email, đánh dấu từng yêu cầu của người gửi và đối chiếu với câu trả lời. Với bài luận, tìm một luận điểm chưa có ví dụ rồi viết thêm phần giải thích."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Nội dung bài viết làm trong hệ thống có an toàn không?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Toàn bộ dữ liệu trao đổi được mã hóa SSL an toàn và lưu trữ trong tài khoản của bạn. Hệ thống cam kết không chia sẻ dữ liệu bài làm của người học với bất kỳ bên thứ ba nào.'
+        "@type": "Question",
+        "name": "Tôi có thể xem lại bài đã nộp không?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Khi đăng nhập và nộp bài thành công, bạn có thể xem bài viết cùng kết quả trong mục lịch sử của tài khoản. Hãy so sánh các lỗi lặp lại giữa những lần luyện và tự lưu thêm bản nháp quan trọng."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Bài viết được xử lý như thế nào khi chấm AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nội dung bạn gửi được chuyển đến dịch vụ AI để tạo nhận xét. Tránh đưa mật khẩu, dữ liệu khách hàng hoặc thông tin cá nhân nhạy cảm vào bài luyện. Xem chính sách bảo mật để biết thêm về việc xử lý dữ liệu."
         }
       }
     ]
@@ -119,7 +122,7 @@ export default async function ToeicPage() {
       <div className="w-full mt-6 sm:mt-8 px-4 sm:px-0">
         <h1 className="text-2xl font-black text-slate-800 mb-2">{h1Title}</h1>
         <p className="text-slate-600 font-medium text-sm">
-          Luyện tập các dạng bài TOEIC Writing trọng tâm với hệ thống phân tích chi tiết. Nhận diện lỗi ngữ pháp công sở, đề xuất từ vựng ăn điểm và trau dồi kỹ năng viết bài chuẩn ETS.
+          Luyện tập các dạng bài TOEIC Writing gồm câu theo ảnh, trả lời email và bài luận. Dùng góp ý AI để kiểm tra mức độ trả lời đúng yêu cầu, ngữ pháp và từ vựng trong bài của bạn.
         </p>
       </div>
 
@@ -141,7 +144,7 @@ export default async function ToeicPage() {
               <strong>Viết phản hồi thư điện tử (Questions 6-7):</strong> Thí sinh được yêu cầu đọc một email yêu cầu hoặc thắc mắc từ khách hàng, đối tác và viết thư phản hồi trong thời gian quy định (thường là 10 phút/email). Cần chú ý trả lời đầy đủ tất cả các câu hỏi hoặc nhiệm vụ được đề cập.
             </li>
             <li>
-              <strong>Viết bài luận quan điểm (Question 8):</strong> Yêu cầu thí sinh viết một bài luận khoảng 300 từ trong 30 phút để nêu quan điểm, phân tích lợi ích hoặc giải pháp cho một vấn đề nơi làm việc. Bài viết cần có bố cục mở bài, thân bài và kết bài rõ ràng.
+              <strong>Viết bài luận quan điểm (Question 8):</strong> Yêu cầu thí sinh viết một bài luận thường cần ít nhất 300 từ trong 30 phút để nêu quan điểm, phân tích lợi ích hoặc giải pháp cho một vấn đề nơi làm việc. Bài viết cần có bố cục mở bài, thân bài và kết bài rõ ràng.
             </li>
           </ul>
 
@@ -181,7 +184,7 @@ export default async function ToeicPage() {
             <li>
               Khám phá thêm các phòng luyện viết khác: phòng luyện{' '}
               <Link href="/ai-grader/ielts" className="text-blue-600 font-semibold hover:underline">
-                IELTS Writing chuẩn band
+                Luyện IELTS Writing
               </Link>, phòng thi{' '}
               <Link href="/ai-grader/topik" className="text-blue-600 font-semibold hover:underline">
                 TOPIK II tiếng Hàn
@@ -208,9 +211,15 @@ export default async function ToeicPage() {
               </div>
             ))}
           </div>
+
+          <aside aria-label="Đối chiếu với tài liệu của đơn vị tổ chức" className="mt-8 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-sm leading-7 text-slate-600">
+            <p>Điểm AI chỉ dùng để luyện tập; VNDocs không cấp kết quả khảo thí chính thức.</p>
+            <p><a href="https://www.ets.org/pdfs/toeic/toeic-speaking-writing-sample-tests.pdf" className="font-semibold text-blue-600 hover:underline">ETS TOEIC Speaking and Writing Sample Tests</a> · <Link href="/privacy" className="text-blue-600 hover:underline">Chính sách bảo mật</Link></p>
+          </aside>
         </article>
       </div>
     </div>
   )
 }
+
 

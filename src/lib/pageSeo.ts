@@ -1,6 +1,6 @@
 // Original bilingual copy shared by pages, the admin editor, sitemap and audit.
 // Only advertise alternate URLs that actually have a translated page.
-export type PageSeo = { title: string; description: string; h1: string }
+export type PageSeo = { title: string; description: string; h1: string; index?: boolean }
 export const PAGE_SEO: Record<string, PageSeo> = {
   "/": {
     "title": "Luyện Writing và Speaking Online với AI | VNDocs",
@@ -35,7 +35,7 @@ export const PAGE_SEO: Record<string, PageSeo> = {
   "/speaking": {
     "title": "Luyện IELTS, TOEIC Speaking: ghi âm & góp ý AI | VNDocs",
     "description": "Luyện IELTS và TOEIC Speaking: chọn đề, ghi âm, nghe lại và xem bản chép lời. Nhận góp ý AI về cách diễn đạt, độ trôi chảy và điểm cần cải thiện.",
-    "h1": "Phòng Luyện Speaking"
+    "h1": "Luyện IELTS và TOEIC Speaking"
   },
   "/en": {
     "title": "AI Writing & Speaking Practice for IELTS & TOEIC | VNDocs",
@@ -68,6 +68,21 @@ export const PAGE_SEO: Record<string, PageSeo> = {
     "h1": "HSK 5 and HSK 6 Writing Practice"
   }
 }
+
+// Brand/help pages have their own language pair and canonical. Legal pages
+// remain crawlable/noindex and are excluded from the public sitemap.
+Object.assign(PAGE_SEO, {
+  '/about': { title: 'Về VNDocs | Luyện Writing và Speaking với AI', description: 'Tìm hiểu cách VNDocs hỗ trợ luyện IELTS, TOEIC, TOPIK và HSK, cách dùng nhận xét AI và giới hạn của điểm luyện tập.', h1: 'Về VNDocs' },
+  '/en/about': { title: 'About VNDocs | AI Writing and Speaking Practice', description: 'Learn how VNDocs supports IELTS, TOEIC, TOPIK and HSK practice, how to use AI feedback, and the limits of estimated practice scores.', h1: 'About VNDocs' },
+  '/contact': { title: 'Liên hệ hỗ trợ Writing và Speaking | VNDocs', description: 'Liên hệ VNDocs để báo lỗi luyện Writing, thu âm Speaking, phản hồi nhận xét AI hoặc trao đổi hợp tác giáo dục.', h1: 'Liên hệ VNDocs' },
+  '/en/contact': { title: 'Contact VNDocs | Writing and Speaking Support', description: 'Contact VNDocs for help with writing practice, Speaking recordings, AI feedback, technical issues or education partnerships.', h1: 'Contact VNDocs' },
+  '/premium': { title: 'Gói VNDocs Plus và Pro | Hạn mức luyện tập AI', description: 'So sánh gói VNDocs Plus và Pro, giá và hạn mức chấm bài hiển thị trong tài khoản. Chọn gói phù hợp với nhu cầu luyện tập.', h1: 'Các gói luyện tập VNDocs' },
+  '/en/premium': { title: 'VNDocs Plus and Pro Plans | AI Practice Limits', description: 'Compare VNDocs Plus and Pro plans, prices and the grading limits shown in your account. Choose a plan for your practice needs.', h1: 'VNDocs practice plans' },
+  '/privacy': { title: 'Quyền riêng tư và xử lý dữ liệu luyện tập | VNDocs', description: 'Thông tin về tài khoản, bài viết, bản thu, nhà cung cấp nhận dạng và AI, cùng dữ liệu lưu trên trình duyệt khi sử dụng VNDocs.', h1: 'Chính sách bảo mật', index: false },
+  '/en/privacy': { title: 'Privacy and Practice Data Processing | VNDocs', description: 'How VNDocs uses account details, essays, recordings, speech recognition and AI providers, and browser storage for practice features.', h1: 'Privacy policy', index: false },
+  '/terms': { title: 'Điều khoản sử dụng VNDocs', description: 'Điều khoản sử dụng tính năng luyện Writing và Speaking trên VNDocs, giới hạn của kết quả AI và quyền đối với nội dung luyện tập.', h1: 'Điều khoản sử dụng', index: false },
+  '/en/terms': { title: 'VNDocs Terms of Use', description: 'Terms for using VNDocs Writing and Speaking practice, the limits of AI feedback, and rights to practice content.', h1: 'Terms of use', index: false },
+})
 export function pageLanguage(path: string): 'vi' | 'en' {
   return path === '/en' || path.startsWith('/en/') ? 'en' : 'vi'
 }
@@ -107,3 +122,4 @@ export function upgradeSavedPageSeo(path: string, saved: Record<string, any>): R
     description: saved.description === legacy.description ? copy.description : saved.description,
   }
 }
+

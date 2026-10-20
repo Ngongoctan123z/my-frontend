@@ -20,12 +20,7 @@ export default async function HskPage() {
     operatingSystem: 'Web',
     inLanguage: 'vi',
     applicationCategory: 'EducationalApplication',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'VND',
-    },
-    description: 'Luyện viết phần thi HSK 5 đoạn văn 80 chữ và HSK 6 tóm tắt 400 chữ. Rà soát ngữ pháp, lỗi dùng từ và gợi ý diễn đạt tự nhiên chuẩn bản xứ.',
+    description: 'Luyện viết phần thi HSK 5 đoạn văn 80 chữ và HSK 6 tóm tắt 400 chữ. Rà soát ngữ pháp, lỗi dùng từ và gợi ý diễn đạt tự nhiên hơn.',
     url: `${FRONTEND_URL}/ai-grader/hsk`
   }
 
@@ -55,39 +50,47 @@ export default async function HskPage() {
   }
 
   const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
       {
-        '@type': 'Question',
-        name: 'Phòng thi hỗ trợ luyện viết những cấp độ HSK nào?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Hệ thống hỗ trợ chuyên sâu cho các cấp độ thi Viết chính: HSK 4, HSK 5 (viết đoạn văn kết hợp từ khóa cho sẵn hoặc dựa trên tranh ảnh ~80 chữ) và HSK 6 (đọc hiểu và tóm tắt văn bản ~400 chữ).'
+        "@type": "Question",
+        "name": "VNDocs hỗ trợ luyện viết HSK ở cấp độ nào?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Phòng luyện tập trung vào dạng viết HSK 5 và HSK 6 trong các mẫu đề hệ 1–6: sắp xếp câu, đoạn khoảng 80 chữ Hán ở HSK 5 và tóm tắt khoảng 400 chữ ở HSK 6. Kiểm tra thông báo của đơn vị tổ chức để chọn đúng cấu trúc kỳ thi bạn đăng ký."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Hệ thống kiểm tra những lỗi sai ngữ pháp nào trong tiếng Trung?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Hệ thống phân tích trật tự từ trong câu, cách sử dụng các trợ từ động thái (了, 着, 过), cấu trúc câu đặc biệt (câu chữ 把, câu chữ 被), cách dùng liên từ nối câu và phát hiện chữ Hán viết sai ngữ cảnh.'
+        "@type": "Question",
+        "name": "Điểm AI có phải điểm thi chính thức không?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Không. Điểm và nhận xét là ước tính luyện tập, có thể bỏ sót hoặc nhận định sai. Hãy đọc lý do sửa lỗi, đối chiếu đề bài và tham khảo giáo viên khi cần; kết quả này không phải chứng nhận của đơn vị tổ chức kỳ thi."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Bài viết và điểm số của tôi có được lưu lại không?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Có. Khi bạn đăng nhập tài khoản, mọi bài viết cùng kết quả đánh giá và gợi ý sửa lỗi sẽ được lưu trữ an toàn trong mục Lịch sử bài viết riêng tư để bạn tiện ôn tập lại bất cứ khi nào.'
+        "@type": "Question",
+        "name": "Tôi nên dùng góp ý để cải thiện bài viết như thế nào?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Với HSK 5, kiểm tra trật tự từ và dùng đủ từ khóa đúng ngữ cảnh; đừng ghép từ khóa thành các câu rời rạc. Với HSK 6, gạch ra các sự kiện chính để đối chiếu bản tóm tắt, bỏ chi tiết phụ và tránh thêm quan điểm không có trong văn bản."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Thông tin bài làm của tôi có được bảo mật không?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Dữ liệu làm bài được bảo mật an toàn, chỉ hiển thị trong tài khoản của bạn và cam kết không chia sẻ ra bên ngoài.'
+        "@type": "Question",
+        "name": "Tôi có thể xem lại bài đã nộp không?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Khi đăng nhập và nộp bài thành công, bạn có thể xem bài viết cùng kết quả trong mục lịch sử của tài khoản. Hãy so sánh các lỗi lặp lại giữa những lần luyện và tự lưu thêm bản nháp quan trọng."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Bài viết được xử lý như thế nào khi chấm AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nội dung bạn gửi được chuyển đến dịch vụ AI để tạo nhận xét. Tránh đưa mật khẩu, dữ liệu khách hàng hoặc thông tin cá nhân nhạy cảm vào bài luyện. Xem chính sách bảo mật để biết thêm về việc xử lý dữ liệu."
         }
       }
     ]
@@ -119,7 +122,7 @@ export default async function HskPage() {
       <div className="w-full mt-6 sm:mt-8 px-4 sm:px-0">
         <h1 className="text-2xl font-black text-slate-800 mb-2">{h1Title}</h1>
         <p className="text-slate-600 font-medium text-sm">
-          Rà soát ngữ pháp, từ vựng tiếng Trung, phân tích cấu trúc câu và gợi ý cách hành văn tự nhiên chuẩn người bản ngữ cho các cấp độ thi HSK.
+          Rà soát ngữ pháp, từ vựng tiếng Trung, phân tích cấu trúc câu và gợi ý cách hành văn tự nhiên rõ ràng hơn cho các cấp độ thi HSK.
         </p>
       </div>
 
@@ -146,10 +149,10 @@ export default async function HskPage() {
           </ul>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
-            2. Tiêu chuẩn đánh giá chuẩn khảo thí
+            2. Những điểm cần kiểm tra khi tự sửa bài
           </h3>
           <p className="text-slate-600 leading-relaxed mb-4">
-            Hệ thống chấm chữa bài viết mô phỏng cách đánh giá của giám khảo khảo thí tiếng Trung:
+            Dùng các nhóm nhận xét sau để rà soát bản nháp; điểm AI là ước tính luyện tập:
           </p>
           <ul className="text-slate-600 space-y-2 mb-6">
             <li>
@@ -167,7 +170,7 @@ export default async function HskPage() {
             3. Đồng bộ lịch sử học tập & Bảo mật
           </h3>
           <p className="text-slate-600 leading-relaxed mb-6">
-            Khi đăng nhập tài khoản, mọi bài viết của bạn sẽ được lưu giữ an toàn trong mục <strong>Lịch sử bài viết</strong>. Bạn có thể mở lại bài làm bất kỳ lúc nào để học theo bài mẫu chuẩn bản xứ, xem lại lời giải thích sửa lỗi chi tiết và tự tin hơn trước ngày thi thực tế.
+            Khi đăng nhập tài khoản, mọi bài viết của bạn sẽ được lưu giữ an toàn trong mục <strong>Lịch sử bài viết</strong>. Bạn có thể mở lại bài làm bất kỳ lúc nào để học theo bài mẫu gợi ý, xem lại lời giải thích sửa lỗi chi tiết và tự tin hơn trước ngày thi thực tế.
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
@@ -181,10 +184,10 @@ export default async function HskPage() {
             <li>
               Thực hành thêm kỹ năng viết cho các chứng chỉ ngoại ngữ khác: phòng thi{' '}
               <Link href="/ai-grader/ielts" className="text-blue-600 font-semibold hover:underline">
-                IELTS Writing chuẩn band
+                Luyện IELTS Writing
               </Link>, phòng thi{' '}
               <Link href="/ai-grader/toeic" className="text-blue-600 font-semibold hover:underline">
-                TOEIC Writing chuẩn ETS
+                Luyện TOEIC Writing
               </Link>, và phòng luyện{' '}
               <Link href="/ai-grader/topik" className="text-blue-600 font-semibold hover:underline">
                 TOPIK II 쓰기 tiếng Hàn
@@ -208,9 +211,15 @@ export default async function HskPage() {
               </div>
             ))}
           </div>
+
+          <aside aria-label="Đối chiếu với tài liệu của đơn vị tổ chức" className="mt-8 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-sm leading-7 text-slate-600">
+            <p>Điểm AI chỉ dùng để luyện tập; VNDocs không cấp kết quả khảo thí chính thức.</p>
+            <p><a href="https://www.chinesetest.cn/HSK/5" className="font-semibold text-blue-600 hover:underline">Chinese Testing International — HSK 5</a> · <a href="https://www.chinesetest.cn/HSK/6" className="font-semibold text-blue-600 hover:underline">HSK 6</a> · <Link href="/privacy" className="text-blue-600 hover:underline">Chính sách bảo mật</Link></p>
+          </aside>
         </article>
       </div>
     </div>
   )
 }
+
 

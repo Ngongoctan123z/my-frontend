@@ -20,11 +20,6 @@ export default async function EnToeicPage() {
     operatingSystem: 'Web',
     inLanguage: 'en',
     applicationCategory: 'EducationalApplication',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
-    },
     description: PAGE_SEO["/en/ai-grader/toeic"].description,
     url: `${FRONTEND_URL}/en/ai-grader/toeic`
   }
@@ -55,39 +50,47 @@ export default async function EnToeicPage() {
   }
 
   const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
       {
-        '@type': 'Question',
-        name: 'Which tasks are covered in the TOEIC Writing studio?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'The studio covers all 8 questions: five picture sentences, two separate email responses and one opinion essay. AI scores are practice estimates.'
+        "@type": "Question",
+        "name": "Which TOEIC Writing tasks are covered?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Practise all 8 questions: five picture sentences using both given words, two separate email responses, and one opinion essay. ETS says an effective essay typically has at least 300 words, with 30 minutes to plan, write and revise."
         }
       },
       {
-        '@type': 'Question',
-        name: 'How does the system grade my TOEIC essay?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Your response is scored against ETS criteria: relevance to the prompt, logical reasoning, diversity of Business English vocabulary, and grammatical accuracy.'
+        "@type": "Question",
+        "name": "Is the AI score an official exam result?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Scores and feedback are practice estimates and can miss errors or make incorrect suggestions. Check each explanation against the task and ask a teacher when needed. The result is not a certificate from the test provider."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Are my practice responses saved?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Yes. Once logged into your account, all submitted writing tasks and feedback are automatically saved in your personal history for convenient revision.'
+        "@type": "Question",
+        "name": "How should I use the feedback to improve?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For picture sentences, check both required words and only describe visible details. For email tasks, match each request in the incoming message to your reply. For the essay, find a point that lacks support and add a concrete explanation or example."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Is my workplace writing secure?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'All responses are encrypted in transit and stored privately within your account without third-party sharing.'
+        "@type": "Question",
+        "name": "Can I review a previous submission?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After signing in and submitting successfully, you can review the writing and result in your account history. Compare recurring errors across attempts and keep a separate copy of important drafts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is my writing processed for AI feedback?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Submitted content is sent to an AI service to generate feedback. Do not include passwords, customer records or sensitive personal information in practice responses. Read the privacy policy for more about data handling."
         }
       }
     ]
@@ -154,7 +157,7 @@ export default async function EnToeicPage() {
               <strong>Email Responses (Questions 6-7):</strong> Read incoming inquiries from colleagues or clients and compose professional replies within 10 minutes per task. Address all required points with appropriate business register.
             </li>
             <li>
-              <strong>Opinion Essay (Question 8):</strong> Formulate a 300-word persuasive essay in 30 minutes, presenting logical justifications and concrete workplace examples.
+              <strong>Opinion Essay (Question 8):</strong> Formulate an opinion essay, typically at least 300 words, in 30 minutes, presenting logical justifications and concrete workplace examples.
             </li>
           </ul>
 
@@ -180,7 +183,7 @@ export default async function EnToeicPage() {
             3. Account History & Progress Tracking
           </h3>
           <p className="text-slate-600 leading-relaxed mb-6">
-            When logged in, your submissions and benchmark sample responses are organized in your private <strong>Essay History</strong>. You can review past feedback, avoid recurring errors, and witness measurable improvements across your practice sessions.
+            When logged in, your submissions and suggested example responses are organized in your private <strong>Essay History</strong>. You can review past feedback, avoid recurring errors, and witness measurable improvements across your practice sessions.
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
@@ -226,9 +229,15 @@ export default async function EnToeicPage() {
               </div>
             ))}
           </div>
+
+          <aside aria-label="Check the test provider’s guidance" className="mt-8 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-sm leading-7 text-slate-600">
+            <p>AI feedback is a practice estimate; VNDocs does not issue official exam scores.</p>
+            <p><a href="https://www.ets.org/pdfs/toeic/toeic-speaking-writing-sample-tests.pdf" className="font-semibold text-blue-600 hover:underline">ETS TOEIC Speaking and Writing Sample Tests</a> · <Link href="/en/privacy" className="text-blue-600 hover:underline">Privacy policy</Link></p>
+          </aside>
         </article>
       </div>
     </div>
   )
 }
+
 
