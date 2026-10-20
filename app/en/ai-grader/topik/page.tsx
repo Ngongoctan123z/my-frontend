@@ -20,12 +20,7 @@ export default async function EnTopikPage() {
     operatingSystem: 'Web',
     inLanguage: 'en',
     applicationCategory: 'EducationalApplication',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
-    },
-    description: 'Practice TOPIK II writing online with instant feedback on Korean grammar, spacing rules, and sentence endings.',
+    description: 'Practice TOPIK II writing online with AI feedback on Korean grammar, spacing rules, and sentence endings.',
     url: `${FRONTEND_URL}/en/ai-grader/topik`
   }
 
@@ -55,39 +50,47 @@ export default async function EnTopikPage() {
   }
 
   const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
       {
-        '@type': 'Question',
-        name: 'Which TOPIK II questions are supported?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'The studio supports all 4 writing tasks of TOPIK II: Sentence completion (Questions 51 & 52), Chart analysis (Question 53: 200-300 words), and Discursive essay (Question 54: 600-700 words).'
+        "@type": "Question",
+        "name": "Which TOPIK II format does this practice follow?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This practice follows TOPIK II paper-based writing questions 51–54: sentence completion for 51–52, a 200–300 Korean-character response for 53, and a 600–700-character essay for 54. These are character counts, not word counts. Check the format of your registered test; IBT tasks can differ."
         }
       },
       {
-        '@type': 'Question',
-        name: 'What Korean grammar elements are verified?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'The system examines Korean spacing rules (띄어쓰기), particle accuracy (은/는, 이/가, 을/를), formal written style consistency (-ㄴ/는다), and suggests higher-level idiomatic grammar patterns.'
+        "@type": "Question",
+        "name": "Is the AI score an official exam result?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Scores and feedback are practice estimates and can miss errors or make incorrect suggestions. Check each explanation against the task and ask a teacher when needed. The result is not a certificate from the test provider."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Are my practice writings saved?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Yes. Once logged into your account, all submitted essays along with detailed explanations and benchmark sample responses are saved in your personal Essay History.'
+        "@type": "Question",
+        "name": "How should I use the feedback to improve?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For 51–52, read the context before and after each blank. For 53, verify every figure against the prompt and avoid inventing causes. For 54, check that you answered each requested point, kept a consistent written register and stayed within the character range."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Is my data secure?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Your submissions are encrypted and kept strictly private within your account without third-party sharing.'
+        "@type": "Question",
+        "name": "Can I review a previous submission?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After signing in and submitting successfully, you can review the writing and result in your account history. Compare recurring errors across attempts and keep a separate copy of important drafts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is my writing processed for AI feedback?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Submitted content is sent to an AI service to generate feedback. Do not include passwords, customer records or sensitive personal information in practice responses. Read the privacy policy for more about data handling."
         }
       }
     ]
@@ -157,7 +160,7 @@ export default async function EnTopikPage() {
               <strong>Question 53 (Visual Data Description):</strong> Focus on trends (increases, decreases, comparisons) and avoid injecting personal opinions. Maintain objective, logical transitional phrases.
             </li>
             <li>
-              <strong>Question 54 (Social Discursive Essay):</strong> Structure a 600-700 word essay covering all 3 guiding questions with high-level Sino-Korean vocabulary and Level 4-6 grammatical patterns.
+              <strong>Question 54 (Social Discursive Essay):</strong> Write 600–700 Korean characters, answering each requested point with clear organization and a consistent written register.
             </li>
           </ul>
 
@@ -165,7 +168,7 @@ export default async function EnTopikPage() {
             2. Official NIIED Evaluation Standards
           </h3>
           <p className="text-slate-600 leading-relaxed mb-4">
-            Submissions are evaluated against official National Institute for International Education (NIIED) rubrics:
+            Practice feedback considers the published TOPIK writing criteria; it is not an NIIED assessment:
           </p>
           <ul className="text-slate-600 space-y-2 mb-6">
             <li>
@@ -183,7 +186,7 @@ export default async function EnTopikPage() {
             3. Account History & Progress Tracking
           </h3>
           <p className="text-slate-600 leading-relaxed mb-6">
-            When logged in, your submissions, rubric analysis, and high-scoring sample essays are archived in your private <strong>Essay History</strong>. Review earlier corrections and compare your improvement across test sessions.
+            When logged in, your submissions, rubric analysis, and AI-generated example essays are archived in your private <strong>Essay History</strong>. Review earlier corrections and compare your improvement across test sessions.
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
@@ -229,9 +232,15 @@ export default async function EnTopikPage() {
               </div>
             ))}
           </div>
+
+          <aside aria-label="Check the test provider’s guidance" className="mt-8 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-sm leading-7 text-slate-600">
+            <p>AI feedback is a practice estimate; VNDocs does not issue official exam scores.</p>
+            <p><a href="https://exam.topik.go.kr/nasdata/webnas/raonkeditordata/uploadId/2024/02/20240227_175504804_07236.pdf" className="font-semibold text-blue-600 hover:underline">TOPIK II Writing Task Types and Assessment Guide</a> · <Link href="/en/privacy" className="text-blue-600 hover:underline">Privacy policy</Link></p>
+          </aside>
         </article>
       </div>
     </div>
   )
 }
+
 

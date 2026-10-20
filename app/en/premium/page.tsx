@@ -1,15 +1,9 @@
-import { Metadata } from 'next'
+import { getCoreMetadata } from '@/src/utils/serverSeo'
 import { PremiumClient } from '@/app/premium/PremiumClient'
-import { getRouteMetadata } from '@/src/utils/serverSeo'
 
-export async function generateMetadata() {
-  return getRouteMetadata(
-    '/en/premium',
-    'VNDocs Premium — Unlimited Essay Grading & Advanced Features | VNDocs',
-    'Upgrade to VNDocs Premium for unlimited essay submissions, comprehensive band score analytics, priority processing, and ad-free educational tools.'
-  )
-}
+export async function generateMetadata() { return getCoreMetadata('/en/premium') }
 
 export default function PremiumPageEn() {
   return <PremiumClient isEn={true} />
 }
+

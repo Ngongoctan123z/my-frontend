@@ -1,40 +1,30 @@
-import React from 'react'
-import { Metadata } from 'next'
+import Link from 'next/link'
+import { getCoreMetadata } from '@/src/utils/serverSeo'
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy | VNDocs',
-  description: 'VNDocs is committed to protecting your personal information. Read our privacy policy to understand how we handle and safeguard your data.',
-  robots: { index: false, follow: false }
-}
+export async function generateMetadata() { return getCoreMetadata('/en/privacy') }
 
 export default function PrivacyPageEn() {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 prose prose-slate dark:prose-invert">
+    <article className="max-w-4xl mx-auto px-6 py-12 prose prose-slate dark:prose-invert">
       <h1 className="text-3xl font-bold mb-6 text-[var(--text-primary)]">Privacy Policy</h1>
-      <p className="text-[var(--text-secondary)] text-base">At <strong>VNDocs</strong>, we take your privacy seriously and are committed to protecting your personal data. This policy explains how we handle and safeguard your information when you use our services.</p>
+      <p>This page describes how VNDocs processes account information, writing and recordings when you use Writing and Speaking practice features.</p>
 
-      <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">1. Data We Collect</h2>
-      <p className="text-[var(--text-secondary)] text-base">VNDocs is designed with maximum privacy in mind:</p>
-      <ul className="text-[var(--text-secondary)] text-base space-y-2 list-disc pl-5">
-        <li><strong>No mandatory registration:</strong> You can use most features (writing graders, PDF tools) without creating an account.</li>
-        <li><strong>Secure storage:</strong> If you sign in, your grading history and scores are stored securely under your account so you can review them at any time.</li>
-      </ul>
+      <h2>1. Your account and practice history</h2>
+      <p>VNDocs uses Google sign-in for account features. Sign-in profile information such as your name, email and profile picture identifies your account. Submissions, recognised text, feedback, practice scores and plan information are stored under your account so you can review your work and manage your usage allowance.</p>
 
-      <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">2. Writing Grader & Essay Evaluation</h2>
-      <p className="text-[var(--text-secondary)] text-base">In the writing grader rooms, your essays are automatically analyzed based on internationally recognized academic criteria. VNDocs commits to:</p>
-      <ul className="text-[var(--text-secondary)] text-base space-y-2 list-disc pl-5">
-        <li>Keeping your essay content and scores completely confidential.</li>
-        <li>We <strong>NEVER</strong> share or sell your essay data to any third party.</li>
-      </ul>
+      <h2>2. Writing and audio processing</h2>
+      <p>When you request grading, the task, your answer and the necessary task information are sent to external AI providers for processing. In Speaking, audio is sent when you choose to transcribe a recording or submit an answer. Speech recognition and AI services may process the recording, transcript and delivery measurements to produce the result.</p>
+      <p>Live text while speaking may use the browser&apos;s speech recognition service. External processing is subject to the relevant provider&apos;s policies. Avoid including passwords, financial details or unnecessary sensitive information in practice submissions.</p>
 
-      <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">3. PDF File Processing</h2>
-      <p className="text-[var(--text-secondary)] text-base">When you use our PDF tools (Merge, Remove Pages, Lock/Unlock PDF), all processing happens locally in your browser. Your documents are <strong>never uploaded to any server</strong>. This ensures absolute security for your sensitive files.</p>
+      <h2>3. Drafts, recordings and device storage</h2>
+      <p>Your browser may store drafts, Speaking recordings and interface preferences on your device, including through browser storage and IndexedDB. Submitted Speaking recordings are stored for processing and account-based playback. Local drafts are not guaranteed to appear on another device, and clearing browser data may remove them.</p>
 
-      <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">4. Cookies & Analytics</h2>
-      <p className="text-[var(--text-secondary)] text-base">We may use cookies to store your interface preferences (such as Dark Mode) and use anonymous traffic analysis tools (e.g., Google Analytics) to better understand user needs and improve the website. No personally identifiable information is collected through this process.</p>
+      <h2>4. Cookies and external services</h2>
+      <p>Sign-in and interface features may use cookies or browser storage. The website also loads Google advertising services; external providers may use cookies and similar technologies under their own policies. Links to publisher materials, social networks or other websites lead to services with their own data practices.</p>
 
-      <h2 className="text-2xl font-semibold mt-8 mb-4 text-[var(--text-primary)]">5. Contact</h2>
-      <p className="text-[var(--text-secondary)] text-base">If you have any questions about this Privacy Policy, please reach out to us via our <a href="/en/contact" className="text-[var(--color-primary)] hover:underline">Contact page</a>.</p>
-    </div>
+      <h2>5. Contact</h2>
+      <p>For questions about data processing, use the details on the <Link href="/en/contact">VNDocs contact page</Link>.</p>
+    </article>
   )
 }
+

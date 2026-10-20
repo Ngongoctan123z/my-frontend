@@ -1,9 +1,33 @@
 import { PAGE_SEO, upgradeSavedPageSeo, pageLanguage, pageUrl, languageAlternates } from '@/src/lib/pageSeo'
+import { cache } from 'react'
 import { isRetiredPath, hasRetiredSeo } from '@/src/lib/siteSections'
 import type { Metadata } from 'next'
 import { getOptionalDb } from '@/src/db'
 import { systemConfigs } from '@/src/db/schema'
-import { inArray, eq } from 'drizzle-orm'
+import { inArray } from 'drizzle-orm'
+
+// React cache is scoped to a server render/request, so saved admin edits remain
+// fresh across Worker requests while metadata and visible H1 share one lookup.
+const readSeoConfig = cache(async (path: string): Promise<Record<string, string>> => {
+  const db = await getOptionalDb()
+  if (!db) return {}
+  const keys = ['SEO_TITLE', 'SEO_DESCRIPTION', 'SEO_OG_IMAGE', `SEO_ROUTE_${path}`]
+  const rows = await db.select().from(systemConfigs).where(inArray(systemConfigs.key, keys))
+  return Object.fromEntries(rows.map(row => [row.key, row.value]))
+})
+
+function savedRouteSeo(path: string, value?: string): Record<string, string> | null {
+  if (!value) return null
+  try {
+    const saved = upgradeSavedPageSeo(path, JSON.parse(value))
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return null
+    const clean: Record<string, string> = {}
+    for (const key of ['title', 'description', 'h1', 'ogImage']) {
+      if (typeof saved[key] === 'string' && saved[key].trim()) clean[key] = saved[key].trim()
+    }
+    return hasRetiredSeo(clean.title) || hasRetiredSeo(clean.description) || hasRetiredSeo(clean.h1) ? null : clean
+  } catch { return null }
+}
 
 export async function getRouteMetadata(path: string, fallbackTitle: string, fallbackDesc: string): Promise<Metadata> {
   if (isRetiredPath(path)) return { title: 'Nội dung đã được gỡ | VNDocs', robots: { index: false, follow: false, noarchive: true } }
@@ -12,17 +36,9 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
   let ogImage = '';
   
   try {
-    const db = await getOptionalDb()
-    if (db) {
-      // Chỉ fetch đúng các key cần thiết thay vì full table scan
+    const configMap = await readSeoConfig(path)
+    {
       const routeKey = `SEO_ROUTE_${path}`
-      const keysToFetch = ['SEO_TITLE', 'SEO_DESCRIPTION', 'SEO_OG_IMAGE', routeKey]
-      const rows = await db
-        .select()
-        .from(systemConfigs)
-        .where(inArray(systemConfigs.key, keysToFetch))
-      const configMap: Record<string, string> = {}
-      for (const row of rows) configMap[row.key] = row.value
 
       // 1. Lấy cấu hình Global trước làm mặc định
       if ((path === '/' || path === 'GLOBAL') && !hasRetiredSeo(configMap.SEO_TITLE) && !hasRetiredSeo(configMap.SEO_DESCRIPTION)) {
@@ -32,16 +48,11 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
       if (!hasRetiredSeo(configMap.SEO_TITLE) && !hasRetiredSeo(configMap.SEO_DESCRIPTION) && !hasRetiredSeo(configMap.SEO_OG_IMAGE)) ogImage = configMap.SEO_OG_IMAGE || ogImage;
 
       // 2. Ghi đè bằng cấu hình riêng của từng trang (nếu có)
-      if (configMap[routeKey]) {
-        try {
-          const routeSeo = upgradeSavedPageSeo(path, JSON.parse(configMap[routeKey]))
-          if (!routeSeo || typeof routeSeo !== 'object' || Array.isArray(routeSeo)) throw new Error('Invalid saved SEO object')
-          if (!hasRetiredSeo(routeSeo.title) && !hasRetiredSeo(routeSeo.description)) {
-            if (typeof routeSeo.title === 'string' && routeSeo.title) title = routeSeo.title
-            if (typeof routeSeo.description === 'string' && routeSeo.description) description = routeSeo.description
-            if (typeof routeSeo.ogImage === 'string' && routeSeo.ogImage && !hasRetiredSeo(routeSeo.ogImage)) ogImage = routeSeo.ogImage
-          }
-        } catch(e) {}
+      const routeSeo = savedRouteSeo(path, configMap[routeKey])
+      if (routeSeo) {
+        title = routeSeo.title || title
+        description = routeSeo.description || description
+        if (routeSeo.ogImage && !hasRetiredSeo(routeSeo.ogImage)) ogImage = routeSeo.ogImage
       }
     }
   } catch (e) {
@@ -57,7 +68,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
     openGraph: {
       title: title,
       description: description,
-      url: `https://vndocs.net${path}`,
+      url: pageUrl(path),
       siteName: 'VNDocs',
       images: [{ url: finalOgImage, width: 1200, height: 630, alt: title }],
       locale: pageLanguage(path) === 'en' ? 'en_US' : 'vi_VN',
@@ -71,7 +82,7 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
     },
     alternates: { canonical: pageUrl(path), languages: languageAlternates(path) },
     robots: {
-      index: true,
+      index: PAGE_SEO[path]?.index !== false,
       follow: true,
     },
   }
@@ -80,21 +91,8 @@ export async function getRouteMetadata(path: string, fallbackTitle: string, fall
 export async function getCustomRouteSeo(path: string) {
   if (isRetiredPath(path)) return null
   try {
-    const db = await getOptionalDb()
-    if (db) {
-      // Chỉ fetch đúng 1 key thay vì toàn bộ bảng
-      const routeKey = `SEO_ROUTE_${path}`
-      const rows = await db
-        .select()
-        .from(systemConfigs)
-        .where(eq(systemConfigs.key, routeKey))
-        .limit(1)
-      if (rows[0]?.value) {
-        const saved = upgradeSavedPageSeo(path, JSON.parse(rows[0].value))
-        if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return null
-        return hasRetiredSeo(saved.title) || hasRetiredSeo(saved.description) || hasRetiredSeo(saved.h1) ? null : saved
-      }
-    }
+    const config = await readSeoConfig(path)
+    return savedRouteSeo(path, config[`SEO_ROUTE_${path}`])
   } catch (e) {}
   return null;
 }
@@ -105,4 +103,5 @@ export async function getCoreMetadata(path: string): Promise<Metadata> {
   if (!copy) throw new Error('Missing SEO copy for ' + path)
   return getRouteMetadata(path, copy.title, copy.description)
 }
+
 

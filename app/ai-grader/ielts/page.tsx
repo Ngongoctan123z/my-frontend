@@ -20,11 +20,6 @@ export default async function IeltsGraderPage() {
     operatingSystem: 'Web',
     inLanguage: 'vi',
     applicationCategory: 'EducationalApplication',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'VND',
-    },
     description: 'Thực hành luyện viết IELTS Writing Task 1 & 2 trực tuyến. Nhận xét chi tiết 4 tiêu chí TR, CC, LR, GRA và lưu lịch sử bài làm an toàn.',
     url: `${FRONTEND_URL}/ai-grader/ielts`
   }
@@ -55,39 +50,47 @@ export default async function IeltsGraderPage() {
   }
 
   const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
       {
-        '@type': 'Question',
-        name: 'Hệ thống chấm IELTS Writing theo những tiêu chí nào?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Hệ thống đánh giá bài viết dựa trên 4 tiêu chí chính thức của kỳ thi IELTS: Task Response / Task Achievement (mức độ hoàn thành đề bài), Coherence and Cohesion (tính mạch lạc và liên kết câu đoạn), Lexical Resource (vốn từ vựng và sự đa dạng ngữ nghĩa), và Grammatical Range and Accuracy (độ chính xác và độ đa dạng ngữ pháp).'
+        "@type": "Question",
+        "name": "Phòng luyện hỗ trợ dạng IELTS Writing nào?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Bạn có thể luyện IELTS Writing Task 1 mô tả biểu đồ, bản đồ hoặc quy trình và Task 2 viết bài luận. Với IELTS Academic, Task 1 yêu cầu ít nhất 150 từ và Task 2 ít nhất 250 từ. Hãy chọn đúng dạng bài trước khi viết."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Tôi có thể luyện tập cả Task 1 và Task 2 không?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Có. Bạn có thể chọn luyện tập cho cả IELTS Writing Task 1 (miêu tả biểu đồ, bản đồ, quy trình) và Task 2 (bài luận nghị luận xã hội). Hệ thống hỗ trợ nhập đề bài tùy chọn hoặc tải ngẫu nhiên các đề thi mẫu thực tế.'
+        "@type": "Question",
+        "name": "Điểm AI có phải điểm thi chính thức không?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Không. Điểm và nhận xét là ước tính luyện tập, có thể bỏ sót hoặc nhận định sai. Hãy đọc lý do sửa lỗi, đối chiếu đề bài và tham khảo giáo viên khi cần; kết quả này không phải chứng nhận của đơn vị tổ chức kỳ thi."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Bài viết và điểm số của tôi có được lưu lại không?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Có. Khi bạn đăng nhập vào tài khoản, toàn bộ bài làm, số điểm ước lượng và phần nhận xét chi tiết sẽ được tự động lưu vào mục Lịch sử bài viết riêng tư để bạn tiện theo dõi sự tiến bộ theo thời gian.'
+        "@type": "Question",
+        "name": "Tôi nên dùng góp ý để cải thiện bài viết như thế nào?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sau khi nhận góp ý, hãy kiểm tra Task 1 đã có tổng quan và số liệu đối chiếu chưa; với Task 2, kiểm tra mỗi luận điểm có lý do và ví dụ phù hợp. Viết lại đoạn cần sửa rồi so sánh với bản đầu, thay vì chỉ nhìn band điểm."
         }
       },
       {
-        '@type': 'Question',
-        name: 'Thông tin bài viết của tôi có được bảo mật không?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Mọi bài viết của người học đều được bảo mật an toàn qua giao thức mã hóa SSL. Dữ liệu chỉ hiển thị trong tài khoản học tập cá nhân của bạn và không được chia sẻ cho bất kỳ bên thứ ba nào.'
+        "@type": "Question",
+        "name": "Tôi có thể xem lại bài đã nộp không?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Khi đăng nhập và nộp bài thành công, bạn có thể xem bài viết cùng kết quả trong mục lịch sử của tài khoản. Hãy so sánh các lỗi lặp lại giữa những lần luyện và tự lưu thêm bản nháp quan trọng."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Bài viết được xử lý như thế nào khi chấm AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nội dung bạn gửi được chuyển đến dịch vụ AI để tạo nhận xét. Tránh đưa mật khẩu, dữ liệu khách hàng hoặc thông tin cá nhân nhạy cảm vào bài luyện. Xem chính sách bảo mật để biết thêm về việc xử lý dữ liệu."
         }
       }
     ]
@@ -122,7 +125,7 @@ export default async function IeltsGraderPage() {
           Đánh giá chi tiết 4 tiêu chí chuẩn IELTS, phát hiện các điểm cần hoàn thiện về ngữ pháp và từ vựng, hỗ trợ bạn rèn luyện phản xạ viết tự tin mỗi ngày.
         </p>
         <p className="text-slate-600 font-medium text-sm">
-          Hỗ trợ luyện tập cả Task 1 và Task 2 với phản hồi khách quan, giúp bạn nhận diện chính xác lỗi diễn đạt và theo dõi sự tiến bộ qua từng bài viết.
+          Hỗ trợ luyện tập cả Task 1 và Task 2 với góp ý tham khảo, giúp bạn nhận diện chính xác lỗi diễn đạt và theo dõi sự tiến bộ qua từng bài viết.
         </p>
       </div>
 
@@ -137,7 +140,7 @@ export default async function IeltsGraderPage() {
           </p>
           <ul className="text-slate-600 space-y-2 mb-6">
             <li>
-              <strong>Bước 1 - Phân tích đề bài:</strong> Chọn dạng bài (Task 1 miêu tả số liệu hoặc Task 2 nghị luận xã hội). Bạn có thể bấm "Lấy đề mới" để luyện các đề thi thật hoặc tự dán đề bài của riêng mình.
+              <strong>Bước 1 - Phân tích đề bài:</strong> Chọn dạng bài (Task 1 miêu tả số liệu hoặc Task 2 nghị luận xã hội). Bạn có thể bấm "Lấy đề mới" để luyện các đề luyện tập hoặc tự dán đề bài của riêng mình.
             </li>
             <li>
               <strong>Bước 2 - Thực hành viết bài:</strong> Hoàn thành bài viết trong khung soạn thảo với số từ khuyến nghị (tối thiểu 150 từ cho Task 1 và 250 từ cho Task 2).
@@ -151,7 +154,7 @@ export default async function IeltsGraderPage() {
             Bản chất 4 tiêu chí chấm điểm chính thức của IELTS
           </h3>
           <p className="text-slate-600 leading-relaxed mb-4">
-            Mỗi bài viết được hệ thống phân tích dựa trên khung barem của giám khảo bản xứ:
+            Nhận xét AI tham chiếu các nhóm tiêu chí công khai sau; điểm số vẫn là ước tính luyện tập:
           </p>
           <ul className="text-slate-600 space-y-2 mb-6">
             <li>
@@ -172,7 +175,7 @@ export default async function IeltsGraderPage() {
             Lưu trữ lịch sử học tập & Bảo mật thông tin
           </h3>
           <p className="text-slate-600 leading-relaxed mb-6">
-            Toàn bộ bài làm của bạn sau khi gửi chấm sẽ được đồng bộ an toàn vào tài khoản cá nhân. Bạn có thể mở lại mục <strong>Lịch sử bài viết</strong> bất kỳ lúc nào để xem lại những lỗi sai trước đây, so sánh điểm số giữa các lần viết và quan sát rõ nét sự tiến bộ của bản thân theo thời gian. Chúng tôi cam kết bảo mật tuyệt đối nội dung học tập của người dùng.
+            Toàn bộ bài làm của bạn sau khi gửi chấm sẽ được đồng bộ an toàn vào tài khoản cá nhân. Bạn có thể mở lại mục <strong>Lịch sử bài viết</strong> bất kỳ lúc nào để xem lại những lỗi sai trước đây, so sánh điểm số giữa các lần viết và quan sát rõ nét sự tiến bộ của bản thân theo thời gian. Hãy tránh đưa thông tin nhạy cảm vào bài luyện.
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-8 mb-3">
@@ -213,9 +216,15 @@ export default async function IeltsGraderPage() {
               </div>
             ))}
           </div>
+
+          <aside aria-label="Đối chiếu với tài liệu của đơn vị tổ chức" className="mt-8 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-sm leading-7 text-slate-600">
+            <p>Điểm AI chỉ dùng để luyện tập; VNDocs không cấp kết quả khảo thí chính thức.</p>
+            <p><a href="https://ielts.org/cdn/ielts-guides/ielts-writing-key-assessment-criteria.pdf" className="font-semibold text-blue-600 hover:underline">IELTS Writing Key Assessment Criteria</a> · <Link href="/privacy" className="text-blue-600 hover:underline">Chính sách bảo mật</Link></p>
+          </aside>
         </article>
       </div>
     </div>
   )
 }
+
 
