@@ -49,26 +49,28 @@ test('TOPIK full test submits all 4 questions concurrently on the first use', as
   assert.equal(harness.sqlite.prepare('SELECT count FROM api_usage').get().count, 4)
 })
 
-test('invalid model JSON is retried on the next key and counts both attempts', async () => {
+test('invalid model JSON switches to the next configured model and counts both attempts', async () => {
   const harness = await createGraderHarness()
   const sample = gradingSamples[0]
   harness.state.handler = () => harness.state.calls.length === 1 ? '{invalid' : sample.provider
   const { response, data } = await harness.grade(sample)
   assert.equal(response.status, 200, JSON.stringify(data))
   assert.deepEqual(harness.state.calls.map(call => call.apiKey), harness.keys.slice(0, 2))
+  assert.deepEqual(harness.state.calls.map(call => call.payload.model), ['grading-primary', 'grading-fallback'])
+  assert.equal(data.modelUsed, 'grading-fallback')
   assert.equal(Number(harness.sqlite.prepare("SELECT value FROM system_config WHERE key = 'TOTAL_API_REQUESTS'").get().value), 2)
 })
 
-test('429 on all provider keys returns Retry-After and consumes at most one ring', async () => {
+test('429 on all configured models returns Retry-After and consumes one bounded ring per model', async () => {
   const harness = await createGraderHarness()
   harness.state.handler = () => { throw { status: 429, headers: { 'retry-after': '30' } } }
   const { response, data } = await harness.grade(gradingSamples[0])
   assert.equal(response.status, 429, JSON.stringify(data))
   assert.ok(Number(response.headers.get('retry-after')) > 0)
-  assert.equal(harness.state.calls.length, 5)
+  assert.equal(harness.state.calls.length, 10)
   const again = await harness.grade(gradingSamples[0])
   assert.equal(again.response.status, 429)
-  assert.equal(harness.state.calls.length, 5)
+  assert.equal(harness.state.calls.length, 10)
 })
 
 test('authentication and invalid submissions are rejected before provider calls', async () => {
@@ -126,7 +128,7 @@ test('TOEIC pictures reject missing/malformed answers before quota and reject in
   for(const essay of ['not json',JSON.stringify(answers.slice(0,4)),JSON.stringify(answers.map((r,i)=>({...r,id:i===0?5:r.id}))),JSON.stringify(answers.map((r,i)=>({...r,answer:i===0?'':r.answer})))])assert.equal((await h.grade({type:'TOEIC_PICTURE',prompt,essay})).response.status,400)
   assert.equal(h.state.calls.length,0);assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM api_usage').get().n,0)
   h.state.response={pictureTasks:answers.map(r=>({...r,score:4,feedback:'Invalid high score.'}))}
-  assert.equal((await h.grade({type:'TOEIC_PICTURE',prompt,essay:JSON.stringify(answers)})).response.status,500)
+  assert.equal((await h.grade({type:'TOEIC_PICTURE',prompt,essay:JSON.stringify(answers)})).response.status,503)
   assert.equal(h.state.calls.length,2)
 })
 test('TOEIC complete writing has five pictures, two distinct emails and one essay, without invented 200 conversion', async () => {
@@ -146,4 +148,82 @@ test('Complete TOEIC totals reject missing, duplicate-scale and invalid task mar
  const valid=[15,4,4,5].map(scoreScale=>({scoreScale,overallBand:0}))
  assert.equal(scores.toeicWritingRawScore(valid).overallBand,0)
  for(const rows of [valid.slice(1),[...valid,{scoreScale:4,overallBand:0}],valid.map((row,i)=>i===0?{scoreScale:4,overallBand:0}:row),valid.map((row,i)=>i===1?{...row,overallBand:4.5}:row),valid.map((row,i)=>i===1?{...row,overallBand:5}:row)])assert.throws(()=>scores.toeicWritingRawScore(rows))
+})
+
+
+
+test('malformed and invalid-schema outputs never consume daily grading quota or leak provider details', async () => {
+  for (const output of ['{invalid-provider-secret', { criteria: {}, corrections: [] }]) {
+    const h = await createGraderHarness()
+    h.state.response = output
+    const { response, data } = await h.grade(gradingSamples[0])
+    assert.equal(response.status, 503, JSON.stringify(data))
+    assert.equal(data.code, 'AI_OUTPUT_INVALID')
+    assert.equal(data.retryable, true)
+    assert.equal(response.headers.get('content-type').includes('application/json'), true)
+    assert.equal(h.state.calls.length, 2, 'Each invalid model is attempted once, without repeatedly calling the first model')
+    assert.equal(h.sqlite.prepare('SELECT count FROM api_usage').get().count, 0)
+    assert.equal(JSON.stringify(data).includes('provider-secret'), false)
+  }
+})
+
+test('configured ACTIVE models participate in grading fallback after a GRADING model fails', async () => {
+  const h = await createGraderHarness()
+  h.sqlite.prepare('UPDATE system_config SET value=? WHERE key=?').run('grading-primary', 'GRADING_GROQ_MODEL')
+  h.sqlite.prepare('INSERT INTO system_config VALUES (?, ?)').run('ACTIVE_GROQ_MODEL', 'admin-fallback,grading-primary')
+  h.state.handler = call => call.payload.model === 'grading-primary' ? '{invalid' : gradingSamples[0].provider
+  const result = await h.grade(gradingSamples[0])
+  assert.equal(result.response.status, 200, JSON.stringify(result.data))
+  assert.equal(result.data.modelUsed, 'admin-fallback')
+  assert.deepEqual(h.state.calls.map(call => call.payload.model), ['grading-primary', 'admin-fallback'])
+  assert.equal(h.sqlite.prepare('SELECT count FROM api_usage').get().count, 1)
+})
+
+test('truncated output falls through to another model without accepting an incomplete grade', async () => {
+  const h = await createGraderHarness()
+  h.state.handler = () => {
+    h.state.finishReason = h.state.calls.length === 1 ? 'length' : 'stop'
+    return gradingSamples[0].provider
+  }
+  const result = await h.grade(gradingSamples[0])
+  assert.equal(result.response.status, 200, JSON.stringify(result.data))
+  assert.equal(result.data.modelUsed, 'grading-fallback')
+  assert.equal(h.state.calls.length, 2)
+})
+
+test('concurrent success and provider failure retain exactly the successful daily reservation', async () => {
+  const h = await createGraderHarness()
+  const sample = gradingSamples[0], failedEssay = sample.essay + ' unique failed attempt'
+  h.state.handler = call => call.payload.messages[1].content.includes(failedEssay) ? '{invalid' : sample.provider
+  const results = await Promise.all([h.grade(sample), h.grade({ ...sample, essay: failedEssay })])
+  assert.deepEqual(results.map(result => result.response.status).sort(), [200, 503])
+  assert.equal(h.sqlite.prepare('SELECT count FROM api_usage').get().count, 1)
+})
+
+test('single wrapped JSON object parses without altering quoted braces; ambiguous or truncated data is rejected', async () => {
+  const h = await createGraderHarness(), scoring = await h.loadModule('app/api/ai-grader/scoring.ts')
+  const original = { feedback: 'Keep {this} and "quoted" words intact.', nested: { score: 6 } }
+  for (const text of [JSON.stringify(original), '```json\n' + JSON.stringify(original) + '\n```', 'Result:\n' + JSON.stringify(original)]) {
+    assert.deepEqual(JSON.parse(JSON.stringify(scoring.parseModelJson(text))), original)
+  }
+  for (const text of ['[]', 'null', '[{"score":6}]', '{"score":6} {"score":7}', '{"score":6', '{"score":6,}']) assert.throws(() => scoring.parseModelJson(text))
+})
+
+test('malformed admin calibration falls back to valid task defaults instead of breaking Writing', async () => {
+  const h = await createGraderHarness()
+  h.sqlite.prepare('INSERT INTO system_config VALUES (?, ?)').run('GRADING_CALIBRATION', '{broken')
+  h.state.response = gradingSamples[0].provider
+  const result = await h.grade(gradingSamples[0])
+  assert.equal(result.response.status, 200, JSON.stringify(result.data))
+  assert.equal(result.data.overallBandFormatted, gradingSamples[0].expected)
+  assert.ok(h.state.calls[0].payload.messages[0].content.includes('strict_schema'), 'The grading contract must be serialized instead of [object Object]')
+})
+
+test('invalid request JSON returns a JSON 400 before authentication, quota or provider work', async () => {
+  const h = await createGraderHarness(), route = await h.loadModule('app/api/ai-grader/route.ts')
+  const response = await route.POST(new Request('http://test.local/api/ai-grader', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{broken' }))
+  assert.equal(response.status, 400)
+  assert.equal((await response.json()).code, 'INVALID_REQUEST_JSON')
+  assert.equal(h.state.calls.length, 0)
+  assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM api_usage').get().n, 0)
 })

@@ -1,49 +1,100 @@
-# AI grader key rotation
+# Provider/model key rotation
 
-The shared `/api/ai-grader` endpoint uses the admin `GROQ_API_KEY` list
-(comma separated, trimmed and deduplicated), falling back to the environment
-configuration when the admin setting is absent. TOPIK, TOEIC, HSK and IELTS
-all use this endpoint.
+Writing and Speaking share a rotation implementation, not one global rate-limit
+ban. The admin key lists remain the source of credentials. The provider/model
+selection used by each request is responsible for supplying compatible models;
+rotation never silently replaces the saved admin configuration.
 
-Each authenticated account has a persistent cursor. With five available keys,
-one account uses `1, 2, 3, 4, 5, 1, ...`. New accounts receive successive starting
-slots, so the second account starts at key 2. Account identity comes from the
-server session. Multiple tabs and Worker instances share the same database state.
+## Separate rate limits from invalid credentials
 
-State uses namespaced rows in the existing `system_config` table; no migration
-or additional Cloudflare binding is needed. Cursor claims use atomic SQLite
-UPSERT statements, and first-time account allocation uses a D1 batch transaction.
-Account emails and key values are hashed for state identifiers. Changing the
-admin key list creates a new ring; cooldowns remain attached to the affected key.
+A provider 429 cools only that **provider + model + credential** combination.
+Other accounts honor the same cooldown for that combination, while a Whisper
+limit cannot disable Writing chat models or a different Whisper model. If every
+key is limited on the first model, the request still tries the next configured
+model. A first model that was already cooled down before the request also cannot
+hide a healthy fallback.
 
-A rate-limited key is skipped across all accounts until its `Retry-After`
-expires (60 seconds by default). Rejected credentials receive a five-minute
-cooldown. Each model tries each eligible key at most once before moving to the
-next model. Safety failures stop immediately. Exhausted key pools return HTTP
-429 with a `Retry-After` header; failed models return HTTP 503.
+Authentication failures (401, or 403 without a model-access error) cool the
+credential across models on the same provider for five minutes. Explicit model
+permission errors, unavailable/decommissioned models and invalid structured
+output move to the next model without exhausting every credential on the same
+failure. Safety failures and caller errors with `retryable: false` stop the
+request immediately.
 
-Admin usage counters now count provider attempts, including failed attempts,
-using atomic increments. A retry for invalid grading JSON continues from the
-account's current cursor. Daily usage is also reserved atomically: simultaneous
-first-time TOEIC/TOPIK full-test submissions cannot race on the same usage row,
-and concurrent requests cannot exceed the account's existing daily allowance.
-Rubrics, quota limits and session authentication are unchanged.
+Provider error classification handles outer and nested SDK error status/code
+fields. Retry timing accepts `Retry-After` seconds or HTTP dates, SDK retry delay
+fields, Gemini RetryInfo and provider retry hints. Timing is bounded between one
+second and 24 hours, with a one-minute default when no usable hint is supplied.
+When every compatible model is genuinely cooled down, the route can return HTTP
+429 with the earliest applicable retry time. Healthy models that fail for other
+reasons produce `model_exhausted`, not a false rate-limit message.
 
-The route preserves the scale computed by the scoring code (TOPIK 51/52: 10,
-53: 30, 54: 50). TOPIK 53 accepts the client's `chartExtra` description and the
-legacy `imageDescription` field; both go through the existing input validation.
+Rate limits can be shared by an entire provider organization. Switching between
+keys in the same organization does not increase that organization's allowance.
+All configured models can still be genuinely unavailable or limited; rotation
+cannot guarantee provider capacity or make an invalid credential valid.
 
-Run the regression suite with Node 22.13 or newer (Node 24 recommended):
+## Shared atomic state
+
+Each authenticated account has a persistent key cursor. With five available
+keys one account visits `1, 2, 3, 4, 5, 1, ...`; new accounts receive successive
+starting slots. Account identity comes from the server session. Multiple tabs
+and Worker instances share state in the existing `system_config` table.
+
+Cursor claims use atomic SQLite UPSERT statements. First-time account allocation
+uses the existing D1 batch transaction. State identifiers contain hashes rather
+than credential values, account emails or model names. Provider namespaces keep
+unrelated provider credentials separate even if their configured strings happen
+to match. Changed key lists receive a fresh ring.
+
+Version-two health rows distinguish credential authentication cooldowns from
+model-specific rate cooldowns. Old `GRADER_KEY_COOLDOWN_*` rows mixed those cases,
+so they are not interpreted as credential bans after this update. No rows,
+credentials, admin settings or quota records are deleted; no schema migration
+or new Cloudflare binding is required.
+
+Every model visits each eligible key at most once per request. Unsupported model
+and output-schema errors skip the remaining keys for that model. Provider
+attempt accounting still counts failed attempts using atomic increments. The
+caller retains its overall request deadline, and storage errors fail visibly
+rather than falling back silently to the first credential.
+
+## API compatibility
+
+Existing Groq callers can keep using:
+
+```ts
+const rotation = await createKeyRotation(keys, email, store)
+await generateWithKeyRotation(rotation, models, generate, countAttempt)
+```
+
+Other providers explicitly choose their namespace:
+
+```ts
+const rotation = await createKeyRotation(keys, email, store, { provider: 'gemini' })
+```
+
+The prior fourth-argument clock function remains supported for deterministic
+checks; an optional fifth argument accepts provider options in that form.
+`next(excluded, model)` and `availability(excluded, model)` inspect model-specific
+rate health. Omitting the model inspects credential authentication health only.
+`coolDown(key, milliseconds, model)` records a rate cooldown; omitting the model
+records a credential cooldown. `generateWithKeyRotation` supplies these arguments
+automatically. Provider callbacks may throw an error whose code is
+`AI_OUTPUT_INVALID` to skip to another model after validating structured output.
+
+## Verification
+
+Run with Node 24:
 
 ```sh
 npm run test:api-rotation
 npm run test:grader-submissions
 ```
 
-The suites use in-memory SQLite and mock provider responses. The submission
-suite executes the real route, rubric, scoring functions and D1-store adapter;
-external Next/Auth/Groq/Drizzle dependencies are test doubles. It covers original
-sample essays for all eight TOEIC/TOPIK/HSK task types and full-test submissions.
-It does not run the Next.js server or a browser, call Groq or consume live API
-quota. Rotating keys does not remove quota limits shared by keys belonging to
-the same provider organization.
+Rotation tests execute the actual atomic CASE/UPSERT behavior in in-memory
+SQLite. Coverage includes fair/concurrent allocation, Worker recreation,
+provider/model isolation, first-model exhaustion, preserved authentication bans,
+legacy health rows, retry timing, malformed output, request deadlines, bounded
+attempts and safety stops. Tests use provider fixtures and do not consume live
+provider quota or establish current production provider availability.

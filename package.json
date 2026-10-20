@@ -10,7 +10,7 @@
     "deploy": "opennextjs-cloudflare deploy",
     "start": "next start",
     "lint": "eslint .",
-    "test:api-rotation": "node --experimental-strip-types tests/ai-key-rotation.test.mjs",
+    "test:api-rotation": "node --experimental-strip-types tests/ai-key-rotation.test.mjs && node --experimental-strip-types tests/ai-models.test.mjs",
     "test:grader-submissions": "node --experimental-vm-modules tests/grader-submissions.test.mjs",
     "test:build-seo": "node --experimental-vm-modules tests/build-seo.test.mjs && node tests/seo-rendering.test.mjs",
     "test:grader-ui": "node tests/grader-ui.test.mjs && node tests/learner-access-ui.test.mjs",

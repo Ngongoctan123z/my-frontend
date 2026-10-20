@@ -13,6 +13,7 @@ import { toeicEmailBank } from '@/src/data/toeicEmails'
 import { PICTURE_RUBRIC, normalizePictureResult } from './toeic-pictures'
 import { createKeyRotation, generateWithKeyRotation, normalizeApiKeys, sha256Hex, KeyPoolExhaustedError } from '@/src/lib/aiKeyRotation'
 import { createDbKeyRotationStore } from './keyRotationStore'
+import { resolveGroqTextModels } from '@/src/lib/aiModels'
 // Web Crypto API will be used instead of node:crypto
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
@@ -52,7 +53,7 @@ function getFallbackPromptsForType(type: string): FallbackPromptItem[] {
   return []
 }
 
-async function checkAndIncrementRateLimit(userId: string): Promise<{ allowed: boolean, limit: number }> {
+async function checkAndIncrementRateLimit(userId: string): Promise<{ allowed: boolean, limit: number, date: string }> {
   const db = await getDb()
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })
 
@@ -73,7 +74,7 @@ async function checkAndIncrementRateLimit(userId: string): Promise<{ allowed: bo
       setWhere: sql`${apiUsages.count} < ${limit}`,
     })
     .returning({ count: apiUsages.count })
-  return { allowed: reserved.length > 0, limit }
+  return { allowed: reserved.length > 0, limit, date: today }
 }
 
 async function incrementGlobalCounter(usedKey: string) {
@@ -92,56 +93,19 @@ async function incrementGlobalCounter(usedKey: string) {
   }
 }
 
-const FALLBACK_MODELS = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768',
-  'gemma2-9b-it'
-]
-
-// ===== MODEL RIÊNG CHO CHẤM ĐIỂM =====
-// Chỉ dùng model mạnh, KHÔNG shuffle, KHÔNG rơi xuống model nhỏ (model nhỏ chấm rất lệch).
-// Có thể ghi đè bằng key GRADING_GROQ_MODEL trong systemConfigs (danh sách cách nhau bởi dấu phẩy, theo thứ tự ưu tiên).
-// Kiểm tra lại tên model còn tồn tại trên trang models của Groq.
-const GRADING_MODELS = [
-  'llama-3.3-70b-versatile',
-  'openai/gpt-oss-120b'
-]
-
 async function getGroqConfigFromDb(forGrading: boolean = false): Promise<{ apiKeys: string[], models: string[] }> {
   let apiKeys = process.env.GROQ_API_KEY ? normalizeApiKeys(process.env.GROQ_API_KEY) : []
-  let models = forGrading ? GRADING_MODELS : FALLBACK_MODELS
-
+  let configMap: Record<string, string> = {}
   try {
     const db = await getDb()
     const configs = await db.select().from(systemConfigs)
       .where(inArray(systemConfigs.key, ['GROQ_API_KEY', 'GRADING_GROQ_MODEL', 'ACTIVE_GROQ_MODEL']))
-    const configMap = configs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
-
-    if (configMap['GROQ_API_KEY']) {
-      apiKeys = normalizeApiKeys(configMap['GROQ_API_KEY'])
-    }
-
-    if (forGrading) {
-      if (configMap['GRADING_GROQ_MODEL']) {
-        const gradingModels = configMap['GRADING_GROQ_MODEL'].split(',').map((m: string) => m.trim()).filter(Boolean)
-        if (gradingModels.length > 0) models = gradingModels
-      }
-    } else if (configMap['ACTIVE_GROQ_MODEL']) {
-      const chosenModels = configMap['ACTIVE_GROQ_MODEL'].split(',').map((m: string) => m.trim()).filter(Boolean)
-      if (chosenModels.length > 0) {
-        for (let i = chosenModels.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [chosenModels[i], chosenModels[j]] = [chosenModels[j], chosenModels[i]];
-        }
-        models = [...chosenModels, ...FALLBACK_MODELS.filter(m => !chosenModels.includes(m))]
-      }
-    }
-  } catch (e) {
-    console.error("DB config read error:", e)
+    configMap = Object.fromEntries(configs.map(row => [row.key, row.value]))
+    if (configMap.GROQ_API_KEY) apiKeys = normalizeApiKeys(configMap.GROQ_API_KEY)
+  } catch {
+    console.error('[AI-Grader] Failed to read model configuration')
   }
-
-  return { apiKeys, models }
+  return { apiKeys, models: resolveGroqTextModels(configMap, forGrading) }
 }
 
 interface GenerateOptions {
@@ -150,30 +114,45 @@ interface GenerateOptions {
   temperature?: number
   forGrading?: boolean   // true => dùng danh sách model mạnh, không shuffle
   maxTokens?: number
+  deadline: number
+  validate?: (text: string, finishReason: string) => any
 }
 
-async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: boolean, options: GenerateOptions): Promise<{ text: string, model: string, finishReason: string }> {
+async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: boolean, options: GenerateOptions): Promise<{ text: string, model: string, finishReason: string, value: any }> {
   const { apiKeys, models } = await getGroqConfigFromDb(!!options.forGrading)
   const db = await getDb()
   const rotation = await createKeyRotation(apiKeys, options.accountId, createDbKeyRotationStore(db))
   const messages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [{ role: 'system', content: systemPrompt }]
   if (options.userContent) messages.push({ role: 'user', content: options.userContent })
-
-  const { result: response, model } = await generateWithKeyRotation(rotation, models, async (apiKey, modelName) => {
-    const groq = new Groq({ apiKey, maxRetries: 0, timeout: options.forGrading ? 45000 : 15000 })
-    return groq.chat.completions.create({
-      messages,
-      model: modelName,
-      temperature: options.temperature ?? 0.2,
-      ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
-      response_format: isJson ? { type: 'json_object' } : { type: 'text' },
-    })
-  }, incrementGlobalCounter)
-
-  return {
-    text: response.choices[0]?.message?.content || '',
-    model,
-    finishReason: response.choices[0]?.finish_reason || '',
+  let invalidResponse = false
+  try {
+    const { result, model } = await generateWithKeyRotation(rotation, models, async (apiKey, modelName) => {
+      const remaining = options.deadline - Date.now()
+      if (remaining < 1000) throw Object.assign(new Error('AI_REQUEST_TIMEOUT'), { code: 'AI_REQUEST_TIMEOUT', retryable: false })
+      // A failed key cannot consume an unbounded per-key timeout. Leave time
+      // for another configured model within the same overall request budget.
+      const groq = new Groq({ apiKey, maxRetries: 0, timeout: Math.min(20_000, remaining) })
+      const response = await groq.chat.completions.create({
+        messages, model: modelName, temperature: options.temperature ?? 0.2,
+        ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
+        response_format: isJson ? { type: 'json_object' } : { type: 'text' },
+      })
+      if (Date.now() >= options.deadline) throw Object.assign(new Error('AI_REQUEST_TIMEOUT'), { code: 'AI_REQUEST_TIMEOUT', retryable: false })
+      const text = response.choices[0]?.message?.content || '', finishReason = response.choices[0]?.finish_reason || ''
+      try {
+        if (finishReason === 'length' || !text.trim()) throw new Error('incomplete_model_response')
+        // Validation is part of a provider attempt. Invalid JSON/schema is a
+        // failed model, so rotation must continue before reporting success.
+        return { text, finishReason, value: options.validate ? options.validate(text, finishReason) : undefined }
+      } catch {
+        invalidResponse = true
+        throw Object.assign(new Error('AI_OUTPUT_INVALID'), { code: 'AI_OUTPUT_INVALID' })
+      }
+    }, incrementGlobalCounter)
+    return { ...result, model }
+  } catch (error: any) {
+    if (invalidResponse && error?.message === 'model_exhausted') throw Object.assign(new Error('AI_OUTPUT_INVALID'), { code: 'AI_OUTPUT_INVALID' })
+    throw error
   }
 }
 
@@ -182,6 +161,9 @@ async function tryGenerateWithFallbackWrapped(systemPrompt: string, isJson: bool
 // =====================================================================
 
 export async function POST(req: NextRequest) {
+  const deadline = Date.now() + 75_000
+  let reservation: { userId: string; date: string } | null = null
+  let gradingCompleted = false
   try {
     // 1. Kiểm tra kích thước payload sơ bộ trước khi đọc body để bảo vệ Worker CPU & Memory
     const contentLength = req.headers.get('content-length')
@@ -200,7 +182,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
+    let body: any
+    try { body = await req.json() } catch { return NextResponse.json({ error: 'Dữ liệu JSON gửi lên không hợp lệ.', code: 'INVALID_REQUEST_JSON' }, { status: 400 }) }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'Dữ liệu yêu cầu không hợp lệ.', code: 'INVALID_REQUEST_JSON' }, { status: 400 })
     const { action, prompt, essay, feedbackLang } = body
     const requestedType=body.type
     const emailNumber=requestedType==='TOEIC_EMAIL_6'?6:requestedType==='TOEIC_EMAIL_7'?7:undefined
@@ -503,13 +487,15 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: 'Không thể xác thực tài khoản.' }, { status: 401 })
     }
-    const { allowed, limit } = await checkAndIncrementRateLimit(userId)
+    const { allowed, limit, date } = await checkAndIncrementRateLimit(userId)
     if (!allowed) {
       return NextResponse.json(
         { error: 'Bạn đã đạt giới hạn ' + limit + ' lần sử dụng AI trong ngày hôm nay. Vui lòng quay lại vào ngày mai!' },
         { status: 429 }
       )
     }
+
+    reservation = { userId, date }
 
     if (action === 'grade_essay') {
       if (!prompt || !essay) {
@@ -711,7 +697,7 @@ Viết toàn bộ nhận xét bằng tiếng Việt.
         return NextResponse.json({ error: 'Loại đề thi không hợp lệ.' }, { status: 400 })
       }
 
-      systemPrompt += '\nHƯỚNG DẪN BỔ SUNG TỪ QUẢN TRỊ:\n' + (type === 'TOEIC_PICTURE' ? '' : gradingSettings.prompt) + '\n' + GRADING_CONTRACT + `
+      systemPrompt += '\nHƯỚNG DẪN BỔ SUNG TỪ QUẢN TRỊ:\n' + (type === 'TOEIC_PICTURE' ? '' : gradingSettings.prompt) + '\n' + JSON.stringify(GRADING_CONTRACT) + `
 
 YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
 - corrections phải là một mảng JSON, kể cả khi không có lỗi (khi đó dùng []).
@@ -728,49 +714,30 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
       // Kiểm tra nguồn theo task
       // Bỏ logic CẢNH BÁO thiếu hình ảnh/đoạn văn gốc do user yêu cầu
 
-      // Retry loop
-      let lastError: any = null
-      let validationErrorMsg = ''
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const textRes = await tryGenerateWithFallbackWrapped(systemPrompt + (validationErrorMsg ? '\\n\\n[HỆ THỐNG] LỖI VALIDATION TỪ LẦN CHẤM TRƯỚC:\\n' + validationErrorMsg : ''), true, {
-          accountId: userId,
-          userContent,
-          temperature: 0,
-          forGrading: true,
-          maxTokens: 8192,
-        })
-        
-        if (textRes.finishReason === 'length') {
-          validationErrorMsg = 'Output bị cắt do quá dài. Hãy rút gọn detailedFeedback và explanation, bỏ các gợi ý Nâng cao không thiết yếu, nhưng phải giữ mọi lỗi thật trong corrections và xuất JSON đầy đủ.'
-          continue;
-        }
-
-        try {
-          const parsed = parseModelJson(textRes.text)
+      const textRes = await tryGenerateWithFallbackWrapped(systemPrompt, true, {
+        accountId: userId, userContent, temperature: 0, forGrading: true,
+        maxTokens: 8192, deadline,
+        validate: text => {
+          const parsed = parseModelJson(text)
           const calibValue = gradingSettings.calibration[type] || 0
-          if(type==='TOEIC_RESPOND'){const task=toeicEmailBank().find(row=>row.content===prompt);if(task&&(!Array.isArray(parsed.requirementChecks)||parsed.requirementChecks.length!==task.requirements.length||task.requirements.some(requirement=>!parsed.requirementChecks.some((row:any)=>row.requirement===requirement))))throw new Error('email_directions_coverage_mismatch')}
-          const finalResult: any = type === 'TOEIC_PICTURE' ? normalizePictureResult(parsed, prompt, essay) : postProcessResult(parsed, type, essay, calibValue)
-          
-          // Metadata
-          finalResult.assessmentStatus = type === 'TOEIC_PICTURE' ? 'reference_based' : type.startsWith('TOEIC')?'practice_estimate':'verified'
-          finalResult.modelUsed = textRes.model
-          finalResult.rubricVersion = type.startsWith('TOEIC')?'toeic-native-2':'1.0'
-          if(emailNumber)finalResult.questionNumber=emailNumber
-          finalResult.scoreKind = type.includes('IELTS') ? 'band' : 'score'
-          // postProcessResult already sets the task-specific scale and text
-          // (TOPIK 51/52: 10, 53: 30, 54: 50). Preserve that scoring contract.
-
-          return NextResponse.json(finalResult)
-        } catch (e: any) {
-          lastError = e
-          validationErrorMsg = 'Lỗi JSON: ' + e.message + '. Yêu cầu trả về đúng định dạng JSON, không tự ý đổi điểm để lách luật, chỉ cần sửa format.'
-        }
-      }
-      console.error('[AI-Grader] Parse/validate failed:', lastError?.message)
-      return NextResponse.json(
-        { error: `Kết quả trả về không đúng định dạng JSON (${lastError?.message || 'Lỗi phân tích cú pháp'}). Vui lòng thử lại.` },
-        { status: 500 }
-      )
+          if (type === 'TOEIC_RESPOND') {
+            const task = toeicEmailBank().find(row => row.content === prompt)
+            if (task && (!Array.isArray(parsed.requirementChecks) || parsed.requirementChecks.length !== task.requirements.length
+              || task.requirements.some(requirement => !parsed.requirementChecks.some((row: any) => row.requirement === requirement)))) throw new Error('email_directions_coverage_mismatch')
+          }
+          return type === 'TOEIC_PICTURE' ? normalizePictureResult(parsed, prompt, essay) : postProcessResult(parsed, type, essay, calibValue)
+        },
+      })
+      const finalResult = textRes.value
+      finalResult.assessmentStatus = type === 'TOEIC_PICTURE' ? 'reference_based' : type.startsWith('TOEIC') ? 'practice_estimate' : 'verified'
+      finalResult.modelUsed = textRes.model
+      finalResult.rubricVersion = type.startsWith('TOEIC') ? 'toeic-native-2' : '1.0'
+      if (emailNumber) finalResult.questionNumber = emailNumber
+      finalResult.scoreKind = type.includes('IELTS') ? 'band' : 'score'
+      // Keep the task-specific scoring scale calculated by postProcessResult.
+      const response = NextResponse.json(finalResult)
+      gradingCompleted = true
+      return response
     }
 
 
@@ -778,13 +745,15 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
     return NextResponse.json({ error: 'Yêu cầu không hợp lệ.' }, { status: 400 })
 
   } catch (error: any) {
+    if (error?.code === 'AI_OUTPUT_INVALID') return NextResponse.json({ error: 'Chưa nhận được kết quả chấm hợp lệ từ các model. Bài làm vẫn được giữ; vui lòng thử lại.', code: 'AI_OUTPUT_INVALID', retryable: true }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+    if (error?.code === 'AI_REQUEST_TIMEOUT') return NextResponse.json({ error: 'Dịch vụ chấm phản hồi quá lâu. Bài làm vẫn được giữ; vui lòng thử lại.', code: 'AI_REQUEST_TIMEOUT', retryable: true }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
     if (error instanceof KeyPoolExhaustedError) {
       return NextResponse.json(
         { error: 'Các API key đang tạm bị giới hạn. Vui lòng thử lại sau.', retryAfterSeconds: error.retryAfterSeconds },
         { status: 429, headers: { 'Retry-After': String(error.retryAfterSeconds) } }
       )
     }
-    const msg = (error.message || '').toLowerCase()
+    const msg = String(error?.message || '').toLowerCase()
 
     if (msg.includes('groq_api_key_missing')) {
       return NextResponse.json({ error: 'Chưa cấu hình GROQ_API_KEY trên hệ thống.' }, { status: 500 })
@@ -807,6 +776,14 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
       { error: 'Hệ thống máy chủ AI đang gặp sự cố. Vui lòng thử lại sau ít phút.' },
       { status: 500 }
     )
+  } finally {
+    if (reservation && !gradingCompleted) {
+      try {
+        const db = await getDb()
+        await db.update(apiUsages).set({ count: sql`MAX(0, ${apiUsages.count} - 1)` })
+          .where(and(eq(apiUsages.userId, reservation.userId), eq(apiUsages.date, reservation.date), sql`${apiUsages.count} > 0`))
+      } catch { console.error('[AI-Grader] Failed to release unsuccessful grading reservation') }
+    }
   }
 }
 
@@ -839,3 +816,4 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ count: 0, limit: 7, plan: 'free' })
   }
 }
+

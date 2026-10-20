@@ -106,6 +106,78 @@ test('preview silence and provider errors preserve a retryable recording rather 
   assert.equal((await h.post(form)).response.status,422)
   assert.equal((await h.get()).data.count,0)
 })
+test('malformed transcription moves to another speech model before accepting preview text', async () => {
+  const h = await fixture()
+  h.state.sttHandler = call => call.payload.model === 'whisper-large-v3-turbo'
+    ? { unexpected: 'not a transcript' }
+    : { text: 'Words recognized by the fallback speech model.' }
+  const form = new FormData(); form.set('action', 'transcribe_audio'); form.set('audio', h.audio)
+  const result = await h.post(form)
+  assert.equal(result.response.status, 200)
+  assert.equal(result.data.transcript, 'Words recognized by the fallback speech model.')
+  assert.deepEqual(h.state.calls.map(call => call.payload.model), ['whisper-large-v3-turbo', 'whisper-large-v3'])
+  assert.equal((await h.get()).data.count, 0)
+})
+test('dedicated transcription keys are used without changing the configured grading key pool', async () => {
+  const h = await fixture(), begin = await h.post(h.body)
+  h.sqlite.prepare('INSERT INTO system_config VALUES (?,?)').run('SPEAKING_TRANSCRIPTION_API_KEYS', 'speech-only-key')
+  const result = await h.upload(begin.data.id)
+  assert.equal(result.response.status, 200)
+  assert.equal(h.state.calls[0].kind, 'stt')
+  assert.equal(h.state.calls[0].apiKey, 'speech-only-key')
+  assert.ok(h.keys.includes(h.state.calls[1].apiKey))
+  assert.equal(JSON.stringify(result.data).includes('speech-only-key'), false)
+})
+test('Speaking grading tries configured active text models after the grading list fails', async () => {
+  const h = await fixture(), begin = await h.post(h.body)
+  h.sqlite.prepare('INSERT INTO system_config VALUES (?,?)').run('ACTIVE_GROQ_MODEL', 'admin-active-model')
+  h.state.handler = call => {
+    if (call.payload.model !== 'admin-active-model') throw { status: 404, message: 'model_not_found' }
+    return rawFeedback(6)
+  }
+  const result = await h.upload(begin.data.id)
+  assert.equal(result.response.status, 200)
+  assert.equal(result.data.result.modelUsed, 'admin-active-model')
+  assert.deepEqual(h.state.calls.filter(call => call.kind !== 'stt').map(call => call.payload.model), ['grading-primary', 'grading-fallback', 'admin-active-model'])
+})
+test('malformed Speaking JSON changes models rather than treating invalid output as a completed grade', async () => {
+  const h = await fixture(), begin = await h.post(h.body)
+  h.state.handler = call => call.payload.model === 'grading-primary' ? '{"feedback":' : rawFeedback(6)
+  const result = await h.upload(begin.data.id)
+  assert.equal(result.response.status, 200)
+  assert.equal(result.data.result.modelUsed, 'grading-fallback')
+  assert.deepEqual(h.state.calls.filter(call => call.kind !== 'stt').map(call => call.payload.model), ['grading-primary', 'grading-fallback'])
+})
+test('plain-text Gemini 429 preserves model-scoped cooldown and tries the next audio model', async () => {
+  const h = await fixture(), begin = await h.post(h.body), requests = []
+  h.sqlite.prepare('INSERT INTO system_config VALUES (?,?)').run('SPEAKING_AUDIO_API_KEY', 'audio-only-key')
+  h.sqlite.prepare('INSERT INTO system_config VALUES (?,?)').run('SPEAKING_AUDIO_MODEL', 'gemini-a,gemini-b')
+  h.state.fetchHandler = async (url, options) => {
+    const body = JSON.parse(options.body); requests.push({ body, key: options.headers['x-goog-api-key'] })
+    if (body.model === 'gemini-a') return new Response('temporarily rate limited', { status: 429, headers: { 'Retry-After': '5', 'Content-Type': 'text/plain' } })
+    return Response.json({ outputs: [{ type: 'text', text: JSON.stringify(rawFeedback(6)) }] })
+  }
+  const result = await h.upload(begin.data.id)
+  assert.equal(result.response.status, 200)
+  assert.equal(result.data.result.assessmentStatus, 'audio_assessed')
+  assert.equal(result.data.result.modelUsed, 'gemini-b')
+  assert.deepEqual(requests.map(request => request.body.model), ['gemini-a', 'gemini-b'])
+  assert.ok(requests.every(request => request.key === 'audio-only-key'))
+})
+test('malformed Gemini JSON retries a different audio model without fabricating a score', async () => {
+  const h = await fixture(), begin = await h.post(h.body), requested = []
+  h.sqlite.prepare('INSERT INTO system_config VALUES (?,?)').run('SPEAKING_AUDIO_API_KEY', 'audio-only-key')
+  h.sqlite.prepare('INSERT INTO system_config VALUES (?,?)').run('SPEAKING_AUDIO_MODEL', 'gemini-a,gemini-b')
+  h.state.fetchHandler = async (url, options) => {
+    const body = JSON.parse(options.body); requested.push(body.model)
+    return Response.json({ outputs: [{ type: 'text', text: body.model === 'gemini-a' ? 'not JSON' : JSON.stringify(rawFeedback(6.5)) }] })
+  }
+  const result = await h.upload(begin.data.id)
+  assert.equal(result.response.status, 200)
+  assert.equal(result.data.result.score.value, 6.5)
+  assert.equal(result.data.result.modelUsed, 'gemini-b')
+  assert.deepEqual(requested, ['gemini-a', 'gemini-b'])
+})
 async function fixture(exam = 'IELTS_SPEAKING', tab = 'PART_2') {
   const h = await createGraderHarness({ route: 'app/api/speaking/route.ts' })
   const lib = await h.loadModule('src/lib/speaking.ts')
