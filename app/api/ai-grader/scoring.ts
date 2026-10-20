@@ -354,13 +354,37 @@ export function postProcessResult(parsed: any, type: string, essay: string, cali
 }
 
 export function parseModelJson(text: string) {
-  let content = text.trim()
-  const start = content.indexOf('{')
-  const end = content.lastIndexOf('}')
-  if (start !== -1 && end !== -1 && end >= start) {
-    content = content.substring(start, end + 1)
+  if (typeof text !== 'string' || !text.trim() || text.length > 120_000) throw new Error('invalid_json_response')
+  const content = text.replace(/^\uFEFF/, '').trim()
+  const requireObject = (value: any) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid_json_object')
+    return value
   }
-  return JSON.parse(content)
+  try { return requireObject(JSON.parse(content)) } catch (error) {
+    if ((error as Error).message === 'invalid_json_object') throw error
+  }
+  // Accept a single fenced/prose-wrapped JSON object without rewriting its
+  // values. A string-aware scan handles braces inside quoted feedback safely.
+  const start = content.indexOf('{')
+  if (start < 0 || content.slice(0, start).trim().startsWith('[')) throw new Error('invalid_json_response')
+  let depth = 0, quoted = false, escaped = false
+  for (let index = start; index < content.length; index++) {
+    const char = content[index]
+    if (quoted) {
+      if (escaped) escaped = false
+      else if (char === '\\') escaped = true
+      else if (char === '"') quoted = false
+      continue
+    }
+    if (char === '"') quoted = true
+    else if (char === '{') depth++
+    else if (char === '}' && --depth === 0) {
+      const suffix = content.slice(index + 1).trim()
+      if (/[{}]/.test(suffix) || /^[\],]/.test(suffix)) throw new Error('ambiguous_json_response')
+      return requireObject(JSON.parse(content.slice(start, index + 1)))
+    }
+  }
+  throw new Error('incomplete_json_response')
 }
 
 export async function getGradingSettings(type: string) {
@@ -371,14 +395,24 @@ export async function getGradingSettings(type: string) {
   const p = await db.select().from(promptsTable).where(eq(promptsTable.type, type))
   const prompt = p.length > 0 ? p[0].content : ''
 
-  return {
-    calibration: map['GRADING_CALIBRATION'] ? JSON.parse(map['GRADING_CALIBRATION']) : CALIBRATION,
-    prompt
+  const calibration: Record<string, number> = { ...CALIBRATION }
+  if (map.GRADING_CALIBRATION) {
+    try {
+      const configured = JSON.parse(map.GRADING_CALIBRATION)
+      if (configured && typeof configured === 'object' && !Array.isArray(configured)) {
+        for (const key of Object.keys(CALIBRATION)) {
+          const value = configured[key]
+          if (typeof value === 'number' && Number.isFinite(value)) calibration[key] = value
+        }
+      }
+    } catch { console.warn('[AI-Grader] Invalid calibration configuration; using task defaults') }
   }
+  return { calibration, prompt }
 }
 
 export const GRADING_CONTRACT = {
   version: "1.0",
   enforces: ["strict_schema", "evidence_matching", "range_validation"]
 }
+
 

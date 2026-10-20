@@ -5,19 +5,22 @@ import { getDb } from '@/src/db'
 import { systemConfigs } from '@/src/db/schema'
 import { createDbKeyRotationStore } from '../ai-grader/keyRotationStore'
 import { createKeyRotation, generateWithKeyRotation, normalizeApiKeys, sha256Hex } from '@/src/lib/aiKeyRotation'
+import { resolveGroqTextModels, resolveTranscriptionModels, resolveAudioAssessmentModels } from '@/src/lib/aiModels'
 import type { SpeakingMetrics, SpeakingQuestion } from '@/src/lib/speaking'
 import { SpeakingRequestError } from './validation'
 import { speakingSystemPrompt, speakingTaskData, parseSpeakingJson, normalizeSpeakingFeedback } from './scoring'
 
 export async function speakingConfig(db: Awaited<ReturnType<typeof getDb>>) {
-  const names = ['GROQ_API_KEY', 'GRADING_GROQ_MODEL', 'GEMINI_API_KEY', 'GEMINI_API_KEYS', 'SPEAKING_AUDIO_API_KEY', 'SPEAKING_AUDIO_MODEL', 'SPEAKING_AUDIO_ENABLED']
+  const names = ['GROQ_API_KEY', 'GRADING_GROQ_MODEL', 'ACTIVE_GROQ_MODEL', 'GEMINI_API_KEY', 'GEMINI_API_KEYS', 'SPEAKING_AUDIO_API_KEY', 'SPEAKING_AUDIO_MODEL', 'SPEAKING_AUDIO_ENABLED', 'SPEAKING_TRANSCRIPTION_MODELS', 'SPEAKING_TRANSCRIPTION_API_KEY', 'SPEAKING_TRANSCRIPTION_API_KEYS']
   const rows = await db.select().from(systemConfigs).where(inArray(systemConfigs.key, names))
   const config = Object.fromEntries(rows.map(row => [row.key, row.value]))
   return {
     groqKeys: normalizeApiKeys(config.GROQ_API_KEY || process.env.GROQ_API_KEY || ''),
-    gradingModels: normalizeApiKeys(config.GRADING_GROQ_MODEL || 'llama-3.3-70b-versatile,openai/gpt-oss-120b'),
+    gradingModels: resolveGroqTextModels(config, true),
+    transcriptionKeys: normalizeApiKeys(config.SPEAKING_TRANSCRIPTION_API_KEYS || config.SPEAKING_TRANSCRIPTION_API_KEY || config.GROQ_API_KEY || process.env.GROQ_API_KEY || ''),
+    transcriptionModels: resolveTranscriptionModels(config),
     audioKeys: config.SPEAKING_AUDIO_ENABLED === 'false' ? [] : normalizeApiKeys(config.SPEAKING_AUDIO_API_KEY || config.GEMINI_API_KEY || config.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || ''),
-    audioModels: normalizeApiKeys(config.SPEAKING_AUDIO_MODEL || 'gemini-3.8-flash'),
+    audioModels: resolveAudioAssessmentModels(config),
   }
 }
 async function countAttempt(db: Awaited<ReturnType<typeof getDb>>, key: string) {
@@ -28,25 +31,41 @@ async function countAttempt(db: Awaited<ReturnType<typeof getDb>>, key: string) 
 }
 function deadlineTimeout(deadline: number, max: number) {
   const remaining = deadline - Date.now()
-  if (remaining < 1000) throw new SpeakingRequestError(503, 'Dịch vụ đang bận. Bản thu đã được giữ, vui lòng thử lại sau.')
+  if (remaining < 1000) throw Object.assign(new SpeakingRequestError(503, 'Dịch vụ đang bận. Bản thu đã được giữ, vui lòng thử lại sau.'), { retryable: false })
   return Math.min(max, remaining)
+}
+function invalidModelResponse() {
+  return Object.assign(new Error('AI_OUTPUT_INVALID'), { code: 'AI_OUTPUT_INVALID' })
+}
+function checkedFeedback(text: string, question: SpeakingQuestion, transcript: string, metrics: SpeakingMetrics, audioAvailable: boolean, language: string) {
+  try { return normalizeSpeakingFeedback(parseSpeakingJson(text), question, transcript, metrics, audioAvailable, language) }
+  catch (error) {
+    if (error instanceof SpeakingRequestError) throw Object.assign(error, { retryable: false })
+    throw invalidModelResponse()
+  }
 }
 const extension = (mime: string) => mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : 'webm'
 export async function transcribeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, email: string, audio: File, options: { live?: boolean } = {}) {
   const config = await speakingConfig(db)
-  const rotation = await createKeyRotation(config.groqKeys, email, createDbKeyRotationStore(db))
+  const rotation = await createKeyRotation(config.transcriptionKeys, email, createDbKeyRotationStore(db))
   // Live excerpts must not leave a growing queue of slow transcription jobs.
   // The same key/model rotation remains available inside this shorter budget.
   const deadline = Date.now() + (options.live ? 15_000 : 65_000)
   const bytes = Buffer.from(await audio.arrayBuffer())
-  const { result } = await generateWithKeyRotation(rotation, ['whisper-large-v3-turbo', 'whisper-large-v3'], async (key, model) => {
+  const { result: transcript } = await generateWithKeyRotation(rotation, config.transcriptionModels, async (key, model) => {
     const groq = new Groq({ apiKey: key, maxRetries: 0, timeout: deadlineTimeout(deadline, options.live ? 5000 : 20_000) })
     const file = await Groq.toFile(bytes, `recording.${extension(audio.type)}`, { type: audio.type })
-    return groq.audio.transcriptions.create({ file, model, response_format: 'verbose_json', language: 'en', temperature: 0, prompt: 'Verbatim English speaking practice. Retain audible um, uh, er, hmm, repeated words, false starts and self-corrections. Ignore wind, fan hum and other non-speech noise. Do not add words or fillers that were not spoken.' })
+    const result = await groq.audio.transcriptions.create({ file, model, response_format: 'verbose_json', language: 'en', temperature: 0, prompt: 'Verbatim English speaking practice. Retain audible um, uh, er, hmm, repeated words, false starts and self-corrections. Ignore wind, fan hum and other non-speech noise. Do not add words or fillers that were not spoken.' })
+    // Validate before accepting this provider attempt. A malformed response
+    // moves to another model; actual silence is a final, non-billable 422.
+    if (typeof (result as any)?.text !== 'string') throw invalidModelResponse()
+    const text = (result as any).text.trim(), segments = (result as any).segments
+    if (!text || (Array.isArray(segments) && segments.length && segments.every(s => Number(s.no_speech_prob) > 0.9))) {
+      throw Object.assign(new SpeakingRequestError(422, 'Không nghe rõ nội dung nói. Hãy kiểm tra micro hoặc thu lại.'), { retryable: false })
+    }
+    if (text.length > 12_000) throw invalidModelResponse()
+    return text
   }, key => countAttempt(db, key))
-  const transcript = String((result as any).text || '').trim()
-  const segments = (result as any).segments
-  if (!transcript || transcript.length > 12_000 || (Array.isArray(segments) && segments.length && segments.every(s => Number(s.no_speech_prob) > 0.9))) throw new SpeakingRequestError(422, 'Không nghe rõ nội dung nói. Hãy kiểm tra micro hoặc thu lại.')
   return transcript
 }
 function outputText(response: any): string {
@@ -64,7 +83,7 @@ export async function gradeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, 
   // pronunciation or a complete speaking band when this provider is unavailable.
   if (config.audioKeys.length) {
     try {
-      const rotation = await createKeyRotation(config.audioKeys, email, createDbKeyRotationStore(db))
+      const rotation = await createKeyRotation(config.audioKeys, email, createDbKeyRotationStore(db), { provider: 'gemini' })
       const deadline = Date.now() + 45_000
       const data = Buffer.from(await audio.arrayBuffer()).toString('base64')
       const { result, model } = await generateWithKeyRotation(rotation, config.audioModels, async (key, model) => {
@@ -84,14 +103,21 @@ export async function gradeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, 
         const response = await fetch(modern ? 'https://generativelanguage.googleapis.com/v1beta/interactions' : `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body), signal: AbortSignal.timeout(timeout),
         })
-        const json = await response.json() as any
+        let json: any
+        try { json = await response.json() }
+        catch {
+          if (!response.ok) throw { status: response.status, headers: response.headers, message: 'Audio provider request failed' }
+          throw invalidModelResponse()
+        }
         if (!response.ok) throw { status: response.status, headers: response.headers, message: 'Audio provider request failed' }
+        if (json.promptFeedback?.blockReason || json.candidates?.some((candidate: any) => ['SAFETY', 'PROHIBITED_CONTENT'].includes(candidate.finishReason))) throw new Error('safety blocked')
         const text = modern ? outputText(json) : json.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('')
-        return normalizeSpeakingFeedback(parseSpeakingJson(text || ''), question, transcript, metrics, true, language)
+        if (json.candidates?.[0]?.finishReason === 'MAX_TOKENS') throw invalidModelResponse()
+        return checkedFeedback(text || '', question, transcript, metrics, true, language)
       }, key => countAttempt(db, key))
       return { ...result, modelUsed: model }
     } catch (error) {
-      if (error instanceof SpeakingRequestError && error.status === 422) throw error
+      if ((error instanceof SpeakingRequestError && error.status === 422) || (error instanceof Error && /safety blocked/.test(error.message))) throw error
       console.warn('[Speaking] Audio assessment unavailable; returning content-only feedback')
     }
   }
@@ -103,7 +129,8 @@ export async function gradeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, 
       { role: 'system', content: speakingSystemPrompt(question, false, language) },
       { role: 'user', content: speakingTaskData(question, transcript, metrics, false, delivery) },
     ], temperature: 0.2, max_tokens: 2200, response_format: { type: 'json_object' } })
-    return normalizeSpeakingFeedback(parseSpeakingJson(response.choices[0]?.message?.content || ''), question, transcript, metrics, false, language)
+    if (response.choices[0]?.finish_reason === 'length') throw invalidModelResponse()
+    return checkedFeedback(response.choices[0]?.message?.content || '', question, transcript, metrics, false, language)
   }, key => countAttempt(db, key))
   return { ...result, modelUsed: model }
 }
@@ -124,4 +151,5 @@ export async function speakingCoachReply(db: Awaited<ReturnType<typeof getDb>>, 
   }, key => countAttempt(db, key))
   return result
 }
+
 

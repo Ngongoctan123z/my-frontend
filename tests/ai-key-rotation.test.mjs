@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import { DatabaseSync } from 'node:sqlite'
 import {
   claimValueSql, createKeyRotation, generateWithKeyRotation, normalizeApiKeys,
-  KeyPoolExhaustedError, retryAfterMilliseconds,
+  KeyPoolExhaustedError, retryAfterMilliseconds, classifyProviderError, sha256Hex,
 } from '../src/lib/aiKeyRotation.ts'
 
 // SQLite executes the same atomic CASE expression used by the D1 store.
@@ -50,9 +50,9 @@ function makeStore() {
 
 const keys = ['key-1', 'key-2', 'key-3', 'key-4', 'key-5']
 const account = 'first@example.test'
-const collect = async (rotation, count) => {
+const collect = async (rotation, count, model) => {
   const result = []
-  for (let i = 0; i < count; i++) result.push(await rotation.next())
+  for (let i = 0; i < count; i++) result.push(await rotation.next(new Set(), model))
   return result
 }
 
@@ -102,7 +102,7 @@ test('duplicate/blank admin keys are removed and changed key lists form a new ri
   await assert.rejects(createKeyRotation(keys, '', store), /AI_ACCOUNT_MISSING/)
 })
 
-test('429 rotates to the next key and shares Retry-After cooldown with other accounts', async () => {
+test('429 rotates keys and shares Retry-After only for the affected model across accounts', async () => {
   const store = makeStore()
   let now = 100_000
   const rotation = await createKeyRotation(keys, account, store, () => now)
@@ -117,9 +117,9 @@ test('429 rotates to the next key and shares Retry-After cooldown with other acc
   assert.deepEqual(calls, keys.slice(0, 2))
   assert.deepEqual(attempts, calls) // Failed calls count too.
   const other = await createKeyRotation(keys, 'other@example.test', store, () => now)
-  assert.ok(!(await collect(other, 8)).includes(keys[0]))
+  assert.ok(!(await collect(other, 8, 'model')).includes(keys[0]))
   now += 121_000
-  assert.ok((await collect(other, 5)).includes(keys[0]))
+  assert.ok((await collect(other, 5, 'model')).includes(keys[0]))
 })
 
 test('all rate-limited keys stop with retry timing; no unbounded retry or extra cursor slot', async () => {
@@ -130,8 +130,10 @@ test('all rate-limited keys stop with retry timing; no unbounded retry or extra 
     calls++
     throw { status: 429, headers: { 'retry-after': '30' } }
   }), error => error instanceof KeyPoolExhaustedError && error.retryAfterSeconds === 30)
-  assert.equal(calls, keys.length)
-  await assert.rejects(rotation.next(), KeyPoolExhaustedError)
+  assert.equal(calls, keys.length * 2)
+  await assert.rejects(rotation.next(new Set(), 'first'), KeyPoolExhaustedError)
+  await assert.rejects(rotation.next(new Set(), 'second'), KeyPoolExhaustedError)
+  assert.ok(keys.includes(await rotation.next(new Set(), 'unrelated-writing-model')))
 })
 
 test('401 and 403 keys are skipped across models and future Worker instances', async () => {
@@ -232,4 +234,108 @@ test('cooldowns never shorten; Retry-After accepts seconds, HTTP dates and bad v
   assert.equal(retryAfterMilliseconds({ headers: { 'retry-after': 'bad' } }), 60_000)
   assert.equal(retryAfterMilliseconds({ headers: { 'retry-after': '999999999' } }), 86_400_000)
   assert.throws(() => claimValueSql([0, NaN]), /Invalid/)
+})
+
+
+
+test('all keys rate-limited on one model still try a healthy configured fallback model', async () => {
+  const store = makeStore(), rotation = await createKeyRotation(keys, account, store, () => 100_000)
+  const calls = []
+  const result = await generateWithKeyRotation(rotation, ['limited', 'healthy'], async (key, model) => {
+    calls.push([key, model])
+    if (model === 'limited') throw { status: 429, headers: { 'retry-after': '30' } }
+    return 'valid writing feedback'
+  })
+  assert.equal(result.model, 'healthy')
+  assert.equal(result.result, 'valid writing feedback')
+  assert.deepEqual(calls, [...keys.map(key => [key, 'limited']), [keys[0], 'healthy']])
+  const recreated = await createKeyRotation(keys, 'new-account', store, () => 100_000)
+  const next = []
+  await generateWithKeyRotation(recreated, ['limited', 'healthy'], async (key, model) => { next.push([key, model]); return 'ok' })
+  assert.equal(next.length, 1, 'A previously cooled first model does not abort fallback before a provider call')
+  assert.equal(next[0][1], 'healthy')
+})
+
+test('Speaking transcription rate limits never disable Writing model keys, or vice versa', async () => {
+  const store = makeStore(), now = () => 100_000
+  const speaking = await createKeyRotation(keys, account, store, now)
+  await assert.rejects(generateWithKeyRotation(speaking, ['whisper-large-v3-turbo'], async () => {
+    throw { status: 429, headers: { 'retry-after': '45' } }
+  }), KeyPoolExhaustedError)
+  const writing = await createKeyRotation(keys, account, store, now)
+  assert.equal((await generateWithKeyRotation(writing, ['writing-model'], async () => 'writing works')).result, 'writing works')
+  await assert.rejects(generateWithKeyRotation(writing, ['writing-model'], async () => {
+    throw { status: 429, headers: { 'retry-after': '90' } }
+  }), KeyPoolExhaustedError)
+  assert.equal((await generateWithKeyRotation(speaking, ['whisper-large-v3'], async () => 'speech works')).result, 'speech works')
+  const rawKeys = store.db.prepare('SELECT key FROM system_config').all().map(row => row.key)
+  assert.ok(rawKeys.every(key => !key.includes('whisper') && !key.includes('writing-model')))
+})
+
+test('provider namespaces isolate rate/auth health even when configured credential strings coincide', async () => {
+  const store = makeStore(), now = () => 100_000
+  const groq = await createKeyRotation(['shared-token'], account, store, now, { provider: 'groq' })
+  await assert.rejects(generateWithKeyRotation(groq, ['model'], async () => { throw { status: 401 } }), /API_KEY_INVALID/)
+  const gemini = await createKeyRotation(['shared-token'], account, store, now, { provider: 'gemini' })
+  assert.equal((await generateWithKeyRotation(gemini, ['model'], async () => 'ok')).result, 'ok')
+  const optionsAsFourth = await createKeyRotation(['shared-token'], account, store, { provider: 'gemini' })
+  assert.equal((await generateWithKeyRotation(optionsAsFourth, ['other-model'], async () => 'compatible')).result, 'compatible')
+})
+
+test('invalid credentials remain blocked for unrelated models on the same provider', async () => {
+  const store = makeStore(), now = () => 100_000
+  const first = await createKeyRotation(['bad-key'], account, store, now)
+  await assert.rejects(generateWithKeyRotation(first, ['speech'], async () => { throw { status: 401 } }), /API_KEY_INVALID/)
+  const second = await createKeyRotation(['bad-key'], 'other-account', store, now)
+  let calls = 0
+  await assert.rejects(generateWithKeyRotation(second, ['writing'], async () => { calls++; return 'wrong' }), /API_KEY_INVALID/)
+  assert.equal(calls, 0)
+})
+
+test('legacy ambiguous global rate rows do not keep unrelated models disabled after upgrade', async () => {
+  const store = makeStore(), now = () => 100_000
+  await store.coolDown('GRADER_KEY_COOLDOWN_' + await sha256Hex('only-key'), 999_999)
+  const rotation = await createKeyRotation(['only-key'], account, store, now)
+  assert.equal((await generateWithKeyRotation(rotation, ['writing'], async () => 'healthy')).result, 'healthy')
+})
+
+test('JSON schema validation failures skip that model without wasting every credential', async () => {
+  const rotation = await createKeyRotation(keys, account, makeStore())
+  const calls = []
+  const result = await generateWithKeyRotation(rotation, ['bad-json', 'valid-json'], async (key, model) => {
+    calls.push([key, model])
+    if (model === 'bad-json') throw Object.assign(new Error('Invalid grading output'), { code: 'AI_OUTPUT_INVALID' })
+    return { score: 6, feedback: 'Valid feedback' }
+  })
+  assert.deepEqual(calls, [[keys[0], 'bad-json'], [keys[1], 'valid-json']])
+  assert.equal(result.result.score, 6)
+})
+
+test('retryable:false deadline failures stop the complete key/model traversal immediately', async () => {
+  const rotation = await createKeyRotation(keys, account, makeStore())
+  let calls = 0
+  await assert.rejects(generateWithKeyRotation(rotation, ['first', 'second'], async () => {
+    calls++; throw Object.assign(new Error('Request deadline'), { retryable: false })
+  }), /Request deadline/)
+  assert.equal(calls, 1)
+})
+
+test('retry timing chooses the earliest genuinely available provider/model pair', async () => {
+  const rotation = await createKeyRotation(['one', 'two'], account, makeStore(), () => 100_000)
+  await assert.rejects(generateWithKeyRotation(rotation, ['slow', 'fast'], async (key, model) => {
+    throw { status: 429, headers: { 'retry-after': model === 'slow' ? '120' : key === 'one' ? '5' : '10' } }
+  }), error => error instanceof KeyPoolExhaustedError && error.retryAfterSeconds === 5)
+})
+
+test('nested SDK model/rate errors and RetryInfo are handled without misclassifying credential health', () => {
+  assert.equal(classifyProviderError({ error: { code: 429, message: 'RESOURCE_EXHAUSTED' } }), 'rate')
+  assert.equal(classifyProviderError({ status: 403, error: { code: 'model_not_found' } }), 'model')
+  assert.equal(classifyProviderError({ status: 401, error: { message: 'Invalid API key' } }), 'auth')
+  assert.equal(classifyProviderError({ code: 'AI_OUTPUT_INVALID' }), 'model')
+  assert.equal(classifyProviderError({ status: 403, error: { code: 'model_permission_denied' } }), 'model')
+  assert.equal(classifyProviderError({ status: 400, error: { code: 'json_validate_failed' } }), 'model')
+  assert.equal(retryAfterMilliseconds({ response: { headers: { 'Retry-After': '2.5' } } }), 2500)
+  assert.equal(retryAfterMilliseconds({ error: { details: [{ retryDelay: '12.5s' }] } }), 12_500)
+  assert.equal(retryAfterMilliseconds({ error: { details: [{ retryDelay: { seconds: '3', nanos: 500_000_000 } }] } }), 3500)
+  assert.equal(retryAfterMilliseconds({ error: { message: 'Please try again in 1.2s.' } }), 1200)
 })
