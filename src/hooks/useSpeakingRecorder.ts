@@ -27,7 +27,7 @@ export function useSpeakingRecorder(options: Options) {
     if (maxTimer.current) clearTimeout(maxTimer.current)
     frame.current = null; interval.current = null; maxTimer.current = null
     recognitionActive.current=false
-    if(recognition.current){recognition.current.onend=null;recognition.current.onerror=null;try{recognition.current.stop()}catch{};recognition.current=null}
+    if(recognition.current){recognition.current.onresult=null;recognition.current.onend=null;recognition.current.onerror=null;try{recognition.current.stop()}catch{};recognition.current=null}
     stream.current?.getTracks().forEach(track => track.stop()); stream.current = null
     if (context.current && context.current.state !== 'closed') void context.current.close().catch(() => {})
     context.current = null; analyser.current = null
@@ -54,12 +54,18 @@ export function useSpeakingRecorder(options: Options) {
       if (!mounted.current || token !== generation.current) { audioStream.getTracks().forEach(track => track.stop()); return }
       stream.current = audioStream
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
-      const audioContext = new AudioContextClass() as AudioContext
-      context.current = audioContext
-      await audioContext.resume()
-      if (!mounted.current || token !== generation.current) { audioStream.getTracks().forEach(track => track.stop()); if (audioContext.state !== 'closed') void audioContext.close().catch(() => {}); return }
-      const node = audioContext.createAnalyser(); node.fftSize = 1024
-      audioContext.createMediaStreamSource(audioStream).connect(node); analyser.current = node
+      // Waveform/timing must not block recording when Web Audio is unavailable
+      // or resume() remains pending under a browser's autoplay policy.
+      let audioContext: AudioContext | null = null, node: AnalyserNode | null = null
+      try {
+        if (AudioContextClass) {
+          audioContext = new AudioContextClass() as AudioContext
+          context.current = audioContext
+          void audioContext.resume().catch(() => {})
+          node = audioContext.createAnalyser(); node.fftSize = 1024
+          audioContext.createMediaStreamSource(audioStream).connect(node); analyser.current = node
+        }
+      } catch { node = null; analyser.current = null }
       const mimeType = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm'].find(type => MediaRecorder.isTypeSupported(type))
       const mediaRecorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
       recorder.current = mediaRecorder
@@ -92,11 +98,13 @@ export function useSpeakingRecorder(options: Options) {
         let restarts=0
         const listen=()=>{
           if(!recognitionActive.current || token!==generation.current || mediaRecorder.state!=='recording')return
-          const engine=new Recognition() as RecognitionLike
+          let engine: RecognitionLike
+          try { engine=new Recognition() as RecognitionLike }
+          catch { recognitionActive.current=false;setRecognitionState('interrupted');return }
           recognition.current=engine;engine.continuous=true;engine.interimResults=true;engine.lang='en-US';engine.maxAlternatives=1
           const positions=new Map<number,number>()
           engine.onresult=event=>{
-            if(!mounted.current || token!==generation.current)return
+            if(!mounted.current || !recognitionActive.current || token!==generation.current || mediaRecorder.state!=='recording')return
             for(let i=event.resultIndex;i<event.results.length;i++){
               const result=event.results[i],text=String(result[0]?.transcript || '').trim().slice(0,2000)
               if(!text)continue
@@ -108,9 +116,9 @@ export function useSpeakingRecorder(options: Options) {
             }
             delivery.current.recognitionAvailable=true;setRecognitionState('listening');setLiveText(deliveryText(delivery.current))
           }
-          engine.onerror=event=>{if(!recognitionActive.current||token!==generation.current)return;if(event.error!=='no-speech'){recognitionActive.current=false;setRecognitionState('interrupted')}}
-          engine.onend=()=>{if(recognition.current===engine)recognition.current=null;if(recognitionActive.current && token===generation.current && restarts++<20)setTimeout(listen,200)}
-          try{engine.start();setRecognitionState('listening');delivery.current.recognitionAvailable=true}catch{recognitionActive.current=false;setRecognitionState('interrupted')}
+          engine.onerror=event=>{if(!recognitionActive.current||token!==generation.current)return;setRecognitionState('interrupted');if(!['no-speech','network','aborted'].includes(event.error))recognitionActive.current=false}
+          engine.onend=()=>{if(recognition.current===engine)recognition.current=null;if(recognitionActive.current && token===generation.current){if(restarts++<20)setTimeout(listen,500);else{recognitionActive.current=false;setRecognitionState('interrupted')}}}
+          try{engine.start();setRecognitionState('listening')}catch{recognitionActive.current=false;setRecognitionState('interrupted')}
         }
         listen()
       }
@@ -118,9 +126,9 @@ export function useSpeakingRecorder(options: Options) {
       callbacks.current.onStarted(); setRecording(true); setRequesting(false); pending.current = false
       interval.current = setInterval(() => { if (mounted.current) {setElapsedMs(Date.now() - startedAt.current);const silence=stats.current.silenceStarted?Date.now()-stats.current.silenceStarted:0;setPauseMs(silence);setLiveText(deliveryText(delivery.current))} }, 250)
       maxTimer.current = setTimeout(stop, Math.min(300_000, callbacks.current.maxDurationMs))
-      const buffer = new Uint8Array(node.frequencyBinCount), frequencies=new Uint8Array(node.frequencyBinCount),voiceGate=new SpeakingVoiceGate()
+      const buffer = new Uint8Array(node?.frequencyBinCount || 512), frequencies=new Uint8Array(node?.frequencyBinCount || 512),voiceGate=new SpeakingVoiceGate()
       const sample = () => {
-        if (mediaRecorder.state !== 'recording') return
+        if (mediaRecorder.state !== 'recording' || !node || !audioContext) return
         node.getByteTimeDomainData(buffer)
         let sum = 0
         for (const byte of buffer) sum += ((byte - 128) / 128) ** 2
@@ -167,3 +175,40 @@ export function useSpeakingAudioUrl(blob?: Blob | null) {
   }, [blob])
   return url
 }
+
+// A deliberate server preview works even without the browser's SpeechRecognition
+// service. It does not grade, submit, or trust user-supplied transcript text.
+export function useSpeakingTranscript(clip?: SpeakingClip) {
+  const [transcript, setTranscript] = useState(''), [transcribing, setTranscribing] = useState(false), [transcriptError, setTranscriptError] = useState('')
+  const request = useRef<AbortController | null>(null)
+  const current = useRef(clip); current.current = clip
+  useEffect(() => {
+    setTranscript(''); setTranscriptError(''); setTranscribing(false)
+    return () => { request.current?.abort(); request.current = null }
+  }, [clip?.id])
+  const transcribe = useCallback(async () => {
+    const selected = current.current
+    if (!selected || request.current) return
+    const controller = new AbortController(); request.current = controller
+    setTranscribing(true); setTranscriptError('')
+    const timeout = setTimeout(() => controller.abort(), 90_000)
+    try {
+      const form = new FormData()
+      const extension = selected.blob.type.includes('mp4') ? 'm4a' : selected.blob.type.includes('ogg') ? 'ogg' : 'webm'
+      form.set('action', 'transcribe_audio'); form.set('audio', selected.blob, `recording.${extension}`)
+      const response = await fetch('/api/speaking', { method: 'POST', body: form, signal: controller.signal })
+      if (!(response.headers.get('content-type') || '').includes('application/json')) throw new Error('Máy chủ chưa phản hồi bản chữ. Bản thu vẫn được giữ; hãy thử lại.')
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Chưa nhận dạng được bản thu. Hãy thử lại.')
+      if (typeof data.transcript !== 'string' || !data.transcript.trim()) throw new Error('Chưa nghe rõ lời nói. Hãy nghe lại micro hoặc thu lại.')
+      if (!controller.signal.aborted && current.current?.id === selected.id) setTranscript(data.transcript)
+    } catch (failure: any) {
+      if (request.current === controller && current.current?.id === selected.id) setTranscriptError(failure?.name === 'AbortError' ? 'Nhận dạng quá lâu. Bản thu vẫn được giữ; bạn có thể thử lại.' : failure.message || 'Chưa chuyển được bản thu thành chữ.')
+    } finally {
+      clearTimeout(timeout)
+      if (request.current === controller) { request.current = null; setTranscribing(false) }
+    }
+  }, [])
+  return { transcript, transcribing, transcriptError, transcribe }
+}
+

@@ -1,0 +1,11 @@
+# Speaking transcription recovery
+
+Live text uses the browser's SpeechRecognition service, which may be unavailable or fail independently of microphone recording. The previous implementation stopped live recognition permanently on a transient network error, marked the service available before receiving words, and awaited AudioContext.resume before starting the recording. A blocked Web Audio resume could leave the screen waiting for the microphone indefinitely.
+
+Recording now proceeds independently of optional waveform analysis. A failed recognition constructor does not discard audio. Transient recognition errors restart within a bounded retry budget; late results after stopping are ignored. Successful recognition availability requires an actual result.
+
+After stopping, the learner can explicitly choose **Chuyển bản thu thành chữ**. This uploads the actual recording to authenticated `transcribe_audio`, using the existing server Whisper provider and key rotation, and displays the returned text read-only. This works without browser SpeechRecognition. The preview is not automatic, is not a submission, does not reserve a grading slot, and does not write to R2. Account usage eligibility, existing audio validation, request size limits and a separate 6-per-minute per-account rate limit apply. Provider calls still use the existing key accounting. Errors keep the recording available for replay/retry. Requests are aborted on recording/account changes and late responses cannot replace another clip's text.
+
+Grading continues to derive its own immutable transcript from the submitted audio. Preview text is never sent as trusted grading input. No scoring, provider rotation, admin setting or database schema change is included. Live text still depends on browser service support; server preview is available after recording, not a streaming transcription service.
+
+Validation: 34 Speaking route/store/scoring tests and 7 recorder/preview regressions pass locally. Browser tests exercise actual MediaRecorder at 320/375/1280px with SpeechRecognition absent, preview failures and retry, read-only results, and unchanged submission behavior. GitHub Actions runs the full Next.js/OpenNext build and browser checks. External AI responses in tests are fixtures; a passing test is not a verification of a user's physical microphone or production provider quota.
