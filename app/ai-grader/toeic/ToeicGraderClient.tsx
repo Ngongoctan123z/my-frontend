@@ -150,11 +150,15 @@ export function ToeicGraderClient() {
 
   // Load usage
   useEffect(() => {
+    const email = practiceOwner
+    let active = true
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
+      if (!active || practiceOwnerRef.current !== email) return
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 7)
     }).catch(() => {})
-  }, [session?.user?.email])
+    return () => { active = false }
+  }, [status, session?.user?.email])
 
   const isSetAlreadyDone = (set: { title?: string; id?: string | number; part1?: any; part2?: any }, historyList = history) => {
     return historyList.some(h => {

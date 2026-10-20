@@ -60,7 +60,7 @@ const root=createRoot(document.getElementById('root'));
 root.render(mode==='shared'?<SharedExamClient exam={shared}/>:mode==='teacher'?<Teacher/>:mode==='speaking'?<SpeakingClient/>:React.createElement({ielts:AiGraderClient,toeic:ToeicGraderClient,topik:TopikGraderClient,hsk:HskGraderClient}[exam]));
 `
 const fixtures = {
-  'next-auth/react': `import {useEffect,useState} from 'react';export function useSession(){const [value,setValue]=useState(window.authState);useEffect(()=>{const update=()=>setValue(window.authState);window.addEventListener('fixture-auth',update);return()=>window.removeEventListener('fixture-auth',update)},[]);return value==='guest'?{data:null,status:'unauthenticated'}:value==='loading'?{data:null,status:'loading'}:{data:{user:{email:'owner@example.test',name:'Share owner'}},status:'authenticated'}}export const signIn=(provider,options)=>window.signIns.push({provider,options});`,
+  'next-auth/react': `import {useEffect,useState,useMemo} from 'react';export function useSession(){const [value,setValue]=useState(window.authState);useEffect(()=>{const update=()=>setValue(window.authState);window.addEventListener('fixture-auth',update);return()=>window.removeEventListener('fixture-auth',update)},[]);return useMemo(()=>value==='guest'?{data:null,status:'unauthenticated'}:value==='loading'?{data:null,status:'loading'}:{data:{user:{email:'owner@example.test',name:'Share owner'}},status:'authenticated'},[value])}export const signIn=(provider,options)=>window.signIns.push({provider,options});`,
   'next/navigation': `export const usePathname=()=>location.pathname;export const useSearchParams=()=>new URLSearchParams(location.search);`,
   'next/link': `import React from 'react';export default function Link({prefetch,...props}){return React.createElement('a',props)}`,
   'next/dynamic': `import React from 'react';export default function dynamic(loader){const C=React.lazy(()=>loader().then(module=>({default:module})));return props=>React.createElement(React.Suspense,{fallback:null},React.createElement(C,props))}`,
@@ -135,7 +135,16 @@ try{
   const created=sharing.getByRole('textbox');await created.waitFor()
   assert.ok((await created.inputValue()).endsWith('/shared/public-share'),'Plus and Pro owners can create guest assignment links from their grader')
   assert.equal(await owner.evaluate(()=>window.signIns.length),0)
-  await assertLayout(owner);await owner.close()
+  await assertLayout(owner)
+  await owner.keyboard.press('Escape')
+  const privateAnswer=owner.locator('textarea:visible:not([disabled]):not([readonly])').last()
+  if(await privateAnswer.count())await privateAnswer.fill('Private learner draft')
+  await owner.evaluate(()=>window.setAuth('guest'))
+  await owner.locator('[data-practice-access-gate]').waitFor()
+  assert.equal(await owner.locator('textarea:visible').evaluateAll(nodes=>nodes.some(node=>!node.disabled&&!node.readOnly)),false,'Logging out locks the answer editor immediately')
+  assert.equal(await owner.locator('textarea').evaluateAll(nodes=>nodes.some(node=>node.value.includes('Private learner draft'))),false,'Logging out clears private answers')
+  assert.equal(await owner.getByRole('dialog').count(),0,'Logging out closes private student and sharing dialogs')
+  await owner.close()
  }
  for(const width of [320,1280]){
  const teacher=await browser.newPage({viewport:{width,height:920}});activePage=teacher;await teacher.goto(origin+'/ai-grader/ielts?mode=teacher&auth=plus')

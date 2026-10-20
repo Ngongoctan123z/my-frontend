@@ -134,11 +134,15 @@ export function HskGraderClient() {
   }, [hsk5Prompt])
 
   useEffect(() => {
+    const email = practiceOwner
+    let active = true
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
+      if (!active || practiceOwnerRef.current !== email) return
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 7)
     }).catch(() => {})
-  }, [session])
+    return () => { active = false }
+  }, [status, session?.user?.email])
 
   const isPromptDone = (content?: string, historyList = history) => {
     if (!content) return false
@@ -184,7 +188,7 @@ export function HskGraderClient() {
       loadHistory()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, accountEmail])
+  }, [status, session?.user?.email])
 
   // Call API with safe content-type checking to prevent HTML parsing errors
   const callApi = async (body: object) => {

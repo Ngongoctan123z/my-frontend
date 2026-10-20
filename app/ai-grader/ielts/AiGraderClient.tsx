@@ -174,17 +174,21 @@ export function AiGraderClient() {
   const [userPlan, setUserPlan] = useState<string>('free')
 
   useEffect(() => {
+    const email = practiceOwner
+    let active = true
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
+      if (!active || practiceOwnerRef.current !== email) return
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 7)
     }).catch(() => {})
 
-    if (session?.user) {
+    if (email) {
       fetch('/api/profile').then(r => r.json()).then(data => {
-        if (data && data.plan) setUserPlan(data.plan)
+        if (active && practiceOwnerRef.current === email && data?.plan) setUserPlan(data.plan)
       }).catch(() => {})
     }
-  }, [session])
+    return () => { active = false }
+  }, [status, session?.user?.email])
 
   const [history, setHistory] = useState<GradedEssayHistory[]>([])
   const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -304,7 +308,7 @@ export function AiGraderClient() {
       loadHistory()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, session])
+  }, [status, session?.user?.email])
 
   const promptQueueT1 = useRef<PromptObject[]>([])
   const promptQueueT2 = useRef<PromptObject[]>([])

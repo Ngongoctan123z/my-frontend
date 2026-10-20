@@ -176,17 +176,21 @@ export function TopikGraderClient() {
 
   // Load usage & plan
   useEffect(() => {
+    const email = practiceOwner
+    let active = true
     fetch('/api/ai-grader').then(r => r.json()).then(data => {
+      if (!active || practiceOwnerRef.current !== email) return
       setUsageCount(data.count || 0)
       setUsageLimit(data.limit || 7)
     }).catch(() => {})
 
-    if (session?.user) {
+    if (email) {
       fetch('/api/profile').then(r => r.json()).then(data => {
-        if (data && data.plan) setUserPlan(data.plan)
+        if (active && practiceOwnerRef.current === email && data?.plan) setUserPlan(data.plan)
       }).catch(() => {})
     }
-  }, [session])
+    return () => { active = false }
+  }, [status, session?.user?.email])
 
   // History is private to the authenticated account.
   const isPromptDone = (content?: string, historyList = history) => {
@@ -232,7 +236,7 @@ export function TopikGraderClient() {
       loadHistory()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, session])
+  }, [status, session?.user?.email])
 
   // Call API with safe content-type checking to prevent HTML parsing errors
   const callApi = async (body: object) => {
