@@ -1,7 +1,6 @@
 import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
-import Script from 'next/script'
 import { ToeicGraderClient } from '@/app/ai-grader/toeic/ToeicGraderClient'
 import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
@@ -19,6 +18,7 @@ export default async function EnToeicPage() {
     '@type': 'WebApplication',
     name: 'TOEIC Writing Practice & Evaluation Tool VNDocs',
     operatingSystem: 'Web',
+    inLanguage: 'en',
     applicationCategory: 'EducationalApplication',
     offers: {
       '@type': 'Offer',
@@ -95,17 +95,17 @@ export default async function EnToeicPage() {
 
   return (
     <div className="py-8 md:px-16 lg:px-20 max-w-[1248px] mx-auto">
-      <Script
+      <script
         id="software-jsonld-ToeicGraderClient-en"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="breadcrumb-jsonld-ToeicGraderClient-en"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="faq-jsonld-ToeicGraderClient-en"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
@@ -231,3 +231,4 @@ export default async function EnToeicPage() {
     </div>
   )
 }
+

@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
+import { PAGE_SEO, pageUrl } from '@/src/lib/pageSeo'
 import { getCoreMetadata } from '@/src/utils/serverSeo'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -7,8 +8,30 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function EnAiGraderIndexPage() {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebApplication',
+        name: PAGE_SEO['/en/ai-grader'].h1,
+        description: PAGE_SEO['/en/ai-grader'].description,
+        url: pageUrl('/en/ai-grader'),
+        operatingSystem: 'Web',
+        applicationCategory: 'EducationalApplication',
+        inLanguage: 'en',
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: pageUrl('/en') },
+          { '@type': 'ListItem', position: 2, name: 'Writing Practice', item: pageUrl('/en/ai-grader') },
+        ],
+      },
+    ],
+  }
   return (
     <div className="py-12 max-w-4xl mx-auto space-y-12">
+      <script id="writing-hub-jsonld-en" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }} />
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-extrabold tracking-tight">Writing Grader & Practice Hub</h1>
         <p className="text-ink-muted text-lg">
@@ -89,3 +112,4 @@ export default function EnAiGraderIndexPage() {
     </div>
   )
 }
+

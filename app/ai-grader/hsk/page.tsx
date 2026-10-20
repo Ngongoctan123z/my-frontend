@@ -1,7 +1,6 @@
 import { PAGE_SEO } from '@/src/lib/pageSeo'
 import { Metadata } from 'next'
 import Link from 'next/link'
-import Script from 'next/script'
 import { HskGraderClient } from './HskGraderClient'
 import { getCoreMetadata, getCustomRouteSeo } from '@/src/utils/serverSeo'
 import { FRONTEND_URL } from '@/src/utils/constants'
@@ -19,6 +18,7 @@ export default async function HskPage() {
     '@type': 'WebApplication',
     name: 'Phòng Luyện Viết HSK Writing Trực Tuyến VNDocs',
     operatingSystem: 'Web',
+    inLanguage: 'vi',
     applicationCategory: 'EducationalApplication',
     offers: {
       '@type': 'Offer',
@@ -95,17 +95,17 @@ export default async function HskPage() {
 
   return (
     <div className="py-2.5 sm:py-6 md:px-16 lg:px-20 max-w-[1248px] mx-auto">
-      <Script
+      <script
         id="software-jsonld-hsk"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="breadcrumb-jsonld-hsk"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
-      <Script
+      <script
         id="faq-jsonld-hsk"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
@@ -213,3 +213,4 @@ export default async function HskPage() {
     </div>
   )
 }
+
