@@ -1,5 +1,5 @@
 import { PAYMENT_PLANS, type PaidPlan } from './plans'
-import { PaymentError, type GpmConfig } from './core'
+import { PaymentError, randomPaymentCode, paymentCodeCandidates, type GpmConfig } from './core'
 export type PaymentDb = { prepare: (query: string) => any; batch: (statements: any[]) => Promise<any[]> }
 export const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS gpm_payment_order (code TEXT PRIMARY KEY,userId TEXT NOT NULL REFERENCES user(id),requestId TEXT NOT NULL,plan TEXT NOT NULL CHECK(plan IN ('plus','pro')),amount INTEGER NOT NULL,bank TEXT NOT NULL,accountNumber TEXT NOT NULL,accountName TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',createdAt INTEGER NOT NULL,expiresAt INTEGER NOT NULL,paidAt INTEGER,UNIQUE(userId,requestId))`,
@@ -28,12 +28,17 @@ export class GpmStore {
     if (existing) { if (existing.plan !== plan) throw new PaymentError(409, 'Mã yêu cầu đã được dùng cho gói khác.'); return existing }
     const now = Date.now(), active = user.plan !== 'free' && (!user.planExpiresAt || Number(user.planExpiresAt) > now)
     if (active && (!user.planExpiresAt || (user.plan === 'pro' && plan === 'plus'))) throw new PaymentError(409, 'Tài khoản đang có gói cao hơn hoặc không hết hạn. Vui lòng liên hệ hỗ trợ.')
-    const code = 'VD' + crypto.randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()
-    await this.db.prepare(`INSERT INTO gpm_payment_order(code,userId,requestId,plan,amount,bank,accountNumber,accountName,createdAt,expiresAt) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(userId,requestId) DO NOTHING`)
-      .bind(code, user.id, requestId, plan, PAYMENT_PLANS[plan].amount, config.bank, config.accountNumber, config.accountName, now, now + 30 * 60_000).run()
-    const order = await this.db.prepare('SELECT * FROM gpm_payment_order WHERE userId=? AND requestId=?').bind(user.id, requestId).first() as GpmOrder
-    if (order.plan !== plan) throw new PaymentError(409, 'Mã yêu cầu đã được dùng cho gói khác.')
-    return order
+    for (let attempt = 0; attempt < 10; attempt++) {
+      // The primary key reserves references permanently, including paid/expired
+      // orders. Retry collisions inside the unique constraint, never overwrite.
+      await this.db.prepare(`INSERT INTO gpm_payment_order(code,userId,requestId,plan,amount,bank,accountNumber,accountName,createdAt,expiresAt) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT DO NOTHING`)
+        .bind(randomPaymentCode(), user.id, requestId, plan, PAYMENT_PLANS[plan].amount, config.bank, config.accountNumber, config.accountName, now, now + 30 * 60_000).run()
+      const order = await this.db.prepare('SELECT * FROM gpm_payment_order WHERE userId=? AND requestId=?').bind(user.id, requestId).first() as GpmOrder | null
+      if (!order) continue
+      if (order.plan !== plan) throw new PaymentError(409, 'Mã yêu cầu đã được dùng cho gói khác.')
+      return order
+    }
+    throw new PaymentError(503, 'Chưa tạo được mã thanh toán. Vui lòng thử lại.')
   }
   async receive(data: any) {
     const at = Date.parse(data.transactionDate)
@@ -45,8 +50,15 @@ export class GpmStore {
     const event = await this.db.prepare('SELECT * FROM gpm_payment_event WHERE id=?').bind(data.id).first()
     if (!event || event.status !== 'received') return { status: 'duplicate' }
     // Reuse the persisted event on retry; never reinterpret a changed payload.
-    const codes = [...new Set((event.content.toUpperCase().match(/VD[A-F0-9]{20}(?![A-F0-9])/g) || []) as string[])]
-    const order = codes.length === 1 ? await this.order(codes[0]) : null
+    const codes = paymentCodeCandidates(event.content), matches: GpmOrder[] = []
+    // Six-letter memo words are not necessarily references. Look up candidates
+    // before deciding whether a memo names exactly one order; reject ambiguity.
+    for (let offset = 0; offset < codes.length && matches.length < 2; offset += 100) {
+      const chunk = codes.slice(offset, offset + 100)
+      const found = await this.db.prepare(`SELECT * FROM gpm_payment_order WHERE code IN (${chunk.map(() => '?').join(',')})`).bind(...chunk).all()
+      matches.push(...found.results)
+    }
+    const order = matches.length === 1 ? matches[0] : null
     if (!order || order.status !== 'pending' || order.bank !== event.gateway || order.accountNumber !== event.accountNumber || order.amount !== event.amount || event.transactionAt < order.createdAt - 120_000 || event.transactionAt > order.expiresAt) {
       await this.db.prepare("UPDATE gpm_payment_event SET status='unmatched' WHERE id=? AND status='received'").bind(data.id).run()
       return { status: 'unmatched' }

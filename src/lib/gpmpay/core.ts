@@ -3,6 +3,18 @@ export class PaymentError extends Error {
   constructor(status: number, message: string) { super(message); this.status = status }
 }
 export type GpmConfig = { enabled: boolean; secret: string; bank: string; accountNumber: string; accountName: string }
+const PAYMENT_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+export function randomPaymentCode() {
+  // 32 symbols divide the byte range evenly; no modulo bias or ambiguous I/O/0/1.
+  return Array.from(crypto.getRandomValues(new Uint8Array(6)), byte => PAYMENT_ALPHABET[byte & 31]).join('')
+}
+export function isPaymentCode(value: string) { return /^(?:[A-Z0-9]{6}|VD[A-F0-9]{20})$/.test(value) }
+export function paymentCodeCandidates(content: string): string[] {
+  const upper = content.toUpperCase()
+  // Keep recognizing previously issued long references. Short references must
+  // be whole tokens, so a fragment of another word/transaction ID cannot match.
+  return [...new Set([...(upper.match(/VD[A-F0-9]{20}(?![A-F0-9])/g) || []), ...(upper.match(/[A-Z0-9]+/g) || []).filter(isPaymentCode)])]
+}
 export async function rawPaymentBody(req: Request, limit = 32_768): Promise<string> {
   if (!req.body) throw new PaymentError(400, 'Thiếu dữ liệu.')
   const reader = req.body.getReader(), chunks: Uint8Array[] = []; let size = 0

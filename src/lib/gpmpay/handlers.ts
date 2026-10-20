@@ -4,7 +4,7 @@ import { getDb } from '@/src/db'
 import { checkAdmin } from '@/src/lib/adminAccess'
 import { checkRateLimit } from '@/src/lib/rateLimit'
 import { paidPlan, PAYMENT_PLANS } from './plans'
-import { PaymentError, parsePaymentJson, rawPaymentBody, validateConfig, verifyWebhook, qrUrl } from './core'
+import { PaymentError, parsePaymentJson, rawPaymentBody, validateConfig, verifyWebhook, qrUrl, isPaymentCode } from './core'
 import { GpmStore, publicOrder, type PaymentDb } from './store'
 
 const response = (data: any, status = 200) => NextResponse.json(data, { status, headers: { 'Cache-Control': 'no-store' } })
@@ -38,7 +38,7 @@ export async function getStatus(req: Request) {
   return run(async () => {
     const email = await owner(); rate(`gpm:status:${email}`, 30)
     const code = new URL(req.url).searchParams.get('code') || ''
-    if (!/^VD[A-F0-9]{20}$/.test(code)) throw new PaymentError(400, 'Mã đơn hàng không hợp lệ.')
+    if (!isPaymentCode(code)) throw new PaymentError(400, 'Mã đơn hàng không hợp lệ.')
     const payments = await store(); await payments.ensure(); const user = await payments.user(email)
     const order = await payments.owned(code, user.id)
     return response({ order: { ...publicOrder(order), qrUrl: qrUrl(order) } })
