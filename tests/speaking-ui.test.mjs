@@ -16,7 +16,7 @@ import React from 'react'; import {createRoot} from 'react-dom/client';
 import {SpeakingClient} from './app/speaking/SpeakingClient';
 import {fallbackCatalog} from './src/lib/speaking';
 import * as storage from './src/utils/speakingStorage';
-window.storage=storage; window.requests=[]; window.microphoneStreams=[]; window.rejectMicrophone=false;
+window.storage=storage; window.requests=[]; window.microphoneStreams=[]; window.rejectMicrophone=false; window.liveDecodedDurations=[];
 window.owner=localStorage.getItem('fixture-owner') || 'speaking-ui@example.test';
 window.changeOwner=email=>{window.owner=email;localStorage.setItem('fixture-owner',email);window.dispatchEvent(new Event('fixture-owner'));};
 const nativeMicrophone=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
@@ -34,6 +34,14 @@ window.fetch=async(url,options={})=>{
  window.requests.push({action:body.action||'usage',index:body.itemIndex,clientId:body.clientSubmissionId});
  const respond=(data,status=200)=>Response.json(data,{status});
  if(!options.body)return respond({count:load().length,limit:100});
+ if(body.action==='transcribe_live'){
+  // Decode each independently closed real MediaRecorder file. A raw timeslice
+  // chunk without its container header would fail this check after the first.
+  const audioContext=new AudioContext();
+  try{const decoded=await audioContext.decodeAudioData(await body.audio.arrayBuffer());window.liveDecodedDurations.push(decoded.duration);}
+  finally{await audioContext.close();}
+  return respond({transcript:window.liveDecodedDurations.length===1?feedback.transcript:'They introduce me to new ideas.'});
+ }
  if(body.action==='transcribe_audio')return window.failPreview?respond({error:'Nhận dạng tạm gián đoạn'},503):respond({transcript:feedback.transcript});
  if(body.action==='catalog')return respond({catalog:fallbackCatalog(body.examType),source:'fixture'});
  if(body.action==='begin_submission'){
@@ -56,7 +64,7 @@ createRoot(document.getElementById('root')).render(<SpeakingClient/>);
 `
 const stubs={
  'next-auth/react':`import {useState,useEffect} from 'react';export function useSession(){const [email,setEmail]=useState(window.owner);useEffect(()=>{const update=()=>setEmail(window.owner);window.addEventListener('fixture-owner',update);return()=>window.removeEventListener('fixture-owner',update)},[]);return {data:{user:{email}},status:'authenticated'}}export const signIn=()=>{};`,
- 'next/navigation':`export const useSearchParams=()=>new URLSearchParams(location.search);`,
+ 'next/navigation':`export const useSearchParams=()=>new URLSearchParams(location.search);export const usePathname=()=>location.pathname;`,
 }
 const bundle=await build({stdin:{contents:entry,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'speaking-fixtures',setup(builder){
  builder.onResolve({filter:/^(next-auth\/react|next\/navigation)$/},args=>({path:args.path,namespace:'fixture'}));
@@ -74,9 +82,21 @@ let activePage
 const url=`http://127.0.0.1:${server.address().port}/speaking`
 const submit=page=>page.getByRole('button',{name:/^Nộp bài & Nhận xét/})
 const waitReady=async page=>{await page.getByRole('heading',{name:'Phòng Luyện Speaking'}).waitFor();await page.getByRole('button',{name:'Chọn đề',exact:true}).waitFor();await page.waitForFunction(()=>!document.querySelector('select[aria-label="Kỳ thi Speaking"]').disabled)}
-const record=async(page,duration=1400)=>{
- await page.getByRole('button',{name:'Bắt đầu thu âm',exact:true}).click();await page.getByRole('button',{name:'Dừng thu âm',exact:true}).waitFor();await page.waitForTimeout(duration);await page.getByRole('button',{name:'Dừng thu âm',exact:true}).click();await page.getByText('Bản thu đã sẵn sàng',{exact:true}).waitFor();
+const record=async(page,duration=1400,checkLive=false)=>{
+ await page.getByRole('button',{name:'Bắt đầu thu âm',exact:true}).click();
+ await page.getByRole('button',{name:'Dừng thu âm',exact:true}).waitFor();await page.waitForTimeout(duration);
+ if(checkLive){
+  await page.waitForFunction(()=>window.liveDecodedDurations.length>=2);
+  await page.locator('[data-live-speaking-text]').filter({hasText:'They introduce me to new ideas.'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Dừng thu âm',exact:true}).isVisible(),true,'Live words appear while recording, before Stop');
+  assert.equal(await page.evaluate(()=>window.requests.some(r=>['transcribe_audio','begin_submission','submit_audio'].includes(r.action))),false,'Live text neither waits for final transcription nor grades');
+  assert.equal(await page.evaluate(()=>window.liveDecodedDurations.every(duration=>duration>2&&duration<5)),true,'Every uploaded segment independently decodes as a complete short recording');
+  assert.equal(await page.locator('[data-live-speaking-text]').getAttribute('contenteditable'),null);
+  await page.screenshot({path:`${output}/live-recording.png`,fullPage:true});
+ }
+ await page.getByRole('button',{name:'Dừng thu âm',exact:true}).click();await page.getByText('Bản thu đã sẵn sàng',{exact:true}).waitFor();
 }
+
 const assertLayout=async page=>{
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'Page overflow');
  assert.equal(await page.locator('[data-grader-actions] button:visible').evaluateAll(buttons=>buttons.some(b=>b.scrollWidth>b.clientWidth+1)),false,'Clipped submit button');
@@ -98,13 +118,13 @@ try{
   assert.equal(await page.evaluate(()=>window.microphoneStreams.length),0,'No microphone until the user starts');
   assert.equal(await page.getByText(/Chọn mục tiêu|Vòng quay|Bắt đầu phiên/).count(),0);
   await page.evaluate(()=>{window.SpeechRecognition=undefined;window.webkitSpeechRecognition=undefined});
-  await record(page,width===375?4300:1400);
-  assert.equal(await page.getByLabel('Nghe lại bản thu',{exact:true}).count(),1);
-  assert.equal(await page.evaluate(()=>window.requests.filter(r=>['begin_submission','submit_audio'].includes(r.action)).length),0,'No AI before Submit');
-  assert.equal(await page.evaluate(()=>window.microphoneStreams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))),true,'Microphone released after stop');
-  assert.equal(await page.evaluate(()=>window.requests.filter(r=>r.action==='transcribe_audio').length),0,'No server STT until explicitly requested');
   await page.evaluate(()=>window.failPreview=true);
-  await page.getByRole('button',{name:'Chuyển bản thu thành chữ',exact:true}).click();await page.getByRole('alert').filter({hasText:'Nhận dạng tạm gián đoạn'}).waitFor();
+  await record(page,width===375?6500:1400,width===375);
+  assert.equal(await page.getByLabel('Nghe lại bản thu',{exact:true}).count(),1);
+  assert.equal(await page.evaluate(()=>window.requests.filter(r=>['begin_submission','submit_audio'].includes(r.action)).length),0,'No grading before Submit');
+  assert.equal(await page.evaluate(()=>window.microphoneStreams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))),true,'Microphone released after stop');
+  await page.getByRole('alert').filter({hasText:'Nhận dạng tạm gián đoạn'}).waitFor();
+  assert.equal(await page.evaluate(()=>window.requests.filter(r=>r.action==='transcribe_audio').length),1,'A newly completed recording automatically transcribes the final sentence');
   await page.evaluate(()=>window.failPreview=false);
   await page.getByRole('button',{name:'Chuyển bản thu thành chữ',exact:true}).click();
   await page.getByRole('button',{name:'Nhận dạng lại bản thu',exact:true}).waitFor();
@@ -114,6 +134,7 @@ try{
   await assertLayout(page);
   await page.waitForTimeout(300);await page.reload();await waitReady(page);await page.getByText('Bản thu đã sẵn sàng',{exact:true}).waitFor();
   assert.equal(await page.getByLabel('Nghe lại bản thu',{exact:true}).count(),1,'IndexedDB restored Blob');
+  assert.equal(await page.evaluate(()=>window.requests.filter(r=>['transcribe_live','transcribe_audio'].includes(r.action)).length),0,'Reloading an existing clip never starts recognition by itself');
   await page.evaluate(()=>window.rejectMicrophone=true);await page.getByRole('button',{name:'Thu lại',exact:true}).click();await page.getByRole('alert').filter({hasText:'Chưa được cấp quyền micro'}).waitFor();
   assert.equal(await page.getByLabel('Nghe lại bản thu',{exact:true}).count(),1,'Permission failure keeps existing clip');
   await page.evaluate(()=>{window.rejectMicrophone=false;window.failIndex=0});await page.getByLabel('Ngôn ngữ nhận xét',{exact:true}).selectOption('English');
@@ -155,4 +176,5 @@ try{
  await context.close();console.log('PASS TOEIC eleven-question practice, partial-result resume and exam preparation cancellation');
 }catch(error){if(activePage&&!activePage.isClosed())await activePage.screenshot({path:`${output}/failure.png`,fullPage:true}).catch(()=>{});await writeFile(`${output}/failure.txt`,String(error.stack||error));throw error}
 finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+
 

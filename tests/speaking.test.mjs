@@ -8,6 +8,66 @@ const rawFeedback = (score = 6) => ({ valid: true, feedback: 'Câu trả lời r
   modelAnswer: 'I enjoy reading because books introduce me to new ideas. For example, I recently read about science.',
 })
 const metrics = { totalDurationMs: 5000, speechDurationMs: 4000, pauseCount: 1, longPauseCount: 0, totalPauseSec: 1, signalDetected: true }
+test('live audio excerpts recognize actual bytes within a short timeout without reserving grading quota', async () => {
+  const h = await fixture()
+  const form = new FormData(); form.set('action', 'transcribe_live'); form.set('audio', h.audio)
+  form.set('transcript', 'Forged text must not become live words')
+  const result = await h.post(form)
+  assert.equal(result.response.status, 200)
+  assert.equal(result.data.transcript, 'I enjoy reading books because they help me learn new things.')
+  assert.equal(result.response.headers.get('cache-control'), 'no-store')
+  const call = h.state.calls[0]
+  assert.equal(call.kind, 'stt'); assert.equal(call.options.maxRetries, 0)
+  assert.ok(call.options.timeout <= 5000)
+  assert.deepEqual(new Uint8Array(await call.payload.file.arrayBuffer()), new Uint8Array(await h.audio.arrayBuffer()))
+  assert.equal((await h.get()).data.count, 0)
+  assert.equal(h.state.r2Writes, 0)
+})
+test('live excerpts use a separate bounded allowance and leave full-record preview available', async () => {
+  const h = await fixture()
+  const form = new FormData(); form.set('action', 'transcribe_live'); form.set('audio', h.audio)
+  for (let i = 0; i < 30; i++) assert.equal((await h.post(form)).response.status, 200)
+  const limited = await h.post(form)
+  assert.equal(limited.response.status, 429)
+  assert.ok(Number(limited.response.headers.get('retry-after')) > 0)
+  form.set('action', 'transcribe_audio')
+  assert.equal((await h.post(form)).response.status, 200)
+  assert.equal(h.state.calls.length, 31)
+  assert.equal((await h.get()).data.count, 0)
+})
+test('live excerpts enforce auth, 600KB size, MIME and remaining usage before calling STT', async () => {
+  const h = await fixture()
+  const form = new FormData(); form.set('action', 'transcribe_live'); form.set('audio', h.audio)
+  h.state.email = null
+  assert.equal((await h.post(form)).response.status, 401)
+  h.state.email = 'grader-test@example.test'
+  form.set('audio', new File([new Uint8Array(600001)], 'large.webm', { type: 'audio/webm' }))
+  assert.equal((await h.post(form)).response.status, 413)
+  form.set('audio', new File([new Uint8Array(3000)], 'invalid.txt', { type: 'text/plain' }))
+  assert.equal((await h.post(form)).response.status, 415)
+  form.set('audio', h.audio)
+  h.sqlite.prepare('UPDATE user SET plan=?').run('free')
+  const today = new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Ho_Chi_Minh' })
+  h.sqlite.prepare('INSERT INTO api_usage VALUES (?,?,?)').run(h.state.email+':speaking', today, 5)
+  assert.equal((await h.post(form)).response.status, 429)
+  assert.equal(h.state.calls.length, 0)
+})
+test('live silence produces no invented words and live provider failures retain key rotation', async () => {
+  const h = await fixture()
+  const form = new FormData(); form.set('action', 'transcribe_live'); form.set('audio', h.audio)
+  h.state.sttHandler = () => ({text:'noise hallucination',segments:[{no_speech_prob:0.99}]})
+  assert.equal((await h.post(form)).response.status, 422)
+  let failedKey
+  h.state.sttHandler = call => {
+    if (!failedKey) { failedKey = call.apiKey; throw { status: 429, message:'rate limited', headers:{'retry-after':'2'} } }
+    assert.notEqual(call.apiKey, failedKey)
+    return {text:'Real spoken words.',segments:[{no_speech_prob:0.01}]}
+  }
+  const result = await h.post(form)
+  assert.equal(result.response.status, 200); assert.equal(result.data.transcript, 'Real spoken words.')
+  assert.equal(h.state.calls.length, 3)
+  assert.equal((await h.get()).data.count, 0)
+})
 test('explicit audio preview returns server-recognized text without grading or reserving a submission', async () => {
   const h = await fixture()
   const form = new FormData(); form.set('action', 'transcribe_audio'); form.set('audio', h.audio)
@@ -363,4 +423,5 @@ test('official library exposes publisher originals and correct PDF pages without
  assert.equal(samples.officialSpeakingSource('ets-sample-vacation-opinion').page,7)
  assert.equal(samples.officialSpeakingSource('ets-sample-television','An edited practice question'),null)
 })
+
 

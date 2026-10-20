@@ -32,13 +32,15 @@ function deadlineTimeout(deadline: number, max: number) {
   return Math.min(max, remaining)
 }
 const extension = (mime: string) => mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : 'webm'
-export async function transcribeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, email: string, audio: File) {
+export async function transcribeSpeakingAudio(db: Awaited<ReturnType<typeof getDb>>, email: string, audio: File, options: { live?: boolean } = {}) {
   const config = await speakingConfig(db)
   const rotation = await createKeyRotation(config.groqKeys, email, createDbKeyRotationStore(db))
-  const deadline = Date.now() + 65_000
+  // Live excerpts must not leave a growing queue of slow transcription jobs.
+  // The same key/model rotation remains available inside this shorter budget.
+  const deadline = Date.now() + (options.live ? 15_000 : 65_000)
   const bytes = Buffer.from(await audio.arrayBuffer())
   const { result } = await generateWithKeyRotation(rotation, ['whisper-large-v3-turbo', 'whisper-large-v3'], async (key, model) => {
-    const groq = new Groq({ apiKey: key, maxRetries: 0, timeout: deadlineTimeout(deadline, 20_000) })
+    const groq = new Groq({ apiKey: key, maxRetries: 0, timeout: deadlineTimeout(deadline, options.live ? 5000 : 20_000) })
     const file = await Groq.toFile(bytes, `recording.${extension(audio.type)}`, { type: audio.type })
     return groq.audio.transcriptions.create({ file, model, response_format: 'verbose_json', language: 'en', temperature: 0, prompt: 'Verbatim English speaking practice. Retain audible um, uh, er, hmm, repeated words, false starts and self-corrections. Ignore wind, fan hum and other non-speech noise. Do not add words or fillers that were not spoken.' })
   }, key => countAttempt(db, key))
@@ -122,3 +124,4 @@ export async function speakingCoachReply(db: Awaited<ReturnType<typeof getDb>>, 
   }, key => countAttempt(db, key))
   return result
 }
+

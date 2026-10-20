@@ -9,6 +9,8 @@ import {
 import { useSession, signIn } from 'next-auth/react'
 import { saveEssayHistory, getEssayHistory, clearEssayHistory, GradedEssayHistory } from '@/src/utils/indexedDB'
 import dynamic from 'next/dynamic'
+import { PracticeAccessGate } from '@/src/components/auth/PracticeAccessGate'
+import { StudentAccessButton } from '@/src/components/common/StudentAccessButton'
 import {WritingSetPicker} from '@/src/components/common/WritingSetPicker'
 import type {WritingPrompt} from '@/src/lib/writingBank'
 import { AnswerInput, AnswerTextarea, GraderActions } from '@/src/components/common/GraderControls'
@@ -61,6 +63,9 @@ export function HskGraderClient() {
   const isEn = pathname.startsWith('/en/') || pathname === '/en'
 
   const { data: session, status } = useSession()
+  const practiceOwner = status === 'authenticated' ? session?.user?.email || null : null
+  const practiceOwnerRef = useRef(practiceOwner)
+  practiceOwnerRef.current = practiceOwner
   const [activeTab, setActiveTab] = useState<HskMode>('HSK_5_FULL')
   const [hsk5Step, setHsk5Step] = useState<1 | 2 | 3>(1)
   const [feedbackLang, setFeedbackLang] = useState<string>(isEn ? 'English' : 'Tiếng Việt')
@@ -99,15 +104,17 @@ export function HskGraderClient() {
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null)
 
   const loadStudentsData = async () => {
+    const email = practiceOwner
+    if (!email) return
     setLoadingStudents(true)
     try {
       const res = await fetch('/api/shared-exams/submissions')
       const data = await res.json()
-      setStudentsData(data.submissions || [])
+      if (practiceOwnerRef.current === email) setStudentsData(data.submissions || [])
     } catch (e) {
       console.error(e)
     } finally {
-      setLoadingStudents(false)
+      if (practiceOwnerRef.current === email) setLoadingStudents(false)
     }
   }
 
@@ -145,9 +152,28 @@ export function HskGraderClient() {
     })
   }
 
-  // Load history (Database for logged in, localStorage for guests)
+  // History is private to the authenticated account.
+
+  useEffect(() => {
+    setHistory([])
+    setStudentsData([])
+    setShowStudentsModal(false)
+    setShowHistoryModal(false)
+    setIsShareModalOpen(false)
+    setExpandedStudentId(null)
+    setLoadingStudents(false)
+    setResult(null)
+    setIsEditorExpanded(false)
+    historyRequestVersion.current++
+    setHsk5Part1Answers({ 91: '', 92: '', 93: '', 94: '', 95: '', 96: '', 97: '', 98: '' })
+    setHsk5Part2Essay('')
+    setHsk5Part3Essay('')
+    setHsk6Essay('')
+  }, [practiceOwner])
+
   const loadHistory = async () => {
-    const email = accountEmail
+    const email = session?.user?.email
+    if (status !== 'authenticated' || !email) { setHistory([]); return }
     const requestVersion = ++historyRequestVersion.current
     const data = await getEssayHistory(email, 'HSK')
     if (requestVersion === historyRequestVersion.current && currentAccount.current === email) setHistory(data)
@@ -279,8 +305,7 @@ export function HskGraderClient() {
 
   const handleCreateSharedLink = async (reqPhone: boolean, reqEmail: boolean): Promise<string | void> => {
     if (!currentPromptObj?.content?.trim()) {
-      alert(isEn ? 'Please draw a prompt first.' : 'Vui lòng bốc đề thi trước.')
-      return
+      throw new Error(isEn ? 'Please draw a prompt first.' : 'Vui lòng bốc đề thi trước.')
     }
     try {
       const res = await fetch('/api/shared-exams', {
@@ -296,13 +321,12 @@ export function HskGraderClient() {
       })
       const data = await res.json()
       if (res.ok) {
-        alert(isEn ? 'Share link generated! Valid for 24h.' : 'Đã tạo link chia sẻ thành công! Link có hiệu lực 24h.\nBạn có thể gửi link này cho học viên.')
         return `${window.location.origin}${isEn ? '/en' : ''}/shared/${data.id}`
       } else {
-        alert(data.error || (isEn ? 'Failed to create link' : 'Không thể tạo liên kết, vui lòng thử lại sau.'))
+        throw new Error(data.error || (isEn ? 'Failed to create link' : 'Không thể tạo liên kết, vui lòng thử lại sau.'))
       }
-    } catch (e) {
-      alert(isEn ? 'Error creating link' : 'Không thể tạo liên kết, vui lòng thử lại sau.')
+    } catch (failure) {
+      throw failure instanceof Error ? failure : new Error(isEn ? 'Error creating link' : 'Không thể tạo liên kết, vui lòng thử lại sau.')
     }
   }
 
@@ -485,17 +509,11 @@ export function HskGraderClient() {
           {/* Action buttons - shown on upper row when screen touches edge (< xl) */}
           <div className="flex xl:hidden min-w-0 max-w-full items-center gap-1.5 overflow-x-auto snap-x pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
-            <button
-              onClick={() => {
-                if (!session) return signIn('google')
+            <StudentAccessButton isEn={isEn} onClick={() => {
+                if (!session?.user?.email) return void signIn('google', { callbackUrl: window.location.href })
                 setShowStudentsModal(true)
-                loadStudentsData()
-              }}
-              className="text-xs font-semibold flex items-center gap-1 px-2 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 shrink-0 whitespace-nowrap"
-            >
-              <Users className="w-3 h-3" />
-              <span>{isEn ? 'Students' : 'Học viên'}</span>
-            </button>
+                void loadStudentsData()
+              }} />
 
             <button
               onClick={() => setShowHistoryModal(true)}
@@ -549,17 +567,11 @@ export function HskGraderClient() {
           {/* Desktop action buttons - same row as tabs only on large screen (>= xl) */}
           <div className="hidden xl:flex items-center gap-2 shrink-0">
 
-            <button
-              onClick={() => {
-                if (!session) return signIn('google')
+            <StudentAccessButton isEn={isEn} onClick={() => {
+                if (!session?.user?.email) return void signIn('google', { callbackUrl: window.location.href })
                 setShowStudentsModal(true)
-                loadStudentsData()
-              }}
-              className="text-xs font-semibold flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 whitespace-nowrap active:scale-95 duration-75"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>{isEn ? 'Students' : 'Học viên'}</span>
-            </button>
+                void loadStudentsData()
+              }} />
 
             <button
               onClick={() => setShowHistoryModal(true)}
@@ -604,7 +616,6 @@ export function HskGraderClient() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!session) return signIn('google')
                   changePrompt()
                 }}
                 disabled={isGenerating || isGrading}
@@ -617,29 +628,7 @@ export function HskGraderClient() {
           </div>
 
           <div className="flex-1">
-            {!session ? (
-              <div className="w-full min-h-[260px] p-6 rounded-xl border border-blue-100 bg-linear-to-b from-blue-50/70 to-white flex flex-col items-center justify-center text-center shadow-xs">
-                <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2.5 shadow-xs">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <h4 className="font-extrabold text-slate-800 text-sm">
-                  {isEn ? 'Sign in to view HSK prompt' : 'Đăng nhập để xem đề thi HSK'}
-                </h4>
-                <p className="text-xs text-slate-500 max-w-sm mt-1 mb-3.5 leading-relaxed">
-                  {isEn 
-                    ? 'Please sign in with Google to view the official prompt, write your answer, and receive AI evaluation.' 
-                    : 'Vui lòng đăng nhập bằng Google để mở khóa xem đề bài, điền câu trả lời và nhận điểm số đánh giá từ AI.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => signIn('google')}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 duration-75 flex items-center gap-1.5"
-                >
-                  <LogIn className="w-4 h-4" />
-                  {isEn ? 'Sign in with Google' : 'Đăng nhập bằng Google'}
-                </button>
-              </div>
-            ) : activeTab === 'HSK_5_FULL' ? (
+            {activeTab === 'HSK_5_FULL' ? (
               !hsk5Data ? (
                 <div className="min-h-[260px] flex flex-col items-center justify-center p-6 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
                   <Loader2 className="w-6 h-6 animate-spin text-blue-600 mb-2" />
@@ -665,7 +654,7 @@ export function HskGraderClient() {
                                 {item.words}
                               </p>
                             </div>
-                            <AnswerInput isEn={isEn} answerLabel={`HSK ${item.id}`}
+                            {practiceOwner && (<AnswerInput isEn={isEn} answerLabel={`HSK ${item.id}`}
                               type="text"
                               value={hsk5Part1Answers[item.id] || ''}
                               onValueChange={value => setHsk5Part1Answers(prev => ({ ...prev, [item.id]: value }))}
@@ -673,6 +662,7 @@ export function HskGraderClient() {
                               placeholder={!session ? (isEn ? "Sign in to answer..." : "Đăng nhập để điền...") : `Nhập câu hoàn chỉnh cho câu ${item.id}...`}
                               className="w-full px-3 py-2 text-sm bg-slate-50 focus:bg-white rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 transition-all font-sans"
                             />
+                            )}
                           </div>
                         ))}
 
@@ -784,6 +774,7 @@ export function HskGraderClient() {
         </div>
 
         {/* Right Column: Tailored Answer Form */}
+        <PracticeAccessGate authenticated={status === 'authenticated' && !!session?.user?.email} loading={status === 'loading'} isEn={isEn}>
         <div className={`h-full ${isEditorExpanded ? 'fixed inset-0 z-50 bg-slate-100 p-4 sm:p-8 flex flex-col overflow-y-auto' : ''} ${activeTab === 'HSK_5_FULL' && hsk5Step === 1 ? 'hidden lg:block' : ''}`}>
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-xs font-semibold">
@@ -845,27 +836,7 @@ export function HskGraderClient() {
 
             {/* Editor Body */}
             <div className="relative flex-1 flex flex-col">
-              {!session && (
-                <div 
-                  onClick={() => signIn('google')}
-                  className="absolute inset-0 z-10 bg-white/80 backdrop-blur-[2px] rounded-lg flex flex-col items-center justify-center cursor-pointer p-4 transition-all hover:bg-white/70"
-                >
-                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mb-2 shadow-xs">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <p className="text-xs font-bold text-slate-800 mb-2.5 text-center">
-                    {isEn ? 'Sign in to write and type your answer' : 'Đăng nhập để điền vào ô làm bài và nộp chấm điểm'}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => signIn('google')}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 duration-75 flex items-center gap-1.5"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    {isEn ? 'Sign in with Google' : 'Đăng nhập Google ngay'}
-                  </button>
-                </div>
-              )}
+
 
               {activeTab === 'HSK_5_FULL' ? (
                 hsk5Step === 1 ? (
@@ -987,6 +958,7 @@ export function HskGraderClient() {
             </div>
           </div>
         </div>
+        </PracticeAccessGate>
       </div>
 
       {/* History Modal */}
@@ -1101,6 +1073,7 @@ export function HskGraderClient() {
         isOpen={showStudentsModal}
         onClose={() => setShowStudentsModal(false)}
         loading={loadingStudents}
+        onCreateShare={() => { setShowStudentsModal(false); setIsShareModalOpen(true) }}
         studentsData={studentsData}
         expandedStudentId={expandedStudentId}
         setExpandedStudentId={setExpandedStudentId}
@@ -1125,4 +1098,5 @@ export function HskGraderClient() {
     </div>
   )
 }
+
 
