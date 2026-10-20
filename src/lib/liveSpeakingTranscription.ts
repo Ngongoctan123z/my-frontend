@@ -1,5 +1,7 @@
 // Each short recording has its own container header. MediaRecorder timeslice
 // blobs cannot safely be submitted individually as complete audio files.
+import { isEnglishSpeechText } from './speechTranscription'
+
 export function startLiveSpeakingTranscription(options: {
   stream: MediaStream
   mimeType?: string
@@ -8,20 +10,25 @@ export function startLiveSpeakingTranscription(options: {
   onError: (message: string) => void
   onServer: () => void
   startedAt: number
+  activity?: () => { sampledMs: number; audibleMs: number }
 }) {
   type Part = { blob: Blob; startMs: number; endMs: number; attempts: number }
   let stopped = false, enabled = false, busy = false, failures = 0
   let timer: ReturnType<typeof setTimeout> | undefined, retryTimer: ReturnType<typeof setTimeout> | undefined
-  let current: MediaRecorder | undefined, request: AbortController | undefined
+  const devices = new Set<MediaRecorder>(), stopTimers = new Set<ReturnType<typeof setTimeout>>()
+  let request: AbortController | undefined
   let queue: Part[] = [], afterMs = 0
+  let committedUntilMs = 0, previousPartEndMs = 0, delivered = ''
   const valid = () => !stopped && options.isCurrent()
   const stop = () => {
     stopped = true; clearTimeout(timer); clearTimeout(retryTimer); queue = []; request?.abort()
-    if (current) {
-      current.ondataavailable = null; current.onstop = null; current.onerror = null
-      if (current.state === 'recording') { try { current.stop() } catch {} }
-      current = undefined
+    for (const timer of stopTimers) clearTimeout(timer)
+    stopTimers.clear()
+    for (const device of devices) {
+      device.ondataavailable = null; device.onstop = null; device.onerror = null
+      if (device.state === 'recording') { try { device.stop() } catch {} }
     }
+    devices.clear()
   }
   const fail = (message: string) => { if (valid()) options.onError(message) }
   const send = async () => {
@@ -38,15 +45,24 @@ export function startLiveSpeakingTranscription(options: {
       const data = await response.json()
       if (!valid() || controller.signal.aborted) return
       // Silence is not an error and must never produce invented words.
-      if (response.status === 422) { failures = 0; return }
+      if (response.status === 422) { failures = 0; options.onError(''); return }
       if (!response.ok) {
         if ([401, 403, 413, 415, 429].includes(response.status)) {
           fail(data.error || 'Dịch vụ nhận dạng trực tiếp đã tạm dừng. Bản thu gốc vẫn tiếp tục.'); stop(); return
         }
         throw new Error(data.error || 'Nhận dạng trực tiếp tạm gián đoạn. Bản thu vẫn tiếp tục.')
       }
-      if (typeof data.transcript === 'string' && data.transcript.trim()) {
-        failures = 0; options.onError(''); options.onText(data.transcript.trim(), part.endMs)
+      if (typeof data.transcript === 'string' && isEnglishSpeechText(data.transcript)) {
+        const words: { word: string; start: number; end: number }[] = Array.isArray(data.words) ? data.words.filter((word: any) => typeof word?.word === 'string' && Number.isFinite(word.start) && Number.isFinite(word.end) && word.start >= 0 && word.end >= word.start && word.end <= (part.endMs - part.startMs) / 1000 + 0.2) : []
+        // Word timestamps distinguish an overlap from a real repeated word.
+        // Older/provider responses without timings use text overlap only when
+        // the two source recordings actually overlap in time.
+        const fresh = words.filter(word => part.startMs + word.end * 1000 > committedUntilMs + 40)
+        const text = words.length ? fresh.map(word => word.word.trim()).join(' ') : part.startMs < previousPartEndMs ? trimTranscriptOverlap(delivered, data.transcript) : data.transcript.trim()
+        if (words.length) committedUntilMs = Math.max(committedUntilMs, ...words.map(word => part.startMs + word.end * 1000))
+        previousPartEndMs = part.endMs
+        if (text) { delivered = (delivered + ' ' + text).trim().slice(-6000); options.onText(text, part.endMs) }
+        failures = 0; options.onError('')
       }
     } catch (failure: any) {
       if (valid()) {
@@ -67,27 +83,40 @@ export function startLiveSpeakingTranscription(options: {
   const capture = () => {
     if (!valid()) return
     const startMs = Date.now() - options.startedAt
+    const activityAtStart = options.activity?.()
     let device: MediaRecorder
     try { device = new MediaRecorder(options.stream, { ...(options.mimeType ? { mimeType: options.mimeType } : {}), audioBitsPerSecond: 64_000 }) }
     catch { fail('Trình duyệt không mở được nhận dạng trực tiếp. Bản thu vẫn tiếp tục.'); stop(); return }
-    current = device
+    devices.add(device)
     const chunks: Blob[] = []
     device.ondataavailable = event => { if (event.data.size) chunks.push(event.data) }
     device.onerror = () => { fail('Nhận dạng trực tiếp bị ngắt. Bản thu gốc vẫn tiếp tục.'); stop() }
     device.onstop = () => {
+      devices.delete(device)
       if (!valid()) return
       const endMs = Date.now() - options.startedAt
       const blob = new Blob(chunks, { type: device.mimeType || options.mimeType || 'audio/webm' })
-      if (blob.size >= 500 && endMs > afterMs) queue.push({ blob, startMs, endMs, attempts: 0 })
+      const activityAtEnd = options.activity?.()
+      // Skip only measured near-silence, not uncertain/quiet speech. Suspended
+      // AudioContext or missing analysis must never prevent transcription.
+      const silent = activityAtStart && activityAtEnd && activityAtEnd.sampledMs - activityAtStart.sampledMs >= (endMs - startMs) * 0.5 && activityAtEnd.audibleMs - activityAtStart.audibleMs < 60
+      if (!silent && blob.size >= 500 && endMs > afterMs) queue.push({ blob, startMs, endMs, attempts: 0 })
       // Before fallback is enabled, only a recent window is needed. Native
       // recognition has already supplied the preceding words.
       if (!enabled && queue.length > 2) queue.shift()
       if (enabled && queue.length > 8) {
         fail('Nhận dạng trực tiếp đang chậm hơn bản thu. Dừng thu để nhận dạng lại toàn bộ.'); stop(); return
       }
-      capture(); void send()
+      void send()
     }
-    try { device.start(); timer = setTimeout(() => { if (valid() && device.state === 'recording') device.stop() }, 3000) }
+    try {
+      device.start()
+      // Start the next independent file before stopping this one. One second
+      // of shared audio protects words crossing a recording boundary.
+      timer = setTimeout(capture, 3000)
+      const stopTimer = setTimeout(() => { stopTimers.delete(stopTimer); if (valid() && device.state === 'recording') device.stop() }, 4000)
+      stopTimers.add(stopTimer)
+    }
     catch { fail('Không khởi động được nhận dạng trực tiếp. Bản thu vẫn tiếp tục.'); stop() }
   }
   capture()
@@ -109,3 +138,4 @@ export function trimTranscriptOverlap(previous: string, incoming: string) {
   }
   return incoming.trim()
 }
+

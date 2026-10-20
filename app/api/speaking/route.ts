@@ -102,8 +102,9 @@ export async function POST(req: NextRequest) {
         const db = await getDb(), store = new SpeakingStore(db.$client as SpeakingD1)
         const usage = await store.usage(email)
         if (usage.count >= usage.limit) throw new SpeakingRequestError(429, 'Bạn đã dùng hết lượt Speaking hôm nay.')
-        const transcript = await transcribeSpeakingAudio(db, email, audio, { live: action === 'transcribe_live' })
-        return NextResponse.json({ transcript }, { headers: { 'Cache-Control': 'no-store' } })
+        let words: import('@/src/lib/speechTranscription').SpeechWord[] = []
+        const transcript = await transcribeSpeakingAudio(db, email, audio, { live: action === 'transcribe_live', onWords: value => { words = value } })
+        return NextResponse.json({ transcript, ...(action === 'transcribe_live' ? { words } : {}) }, { headers: { 'Cache-Control': 'no-store' } })
       }
       const db = await getDb(), store = new SpeakingStore(db.$client as SpeakingD1)
       await store.ensure()
@@ -176,5 +177,6 @@ export async function POST(req: NextRequest) {
     throw new SpeakingRequestError(400, 'Thao tác Speaking không hợp lệ.')
   } catch (error) { return responseError(error) }
 }
+
 
 
