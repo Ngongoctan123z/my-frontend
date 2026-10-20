@@ -37,6 +37,9 @@ jobs:
       - name: Test API key rotation
         run: npm run test:api-rotation
 
+      - name: Test GPMPay payment authentication and atomic settlement
+        run: npm run test:payments
+
       - name: Test private R2 provisioning
         run: node --experimental-vm-modules tests/r2-provision.test.mjs
 
@@ -99,6 +102,7 @@ jobs:
         with:
           name: grader-ui-screenshots
           path: |
+            test-results/gpmpay-ui
             test-results/grader-ui
             test-results/speaking-ui
             test-results/phase2-ui
@@ -110,3 +114,4 @@ jobs:
       # Cloudflare Workers Builds deploys main through the existing GitHub App
       # integration. This workflow verifies the same build without a second
       # deployment path or separate Cloudflare credentials.
+
