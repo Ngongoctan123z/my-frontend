@@ -3,7 +3,7 @@ on:
   push:
     branches: [fix/worker1101-runtime]
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: diagnose-worker-runtime
   cancel-in-progress: true
@@ -17,6 +17,15 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - name: Pin latest compatible Next.js 16.3 patch and matching lint configuration
+        run: |
+          npm install --package-lock-only --ignore-scripts --save-exact next@16.3
+          npm install --package-lock-only --ignore-scripts --save-dev --save-exact eslint-config-next@16.3
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          git diff --cached --quiet || git commit -m 'Pin compatible Next.js 16.3 patch for Cloudflare Worker runtime'
+          git push origin HEAD:fix/worker1101-runtime
       - run: npm ci
       - run: npm run pages:build
       - run: node tests/worker-runtime-smoke.mjs
