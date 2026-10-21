@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "pages:build": "opennextjs-cloudflare build",
     "deploy": "opennextjs-cloudflare deploy",
     "start": "next start",
@@ -44,7 +44,7 @@
     "localforage": "^1.10.0",
     "lucide-react": "^1.52.0",
     "mathjs": "^15.2.0",
-    "next": "^15.1.7",
+    "next": "16.4.2",
     "next-auth": "^5.0.0-beta.32",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
@@ -69,10 +69,9 @@
     "@types/react-dom": "^19.2.7",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
-    "eslint-config-next": "^15.1.7",
+    "eslint-config-next": "16.4.2",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "wrangler": "^4.140.0"
   }
 }
-
