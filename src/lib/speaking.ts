@@ -19,7 +19,7 @@ export type SpeakingFeedback = {
   fluency: { wordsPerMinute: number; fillerCount: number; repetitionCount: number; longPauseCount: number; speechSeconds: number }
   pronunciationNote: string; modelUsed?: string
 }
-export type SpeakingClip = { id: string; blob: Blob; metrics: SpeakingMetrics; createdAt: number; delivery?: SpeakingDelivery }
+export type SpeakingClip = { id: string; blob: Blob; metrics: SpeakingMetrics; createdAt: number; transcriptSource?: 'web-speech' | 'server'; delivery?: SpeakingDelivery }
 export type SpeakingSubmissionItem = { question: SpeakingQuestion; audioHash: string; metrics: SpeakingMetrics; delivery?: SpeakingDelivery }
 export type SpeakingReport = {
   id: string; examType: SpeakingExam; mode: 'practice' | 'exam'; fullTest: boolean
@@ -131,3 +131,4 @@ export async function hashSpeakingAudio(blob: Blob): Promise<string> {
   const hash = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
   return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join('')
 }
+

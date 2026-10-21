@@ -1,5 +1,5 @@
 // Closed public sections stay explicitly retired, including localized aliases.
-export const RETIRED_SECTION_PREFIXES = ['/tai-lieu', '/exams', '/files', '/backend-files', '/exam-papers', '/ai-grader/tai-lieu-tong-hop', '/tools', '/quan-tri-he-thong-123', '/favorites', '/documents', '/de-thi', '/vao-10', '/thpt'] as const
+export const RETIRED_SECTION_PREFIXES = ['/tai-lieu', '/tai-lieu-mien-phi', '/exams', '/files', '/backend-files', '/exam-papers', '/ai-grader/tai-lieu-tong-hop', '/tools', '/quan-tri-he-thong-123', '/favorites', '/documents', '/de-thi', '/vao-10', '/thpt'] as const
 export const SITE_TITLE = 'VNDocs — Luyện Writing và Speaking Online'
 export const SITE_DESCRIPTION = 'Luyện Writing IELTS, TOEIC, TOPIK, HSK và Speaking IELTS, TOEIC. Nhận điểm luyện tập, sửa lỗi chi tiết và theo dõi tiến bộ qua từng bài làm.'
 export const SITE_TITLE_EN = 'VNDocs — Writing and Speaking Practice'
@@ -17,7 +17,7 @@ export function isRetiredPath(path: string): boolean {
 export function hasRetiredSeo(value: unknown): boolean {
   if (typeof value !== 'string') return false
   const text = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase()
-  return /\bthpt\b|vao (?:lop )?10|lop 10|grade[ -]?10|high school|kho (?:de thi|tai lieu)|trang de thi|exam repositor|pdf utilit|pdf tools|productivity|cong cu (?:hoc tap|xu ly file|pdf)|\/tai-lieu|\/exams(?:\/|\b)|\/exam-papers|\/tools(?:\/|\b)/.test(text)
+  return /\bthpt\b|vao (?:lop )?10|lop 10|grade[ -]?10|high school|kho (?:de thi|tai lieu)|tai lieu mien phi|trang de thi|exam repositor|pdf utilit|pdf tools|productivity|cong cu (?:hoc tap|xu ly file|pdf)|\/tai-lieu|\/exams(?:\/|\b)|\/exam-papers|\/tools(?:\/|\b)/.test(text)
 }
 
 export function retiredSectionResponse(): Response {
@@ -26,3 +26,4 @@ export function retiredSectionResponse(): Response {
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet', 'Cache-Control': 'no-store' },
   })
 }
+

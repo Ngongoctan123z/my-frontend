@@ -9,7 +9,7 @@ const entry=`export * from './middleware';export * from './src/lib/siteSections'
 const bundle=await build({stdin:{contents:entry,loader:'ts',resolveDir:process.cwd()},bundle:true,write:false,platform:'node',format:'cjs',packages:'external',define:{'process.env.NEXT_PUBLIC_API_URL':'"https://fixture.invalid"'},plugins:[{name:'aliases',setup(b){b.onResolve({filter:/^@\//},a=>({path:process.cwd()+'/'+a.path.slice(2)+'.ts'}))}}]})
 const module={exports:{}};new Function('require','module','exports',bundle.outputFiles[0].text)(require,module,module.exports)
 const policy=module.exports
-const retired=['/tai-lieu','/tai-lieu?year=2026','/exams/vao-10/toan/ha-noi/2026/paper','/exams/thpt/toan/2026','/files/old.pdf','/backend-files/old.pdf','/exam-papers/2026/vao-10-toan-ca-mau-2026-chuyen.pdf','/ai-grader/tai-lieu-tong-hop','/quan-tri-he-thong-123','/tools/casio','/favorites','/documents','/de-thi','/vao-10','/thpt']
+const retired=['/tai-lieu','/tai-lieu?year=2026','/tai-lieu-mien-phi','/tai-lieu-mien-phi/ielts?source=google','/TAI-LIEU-MIEN-PHI/','/%74ai-lieu-mien-phi','/exams/vao-10/toan/ha-noi/2026/paper','/exams/thpt/toan/2026','/files/old.pdf','/backend-files/old.pdf','/exam-papers/2026/vao-10-toan-ca-mau-2026-chuyen.pdf','/ai-grader/tai-lieu-tong-hop','/quan-tri-he-thong-123','/tools/casio','/favorites','/documents','/de-thi','/vao-10','/thpt']
 
 test('retired public pages and files return 410/noindex before static or country redirects',async()=>{
  for(const path of retired)for(const prefix of ['', '/en']){
@@ -37,7 +37,7 @@ test('sitemap contains only active pages; robots allows Google to discover 410 r
  const map=policy.sitemap();assert.ok(map.some(row=>row.url.endsWith('/speaking')));assert.ok(map.some(row=>row.url.endsWith('/en/ai-grader/hsk')))
  for(const row of map){assert.equal(policy.isRetiredPath(new URL(row.url).pathname),false);assert.equal(row.alternates.languages['x-default'].startsWith('https://vndocs.net/en'),false)}
  assert.equal(map.find(row=>row.url.endsWith('/en/ai-grader/ielts')).alternates.languages.vi,'https://vndocs.net/ai-grader/ielts')
- const disallow=policy.robots().rules[0].disallow;for(const path of ['/tai-lieu','/exams','/files','/exam-papers','/quan-tri-he-thong-123'])assert.ok(!disallow.some(rule=>path.startsWith(rule)))
+ const disallow=policy.robots().rules[0].disallow;for(const path of ['/tai-lieu','/tai-lieu-mien-phi','/en/tai-lieu-mien-phi','/exams','/files','/exam-papers','/quan-tri-he-thong-123'])assert.ok(!disallow.some(rule=>path.startsWith(rule)))
 })
 test('archive metadata and generated PDF files are absent from the active release',async()=>{
  assert.deepEqual(JSON.parse(await readFile('src/data/exams2026.json','utf8')),[])
@@ -52,3 +52,4 @@ test('cached Open Graph titles and descriptions from retired sections are gone',
   const response=await policy.oldOg(new NextRequest('https://vndocs.net/api/og?'+query));assert.equal(response.status,410);assert.match(response.headers.get('x-robots-tag'),/noindex/)
  }
 })
+

@@ -9,7 +9,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
   const slots = [], effects = [], timers = new Map(), streams = [], engines = [], clips = [], active = [], recorders = []
   let nextTimer = 1
   let cursor = 0, now = 1000
-  const frames = new Map(), filters = [], destinations = []
+  const frames = new Map(), filters = [], destinations = [], contexts = []
   const react = {
     useRef(value) { const i = cursor++; return slots[i] ||= { current: value } },
     useState(value) { const i = cursor++; if (!(i in slots)) slots[i] = value; return [slots[i], next => { slots[i] = typeof next === 'function' ? next(slots[i]) : next }] },
@@ -24,6 +24,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
     stop() { this.state = 'inactive';this.stoppedAt=now; this.ondataavailable?.({ data: new Blob([this.header, new Uint8Array(1500)]) }); queueMicrotask(() => this.onstop?.()) }
   }
   class Context {
+    constructor(){contexts.push(this)}
     state = audioContext==='running'?'running':'suspended'; sampleRate = 48000
     resume() { if (audioContext === 'reject') return Promise.reject(new Error('blocked')); return new Promise(() => {}) }
     close() { this.state = 'closed'; return Promise.resolve() }
@@ -34,8 +35,9 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
   }
   class Recognition {
     constructor() { if (recognition === 'throw') throw new Error('Service blocked'); engines.push(this) }
-    start(track) { this.started = true;this.track=track }
-    stop() {}
+    start(...args) { this.started=true;this.args=args;if(recognition!=='no-start')this.onstart?.() }
+    stop() { queueMicrotask(()=>this.onend?.()) }
+    abort() { this.aborted=true }
   }
   const context = createContext({
     URL, Blob, FormData, AbortController, crypto, Uint8Array, console,
@@ -54,12 +56,12 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
   await delivery.link(() => {}); await delivery.evaluate()
   const speech = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/speechTranscription.ts', import.meta.url), 'utf8')), { context })
   await speech.link(()=>{});await speech.evaluate()
-  const input = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/speakingAudioInput.ts', import.meta.url), 'utf8')), { context })
-  await input.link(()=>{});await input.evaluate()
+  const google = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/googleWebSpeech.ts', import.meta.url), 'utf8')), { context })
+  await google.link(()=>speech);await google.evaluate()
   const live = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/lib/liveSpeakingTranscription.ts', import.meta.url), 'utf8')), { context })
   await live.link(() => speech); await live.evaluate()
   const module = new SourceTextModule(stripTypeScriptTypes(await readFile(new URL('../src/hooks/useSpeakingRecorder.ts', import.meta.url), 'utf8')), { context })
-  await module.link(name => name === '../lib/speechDelivery' ? delivery : name === '../lib/liveSpeakingTranscription' ? live : name === '../lib/speechTranscription' ? speech : name === '../lib/speakingAudioInput' ? input : new SyntheticModule(Object.keys(react), function () { for (const [key, value] of Object.entries(react)) this.setExport(key, value) }, { context }))
+  await module.link(name => name === '../lib/speechDelivery' ? delivery : name === '../lib/liveSpeakingTranscription' ? live : name === '../lib/speechTranscription' ? speech : name === '../lib/googleWebSpeech' ? google : new SyntheticModule(Object.keys(react), function () { for (const [key, value] of Object.entries(react)) this.setExport(key, value) }, { context }))
   await module.evaluate()
   const render = (hook = 'useSpeakingRecorder', value, ...args) => {
     cursor = 0
@@ -68,7 +70,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
     return result
   }
   const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve() }
-  return { render, clips, active, streams, engines, recorders, timers, flush, filters, destinations,
+  return { render, clips, active, streams, engines, recorders, timers, flush, filters, destinations, contexts,
     tick(ms) { now += ms },
     async advance(ms) {
       const target = now + ms
@@ -92,7 +94,7 @@ for (const audioContext of ['pending', 'reject', 'missing']) {
     const recorder = h.render()
     await recorder.start()
     assert.equal(h.render().recording, true)
-    h.tick(2000); recorder.stop(); await Promise.resolve()
+    h.tick(2000); recorder.stop(); await h.flush()
     assert.equal(h.clips.length, 1); assert.ok(h.clips[0].blob.size >= 500)
     assert.equal(h.streams[0].getTracks()[0].readyState, 'ended')
     h.unmount()
@@ -102,7 +104,7 @@ test('a broken speech recognition constructor does not destroy the audio recordi
   const h = await harness({ recognition: 'throw' })
   const recorder = h.render(); await recorder.start()
   assert.equal(h.render().recording, true); assert.equal(h.render().recognitionState, 'server')
-  h.tick(2000); recorder.stop(); await Promise.resolve(); assert.equal(h.clips.length, 1)
+  h.tick(2000); recorder.stop(); await h.flush(); assert.equal(h.clips.length, 1)
   h.unmount()
 })
 test('missing browser recognition displays server words before stopping, using independent audio files', async () => {
@@ -131,10 +133,10 @@ test('missing browser recognition displays server words before stopping, using i
   assert.equal(h.timers.size, 0)
   h.unmount()
 })
-test('browser recognition failure switches to server text while full recording continues', async () => {
+test('fatal browser recognition failure switches to server text while full recording continues', async () => {
   const h = await harness({ recognition: 'available', fetchImpl: async () => Response.json({ transcript: 'I enjoy reading, um, books.' }) })
   const recorder = h.render(); await recorder.start()
-  h.engines[0].onerror({ error: 'network' })
+  h.engines[0].onerror({ error: 'service-not-allowed' })
   assert.equal(h.render().recognitionState, 'server')
   assert.equal(h.engines[0].onresult, null, 'Late native events are disconnected')
   await h.advance(4100)
@@ -143,12 +145,12 @@ test('browser recognition failure switches to server text while full recording c
   recorder.stop(); await h.flush(); assert.equal(h.clips.length, 1)
   h.unmount()
 })
-test('browser recognition that starts but returns no words falls back automatically', async () => {
-  const h = await harness({ audioContext:'running',recognition: 'available', fetchImpl: async () => Response.json({ transcript: 'My microphone is working.' }) })
-  await h.render().start(); await h.advance(6500)
-  assert.equal(h.render().recognitionState, 'server')
-  assert.match(h.render().liveText, /microphone is working/)
-  assert.equal(h.render().recording, true)
+test('Google remains the primary engine instead of silently switching after a few seconds', async () => {
+  let calls=0
+  const h = await harness({ audioContext:'running',recognition: 'available', fetchImpl: async () => {calls++;return Response.json({ transcript: 'Thank you.' })} })
+  await h.render().start(); await h.advance(10000)
+  assert.equal(h.render().recognitionState, 'listening');assert.equal(calls,0)
+  assert.equal(h.recorders.length,1,'No concurrent server recorders while Google is working')
   h.render().cancel(); h.unmount()
 })
 test('native recognition still supplies immediate words without server uploads', async () => {
@@ -183,7 +185,7 @@ test('silent chunks never fabricate words, and provider errors preserve the comp
   const h = await harness({ fetchImpl: async () => ++calls === 1 ? Response.json({ error: 'Silence' }, { status: 422 }) : Response.json({ error: 'Dịch vụ nhận dạng tạm ngắt' }, { status: 503 }) })
   const recorder = h.render(); await recorder.start(); await h.advance(4100)
   assert.equal(h.render().liveText, '')
-  assert.equal(h.render().liveError, '')
+  assert.match(h.render().liveError, /Google Web Speech/)
   await h.advance(3000)
   assert.equal(h.render().recording, true)
   assert.match(h.render().liveError, /tạm ngắt/)
@@ -205,7 +207,7 @@ test('a transient server failure retries the same audio once and then resumes li
   assert.equal(uploads.length, 2)
   assert.equal(await uploads[0].text(), await uploads[1].text(), 'Retry preserves the failed words instead of skipping to the next chunk')
   assert.equal(h.render().liveText, 'The recovered first sentence.')
-  assert.equal(h.render().liveError, '')
+  assert.match(h.render().liveError, /Google Web Speech/)
   h.render().cancel(); h.unmount()
 })
 test('rate limits stop live requests without interrupting the full recording', async () => {
@@ -264,14 +266,13 @@ test('new recordings are completed automatically while restored clips do not tri
   h.unmount()
 })
 
-test('noise-filtered audio feeds both recorders and native English recognition, then releases every track',async()=>{
+test('original microphone audio is recorded independently of Web Audio and Google uses microphone start()',async()=>{
  const h=await harness({audioContext:'running',recognition:'available'})
  await h.render().start()
- assert.equal(h.filters.length,2);assert.equal(h.filters[0].type,'highpass');assert.equal(h.filters[0].frequency.value,80)
- assert.equal(h.filters[1].type,'lowpass');assert.equal(h.filters[1].frequency.value,8000)
- assert.ok(h.recorders.every(recorder=>recorder.stream===h.destinations[0].stream))
- assert.equal(h.engines[0].lang,'en-US');assert.equal(h.engines[0].track,h.destinations[0].stream.getAudioTracks()[0])
- h.render().cancel();assert.equal(h.destinations[0].stream.getTracks()[0].readyState,'ended');assert.equal(h.streams[0].getTracks()[0].readyState,'ended');h.unmount()
+ assert.equal(h.filters.length,0);assert.equal(h.destinations.length,0)
+ assert.equal(h.recorders.length,1);assert.equal(h.recorders[0].stream,h.streams[0])
+ assert.equal(h.engines[0].lang,'en-US');assert.equal(h.engines[0].args.length,0)
+ h.render().cancel();assert.equal(h.streams[0].getTracks()[0].readyState,'ended');h.unmount()
 })
 test('overlapping complete files cover boundary words and timestamps keep genuine repetitions',async()=>{
  let calls=0
@@ -304,13 +305,86 @@ test('a natural pause and no-speech event never disable working native English r
  assert.equal(h.render().recognitionState,'listening');assert.equal(h.render().liveText,'I enjoy reading.')
  h.render().cancel();h.unmount()
 })
-test('native hypotheses are replaced on fallback and obvious foreign script is not shown',async()=>{
- const h=await harness({recognition:'available',fetchImpl:async()=>Response.json({transcript:'I enjoy reading books.'})})
+test('native hypotheses survive a fallback that continues new audio, while foreign script is not shown',async()=>{
+ const h=await harness({recognition:'available',fetchImpl:async()=>Response.json({transcript:'books about science.'})})
  await h.render().start();const engine=h.engines[0]
  engine.onresult({resultIndex:0,results:[Object.assign([{transcript:'你好世界'}],{isFinal:true})]});assert.equal(h.render().liveText,'')
- engine.onresult({resultIndex:0,results:[Object.assign([{transcript:'I enjoy read'}],{isFinal:false})]})
- assert.equal(h.render().liveText,'I enjoy read');engine.onerror({error:'network'});await h.advance(4100)
- assert.equal(h.render().liveText,'I enjoy reading books.')
+ engine.onresult({resultIndex:0,results:[Object.assign([{transcript:'I enjoy reading'}],{isFinal:false})]})
+ assert.equal(h.render().liveText,'I enjoy reading');engine.onerror({error:'service-not-allowed'});await h.advance(4100)
+ assert.equal(h.render().liveText,'I enjoy reading books about science.')
  h.render().cancel();h.unmount()
+})
+
+test('Stop accepts the Google final sentence before saving and releases the microphone afterwards',async()=>{
+ const h=await harness({recognition:'available'});await h.render().start();const engine=h.engines[0]
+ engine.onresult({resultIndex:0,results:[Object.assign([{transcript:'I enjoy read'}],{isFinal:false})]})
+ engine.stop=()=>queueMicrotask(()=>{engine.onresult?.({resultIndex:0,results:[Object.assign([{transcript:'I enjoy reading books.'}],{isFinal:true})]});engine.onend?.()})
+ h.tick(18000);h.render().stop();await h.flush()
+ assert.equal(h.clips.length,1);assert.equal(h.clips[0].delivery.segments.map(segment=>segment.text).join(' '),'I enjoy reading books.')
+ assert.equal(h.clips[0].transcriptSource,'web-speech');assert.equal(h.clips[0].metrics.totalDurationMs,18000)
+ assert.equal(h.streams[0].getTracks()[0].readyState,'ended');assert.equal(h.timers.size,0);h.unmount()
+})
+test('a Google service that never finishes cannot hang Stop or inflate the recorded duration',async()=>{
+ const h=await harness({recognition:'available'});await h.render().start();const engine=h.engines[0];engine.stop=()=>{}
+ engine.onresult({resultIndex:0,results:[Object.assign([{transcript:'A real spoken sentence.'}],{isFinal:false})]})
+ const stale=engine.onresult;h.tick(2000);h.render().stop();await h.flush();assert.equal(h.render().finishing,true)
+ await h.advance(1600);assert.equal(h.clips.length,1);assert.equal(h.render().finishing,false);assert.equal(h.clips[0].metrics.totalDurationMs,2000)
+ stale({resultIndex:0,results:[Object.assign([{transcript:'Late wrong account words'}],{isFinal:true})]});assert.equal(h.render().liveText,'A real spoken sentence.')
+ assert.equal(h.timers.size,0);assert.equal(engine.aborted,true);h.unmount()
+})
+test('cancelling during Google finalization never saves a stale clip',async()=>{
+ const h=await harness({recognition:'available'});await h.render().start();h.engines[0].stop=()=>{}
+ h.tick(2000);h.render().stop();await h.flush();assert.equal(h.render().finishing,true)
+ h.render().cancel();await h.advance(2000);assert.equal(h.clips.length,0);assert.equal(h.timers.size,0);h.unmount()
+})
+test('Google continuous recognition restarts after natural end without losing prior results',async()=>{
+ const h=await harness({recognition:'available'});await h.render().start()
+ h.engines[0].onresult({resultIndex:0,results:[Object.assign([{transcript:'I enjoy reading.'}],{isFinal:true})]})
+ await h.advance(1000);h.engines[0].onend();await h.advance(300)
+ assert.equal(h.engines.length,2);assert.equal(h.engines[1].args.length,0)
+ h.engines[1].onresult({resultIndex:0,results:[Object.assign([{transcript:'Books help me learn.'}],{isFinal:false})]})
+ assert.equal(h.render().liveText,'I enjoy reading. Books help me learn.')
+ h.render().cancel();assert.equal(h.timers.size,0);h.unmount()
+})
+test('Google network errors retry with backoff and expose a clear failure after the third attempt',async()=>{
+ const h=await harness({recognition:'available',fetchImpl:async()=>Response.json({transcript:'Server recovery'})});await h.render().start()
+ h.engines[0].onerror({error:'network'});h.engines[0].onend();assert.equal(h.render().recognitionState,'connecting')
+ await h.advance(1100);assert.equal(h.engines.length,2)
+ h.engines[1].onerror({error:'network'});h.engines[1].onend();await h.advance(2100);assert.equal(h.engines.length,3)
+ h.engines[2].onerror({error:'network'});assert.match(h.render().liveError,/3 lần/);assert.equal(h.render().recording,true)
+ h.render().retryRecognition();assert.equal(h.engines.length,4);assert.equal(h.render().recognitionState,'listening');assert.equal(h.render().liveError,'')
+ h.render().cancel();assert.equal(h.timers.size,0);h.unmount()
+})
+test('fresh Google transcripts are preserved instead of automatically being replaced by a short server guess',async()=>{
+ let calls=0
+ const h=await harness({fetchImpl:async()=>{calls++;return Response.json({transcript:'Thank you.'})}})
+ const clip={id:'google',createdAt:2000,blob:new Blob([new Uint8Array(1500)]),transcriptSource:'web-speech',delivery:{recognitionAvailable:true,segments:[{text:'My name is Anna and I enjoy learning English.',atMs:100,final:true}],pauses:[]}}
+ h.render('useSpeakingTranscript',clip,true);await h.flush()
+ assert.equal(calls,0);assert.equal(h.render('useSpeakingTranscript',clip,true).transcript,'My name is Anna and I enjoy learning English.')
+ await h.render('useSpeakingTranscript',clip,true).transcribe();assert.equal(calls,1);assert.equal(h.render('useSpeakingTranscript',clip,true).source,'server')
+ assert.equal(clip.delivery.segments[0].text,'My name is Anna and I enjoy learning English.');h.unmount()
+})
+test('a first Google result delivered after Stop stays within the saved audio timeline',async()=>{
+ const h=await harness({recognition:'available'});await h.render().start();const engine=h.engines[0]
+ engine.stop=()=>{h.tick(200);engine.onresult?.({resultIndex:0,results:[Object.assign([{transcript:'The final spoken words.'}],{isFinal:true})]});engine.onend?.()}
+ h.tick(2000);h.render().stop();await h.flush()
+ assert.equal(h.clips.length,1);assert.equal(h.clips[0].metrics.totalDurationMs,2000)
+ assert.equal(h.clips[0].delivery.segments[0].atMs,2000,'Final ASR latency must not make the submission invalid')
+ h.unmount()
+})
+test('an engine that never starts is not shown as listening and reports the actual connection failure',async()=>{
+ const h=await harness({recognition:'no-start'});await h.render().start()
+ assert.equal(h.render().recognitionState,'connecting');await h.advance(5100)
+ assert.equal(h.render().recognitionState,'server');assert.match(h.render().liveError,/Google chưa mở/)
+ assert.equal(h.render().recording,true);h.render().cancel();assert.equal(h.timers.size,0);h.unmount()
+})
+test('suspended analysis cannot fabricate a long pause while the original recording and Google continue',async()=>{
+ const h=await harness({recognition:'available',audioContext:'running',signal:false});await h.render().start()
+ h.engines[0].onresult({resultIndex:0,results:[Object.assign([{transcript:'Actual spoken words.'}],{isFinal:true})]})
+ await h.advance(500);h.contexts[0].state='suspended';await h.advance(10000)
+ assert.equal(h.render().pauseMs,0);assert.equal(h.render().liveText,'Actual spoken words.')
+ h.render().stop();await h.flush();assert.equal(h.clips.length,1)
+ assert.equal(h.clips[0].delivery.pauses.length,0);assert.ok(h.clips[0].metrics.totalPauseSec<1)
+ assert.equal(h.recorders[0].stream,h.streams[0]);h.unmount()
 })
 

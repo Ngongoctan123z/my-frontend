@@ -148,7 +148,7 @@ try{
    Object.defineProperty(navigator,'mediaDevices',{value:{getUserMedia:async()=>({getTracks:()=>[{stop:()=>{window.trackStopped=true}}]})}})
    window.MediaRecorder=class{static isTypeSupported(){return true}constructor(){this.state='inactive';this.mimeType='audio/webm'}start(){this.state='recording'}stop(){this.state='inactive';this.ondataavailable({data:new Blob([new Uint8Array(3000)])});queueMicrotask(()=>this.onstop())}}
    window.AudioContext=class{constructor(){this.sampleRate=48000;this.state='running'}resume(){return Promise.resolve()}close(){this.state='closed';return Promise.resolve()}createMediaStreamSource(){return {connect(){}}}createAnalyser(){return {fftSize:1024,frequencyBinCount:512,getByteTimeDomainData(buffer){for(let i=0;i<buffer.length;i++)buffer[i]=window.voiced?128+(i%2?20:-20):128},getByteFrequencyData(buffer){buffer.fill(0);if(window.voiced)for(let i=4;i<70;i++)buffer[i]=100}}}}
-   window.SpeechRecognition=class{constructor(){window.recognition=this;this.results=[]}start(){}stop(){window.stoppedRecognition=true}abort(){}emit(text,final=true,index=this.results.length){const row=[{transcript:text}];row.isFinal=final;this.results[index]=row;this.onresult({resultIndex:index,results:this.results})}}
+   window.SpeechRecognition=window.webkitSpeechRecognition=class{constructor(){window.recognition=this;this.results=[]}start(){this.onstart?.()}stop(){window.stoppedRecognition=true;queueMicrotask(()=>this.onend?.())}abort(){}emit(text,final=true,index=this.results.length){const row=[{transcript:text}];row.isFinal=final;this.results[index]=row;this.onresult({resultIndex:index,results:this.results})}}
   })
   await page.goto('http://127.0.0.1:'+server.address().port+'/?mode=recorder');await page.getByRole('button',{name:'Bắt đầu thu âm',exact:true}).click();await page.clock.runFor(500)
   await page.evaluate(()=>window.recognition.emit('um I I',false));await page.waitForFunction(()=>document.querySelector('[data-live-speaking-text]')?.textContent.includes('um I I'))
@@ -163,3 +163,4 @@ try{
  console.log('PASS live interim/final words, preserved um/repetition, 1.5s + 1s dots, frozen evidence and resource cleanup')
 } catch(error){if(active&&!active.isClosed())await active.screenshot({path:output+'/failure.png',fullPage:true});throw error}
 finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+

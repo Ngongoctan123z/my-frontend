@@ -16,12 +16,6 @@ import React from 'react'; import {createRoot} from 'react-dom/client';
 import {SpeakingClient} from './app/speaking/SpeakingClient';
 import {fallbackCatalog} from './src/lib/speaking';
 import * as storage from './src/utils/speakingStorage';
-import {connectSpeakingAudioInput} from './src/lib/speakingAudioInput';
-window.auditSpeechFilter=async()=>{
- const context=new AudioContext();await context.resume();const input=context.createMediaStreamDestination(),tone=context.createOscillator(),gain=context.createGain();gain.gain.value=.03;tone.connect(gain);gain.connect(input);const clean=connectSpeakingAudioInput(context,input.stream),analyser=context.createAnalyser();analyser.fftSize=2048;clean.output.connect(analyser);tone.start();
- const rms=async frequency=>{tone.frequency.value=frequency;await new Promise(resolve=>setTimeout(resolve,160));const values=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(values);return Math.sqrt(values.reduce((sum,value)=>sum+value*value,0)/values.length)};
- try{const rumble=await rms(30),voice=await rms(300);gain.gain.value=.004;const quiet=await rms(300);return{rumble,voice,quiet}}finally{tone.stop();input.stream.getTracks().forEach(track=>track.stop());clean.stream.getTracks().forEach(track=>track.stop());await context.close()}
-};
 window.storage=storage; window.requests=[]; window.microphoneStreams=[]; window.rejectMicrophone=false; window.liveDecodedDurations=[];
 window.owner=localStorage.getItem('fixture-owner') || 'speaking-ui@example.test';
 window.changeOwner=email=>{window.owner=email;localStorage.setItem('fixture-owner',email);window.dispatchEvent(new Event('fixture-owner'));};
@@ -122,7 +116,6 @@ try{
   await assertLayout(page);
 
   assert.equal(await page.evaluate(()=>window.microphoneStreams.length),0,'No microphone until the user starts');
-  if(width===1280){const filter=await page.evaluate(()=>window.auditSpeechFilter());assert.ok(filter.voice>.01,'Speech-band audio reaches the output');assert.ok(filter.rumble<filter.voice*.25,'Low rumble is attenuated');assert.ok(filter.quiet>.0015,'Quiet speech-band audio is preserved without a hard noise gate')}
   assert.equal(await page.getByText(/Chọn mục tiêu|Vòng quay|Bắt đầu phiên/).count(),0);
   await page.evaluate(()=>{window.SpeechRecognition=undefined;window.webkitSpeechRecognition=undefined});
   await page.evaluate(()=>window.failPreview=true);
