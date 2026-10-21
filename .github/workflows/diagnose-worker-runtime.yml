@@ -1,0 +1,28 @@
+name: Diagnose built Worker runtime
+on:
+  push:
+    branches: [fix/worker1101-runtime]
+permissions:
+  contents: read
+concurrency:
+  group: diagnose-worker-runtime
+  cancel-in-progress: true
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run pages:build
+      - run: node tests/worker-runtime-smoke.mjs
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: worker-runtime-diagnostics
+          path: test-results/worker-runtime.log
+          if-no-files-found: ignore
