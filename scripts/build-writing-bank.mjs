@@ -17,7 +17,7 @@ for(const row of bank.questions){
 const charts=JSON.parse(await readFile('src/data/writing-bank/topikCharts.json','utf8'));assert.equal(charts.length,50)
 assert.equal(new Set(charts.map(row=>row.sha256)).size,50)
 for(const chart of charts){assert.equal(createHash('sha256').update(await readFile('public'+chart.imageUrl)).digest('hex'),chart.sha256);assert.ok(chart.verifiedData&&chart.source.documentUrl&&chart.source.pdfPage)}
-await mkdir('app/api/ai-grader',{recursive:true});await writeFile('app/api/ai-grader/writing-seed.generated.ts','// Build-generated private grading bank. Server imports only.\nexport const writingSeed = '+JSON.stringify(bank)+'\n')
+await mkdir('app/api/ai-grader',{recursive:true});await writeFile('app/api/ai-grader/writing-seed.generated.ts','// Build-generated private grading bank. Server imports only.\nimport type {WritingRow,WritingSetRecord} from \"@/src/lib/writingBank\"\nexport const writingSeed: {questions:WritingRow[];sets:WritingSetRecord[]} = '+JSON.stringify(bank)+'\n')
 await rm('public/exam-data/writing-bank-v1.json',{force:true})
 console.log('PASS Writing bank: 150 complete sets, 300 distinct prompts, 50 source-verified charts, 50 real photos and 50 full-length HSK 6 passages')
 

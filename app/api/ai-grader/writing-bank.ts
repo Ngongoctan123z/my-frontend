@@ -5,7 +5,7 @@ import type {SpeakingD1,D1Statement} from '../speaking/store'
 const marker='TOPIK_HSK_150_SETS_V1'
 const parentType=(exam:WritingExam)=>'WRITING_SET_'+exam
 type Seed={questions:WritingRow[];sets:WritingSetRecord[]}
-async function loadWritingSeed():Promise<Seed>{ return writingSeed as Seed }
+async function loadWritingSeed():Promise<Seed>{ return writingSeed }
 export async function ensureWritingBank(db:SpeakingD1,loadSeed=loadWritingSeed){
  if(await db.prepare('SELECT value FROM system_config WHERE key=?').bind(marker).first())return
  const bank=await loadSeed(),now=Date.now(),rows:WritingRow[]=[...bank.questions,...bank.sets.map(set=>({id:set.id,type:parentType(set.exam),content:JSON.stringify(set)}))],statements:D1Statement[]=[]

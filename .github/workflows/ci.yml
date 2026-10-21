@@ -78,7 +78,9 @@ jobs:
         run: npm run pages:build
 
       - name: Run built Worker with local D1 and R2
-        run: node tests/worker-runtime-smoke.mjs
+        run: |
+          node tests/worker-runtime-smoke.mjs
+          node tests/public-bundle-privacy.test.mjs
 
       - name: Install browser for grader UI checks
         run: npx playwright install --with-deps chromium
