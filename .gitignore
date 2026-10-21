@@ -37,3 +37,7 @@ public/exam-media/pdf.worker.min.mjs
 
 # Local built-Worker test config and disposable D1/R2 state
 .worker-smoke/
+
+
+# Private build-generated grading bank (never a public asset)
+app/api/ai-grader/writing-seed.generated.ts

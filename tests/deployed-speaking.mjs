@@ -45,7 +45,7 @@ for (let attempt = 1; attempt <= 24; attempt++) {
       const catalog=await response.json();assert.equal(catalog.source,'database');assert.equal(catalog.totalSets,50,exam+' complete D1 sets')
       const last=catalog.sets.at(-1),loaded=await request('/api/ai-grader',{action:'get_writing_set',exam,id:last.id}),{set}=await loaded.json();assert.equal(loaded.status,200)
       for(const [type,id] of Object.entries(last.children))assert.equal(set.questions[type].id,id)
-      if(exam==='TOPIK'){const q=set.questions.TOPIK_53;assert.ok(q.imageDescription&&q.source.documentUrl);const image=await request(q.imageUrl);assert.equal(image.status,200);assert.match(image.headers.get('content-type'),/image/)}
+      if(exam==='TOPIK'){const q=set.questions.TOPIK_53;assert.equal(q.imageDescription,undefined);assert.ok(q.source.documentUrl);const image=await request(q.imageUrl);assert.equal(image.status,200);assert.match(image.headers.get('content-type'),/image/)}
       if(exam==='HSK_5'){const body=JSON.parse(set.questions.HSK_5.content);assert.equal(body.part1.length,8);assert.equal(body.part2.keywords.length,5);assert.match(body.part3.imageUrl,/images.unsplash.com/)}
       if(exam==='HSK_6')assert.ok(set.questions.HSK_6.content.length>1000)
       console.log(exam+' bank: 50 complete D1 sets and exact child IDs')
@@ -69,3 +69,4 @@ for (let attempt = 1; attempt <= 24; attempt++) {
   }
 }
 throw lastError
+

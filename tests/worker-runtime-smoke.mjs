@@ -36,7 +36,7 @@ try {
   }
   const checks = [
     ['/', 200], ['/en', 200], ['/ai-grader', 200], ['/speaking', 200],
-    ['/sitemap.xml', 200], ['/api/auth/session', 200],
+    ['/sitemap.xml', 200], ['/exam-data/writing-bank-v1.json', 404], ['/api/auth/session', 200],
     ['/api/speaking/audio/' + '0'.repeat(64) + ':0', 401], ['/api/admin?type=configs', 401],
     ['/tool', 410], ['/convert', 410], ['/en/tools/convert', 410], ['/de-thi-thpt-2026', 410],
   ]
@@ -59,3 +59,4 @@ finally {
   if (failure) console.error('WORKER_RUNTIME_LOG\n' + log.slice(-45000))
 }
 if (failure) throw failure
+

@@ -55,7 +55,7 @@ window.fetch=async(url,options={})=>{
 };
 function Teacher(){const [students,setStudents]=useState(false),[share,setShare]=useState(false),[empty,setEmpty]=useState(false);return <><div className="flex flex-col items-start gap-3 p-4 sm:flex-row"><StudentAccessButton onClick={()=>setStudents(true)} isEn={false}/><button onClick={()=>setShare(true)}>Chia sẻ đề thi</button><button onClick={()=>setEmpty(value=>!value)}>Đổi dữ liệu kiểm tra</button></div><StudentManagementModal isOpen={students} onClose={()=>setStudents(false)} onCreateShare={()=>setShare(true)} loading={false} studentsData={empty?[]:submissions}/><ShareExamModal isOpen={share} onClose={()=>setShare(false)} onConfirm={async(requirePhone,requireEmail)=>{window.shareOptions={requirePhone,requireEmail};if(window.failCreate)throw new Error('Temporary create failure');return location.origin+'/shared/public-share'}}/></>}
 const mode=params.get('mode'),exam=params.get('exam')||'ielts';
-const shared={id:'public-share',examType:'IELTS_TASK_2',content:'Discuss the benefits of reading and explain your opinion.',requirePhone:true,requireEmail:false,expiresAt:Date.now()+86400000};
+const shared={id:'public-share',examType:'IELTS_TASK_2',content:'Discuss the benefits of reading and explain your opinion.\\n\\nContext: SHARED_PRIVATE_AI_CONTEXT_6391',imageDescription:'SHARED_PRIVATE_AI_CONTEXT_6391',creatorId:'private-owner@example.invalid',requirePhone:true,requireEmail:false,expiresAt:Date.now()+86400000};
 const root=createRoot(document.getElementById('root'));
 root.render(mode==='shared'?<SharedExamClient exam={shared}/>:mode==='teacher'?<Teacher/>:mode==='speaking'?<SpeakingClient/>:React.createElement({ielts:AiGraderClient,toeic:ToeicGraderClient,topik:TopikGraderClient,hsk:HskGraderClient}[exam]));
 `
@@ -104,7 +104,7 @@ try{
   await speaking.locator('[data-practice-access-gate]').getByRole('button').first().click();await speaking.waitForFunction(()=>window.signIns.length===1);await assertLayout(speaking);await speaking.close()
 
   const student=await browser.newPage({viewport:{width,height:920}});activePage=student;await student.goto(origin+'/shared/public-share?mode=shared')
-  await student.getByRole('heading',{level:1}).waitFor();assert.equal(await student.locator('[data-practice-access-gate]').count(),0,'Public shared links must not require account login')
+  await student.getByRole('heading',{level:1}).waitFor();assert.ok(!(await student.locator('body').innerText()).includes('SHARED_PRIVATE_AI_CONTEXT_6391'));assert.equal(await student.locator('[data-practice-access-gate]').count(),0,'Public shared links must not require account login')
   await student.getByRole('textbox',{name:/Họ và tên|Full name/i}).fill('Linh Nguyen')
   await student.getByRole('textbox',{name:/Số điện thoại|Phone/i}).fill('0901234567')
   await student.locator('textarea').fill('Reading helps people learn because books expose them to different perspectives. '.repeat(30))
@@ -164,3 +164,4 @@ try{
  console.log('PASS guest prompt access, authenticated answer gates, public student submissions and teacher share controls')
 }catch(error){if(activePage&&!activePage.isClosed())await activePage.screenshot({path:output+'/failure.png',fullPage:true}).catch(()=>{});await writeFile(output+'/failure.txt',String(error.stack||error));throw error}
 finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+

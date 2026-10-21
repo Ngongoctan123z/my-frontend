@@ -174,7 +174,7 @@ export async function createGraderHarness({ route = 'app/api/ai-grader/route.ts'
       ...(state.r2Enabled?{SPEAKING_AUDIO:bucket}:{}),
       ...(state.assetsDisabled?{}:{ASSETS:{fetch:async request=>{
         if(new URL(request.url).pathname!=='/exam-data/writing-bank-v1.json')return new Response(null,{status:404})
-        return new Response(await readFile(resolve(root,'public/exam-data/writing-bank-v1.json'),'utf8'),{headers:{'Content-Type':'application/json'}})
+        return new Response(JSON.stringify((await import('../../app/api/ai-grader/writing-seed.generated.ts')).writingSeed),{headers:{'Content-Type':'application/json'}})
       }}}),
     }})},
     'next/server': { NextRequest: Request, NextResponse: Response },
@@ -239,4 +239,5 @@ export async function createGraderHarness({ route = 'app/api/ai-grader/route.ts'
     },
   }
 }
+
 

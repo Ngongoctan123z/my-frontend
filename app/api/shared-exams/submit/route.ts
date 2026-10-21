@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { learnerGradingResult } from '@/src/lib/publicWritingPrompt'
 import { getDb } from '@/src/db'
 import { sharedExams, sharedExamSubmissions, users, apiUsages } from '@/src/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -80,10 +81,11 @@ export async function POST(req: NextRequest) {
       createdAt: new Date()
     })
 
-    return NextResponse.json({ success: true, result: gradedResult })
+    return NextResponse.json({ success: true, result: learnerGradingResult(gradedResult) })
 
   } catch (error: any) {
     console.error(error)
     return NextResponse.json({ error: error.message || 'Lỗi hệ thống' }, { status: 500 })
   }
 }
+
