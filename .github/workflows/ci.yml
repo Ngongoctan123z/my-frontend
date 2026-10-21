@@ -72,6 +72,9 @@ jobs:
       - name: Build Next.js and OpenNext
         run: npm run pages:build
 
+      - name: Run built Worker with local D1 and R2
+        run: node tests/worker-runtime-smoke.mjs
+
       - name: Install browser for grader UI checks
         run: npx playwright install --with-deps chromium
 
@@ -111,10 +114,12 @@ jobs:
             test-results/admin-writing-ui
             test-results/site-retirement-ui
             test-results/seo-index-audit.json
+            test-results/worker-runtime.log
           if-no-files-found: ignore
 
       # Cloudflare Workers Builds deploys main through the existing GitHub App
       # integration. This workflow verifies the same build without a second
       # deployment path or separate Cloudflare credentials.
+
 
 

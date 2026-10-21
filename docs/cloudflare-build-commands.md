@@ -1,6 +1,6 @@
 # Workers Builds commands
 
-This repository uses Next.js 15 + OpenNext, deployed to the existing `my-frontend` Worker. GitHub Actions verifies the build; the connected Cloudflare Git integration publishes it.
+This repository uses Next.js 16.3.8 + OpenNext, deployed to the existing `my-frontend` Worker. GitHub Actions verifies the build; the connected Cloudflare Git integration publishes it.
 
 Dashboard → Workers & Pages → my-frontend → Settings → Builds:
 
@@ -18,3 +18,6 @@ The 2026-10-19 supplied log completed `next build` and then failed on `npx wrang
 Do not change the Next.js `build` script to invoke OpenNext: OpenNext invokes that script internally. Dashboard configuration is not stored in this repository and must be changed there by an account with the relevant access.
 
 Sources: [Cloudflare build branches](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/), [Cloudflare configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/), [OpenNext deploy and upload](https://opennext.js.org/cloudflare/howtos/dev-deploy).
+
+
+Run the built Worker smoke check (`node tests/worker-runtime-smoke.mjs`) after `pages:build`. See [runtime compatibility](worker-runtime-compatibility.md) for the Next.js 16.4 manifest incompatibility and the pinned compatible version.
