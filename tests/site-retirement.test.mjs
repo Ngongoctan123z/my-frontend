@@ -56,7 +56,7 @@ test('old exam Open Graph URLs are gone without contacting the old exam backend'
 })
 
 test('cached Open Graph titles and descriptions from retired sections are gone',async()=>{
- for(const query of ['title='+encodeURIComponent('VNDocs - Trang đề thi vào lớp 10 và THPT'),'description='+encodeURIComponent('Kho tài liệu THPT miễn phí'),...['Chuyển Đổi Định Dạng Ảnh | VNDocs','Gộp File PDF','Khóa / Mở Khóa File PDF','Convert Images Online','Merge PDF Online','Remove PDF Pages','Online /tool/convert'].map(title=>'title='+encodeURIComponent(title))]){
+ for(const query of ['title='+encodeURIComponent('VNDocs - Trang đề thi vào lớp 10 và THPT'),'description='+encodeURIComponent('Kho tài liệu THPT miễn phí'),...['Chuyển Đổi Định Dạng Ảnh | VNDocs','Gộp File PDF','Khóa / Mở Khóa File PDF','Convert Images Online','Merge PDF Online','Remove PDF Pages','Online /tool/convert','Bộ Công Cụ Tiện Ích PDF & Giáo Dục | VNDocs','Nén Ảnh & File (ZIP) Miễn Phí','Online Scientific Calculator (Casio Fx-580VN X Emulator) | VNDocs','Image Format Converter — Convert JPG, PNG, WEBP, GIF Online | VNDocs'].map(title=>'title='+encodeURIComponent(title))]){
   const response=await policy.oldOg(new NextRequest('https://vndocs.net/api/og?'+query));assert.equal(response.status,410);assert.match(response.headers.get('x-robots-tag'),/noindex/)
  }
 })

@@ -27,7 +27,7 @@ export function isRetiredPath(path: string): boolean {
 export function hasRetiredSeo(value: unknown): boolean {
   if (typeof value !== 'string') return false
   const text = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase()
-  return /\bthpt\b|vao (?:lop )?10|lop 10|grade[ -]?10|high school|kho (?:de thi|tai lieu)|tai lieu mien phi|trang de thi|exam repositor|pdf utilit|pdf tools|productivity|cong cu (?:hoc tap|xu ly file|pdf)|chuyen doi (?:dinh dang|anh|file|pdf)|may tinh casio|(?:gop|ghep|nen|cat|xoa|khoa|mo khoa) (?:file |trang |anh |va )*(?:pdf|zip|file)|(?:convert|compress|merge|split|protect|unlock|lock|remove) (?:\w+ ){0,4}(?:pdf|images?|files?|jpg|png)|\/tai-lieu|\/exams(?:\/|\b)|\/exam-papers|\/(?:tools?|convert|compress|merge|split)(?:[\/-]|\b)/.test(text)
+  return /\bthpt\b|vao (?:lop )?10|lop 10|grade[ -]?10|high school|kho (?:de thi|tai lieu)|tai lieu mien phi|trang de thi|exam repositor|pdf utilit|pdf tools|productivity|cong cu (?:hoc tap|xu ly file|pdf|tien ich)|chuyen doi (?:dinh dang|anh|file|pdf)|may tinh casio|scientific calculator|online calculator|nen (?:anh|file)|(?:image|file|format) (?:format )?converter|(?:gop|ghep|nen|cat|xoa|khoa|mo khoa) (?:file |trang |anh |va )*(?:pdf|zip|file)|(?:convert|compress|merge|split|protect|unlock|lock|remove) (?:\w+ ){0,4}(?:pdf|images?|files?|jpg|png)|\/tai-lieu|\/exams(?:\/|\b)|\/exam-papers|\/(?:tools?|convert|compress|merge|split)(?:[\/-]|\b)/.test(text)
 }
 
 /** Only obsolete SEO values are cleared; unrelated settings remain untouched. */
