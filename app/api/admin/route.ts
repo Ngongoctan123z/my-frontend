@@ -9,11 +9,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getDb } from '@/src/db'
 import { users, prompts, systemConfigs, speakingPrompts } from '@/src/db/schema'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
 import { ensureQuestionBank, mutateQuestionBank } from '../speaking/question-bank'
 import { SpeakingRequestError } from '../speaking/validation'
 import type { SpeakingD1 } from '../speaking/store'
 import { writingOverview, ieltsPreviewSets } from './writing-overview'
+import { sanitizeSeoConfigValue } from '@/src/lib/siteSections'
 
 async function sha256Hex(text: string) {
   const msgBuffer = new TextEncoder().encode(text)
@@ -62,7 +63,14 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'configs') {
-      const allConfigs = (await db.select().from(systemConfigs)).filter(row => row.key !== 'GPMPAY_CONFIG')
+      const storedConfigs = (await db.select().from(systemConfigs)).filter(row => row.key !== 'GPMPAY_CONFIG')
+      // Authenticated cleanup of retired SEO only, including legacy saved aliases.
+      const obsoleteKeys = storedConfigs.filter(row => row.value && sanitizeSeoConfigValue(row.key, row.value) === '').map(row => row.key)
+      for (let offset = 0; offset < obsoleteKeys.length; offset += 50) {
+        await db.delete(systemConfigs).where(inArray(systemConfigs.key, obsoleteKeys.slice(offset, offset + 50)))
+      }
+      const obsolete = new Set(obsoleteKeys)
+      const allConfigs = storedConfigs.filter(row => !obsolete.has(row.key))
       const configMap = allConfigs.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {} as any)
       
       if (!configMap.TOTAL_API_REQUESTS) {
@@ -117,8 +125,9 @@ export async function POST(req: NextRequest) {
 
     if (action === 'save_configs') {
       if (payload && Object.prototype.hasOwnProperty.call(payload, 'GPMPAY_CONFIG')) return NextResponse.json({ error: 'Dùng trang cấu hình GPMPay để cập nhật thanh toán.' }, { status: 400 })
-      for (const [k, v] of Object.entries(payload)) {
-        if (v !== undefined && typeof v === 'string') {
+      for (const [k, rawValue] of Object.entries(payload)) {
+        if (rawValue !== undefined && typeof rawValue === 'string') {
+          const v = sanitizeSeoConfigValue(k, rawValue)
           // Bảo vệ: Nếu GROQ_API_KEY bị gửi lên dưới dạng đã mask (chứa ***), không ghi đè vào DB
           if (k === 'GROQ_API_KEY' && v.includes('***')) {
             continue
@@ -306,4 +315,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
 

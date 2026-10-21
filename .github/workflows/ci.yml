@@ -56,7 +56,9 @@ jobs:
         run: node --experimental-vm-modules tests/writing-overview.test.mjs
 
       - name: Test retired sections, noindex and active navigation
-        run: node tests/site-retirement.test.mjs
+        run: |
+          node tests/site-retirement.test.mjs
+          node --experimental-vm-modules tests/retired-seo-admin.test.mjs
 
       - name: Test build-time SEO behavior
         run: npm run test:build-seo
@@ -114,4 +116,5 @@ jobs:
       # Cloudflare Workers Builds deploys main through the existing GitHub App
       # integration. This workflow verifies the same build without a second
       # deployment path or separate Cloudflare credentials.
+
 

@@ -1,14 +1,3 @@
-import { ToolsBanner } from '../../src/components/tools/ToolsBanner'
-
-export default function ToolsLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <div className="space-y-6">
-      <ToolsBanner />
-      {children}
-    </div>
-  )
-}
+import type { ReactNode } from 'react'
+export const metadata = { robots: { index: false, follow: false, noarchive: true } }
+export default function RetiredToolsLayout({ children }: { children: ReactNode }) { return children }
