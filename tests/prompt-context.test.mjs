@@ -23,6 +23,8 @@ test('HSK picture tasks and TOEIC images retain instructions/keywords without ca
 })
 test('legacy Context sections are hidden and feedback source snapshots cannot restore internal data', () => {
   assert.equal(learnerPromptContent('Describe the graph.\n\nContext: ' + secret), 'Describe the graph.')
+  assert.equal(learnerPromptContent('Describe the graph.\n\n**[Context for AI]:** ' + secret), 'Describe the graph.')
+  assert.equal(learnerPromptContent('```json\n{"text":"Describe the graph.","context":"' + secret + '"}\n```'), 'Describe the graph.')
   assert.equal(learnerPromptContent('{"unrecognizedInternalField":"' + secret + '"}'), '')
   const result = learnerGradingResult({ detailedFeedback: 'Review your comparison.', imageDescription: secret, sourcePrompts: { TOPIK_53: { id: 'chart', content: '{"text":"Describe it","context":"' + secret + '"}', imageDescription: secret } } })
   assert.equal(result.detailedFeedback, 'Review your comparison.'); assert.ok(!JSON.stringify(result).includes(secret))

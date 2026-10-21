@@ -1,10 +1,14 @@
 // Learner payloads are built from public fields, never by spreading database rows.
-const privateHeading = /^\s*(?:#{1,6}\s*)?(?:\[|【)?(?:ai\s*context|context(?:\s+(?:for|to)\s+(?:ai|grading))?|image\s*description(?:\s*\(.*?\))?|chart\s*extra|grading\s*(?:context|notes)|thông tin (?:cho ai|chấm điểm)|ngữ cảnh (?:cho ai|chấm điểm)|mô tả (?:ảnh|biểu đồ) (?:cho ai|để chấm)|dữ liệu (?:cho ai|chấm điểm))(?:\]|】)?\s*[:：]?\s*$/i
+const privateHeading = /^(?:ai\s*context\b|context\b|image\s*description\b|chart\s*extra\b|grading\s*(?:context|notes)\b|thông tin (?:cho ai|chấm điểm)|ngữ cảnh (?:cho ai|chấm điểm)|mô tả (?:ảnh|biểu đồ) (?:cho ai|để chấm)|dữ liệu (?:cho ai|chấm điểm))/i
 export function learnerText(value: unknown): string {
   if (typeof value !== 'string') return ''
   const lines = value.split(/\r?\n/), output: string[] = []
+  let privateSection = false
   for (const line of lines) {
-    if (privateHeading.test(line) || /^\s*(?:AI\s*context|Context(?:\s+for\s+AI)?|Image\s*description|Chart\s*extra|Grading\s*notes)\s*[:：]/i.test(line)) break
+    const label = line.trim().replace(/^[#*\[【\s]+/, '')
+    if (privateHeading.test(label)) { privateSection = true; continue }
+    if (privateSection && /^\s*\[Task\s*[12]\]/i.test(line)) privateSection = false
+    if (privateSection) continue
     output.push(line)
   }
   return output.join('\n').trim()
@@ -13,8 +17,9 @@ const text = (value: unknown) => typeof value === 'string' ? learnerText(value) 
 const image = (value: unknown) => typeof value === 'string' && (/^https:\/\//i.test(value) || /^\/(?!\/)/.test(value) || /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=]+$/i.test(value)) ? value : undefined
 export function learnerPromptContent(content: unknown): string {
   if (typeof content !== 'string') return ''
+  const raw = content.trim().replace(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i, '$1').trim()
   let parsed: any
-  try { parsed = JSON.parse(content) } catch { return learnerText(content) }
+  try { parsed = JSON.parse(raw) } catch { return raw.startsWith('{') || raw.startsWith('[') ? '' : learnerText(raw) }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return ''
   if (Array.isArray(parsed.questions)) return JSON.stringify({ title: text(parsed.title), questions: parsed.questions.map((q: any) => ({ id: q.id, imageUrl: image(q.imageUrl), keywords: Array.isArray(q.keywords) ? q.keywords.filter((word: any) => typeof word === 'string') : [] })) })
   if (Array.isArray(parsed.part1) && parsed.part2 && parsed.part3) return JSON.stringify({
