@@ -34,11 +34,11 @@ try{for(const width of[320,1280]){
  // Suspending the analysis branch must not silence the saved microphone audio.
  await page.evaluate(()=>Promise.all(window.contexts.map(context=>context.suspend())));await page.waitForTimeout(1500)
  await page.getByRole('button',{name:'Dừng thu âm',exact:true}).click();await page.getByText('Bản thu đã sẵn sàng',{exact:true}).waitFor()
- const text=page.locator('[data-live-speaking-text]');assert.equal(await text.textContent(),'I enjoy reading books and learning new things.')
+ const text=page.locator('[data-live-speaking-text]'),googleText=await text.textContent();assert.match(googleText,/^I enjoy reading books and learning new things\.(?: \.)*$/);assert.equal(await page.evaluate(()=>window.clip.delivery.segments.map(segment=>segment.text).join(' ')),'I enjoy reading books and learning new things.')
  assert.equal(await page.evaluate(()=>window.clip.transcriptSource),'web-speech');assert.deepEqual(await page.evaluate(()=>window.requests),[],'No automatic server overwrite of Google text')
  const audio=await page.evaluate(async()=>{const context=new AudioContext();try{const decoded=await context.decodeAudioData(await window.clip.blob.arrayBuffer());const values=decoded.getChannelData(0);let peak=0;for(const value of values)peak=Math.max(peak,Math.abs(value));return{duration:decoded.duration,peak}}finally{await context.close()}})
  assert.ok(audio.duration>1,'Saved audio actually decodes');assert.ok(audio.peak>.0001,'Original microphone audio survives a suspended analysis context')
- await page.getByRole('button',{name:'Nhận dạng lại bằng máy chủ',exact:true}).click();await page.locator('[data-server-transcript-comparison]').filter({hasText:'Thank you.'}).waitFor();assert.equal(await text.textContent(),'I enjoy reading books and learning new things.','Short server result cannot replace Google transcript')
+ await page.getByRole('button',{name:'Nhận dạng lại bằng máy chủ',exact:true}).click();await page.locator('[data-server-transcript-comparison]').filter({hasText:'Thank you.'}).waitFor();assert.equal(await text.textContent(),googleText,'Short server result cannot replace Google transcript or its measured pauses')
  assert.equal(await page.evaluate(()=>window.streams.every(stream=>stream.getTracks().every(track=>track.readyState==='ended'))),true)
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);assert.deepEqual(errors,[])
  await page.screenshot({path:output+'/google-speech-'+width+'.png',fullPage:true});await context.close()

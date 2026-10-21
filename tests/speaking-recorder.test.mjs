@@ -9,7 +9,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
   const slots = [], effects = [], timers = new Map(), streams = [], engines = [], clips = [], active = [], recorders = []
   let nextTimer = 1
   let cursor = 0, now = 1000
-  const frames = new Map(), filters = [], destinations = []
+  const frames = new Map(), filters = [], destinations = [], contexts = []
   const react = {
     useRef(value) { const i = cursor++; return slots[i] ||= { current: value } },
     useState(value) { const i = cursor++; if (!(i in slots)) slots[i] = value; return [slots[i], next => { slots[i] = typeof next === 'function' ? next(slots[i]) : next }] },
@@ -24,6 +24,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
     stop() { this.state = 'inactive';this.stoppedAt=now; this.ondataavailable?.({ data: new Blob([this.header, new Uint8Array(1500)]) }); queueMicrotask(() => this.onstop?.()) }
   }
   class Context {
+    constructor(){contexts.push(this)}
     state = audioContext==='running'?'running':'suspended'; sampleRate = 48000
     resume() { if (audioContext === 'reject') return Promise.reject(new Error('blocked')); return new Promise(() => {}) }
     close() { this.state = 'closed'; return Promise.resolve() }
@@ -69,7 +70,7 @@ async function harness({ audioContext = 'pending', recognition = 'missing', fetc
     return result
   }
   const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve() }
-  return { render, clips, active, streams, engines, recorders, timers, flush, filters, destinations,
+  return { render, clips, active, streams, engines, recorders, timers, flush, filters, destinations, contexts,
     tick(ms) { now += ms },
     async advance(ms) {
       const target = now + ms
@@ -376,5 +377,14 @@ test('an engine that never starts is not shown as listening and reports the actu
  assert.equal(h.render().recognitionState,'connecting');await h.advance(5100)
  assert.equal(h.render().recognitionState,'server');assert.match(h.render().liveError,/Google chưa mở/)
  assert.equal(h.render().recording,true);h.render().cancel();assert.equal(h.timers.size,0);h.unmount()
+})
+test('suspended analysis cannot fabricate a long pause while the original recording and Google continue',async()=>{
+ const h=await harness({recognition:'available',audioContext:'running',signal:false});await h.render().start()
+ h.engines[0].onresult({resultIndex:0,results:[Object.assign([{transcript:'Actual spoken words.'}],{isFinal:true})]})
+ await h.advance(500);h.contexts[0].state='suspended';await h.advance(10000)
+ assert.equal(h.render().pauseMs,0);assert.equal(h.render().liveText,'Actual spoken words.')
+ h.render().stop();await h.flush();assert.equal(h.clips.length,1)
+ assert.equal(h.clips[0].delivery.pauses.length,0);assert.ok(h.clips[0].metrics.totalPauseSec<1)
+ assert.equal(h.recorders[0].stream,h.streams[0]);h.unmount()
 })
 

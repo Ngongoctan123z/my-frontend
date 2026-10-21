@@ -77,6 +77,16 @@ export function useSpeakingRecorder(options: Options) {
       const chunks: Blob[] = []
       startedAt.current = Date.now(); stoppedAt.current = 0
       stats.current = { speechMs: 0, lastFrame: Date.now(), silenceStarted: 0, heard: false, pauseCount: 0, longPauses: 0, pauseMs: 0 }
+      const closeMeasuredPause = (atMs: number) => {
+        const state = stats.current
+        if (!state.silenceStarted) return
+        const pause = Math.max(0, atMs - state.silenceStarted)
+        if (pause > 0) {
+          state.pauseMs += pause; state.pauseCount++
+          if (pause >= PAUSE_START_MS) {state.longPauses++;if(delivery.current.pauses.length<120)delivery.current.pauses.push({startMs:Math.max(0,state.silenceStarted-startedAt.current),durationMs:pause})}
+        }
+        state.silenceStarted = 0
+      }
       delivery.current={recognitionAvailable:false,segments:[],pauses:[]};setLiveText('');setPauseMs(0);setRecognitionState('unavailable')
       setSignalDetected(false); setElapsedMs(0)
       mediaRecorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data) }
@@ -94,10 +104,7 @@ export function useSpeakingRecorder(options: Options) {
         }
         release(); pending.current=false; setFinishing(false); setInputLevel(0); callbacks.current.onActiveChange(false)
         const duration = Math.max(0, endedAt - startedAt.current), state = stats.current
-        if (state.silenceStarted) {
-          const pause = Math.max(0, endedAt - state.silenceStarted)
-          state.pauseMs += pause; state.pauseCount++; if (pause >= PAUSE_START_MS) {state.longPauses++;if(delivery.current.pauses.length<120)delivery.current.pauses.push({startMs:Math.max(0,state.silenceStarted-startedAt.current),durationMs:pause})}
-        }
+        closeMeasuredPause(Math.min(endedAt, state.lastFrame))
         const blob = new Blob(chunks, { type: mediaRecorder.mimeType || mimeType || 'audio/webm' })
         if (duration < 1000 || blob.size < 500) { setError('Bản thu quá ngắn. Hãy nói ít nhất một câu rồi bấm dừng.'); return }
         const metrics: SpeakingMetrics = { totalDurationMs: duration, speechDurationMs: Math.min(duration, Math.round(state.speechMs)), pauseCount: state.pauseCount, longPauseCount: state.longPauses, totalPauseSec: Math.min(duration / 1000, +(state.pauseMs / 1000).toFixed(2)), signalDetected: state.heard }
@@ -157,7 +164,7 @@ export function useSpeakingRecorder(options: Options) {
       const buffer = new Uint8Array(node?.frequencyBinCount || 512), frequencies=new Uint8Array(node?.frequencyBinCount || 512),voiceGate=new SpeakingVoiceGate()
       const sample = () => {
         if (mediaRecorder.state !== 'recording' || !node || !audioContext) return
-        if (audioContext.state !== 'running') { frame.current = requestAnimationFrame(sample); return }
+        if (audioContext.state !== 'running') { closeMeasuredPause(stats.current.lastFrame);stats.current.lastFrame=Date.now();input.current=0;frame.current = requestAnimationFrame(sample); return }
         node.getByteTimeDomainData(buffer)
         let sum = 0
         for (const byte of buffer) sum += ((byte - 128) / 128) ** 2
@@ -171,11 +178,7 @@ export function useSpeakingRecorder(options: Options) {
         if (voiceGate.update(rms,voiceEnergy/Math.max(1,allEnergy),now-startedAt.current)) {
           state.speechMs += delta
           if (!state.heard) { state.heard = true; setSignalDetected(true) }
-          if (state.silenceStarted) {
-            const pause = now - state.silenceStarted
-            state.pauseMs += pause; state.pauseCount++; if (pause >= PAUSE_START_MS) {state.longPauses++;if(delivery.current.pauses.length<120)delivery.current.pauses.push({startMs:Math.max(0,state.silenceStarted-startedAt.current),durationMs:pause})}
-            state.silenceStarted = 0
-          }
+          closeMeasuredPause(now)
         } else if (state.heard && !state.silenceStarted) state.silenceStarted = now
         frame.current = requestAnimationFrame(sample)
       }
