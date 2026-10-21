@@ -389,7 +389,7 @@ export function SeoTab() {
               value={currentConf.SEO_TITLE || ''}
               onChange={handleChange}
               placeholder={activeRoute === 'GLOBAL' 
-                ? 'VNDocs - Kho tài liệu miễn phí' 
+                ? SITE_TITLE
                 : (SEO_ROUTES.find(r => r.path === activeRoute)?.defaultTitle || 'Để trống sẽ lấy theo SEO Toàn Trang')}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all font-medium text-slate-800 text-sm"
             />
@@ -531,3 +531,4 @@ export function SeoTab() {
     </div>
   )
 }
+

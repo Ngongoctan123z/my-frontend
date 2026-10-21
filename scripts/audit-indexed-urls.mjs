@@ -1,7 +1,9 @@
 import {PAGE_SEO,upgradeSavedPageSeo,pageLanguage,pageUrl,languageAlternates} from '../src/lib/pageSeo.ts'
+import {RETIRED_SECTION_PREFIXES,isRetiredPath} from '../src/lib/siteSections.ts'
 import {mkdir,writeFile} from 'node:fs/promises'
 const retired=['/tai-lieu','/exams/vao-10/toan/ha-noi/2026/old','/tools','/en/tools','/en/tools/casio','/en/tools/convert','/en/tools/compress','/en/tools/lock','/en/tools/remove-pages','/en/tools/merge-files','/ai-grader/tai-lieu-tong-hop','/favorites','/documents','/de-thi','/vao-10','/thpt']
 for(const path of ['/tai-lieu','/tai-lieu-mien-phi','/tai-lieu-mien-phi/ielts','/ai-grader/tai-lieu-tong-hop'])for(const prefix of ['', '/en'])if(!retired.includes(prefix+path))retired.push(prefix+path)
+for(const path of [...RETIRED_SECTION_PREFIXES,'/tool/convert','/tools/convert','/tools/casio','/tools/compress','/tools/lock','/tools/remove-pages','/tools/merge-files','/convert-to-pdf','/de-thi-thpt-2026','/de-thi-vao-10/toan','/vao-lop-10/toan','/thpt-quoc-gia/2026'])for(const prefix of ['', '/en'])if(!retired.includes(prefix+path))retired.push(prefix+path)
 retired.push('/api/og?slug=vao-10/toan/ha-noi/2026','/api/og?title='+encodeURIComponent('VNDocs - Trang đề thi vào lớp 10 và THPT'))
 const active=Object.keys(PAGE_SEO).filter(path=>PAGE_SEO[path].index!==false)
 const noindex=Object.keys(PAGE_SEO).filter(path=>PAGE_SEO[path].index===false)
@@ -19,7 +21,8 @@ async function inspect(item){
  try{
   const r=await fetch(item.url,{redirect:'manual',headers:{'User-Agent':'VNDocs-SEO-Audit/1.0','Cache-Control':'no-cache'},signal:AbortSignal.timeout(20000)})
   const html=(r.headers.get('content-type')||'').includes('text/html')?await r.text():''
-  const row={...item,status:r.status,robots:r.headers.get('x-robots-tag'),location:r.headers.get('location'),title:html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||null,canonical:html.match(/<link[^>]*rel="canonical"[^>]*href="([^"]+)"/i)?.[1]||null,oldNavigation:/href="(?:https:\/\/(?:www\.)?vndocs.net)?\/(?:en\/)?(?:tools|tai-lieu|exams)(?:[\/?"])/i.test(html),cache:r.headers.get('cf-cache-status'),...(item.expected!=='gone'?bilingual(html,r,item.path):{})}
+  const oldNavigation=[...html.matchAll(/<a\b[^>]*href="([^"]+)"/gi)].some(match=>{try{const url=new URL(decode(match[1]),item.url);return ['vndocs.net','www.vndocs.net'].includes(url.hostname)&&isRetiredPath(url.pathname)}catch{return false}})
+  const row={...item,status:r.status,robots:r.headers.get('x-robots-tag'),location:r.headers.get('location'),title:html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||null,canonical:html.match(/<link[^>]*rel="canonical"[^>]*href="([^"]+)"/i)?.[1]||null,oldNavigation,cache:r.headers.get('cf-cache-status'),...(item.expected!=='gone'?bilingual(html,r,item.path):{})}
   row.title=decode(row.title)
   if(item.expected!=='gone'){
    row.usesDefaultCopy=row.title===PAGE_SEO[item.path].title&&row.description===PAGE_SEO[item.path].description
