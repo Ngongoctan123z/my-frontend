@@ -3,9 +3,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   output: 'standalone',
   reactStrictMode: true,
   compress: true, // bật gzip/brotli cho responses
@@ -57,3 +54,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+

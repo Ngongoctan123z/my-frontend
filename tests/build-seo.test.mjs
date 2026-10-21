@@ -319,3 +319,14 @@ test('known legacy production copy upgrades field by field without dropping admi
 })
 
 
+
+
+test('retired free-document labels cannot replace homepage practice metadata', async () => {
+  for (const title of ['Tài liệu miễn phí | VNDocs', 'TAI LIEU MIEN PHI']) {
+    const { seo } = await loadSeo({ rootMetadata: true, rows: [{ key: 'SEO_TITLE', value: title }] })
+    assert.match((await seo.generateMetadata()).title, /Writing.*Speaking/)
+    const route = await loadSeo({ rows: [{ key: 'SEO_ROUTE_/', value: JSON.stringify({ title, description: 'Old library', h1: title }) }] })
+    assert.match((await route.seo.getCoreMetadata('/')).title, /Writing.*Speaking/)
+    assert.equal(await route.seo.getCustomRouteSeo('/'), null)
+  }
+})

@@ -1,6 +1,7 @@
 import {PAGE_SEO,upgradeSavedPageSeo,pageLanguage,pageUrl,languageAlternates} from '../src/lib/pageSeo.ts'
 import {mkdir,writeFile} from 'node:fs/promises'
 const retired=['/tai-lieu','/exams/vao-10/toan/ha-noi/2026/old','/tools','/en/tools','/en/tools/casio','/en/tools/convert','/en/tools/compress','/en/tools/lock','/en/tools/remove-pages','/en/tools/merge-files','/ai-grader/tai-lieu-tong-hop','/favorites','/documents','/de-thi','/vao-10','/thpt']
+for(const path of ['/tai-lieu','/tai-lieu-mien-phi','/tai-lieu-mien-phi/ielts','/ai-grader/tai-lieu-tong-hop'])for(const prefix of ['', '/en'])if(!retired.includes(prefix+path))retired.push(prefix+path)
 retired.push('/api/og?slug=vao-10/toan/ha-noi/2026','/api/og?title='+encodeURIComponent('VNDocs - Trang đề thi vào lớp 10 và THPT'))
 const active=Object.keys(PAGE_SEO).filter(path=>PAGE_SEO[path].index!==false)
 const noindex=Object.keys(PAGE_SEO).filter(path=>PAGE_SEO[path].index===false)
@@ -59,4 +60,5 @@ if(process.argv.includes('--verify')){
  })
  if(failures.length||infrastructure.some(row=>row.issues.length)){console.error('SEO_AUDIT_FAILURE '+JSON.stringify({pages:failures,infrastructure:infrastructure.filter(row=>row.issues.length)}));process.exitCode=1}else console.log('PASS live bilingual SEO, indexing and sitemap audit on apex and www: '+results.length+' URLs')
 }
+
 
