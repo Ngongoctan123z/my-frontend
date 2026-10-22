@@ -1,150 +1,40 @@
 'use client'
-
-import React, { useState, useEffect } from 'react'
-import { Shield, ShieldAlert, ShieldCheck, Lock, CheckCircle2, ArrowRight } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ShieldCheck, ShieldAlert, Lock, Loader2, RotateCcw } from 'lucide-react'
 import { TurnstileWidget } from '@/src/components/common/TurnstileWidget'
 
-interface CloudflareSystemGateProps {
-  children: React.ReactNode
-  systemName?: string
-}
-
-export function CloudflareSystemGate({
-  children,
-  systemName = 'Cổng Quản Trị Hệ Thống',
-}: CloudflareSystemGateProps) {
-  const [isVerified, setIsVerified] = useState(false)
-  const [isChecking, setIsChecking] = useState(true)
-  const [token, setToken] = useState<string | null>(null)
-  const [verifyStatus, setVerifyStatus] = useState<'idle' | 'verifying' | 'success' | 'failed'>('idle')
-
-  useEffect(() => {
-    // Check if already verified in this session
+// Server layouts enforce administrator identity before rendering this optional
+// challenge. Client storage is never accepted as verification evidence.
+export function CloudflareSystemGate({ children, systemName = 'Quản trị hệ thống', siteKey }: { children: ReactNode; systemName?: string; siteKey: string }) {
+  const [verified, setVerified] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'verifying' | 'failed'>('idle')
+  const [attempt, setAttempt] = useState(0)
+  const request = useRef<AbortController | null>(null)
+  useEffect(() => () => request.current?.abort(), [])
+  async function verify(token: string) {
+    if (request.current || !token) return
+    const controller = new AbortController(); request.current = controller; setStatus('verifying')
+    const timeout = setTimeout(() => controller.abort(), 12000)
     try {
-      const saved = sessionStorage.getItem('cf_sys_gate_verified')
-      if (saved === 'true') {
-        setIsVerified(true)
-      }
-    } catch {
-      // ignore
-    } finally {
-      setIsChecking(false)
-    }
-  }, [])
-
-  const handleTurnstileSuccess = async (turnstileToken: string) => {
-    setToken(turnstileToken)
-    setVerifyStatus('verifying')
-
-    try {
-      // Verify with backend
-      const res = await fetch('/api/verify-turnstile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: turnstileToken }),
-      })
-
-      const data = await res.json()
-      if (data.success) {
-        setVerifyStatus('success')
-        setTimeout(() => {
-          setIsVerified(true)
-          try {
-            sessionStorage.setItem('cf_sys_gate_verified', 'true')
-          } catch {
-            // ignore
-          }
-        }, 600)
-      } else {
-        setVerifyStatus('failed')
-      }
-    } catch (e) {
-      // Even if network blips, fallback to pass if token was issued by Cloudflare
-      if (turnstileToken) {
-        setVerifyStatus('success')
-        setTimeout(() => {
-          setIsVerified(true)
-          try {
-            sessionStorage.setItem('cf_sys_gate_verified', 'true')
-          } catch {
-            // ignore
-          }
-        }, 600)
-      } else {
-        setVerifyStatus('failed')
-      }
-    }
+      const response = await fetch('/api/verify-turnstile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }), signal: controller.signal })
+      const data = await response.json()
+      if (controller.signal.aborted) return
+      if (response.ok && data.success === true) setVerified(true)
+      else setStatus('failed')
+    } catch { if (request.current === controller) setStatus('failed') }
+    finally { clearTimeout(timeout); if (request.current === controller) request.current = null }
   }
-
-  if (isChecking) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-semibold text-slate-600">Đang khởi tạo Cloudflare Security...</p>
-        </div>
+  if (verified) return <>{children}</>
+  return <div className="flex min-h-[75vh] items-center justify-center bg-slate-50 p-4">
+    <section aria-label="Xác thực bổ sung cho quản trị" className="w-full max-w-md space-y-5 rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-lg sm:p-8">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><Lock size={28}/></div>
+      <div><h1 className="text-xl font-bold text-slate-900">Xác thực bảo mật</h1><p className="mt-2 text-sm leading-6 text-slate-600">Hoàn thành kiểm tra để tiếp tục vào {systemName}.</p></div>
+      <div className="min-h-24 min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div hidden={status === 'verifying'}><TurnstileWidget key={attempt} siteKey={siteKey} size="flexible" onVerify={verify} onError={() => setStatus('failed')} onExpire={() => setStatus('failed')}/></div>
+        {status === 'verifying' && <p role="status" className="flex items-center justify-center gap-2 py-5 text-sm text-slate-700"><Loader2 size={18} className="animate-spin"/>Đang xác thực…</p>}
       </div>
-    )
-  }
-
-  if (!isVerified) {
-    return (
-      <div className="min-h-[85vh] flex items-center justify-center p-4 bg-gradient-to-b from-slate-50 to-slate-100">
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-8 text-center space-y-6">
-          {/* Cloudflare Badge */}
-          <div className="flex items-center justify-center gap-2 text-xs font-black tracking-widest uppercase text-amber-600 bg-amber-50 px-4 py-1.5 rounded-full border border-amber-200 mx-auto w-fit">
-            <Shield className="w-4 h-4 text-amber-600" />
-            Cloudflare Bot Management
-          </div>
-
-          <div className="space-y-2">
-            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner border border-blue-100">
-              <Lock className="w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-              Xác Thực Chống Bot
-            </h2>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-              Bạn đang truy cập <span className="font-bold text-slate-700">{systemName}</span>. Vui lòng hoàn thành xác thực Cloudflare Turnstile để đảm bảo an toàn hệ thống.
-            </p>
-          </div>
-
-          {/* Turnstile Widget Box */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col items-center justify-center min-h-[100px]">
-            {verifyStatus === 'verifying' ? (
-              <div className="flex flex-col items-center gap-2 py-3">
-                <div className="w-7 h-7 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs font-bold text-blue-600">Đang kiểm tra chứng chỉ Cloudflare...</span>
-              </div>
-            ) : verifyStatus === 'success' ? (
-              <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm py-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <span>Xác thực thành công! Đang chuyển hướng...</span>
-              </div>
-            ) : (
-              <>
-                <TurnstileWidget
-                  onVerify={handleTurnstileSuccess}
-                  onError={() => setVerifyStatus('failed')}
-                />
-                {verifyStatus === 'failed' && (
-                  <p className="text-xs text-rose-500 font-semibold mt-2 flex items-center gap-1">
-                    <ShieldAlert className="w-3.5 h-3.5" />
-                    Xác thực thất bại. Vui lòng tải lại trang.
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Bảo mật bởi Cloudflare Turnstile</span>
-            <span className="font-mono">VNDocs v2.4</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return <>{children}</>
+      {status === 'failed' && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"><p className="flex items-center justify-center gap-2"><ShieldAlert size={17}/>Chưa thể xác thực. Vui lòng thử lại.</p><button type="button" onClick={() => {request.current?.abort();request.current=null;setStatus('idle');setAttempt(value=>value+1)}} className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-rose-300 bg-white px-4 font-semibold"><RotateCcw size={15}/>Thử lại</button></div>}
+      <p className="flex items-center justify-center gap-2 border-t border-slate-100 pt-4 text-xs text-slate-500"><ShieldCheck size={15}/>Cloudflare Turnstile</p>
+    </section>
+  </div>
 }

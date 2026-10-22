@@ -37,6 +37,8 @@ jobs:
       - name: Test security boundaries and authentication defaults
         run: |
           node --experimental-vm-modules tests/security.test.mjs
+          node --experimental-vm-modules tests/turnstile-config.test.mjs
+          node tests/admin-layout-security.test.mjs
           node --experimental-vm-modules tests/auth-secret-provision.test.mjs
 
       - name: Prepare validated Writing bank assets
@@ -111,7 +113,9 @@ jobs:
         run: node tests/site-retirement-ui.test.mjs
 
       - name: Test unified Writing admin and legacy deep links
-        run: node tests/admin-writing-ui.test.mjs
+        run: |
+          node tests/admin-writing-ui.test.mjs
+          node tests/admin-turnstile-ui.test.mjs
 
       - name: Verify deployed D1 catalogs and private Speaking routes
         if: github.ref == 'refs/heads/main'
@@ -134,6 +138,7 @@ jobs:
             test-results/speaking-ui
             test-results/phase2-ui
             test-results/admin-writing-ui
+            test-results/admin-turnstile
             test-results/site-retirement-ui
             test-results/seo-index-audit.json
             test-results/worker-runtime.log
@@ -143,6 +148,7 @@ jobs:
       # Cloudflare Workers Builds deploys main through the existing GitHub App
       # integration. This workflow verifies the same build without a second
       # deployment path or separate Cloudflare credentials.
+
 
 
 

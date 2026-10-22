@@ -1,4 +1,5 @@
 import { auth } from '@/auth'
+import { getTurnstileConfiguration } from '@/src/lib/turnstileServer'
 import { redirect } from 'next/navigation'
 import React from 'react'
 import { ShieldAlert } from 'lucide-react'
@@ -10,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   try {
     session = await auth()
   } catch (e: any) {
-    authError = e.message;
+    authError = "Không thể kiểm tra phiên đăng nhập. Vui lòng thử lại.";
   }
   
   // Danh sách Admin có quyền tối cao (Master Admin)
@@ -69,10 +70,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     )
   }
 
-  // Nếu là rootAdmin, yêu cầu xác thực Cloudflare Bot Protection trước khi mở giao diện
+  // Authorization above is mandatory. Turnstile is an optional additional
+  // challenge and must never lock out an authorized admin without a real key pair.
+  const { siteKey } = await getTurnstileConfiguration()
+  if (!siteKey) return <>{children}</>
   return (
-    <CloudflareSystemGate systemName="Quản Trị Người Dùng & Hệ Thống">
+    <CloudflareSystemGate siteKey={siteKey} systemName="Quản Trị Người Dùng & Hệ Thống">
       {children}
     </CloudflareSystemGate>
   )
 }
+
