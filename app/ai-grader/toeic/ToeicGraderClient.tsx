@@ -507,7 +507,7 @@ export function ToeicGraderClient() {
     setResult(item.result);setResultExamType(item.examType);setShowHistoryModal(false)
   }
 
-  const practiceTarget = usePracticeNavigation([activeTab,activeTab==='TOEIC_FULL'?fullTestStep:0,pictureView?pictureSet.id:activePrompt?.content].join('|'), !isGenerating && !isLoadingSets, isEditorExpanded || showHistoryModal || !!result || showStudentsModal || isShareModalOpen)
+  const practiceTarget = usePracticeNavigation([activeTab,activeTab==='TOEIC_FULL'?fullTestStep:0,pictureView?JSON.stringify(pictureSet):activePrompt?.content].join('|'), !isGenerating && !isLoadingSets, isEditorExpanded || showHistoryModal || !!result || showStudentsModal || isShareModalOpen)
 
   return (
     <div className="w-full min-w-0 space-y-3 sm:space-y-6">
