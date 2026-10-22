@@ -36,7 +36,7 @@ try {
   }
   const checks = [
     ['/', 200], ['/en', 200], ['/ai-grader', 200], ['/speaking', 200],
-    ['/sitemap.xml', 200], ['/exam-data/writing-bank-v1.json', 404], ['/api/auth/session', 200],
+    ['/quan-ly-he-thong-123', 307], ['/sitemap.xml', 200], ['/exam-data/writing-bank-v1.json', 404], ['/api/auth/session', 200],
     ['/api/speaking/audio/' + '0'.repeat(64) + ':0', 401], ['/api/admin?type=configs', 401],
     ['/tool', 410], ['/convert', 410], ['/en/tools/convert', 410], ['/de-thi-thpt-2026', 410],
   ]
@@ -45,6 +45,7 @@ try {
     const body = await response.text()
     console.log('WORKER_HTTP', JSON.stringify({ route, status: response.status, expected }))
     assert.equal(response.status, expected, route + ' failed in workerd: ' + body.slice(0, 1500))
+    if (expected === 307) assert.match(response.headers.get('location') || '', /\/login\?callbackUrl=/)
     if (expected === 410) assert.match(response.headers.get('x-robots-tag') || '', /noindex/)
     if (route === '/') assert.match(body, /Writing.*Speaking/)
   }
@@ -59,4 +60,5 @@ finally {
   if (failure) console.error('WORKER_RUNTIME_LOG\n' + log.slice(-45000))
 }
 if (failure) throw failure
+
 
