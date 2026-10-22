@@ -4,7 +4,9 @@ import Credentials from "next-auth/providers/credentials"
 import { DrizzleAdapter } from "@auth/drizzle-adapter"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "./src/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
+import { checkRateLimit } from "./src/lib/rateLimit"
+import { hashPassword, verifyPassword, isPasswordHash } from "./src/lib/passwords"
 
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 
@@ -24,11 +26,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
 
   const providers: any[] = []
 
-  providers.push(
-    Google({
-      clientId: envObj.AUTH_GOOGLE_ID || process.env.AUTH_GOOGLE_ID || '828707291275-fnvthfbo2muk10b82lu4kt4uhiohi9d2.apps.googleusercontent.com',
-      clientSecret: envObj.AUTH_GOOGLE_SECRET || process.env.AUTH_GOOGLE_SECRET || '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',
-    })
+  if (envObj.AUTH_GOOGLE_ID && envObj.AUTH_GOOGLE_SECRET) providers.push(
+    Google({ clientId: envObj.AUTH_GOOGLE_ID, clientSecret: envObj.AUTH_GOOGLE_SECRET })
   )
 
   providers.push(
@@ -38,11 +37,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
         email: { label: "Email", type: "email", placeholder: "admin@vndocs.net" },
         password: { label: "Mật khẩu", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        // 1. Kiểm tra tài khoản Admin cứng (Fallback)
-        if (credentials.email === "admin@vndocs.net" && credentials.password === (envObj.WEB_ADMIN_PASSWORD || "282005")) {
+        if (typeof credentials.email !== 'string' || typeof credentials.password !== 'string' || credentials.email.length > 320 || credentials.password.length > 1024) return null
+        const ip = request.headers.get('cf-connecting-ip') || 'unknown'
+        if (!checkRateLimit(`login:ip:${ip}`, 20, 60000).allowed || !checkRateLimit(`login:account:${credentials.email.toLowerCase()}`, 8, 60000).allowed) return null
+        // The emergency administrator account requires an explicitly configured password.
+        if (credentials.email === "admin@vndocs.net" && envObj.WEB_ADMIN_PASSWORD && await verifyPassword(envObj.WEB_ADMIN_PASSWORD, credentials.password)) {
           return { id: "admin-id", name: "Admin Manager", email: "admin@vndocs.net", role: "admin" }
         }
 
@@ -50,8 +52,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
         if (dbBinding) {
           const db = drizzle(dbBinding, { schema });
           const user = await db.select().from(schema.users).where(eq(schema.users.email, credentials.email as string)).get();
-          // So sánh mật khẩu (hiện tại so sánh chuỗi thường, nếu có mã hóa bcrypt thì thêm ở đây)
-          if (user && user.password === credentials.password) {
+          // Verify a salted hash; migrate ordinary legacy accounts after authentication.
+          if (user && user.password && await verifyPassword(user.password, credentials.password)) {
+             // Never accept a legacy plaintext password for a privileged account.
+             if (!isPasswordHash(user.password) && (user.role === 'admin' || user.email === envObj.ADMIN_EMAIL || user.email === 'admin@vndocs.net' || user.email === 'ngongoctan282005@gmail.com')) return null
+             if (!isPasswordHash(user.password)) await db.update(schema.users).set({ password: await hashPassword(credentials.password) }).where(and(eq(schema.users.id, user.id), eq(schema.users.password, user.password)))
              return { id: user.id, name: user.name, email: user.email, role: user.role }
           }
         }
@@ -65,7 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
     trustHost: true,
     adapter: adapter,
     providers: providers,
-    secret: envObj.AUTH_SECRET || 'VNDOCS_SECRET_KEY_123456789_DEFAULT_LONG_ENOUGH',
+    secret: envObj.AUTH_SECRET,
     session: {
       strategy: "jwt",
     },
@@ -93,6 +98,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth(async (req) => {
         return token;
       }
     },
-    debug: true,
+    debug: false,
   }
 })
+

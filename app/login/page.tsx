@@ -5,13 +5,14 @@ import { signIn, useSession } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { safeLoginRedirect } from '@/src/lib/loginRedirect'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 
 function LoginContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const callbackUrl = safeLoginRedirect(searchParams.get('callbackUrl'))
   const [loading, setLoading] = useState(false)
 
   // Redirect if already authenticated
@@ -126,3 +127,4 @@ export default function LoginPage() {
     </Suspense>
   )
 }
+

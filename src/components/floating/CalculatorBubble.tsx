@@ -33,7 +33,8 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
-        setHistory(JSON.parse(saved))
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) setHistory(parsed.filter(item=>item && typeof item.expr==='string' && typeof item.result==='string').slice(0,50))
       }
     } catch (e) {
       console.error(e)
@@ -165,6 +166,7 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
     }
 
     // Append to expression
+    if (expression.length + val.length > 256) return
     setExpression(prev => prev + val)
     setDisplayExpr(prev => prev + disp)
     setIsShift(false)
@@ -185,305 +187,51 @@ export function CalculatorBubble({ onClose }: { onClose: () => void }) {
     setShowHistory(false)
   }
 
+  const scientific = [
+    ['a/b','/','/'], ['√','√(','√('], ['x²','²','²'], ['xʸ','^','^'], ['log','log10(','log('], ['ln','log(','ln('],
+    ['(−)','(-','(-'], ['x⁻¹','^-1','⁻¹'], ['sin','sin(','sin('], ['cos','cos(','cos('], ['tan','tan(','tan('], ['S⇔D','SD',''],
+    ['(','(','('], [')',')',')'], ['π','π','π'], ['e','e','e'], ['%','%','%'], ['x!','!','!'],
+  ]
+  const keypad = ['7','8','9','DEL','AC','4','5','6','×','÷','1','2','3','+','−','0','.','×10ˣ','Ans','=']
+  const keyClass = 'min-w-0 rounded-xl border text-base font-semibold transition-colors active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300'
   return (
-    <FloatingToolPanel title="Máy tính khoa học" onClose={onClose}>
-      
-      {/* Header Casio */}
-      <div className="px-4 py-3.5 bg-white border-b border-slate-100 flex justify-between items-center">
-        <div className="min-w-0"><h3 className="text-sm font-semibold text-slate-800">Máy tính khoa học</h3><p className="mt-0.5 text-[10px] text-slate-400">Tính nhanh · Lưu kết quả</p></div>
-
-        <div className="flex items-center gap-1.5">
-          {/* Nút chuyển chế độ Độ (DEG) / Radian (RAD) */}
-          <button
-            type="button"
-            onClick={() => setAngleMode(prev => prev === 'DEG' ? 'RAD' : 'DEG')}
-            className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 transition-colors"
-            title="Đổi chế độ góc: DEG (Độ) / RAD (Radian)"
-          >
-            {angleMode}
-          </button>
-
-          {/* Nút Lịch sử */}
-          <button
-            type="button"
-            onClick={() => setShowHistory(!showHistory)}
-            className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
-              showHistory ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
-            }`}
-            title="Lịch sử tính toán"
-          >
-            <History size={15} />
-            {history.length > 0 && (
-              <span className="text-[9px] bg-indigo-500 px-1 py-0.1 rounded-full font-bold">
-                {history.length}
-              </span>
-            )}
-          </button>
-
-          {/* Đóng */}
-          <button
-            type="button"
-            onClick={onClose} aria-label="Đóng máy tính khoa học"
-            className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <X size={17} />
-          </button>
+    <FloatingToolPanel title="Máy tính khoa học" onClose={onClose} className="calculator-panel">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700 bg-slate-900 px-4 py-3">
+        <div><h3 className="text-base font-semibold text-slate-50">Máy tính khoa học</h3><p className="mt-1 text-xs text-slate-300">Tính nhanh · Lưu kết quả</p></div>
+        <div className="flex shrink-0 items-center gap-1">
+          <button type="button" onClick={()=>setAngleMode(mode=>mode==='DEG'?'RAD':'DEG')} title="Đổi chế độ góc: DEG (Độ) / RAD (Radian)" className="rounded-lg border border-cyan-700 bg-cyan-950 px-2 py-2 text-xs font-bold text-cyan-100">{angleMode}</button>
+          <button type="button" onClick={()=>setShowHistory(!showHistory)} title="Lịch sử tính toán" aria-pressed={showHistory} className="rounded-lg p-2 text-slate-200 hover:bg-slate-700"><History size={19}/></button>
+          <button type="button" onClick={onClose} aria-label="Đóng máy tính khoa học" className="rounded-lg p-2 text-slate-200 hover:bg-slate-700"><X size={20}/></button>
         </div>
-      </div>
-
-      {/* Main Body */}
-      {showHistory ? (
-        <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden text-slate-700">
-          <div className="p-3 bg-white border-b border-slate-100 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-              <History size={14} className="text-blue-500" />
-              Lịch sử tính toán ({history.length})
-            </span>
-            {history.length > 0 && (
-              <button
-                onClick={clearHistory}
-                className="text-[11px] text-rose-400 hover:text-rose-600 font-semibold flex items-center gap-1 px-2 py-0.5 rounded hover:bg-rose-950/40 transition-colors"
-              >
-                <Trash2 size={12} />
-                Xóa tất cả
-              </button>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar">
-            {history.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center p-6">
-                <RotateCcw size={32} className="opacity-30 mb-2" />
-                <p className="text-xs font-medium">Chưa có phép tính nào.</p>
-                <p className="text-[11px] text-slate-500 mt-1">Bấm '=' để lưu kết quả vào lịch sử.</p>
-              </div>
-            ) : (
-              history.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white p-3 rounded-xl border border-slate-200 hover:border-blue-200 transition-all shadow-xs"
-                >
-                  <div className="flex justify-between items-start text-xs text-slate-400 mb-1">
-                    <span className="font-mono truncate max-w-[210px]">{item.expr}</span>
-                    <span className="text-[10px] text-slate-500">
-                      {new Date(item.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold font-mono text-base text-blue-600">{item.result}</span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => copyResult(item.result, item.id)}
-                        className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
-                        title="Sao chép kết quả"
-                      >
-                        {copiedId === item.id ? <Check size={14} className="text-blue-600" /> : <Copy size={14} />}
-                      </button>
-                      <button
-                        onClick={() => applyHistoryItem(item)}
-                        className="text-[11px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 px-2 py-0.5 rounded transition-colors"
-                      >
-                        Chèn
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+      </header>
+      {showHistory ? <div className="min-h-0 flex-1 overflow-y-auto bg-slate-950 p-4">
+        <div className="mb-4 flex items-center justify-between gap-2"><h4 className="text-sm font-semibold text-slate-100">Lịch sử tính toán ({history.length})</h4>{history.length>0&&<button onClick={clearHistory} className="flex items-center gap-1 text-xs text-rose-300"><Trash2 size={14}/>Xóa tất cả</button>}</div>
+        {history.length===0?<div className="py-12 text-center text-sm text-slate-300"><RotateCcw className="mx-auto mb-3" size={28}/><p>Chưa có phép tính nào.</p><p className="mt-2">Bấm = để lưu kết quả.</p></div>:history.map(item=><article key={item.id} className="mb-3 rounded-xl border border-slate-700 bg-slate-900 p-3"><p className="break-all font-mono text-sm text-slate-300">{item.expr}</p><p className="my-2 break-all font-mono text-xl font-semibold text-cyan-200">{item.result}</p><div className="flex justify-end gap-4"><button onClick={()=>copyResult(item.result,item.id)} title="Sao chép kết quả" className="p-1 text-slate-200">{copiedId===item.id?<Check size={18}/>:<Copy size={18}/>}</button><button onClick={()=>applyHistoryItem(item)} className="text-sm font-medium text-cyan-200">Chèn</button></div></article>)}
+      </div>:<div className="calculator-body min-h-0 flex-1 overflow-y-auto bg-slate-950 p-3">
+        <div className="calculator-display mb-3 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 font-mono">
+          <div className="mb-2 flex justify-between text-xs font-medium text-cyan-200"><span>{angleMode} · Math</span><span>VNDocs</span></div>
+          <div aria-label="Biểu thức" className="overflow-x-auto whitespace-nowrap text-right text-lg leading-7 text-slate-100">{displayExpr||'0'}</div>
+          <div aria-label="Kết quả tính" aria-live="polite" className="min-h-9 overflow-x-auto whitespace-nowrap text-right text-3xl font-semibold leading-9 text-cyan-200">{result||' '}</div>
         </div>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto flex flex-col p-4 gap-3 bg-white">
-          
-          {/* Authentic Casio LCD Screen */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col justify-between h-24 font-mono text-slate-900">
-            {/* Status indicators */}
-            <div className="flex justify-between text-[10px] h-4 font-bold text-slate-700 select-none">
-              <div className="flex gap-2">
-                <span className={isShift ? 'text-amber-800 font-black' : 'opacity-20'}>S</span>
-                <span className={isAlpha ? 'text-rose-800 font-black' : 'opacity-20'}>A</span>
-                <span>{angleMode === 'DEG' ? 'D' : 'R'}</span>
-                <span>Math</span>
-              </div>
-              <span className="text-[9px] opacity-60">VNDocs</span>
-            </div>
-
-            {/* Expression Row */}
-            <div className="text-sm font-semibold text-right overflow-x-auto whitespace-nowrap no-scrollbar h-6 tracking-wide">
-              {displayExpr || '0'}
-            </div>
-
-            {/* Result Row */}
-            <div className="text-2xl font-black text-right overflow-x-auto whitespace-nowrap no-scrollbar h-8 tracking-wider">
-              {result !== '' ? result : ''}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={()=>onBtnClick('SHIFT','')} aria-pressed={isShift} className={`rounded-lg border px-3 py-2 text-[10px] font-semibold ${isShift?'border-amber-200 bg-amber-50 text-amber-800':'border-slate-200 bg-white text-slate-600'}`}>SHIFT</button>
-            <button type="button" onClick={()=>onBtnClick('ALPHA','')} aria-pressed={isAlpha} className={`rounded-lg border px-3 py-2 text-[10px] font-semibold ${isAlpha?'border-rose-200 bg-rose-50 text-rose-700':'border-slate-200 bg-white text-slate-600'}`}>ALPHA</button>
-            <span className="ml-auto text-[10px] text-slate-400">Hàm &amp; biểu thức</span>
-          </div>
-
-          {/* Scientific Keys Row 1: Phân số, căn, x2, x^, log, ln */}
-          <div className="grid grid-cols-6 gap-1.5">
-            <button onClick={() => onBtnClick('/', 'a/b')} className="casio-key">a/b</button>
-            <button onClick={() => onBtnClick('√(', '√(')} className="casio-key">√</button>
-            <button onClick={() => onBtnClick('²', '²')} className="casio-key">x²</button>
-            <button onClick={() => onBtnClick('^', '^')} className="casio-key">x^■</button>
-            <button onClick={() => onBtnClick('log10(', 'log(')} className="casio-key">log</button>
-            <button onClick={() => onBtnClick('log(', 'ln(')} className="casio-key">ln</button>
-          </div>
-
-          {/* Scientific Keys Row 2: (-), x-1, sin, cos, tan, S<=>D */}
-          <div className="grid grid-cols-6 gap-1.5">
-            <button onClick={() => onBtnClick('(-', '(-')} className="casio-key">(-)</button>
-            <button onClick={() => onBtnClick('^-1', '⁻¹')} className="casio-key">x⁻¹</button>
-            <button onClick={() => onBtnClick('sin(', 'sin(')} className="casio-key">sin</button>
-            <button onClick={() => onBtnClick('cos(', 'cos(')} className="casio-key">cos</button>
-            <button onClick={() => onBtnClick('tan(', 'tan(')} className="casio-key">tan</button>
-            <button onClick={() => onBtnClick('SD', '')} className="casio-key font-bold text-amber-700">S⇔D</button>
-          </div>
-
-          {/* Scientific Keys Row 3: (, ), STO, %, pi, e */}
-          <div className="grid grid-cols-6 gap-1.5">
-            <button onClick={() => onBtnClick('(', '(')} className="casio-key">(</button>
-            <button onClick={() => onBtnClick(')', ')')} className="casio-key">)</button>
-            <button onClick={() => onBtnClick('π', 'π')} className="casio-key">π</button>
-            <button onClick={() => onBtnClick('e', 'e')} className="casio-key">e</button>
-            <button onClick={() => onBtnClick('%', '%')} className="casio-key">%</button>
-            <button onClick={() => onBtnClick('!', '!')} className="casio-key">x!</button>
-          </div>
-
-          {/* Main Casio Numpad (5 columns) */}
-          <div className="grid grid-cols-5 gap-1.5 pt-1">
-            {/* Row 1 */}
-            <button onClick={() => onBtnClick('7', '7')} className="casio-num">7</button>
-            <button onClick={() => onBtnClick('8', '8')} className="casio-num">8</button>
-            <button onClick={() => onBtnClick('9', '9')} className="casio-num">9</button>
-            <button onClick={() => onBtnClick('DEL', '')} className="casio-del">DEL</button>
-            <button onClick={() => onBtnClick('AC', '')} className="casio-ac">AC</button>
-
-            {/* Row 2 */}
-            <button onClick={() => onBtnClick('4', '4')} className="casio-num">4</button>
-            <button onClick={() => onBtnClick('5', '5')} className="casio-num">5</button>
-            <button onClick={() => onBtnClick('6', '6')} className="casio-num">6</button>
-            <button onClick={() => onBtnClick('×', '×')} className="casio-op">×</button>
-            <button onClick={() => onBtnClick('÷', '÷')} className="casio-op">÷</button>
-
-            {/* Row 3 */}
-            <button onClick={() => onBtnClick('1', '1')} className="casio-num">1</button>
-            <button onClick={() => onBtnClick('2', '2')} className="casio-num">2</button>
-            <button onClick={() => onBtnClick('3', '3')} className="casio-num">3</button>
-            <button onClick={() => onBtnClick('+', '+')} className="casio-op">+</button>
-            <button onClick={() => onBtnClick('-', '-')} className="casio-op">-</button>
-
-            {/* Row 4 */}
-            <button onClick={() => onBtnClick('0', '0')} className="casio-num">0</button>
-            <button onClick={() => onBtnClick('.', '.')} className="casio-num">.</button>
-            <button onClick={() => onBtnClick('*10^', '×10^')} className="casio-num text-xs">×10ˣ</button>
-            <button onClick={() => onBtnClick('Ans', 'Ans')} className="casio-op text-xs">Ans</button>
-            <button onClick={() => onBtnClick('=', '')} className="casio-eq">=</button>
-          </div>
-
-        </div>
-      )}
-
-      {/* Tailwind helper style buttons inline */}
+        <div className="calculator-scientific grid grid-cols-6 gap-1.5">{scientific.map(([label,value,display])=><button key={label} type="button" onClick={()=>onBtnClick(value,display)} className={keyClass+' border-slate-600 bg-slate-800 text-slate-100 hover:bg-slate-700'}>{label}</button>)}</div>
+        <div className="calculator-numpad mt-3 grid grid-cols-5 gap-1.5">{keypad.map(label=>{
+          const value=label==='−'?'-':label==='×10ˣ'?'*10^':label
+          const display=label==='×10ˣ'?'×10^':label==='='||label==='DEL'||label==='AC'?'':value
+          const color=label==='='?'border-cyan-300 bg-cyan-300 text-slate-950 hover:bg-cyan-200':label==='AC'?'border-rose-800 bg-rose-950 text-rose-100 hover:bg-rose-900':label==='DEL'?'border-amber-700 bg-amber-950 text-amber-100 hover:bg-amber-900':['×','÷','+','−','Ans'].includes(label)?'border-slate-500 bg-slate-700 text-cyan-100 hover:bg-slate-600':'border-slate-600 bg-slate-800 text-slate-50 hover:bg-slate-700'
+          return <button type="button" key={label} onClick={()=>onBtnClick(value,display)} className={keyClass+' '+color}>{label}</button>
+        })}</div>
+      </div>}
       <style jsx>{`
-        .casio-key {
-          height: 34px;
-          border-radius: 6px;
-          background-color: #dbeafe;
-          color: #475569;
-          font-size: 11px;
-          font-weight: 600;
-          border: 1px solid #e2e8f0;
-          transition: all 0.1s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .calculator-scientific button { min-height: 36px; font-size: 13px; }
+        .calculator-numpad button { min-height: 46px; }
+        @media (max-height: 640px) {
+          .calculator-body { padding: 10px; }
+          .calculator-display { padding: 8px 12px; margin-bottom: 8px; }
+          .calculator-scientific button { min-height: 32px; }
+          .calculator-numpad { margin-top: 8px; }
+          .calculator-numpad button { min-height: 38px; }
         }
-        .casio-key:hover { background-color: #eff6ff; }
-        .casio-key:active { transform: scale(0.95); }
-
-        .casio-num {
-          height: 44px;
-          border-radius: 8px;
-          background-color: #f8fafc;
-          color: #0f172a;
-          font-size: 16px;
-          font-weight: 600;
-          border: 1px solid #e2e8f0;
-          transition: all 0.1s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .casio-num:hover { background-color: #e2e8f0; }
-        .casio-num:active { transform: scale(0.95); }
-
-        .casio-del {
-          height: 44px;
-          border-radius: 8px;
-          background-color: #ea580c;
-          color: white;
-          font-size: 12px;
-          font-weight: 600;
-          border: 1px solid #e2e8f0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .casio-del:hover { background-color: #f97316; }
-        .casio-del:active { transform: scale(0.95); }
-
-        .casio-ac {
-          height: 44px;
-          border-radius: 8px;
-          background-color: #dc2626;
-          color: white;
-          font-size: 12px;
-          font-weight: 600;
-          border: 1px solid #e2e8f0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .casio-ac:hover { background-color: #ef4444; }
-        .casio-ac:active { transform: scale(0.95); }
-
-        .casio-op {
-          height: 44px;
-          border-radius: 8px;
-          background-color: #eff6ff;
-          color: #2563eb;
-          font-size: 15px;
-          font-weight: 600;
-          border: 1px solid #e2e8f0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .casio-op:hover { background-color: #dbeafe; }
-        .casio-op:active { transform: scale(0.95); }
-
-        .casio-eq {
-          height: 44px;
-          border-radius: 8px;
-          background-color: #2563eb;
-          color: white;
-          font-size: 18px;
-          font-weight: 600;
-          border: 1px solid #e2e8f0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .casio-eq:hover { background-color: #1d4ed8; }
-        .casio-eq:active { transform: scale(0.95); }
       `}</style>
     </FloatingToolPanel>
   )
 }
-

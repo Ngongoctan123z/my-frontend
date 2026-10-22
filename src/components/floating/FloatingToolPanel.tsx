@@ -14,5 +14,6 @@ export function FloatingToolPanel({ title, onClose, children, className='' }: {t
   },[])
   return <div ref={panel} role="dialog" aria-label={title} aria-modal="false" tabIndex={-1} data-tool-panel
     onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();close.current()}}}
-    className={`flex h-[580px] w-[380px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-[0_16px_60px_rgba(15,23,42,0.16)] outline-none ${className}`}>{children}</div>
+    className={`flex h-[580px] w-[380px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 text-slate-100 shadow-[0_20px_70px_rgba(2,6,23,0.4)] outline-none ${className}`}>{children}</div>
 }
+
