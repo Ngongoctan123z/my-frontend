@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 declare global {
   interface Window {
@@ -45,8 +45,6 @@ export function TurnstileWidget({
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const [scriptLoaded, setScriptLoaded] = useState(false)
-  const [verifiedFallback, setVerifiedFallback] = useState(false)
-  const [checking, setChecking] = useState(false)
 
   // If a real site key is provided, use Cloudflare's Turnstile script
   useEffect(() => {
@@ -106,53 +104,7 @@ export function TurnstileWidget({
     }
   }, [scriptLoaded, onVerify, onError, onExpire, theme, size])
 
-  // If no custom site key is configured, provide a clean, professional Cloudflare human check
-  if (!CUSTOM_SITE_KEY) {
-    const handleCheck = () => {
-      if (verifiedFallback || checking) return
-      setChecking(true)
-      setTimeout(() => {
-        setChecking(false)
-        setVerifiedFallback(true)
-        onVerify('cf-verified-session-token')
-      }, 400)
-    }
-
-    return (
-      <div className={`flex flex-col items-center justify-center ${className}`}>
-        <button
-          type="button"
-          onClick={handleCheck}
-          className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all text-xs font-semibold ${
-            verifiedFallback
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm active:scale-98'
-          }`}
-        >
-          <div className="w-5 h-5 flex items-center justify-center shrink-0">
-            {checking ? (
-              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-            ) : verifiedFallback ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            ) : (
-              <div className="w-4 h-4 rounded border-2 border-slate-300 hover:border-blue-500 transition-colors" />
-            )}
-          </div>
-          <span>
-            {verifiedFallback
-              ? 'Xác thực bảo mật thành công'
-              : checking
-              ? 'Đang kiểm tra bảo mật...'
-              : 'Xác minh tôi là con người'}
-          </span>
-          <div className="pl-2 border-l border-slate-200 flex items-center gap-1 text-[10px] text-slate-400">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
-            <span>Bảo mật</span>
-          </div>
-        </button>
-      </div>
-    )
-  }
+  if (!CUSTOM_SITE_KEY) return <p role="status" className={`text-sm text-slate-600 ${className}`}>Xác thực bảo mật chưa được cấu hình. Vui lòng liên hệ quản trị viên.</p>
 
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
@@ -166,3 +118,4 @@ export function TurnstileWidget({
     </div>
   )
 }
+

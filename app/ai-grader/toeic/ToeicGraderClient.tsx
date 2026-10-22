@@ -1,4 +1,5 @@
 'use client'
+import { usePracticeNavigation } from '@/src/hooks/usePracticeNavigation'
 import { learnerPromptContent, learnerHistoryPrompt } from '@/src/lib/publicWritingPrompt'
 
 import React, { useState, useRef, useEffect, useMemo } from 'react'
@@ -506,6 +507,8 @@ export function ToeicGraderClient() {
     setResult(item.result);setResultExamType(item.examType);setShowHistoryModal(false)
   }
 
+  const practiceTarget = usePracticeNavigation([activeTab,activeTab==='TOEIC_FULL'?fullTestStep:0,pictureView?JSON.stringify(pictureSet):activePrompt?.content].join('|'), !isGenerating && !isLoadingSets, isEditorExpanded || showHistoryModal || !!result || showStudentsModal || isShareModalOpen)
+
   return (
     <div className="w-full min-w-0 space-y-3 sm:space-y-6">
       {/* Header & Modes */}
@@ -554,7 +557,7 @@ export function ToeicGraderClient() {
               { key: 'TOEIC_ESSAY', title: isEn ? 'Essay' : 'Luận', subtitle: isEn ? 'Q8' : 'Câu 8', max: '5đ' },
             ].map(t => {
               const isActive = activeTab === t.key
-              return (
+  return (
                 <button
                   key={t.key}
                   disabled={isGrading || isLoadingSets}
@@ -610,7 +613,7 @@ export function ToeicGraderClient() {
       </div>
 
       <details className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">{isEn?'How are scores calculated?':'Cách tính điểm TOEIC Writing'}</summary><p className="mt-2 leading-relaxed">{isEn?'Pictures: 5 × 3 = 15 raw marks. Emails: 2 × 4 = 8. Opinion essay: 5. Total: 28 raw marks. ETS converts the ratings to a 0–200 scaled score; there is no published fixed share of 200 for each section.':'Theo ảnh: 5 × 3 = 15 điểm thô. Hai email: 2 × 4 = 8. Bài luận: 5. Tổng: 28 điểm thô. ETS quy đổi tổng sang thang 0–200; không có mức điểm cố định từng phần trên thang 200.'}</p></details>
-      {pictureView ? <div className="rounded-none border-y border-slate-200 bg-white p-4 shadow-xs sm:rounded-xl sm:border sm:p-5">
+      {pictureView ? <div ref={practiceTarget} data-practice-target tabIndex={-1} role="region" aria-label={isEn ? "Current task" : "Bài đang làm"} className="rounded-none border-y border-slate-200 bg-white p-4 shadow-xs sm:rounded-xl sm:border sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3"><h3 className="text-sm font-bold text-blue-700">{isEn?'Picture sentences · Q1–5':'Viết câu theo ảnh · Câu 1–5'}</h3><button type="button" disabled={isGenerating || isGrading} onClick={()=>{if(activeTab==='TOEIC_FULL'){if((essayPart1||essayPart2||essayEmail7||pictureAnswers.some(Boolean))&&!confirm(isEn?'Change the complete exam and clear all answers?':'Đổi cả bộ đề và xoá bài đang viết?'))return;void switchPairedSet();return}if(pictureAnswers.some(Boolean)&&!confirm(isEn?'Discard the five answers and change pictures?':'Đổi bộ ảnh và xoá 5 câu đang viết?'))return;void loadPictures(true)}} className="shrink-0 rounded border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-600 disabled:opacity-50">{isGenerating?(isEn?'Loading…':'Đang tải…'):(activeTab==='TOEIC_FULL'?(isEn?'Change exam':'Đổi bộ đề'):(isEn?'New pictures':'Đổi bộ ảnh'))}</button></div>
         <ToeicPictureQuestions showAnswers={!!practiceOwner} set={pictureSet} answers={pictureAnswers} onAnswer={(index,value)=>{pictureTouched.current=true;setPictureAnswers(previous=>previous.map((answer,i)=>i===index?value:answer))}} disabled={!session || isGrading} isEn={isEn}/>
         {error&&<p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
@@ -620,7 +623,7 @@ export function ToeicGraderClient() {
       </div> : <>
       {activeTab==='TOEIC_FULL'&&fullTestStep===1&&<p className="rounded-lg border border-blue-100 bg-blue-50/40 px-4 py-3 text-xs leading-relaxed text-slate-600">{isEn?'Questions 6–7 contain two separate emails, with ten minutes per email. Answer question 6 below, then question 7.':'Nhóm câu 6–7 gồm hai email riêng, mỗi câu 10 phút. Hoàn thành câu 6 rồi bấm chuyển sang câu 7.'}</p>}
       {/* Main Two-Column Layout */}
-      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
+      <div ref={practiceTarget} data-practice-target tabIndex={-1} role="region" aria-label={isEn ? "Current task" : "Bài đang làm"} className="outline-none grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
         {/* Left Column: Prompt */}
         <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col min-h-0 lg:min-h-[440px]">
           <div className="flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
@@ -944,6 +947,7 @@ export function ToeicGraderClient() {
     </div>
   )
 }
+
 
 
 

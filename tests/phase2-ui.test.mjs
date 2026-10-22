@@ -56,6 +56,16 @@ const server=createServer(async(req,res)=>{if(req.url.startsWith('/exam-media/to
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const browser=await chromium.launch({proxy:process.env.EXAM_TEST_PROXY?{server:process.env.EXAM_TEST_PROXY,bypass:"127.0.0.1,localhost"}:undefined});let active
 const open=async(mode,width=375)=>{const page=await browser.newPage({viewport:{width,height:900},ignoreHTTPSErrors:!!process.env.EXAM_TEST_PROXY});active=page;page.on('pageerror',error=>{page.fixtureErrors??=[];page.fixtureErrors.push(error.message)});await page.goto('http://127.0.0.1:'+server.address().port+'/?mode='+mode);return page}
 const layout=async page=>{assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);assert.deepEqual(page.fixtureErrors||[],[])}
+const assertReadable=async locator=>{
+ const ratio=await locator.evaluate(el=>{
+  const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;const ctx=canvas.getContext('2d',{willReadFrequently:true})
+  const rgb=color=>{ctx.clearRect(0,0,1,1);ctx.fillStyle=color;ctx.fillRect(0,0,1,1);return [...ctx.getImageData(0,0,1,1).data].slice(0,3)}
+  const luminance=color=>rgb(color).map(c=>{c/=255;return c<=0.04045?c/12.92:((c+0.055)/1.055)**2.4}).reduce((sum,c,i)=>sum+c*[0.2126,0.7152,0.0722][i],0)
+  let surface=el;while(surface.parentElement&&getComputedStyle(surface).backgroundColor==='rgba(0, 0, 0, 0)')surface=surface.parentElement
+  const a=luminance(getComputedStyle(el).color),b=luminance(getComputedStyle(surface).backgroundColor)
+  return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05)
+ });assert.ok(ratio>=4.5,'Tool text must have at least 4.5:1 contrast; got '+ratio)
+}
 try{
  for(const width of [320,375,1280]){
   const page=await open('writing',width)
@@ -123,8 +133,22 @@ try{
   const page=await open('tools',width)
   for(const [label,title] of [['Máy tính Casio Online','Máy tính khoa học'],['Dịch thuật nhanh','Dịch thuật nhanh'],['Hỗ trợ & Chat với Admin','Hỗ trợ VNDocs']]){
    const trigger=page.getByRole('button',{name:label,exact:true});await trigger.click();const panel=page.getByRole('dialog',{name:title,exact:true});await panel.waitFor()
-   if(title==='Máy tính khoa học'){for(const value of ['7','+','8','='])await panel.getByRole('button',{name:value,exact:true}).click();assert.ok((await panel.textContent()).includes('15'))}
-   if(title==='Dịch thuật nhanh'){await panel.getByLabel('Văn bản cần dịch').fill('Hello');await panel.getByRole('button',{name:'Dịch ngay',exact:true}).click();await panel.getByText('Xin chào',{exact:true}).waitFor()}
+   if(title==='Máy tính khoa học'){
+    for(const value of ['7','+','8','='])await panel.getByRole('button',{name:value,exact:true}).click()
+    assert.equal(await panel.getByLabel('Kết quả tính').textContent(),'15')
+    await assertReadable(panel.getByLabel('Kết quả tính'))
+    for(const label of ['7','sin','='])await assertReadable(panel.getByRole('button',{name:label,exact:true}))
+    await panel.getByRole('button',{name:'Lịch sử tính toán',exact:true}).click();await panel.getByText('7+8',{exact:true}).waitFor()
+    await panel.getByRole('button',{name:'Chèn',exact:true}).click()
+   }
+   if(title==='Dịch thuật nhanh'){
+    await panel.getByLabel('Văn bản cần dịch').fill('Hello')
+    assert.equal(await panel.getByLabel('Văn bản cần dịch').getAttribute('maxlength'),'5000')
+    await assertReadable(panel.getByLabel('Văn bản cần dịch'))
+    assert.ok(await panel.getByLabel('Văn bản cần dịch').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))>=16)
+    await panel.getByRole('button',{name:'Dịch ngay',exact:true}).click();await panel.getByText('Xin chào',{exact:true}).waitFor()
+    await assertReadable(panel.getByText('Xin chào',{exact:true}))
+   }
    if(title==='Hỗ trợ VNDocs')await panel.getByLabel('Tin nhắn hỗ trợ').fill('Draft only; do not send')
    await layout(page);await page.screenshot({path:output+'/'+label+'-'+width+'.png'})
    await page.keyboard.press('Escape');await panel.waitFor({state:'detached'})
@@ -163,4 +187,5 @@ try{
  console.log('PASS live interim/final words, preserved um/repetition, 1.5s + 1s dots, frozen evidence and resource cleanup')
 } catch(error){if(active&&!active.isClosed())await active.screenshot({path:output+'/failure.png',fullPage:true});throw error}
 finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+
 

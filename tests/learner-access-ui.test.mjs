@@ -83,6 +83,13 @@ const origin='http://127.0.0.1:'+server.address().port,browser=await chromium.la
 let activePage
 const assertLayout=async page=>assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'Learner page must fit the viewport')
 const assertNoPaidCalls=async page=>assert.equal(await page.evaluate(()=>window.requests.some(request=>['grade_essay','grade','begin_submission','submit_audio'].includes(request.body.action)||request.url.includes('/shared-exams/submit'))),false,'Guest viewing must not grade or submit')
+const installScrollFixture=async page=>page.evaluate(()=>{
+ const header=document.createElement('header');header.style.cssText='position:fixed;top:0;left:0;height:56px;width:100%;z-index:20;background:#fff';header.textContent='Navigation fixture';document.body.append(header)
+ const spacer=document.createElement('div');spacer.style.height='1800px';spacer.setAttribute('aria-hidden','true');document.body.append(spacer)
+})
+const assertTaskInView=async page=>page.waitForFunction(()=>{
+ const target=document.querySelector('[data-practice-target]');return target&&document.activeElement===target&&Math.abs(target.getBoundingClientRect().top-72)<4
+})
 try{
  for(const width of [320,1280]){
   for(const exam of ['ielts','toeic','topik','hsk']){
@@ -116,6 +123,48 @@ try{
   assert.equal(await student.evaluate(()=>window.signIns.length),0,'Shared student completed without signing in')
   await student.getByRole('button',{name:'Close result',exact:true}).click();await assertLayout(student);await student.screenshot({path:output+'/shared-student-'+width+'.png',fullPage:true});await student.close()
  }
+ // Reproduce a long picture task, then ensure every next/back task starts in view.
+ for(const width of [375,1280]){
+  const page=await browser.newPage({viewport:{width,height:760}});activePage=page
+  await page.goto(origin+'/ai-grader/toeic?exam=toeic&auth=plus')
+  await page.locator('[data-practice-target]').waitFor()
+  await page.waitForTimeout(120)
+  await installScrollFixture(page)
+  const answers=page.locator('textarea:visible');await answers.last().fill('A learner answer for picture five.')
+  for(const label of [/Chuyển sang câu 6/i,/Chuyển sang câu 7/i,/Chuyển sang luận/i,/Quay lại câu 7/i,/Quay lại câu 6/i,/Quay lại câu 1–5/i]){
+   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight))
+   await page.getByRole('button',{name:label}).click()
+   await assertTaskInView(page)
+  }
+  assert.equal(await page.locator('textarea:visible').last().inputValue(),'A learner answer for picture five.','Navigation preserves existing answers')
+  await page.screenshot({path:output+'/toeic-scroll-'+width+'.png'});await page.close()
+ }
+ for(const exam of ['ielts','topik','hsk','speaking']){
+  const page=await browser.newPage({viewport:{width:375,height:760}});activePage=page
+  await page.goto(origin+(exam==='speaking'?'/speaking?mode=speaking&auth=plus':'/ai-grader/'+exam+'?exam='+exam+'&auth=plus'))
+  await page.locator('[data-practice-target]').waitFor();await page.waitForTimeout(120)
+  await installScrollFixture(page)
+  if(exam==='ielts'){
+   await page.getByRole('button',{name:/Trọn bộ/}).click();await assertTaskInView(page)
+   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight))
+   await page.getByRole('button',{name:/Chuyển sang Task 2/}).click()
+  }else if(exam==='speaking'){
+   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight))
+   await page.getByRole('button',{name:'Trọn bộ',exact:true}).click()
+  }else{
+   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight))
+   await page.getByRole('button',{name:exam==='topik'?/Chuyển sang Câu 52/:/Chuyển sang Phần 2/}).first().click()
+  }
+  await assertTaskInView(page)
+  const textbox=page.locator('textarea:visible:not([disabled])').first()
+  if(await textbox.count()){
+   await textbox.fill('Draft remains in place when typing.')
+   const before=await page.evaluate(()=>window.scrollY);await page.waitForTimeout(100)
+   assert.equal(await page.evaluate(()=>window.scrollY),before,'Typing must not reset scroll')
+  }
+  await page.screenshot({path:output+'/'+exam+'-scroll.png'});await page.close()
+ }
+ console.log('PASS task navigation: TOEIC Q5 to Q6/Q7/Q8 and back, all Writing/Speaking task changes, sticky header offset and draft preservation')
  for(const [exam,plan] of [['ielts','plus'],['toeic','pro'],['topik','plus'],['hsk','pro']]){
   const owner=await browser.newPage({viewport:{width:1280,height:920}});activePage=owner
   await owner.goto(origin+'/ai-grader/'+exam+'?exam='+exam+'&auth='+plan)
@@ -164,4 +213,5 @@ try{
  console.log('PASS guest prompt access, authenticated answer gates, public student submissions and teacher share controls')
 }catch(error){if(activePage&&!activePage.isClosed())await activePage.screenshot({path:output+'/failure.png',fullPage:true}).catch(()=>{});await writeFile(output+'/failure.txt',String(error.stack||error));throw error}
 finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
+
 

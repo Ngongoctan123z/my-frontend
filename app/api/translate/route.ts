@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit } from '@/src/lib/rateLimit'
+import { boundedJson, RequestBodyError } from '@/src/lib/requestBody'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { text, from = 'auto', to = 'vi' } = await req.json()
+    const origin = req.headers.get('origin')
+    if (origin && origin !== new URL(req.url).origin) return NextResponse.json({error:'Yêu cầu không hợp lệ.'},{status:403})
+    const { text, from = 'auto', to = 'vi' } = await boundedJson(req)
+    const languages = ['en','vi','zh-CN','ko','ja','fr','de','ru','es']
+    if (typeof from !== 'string' || typeof to !== 'string' || (from !== 'auto' && !languages.includes(from)) || !languages.includes(to)) return NextResponse.json({error:'Ngôn ngữ không hợp lệ.'},{status:400})
 
     if (!text || typeof text !== 'string' || !text.trim()) {
       return NextResponse.json({ error: 'Nội dung dịch không được để trống' }, { status: 400 })
@@ -29,6 +34,7 @@ export async function POST(req: NextRequest) {
     try {
       const url = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=${encodeURIComponent(from)}&tl=${encodeURIComponent(to)}&q=${encodeURIComponent(cleanText)}`
       const res = await fetch(url, {
+        signal: AbortSignal.timeout(7000),
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest) {
     // 2. Google Translate GTX
     try {
       const googleUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(from)}&tl=${encodeURIComponent(to)}&dt=t&q=${encodeURIComponent(cleanText)}`
-      const res = await fetch(googleUrl)
+      const res = await fetch(googleUrl, { signal: AbortSignal.timeout(7000) })
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data) && Array.isArray(data[0])) {
@@ -70,7 +76,7 @@ export async function POST(req: NextRequest) {
     try {
       const pair = `${from === 'auto' ? 'en' : from}|${to}`
       const fallbackUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=${encodeURIComponent(pair)}`
-      const fbRes = await fetch(fallbackUrl)
+      const fbRes = await fetch(fallbackUrl, { signal: AbortSignal.timeout(7000) })
       if (fbRes.ok) {
         const fbData = await fbRes.json()
         const translatedText = fbData?.responseData?.translatedText || ''
@@ -84,6 +90,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Không thể dịch vào lúc này. Vui lòng thử lại sau.' }, { status: 500 })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Lỗi hệ thống' }, { status: 500 })
+    return NextResponse.json({ error: error instanceof RequestBodyError ? error.message : 'Không thể dịch vào lúc này.' }, { status: error instanceof RequestBodyError ? error.status : 500 })
   }
 }
+

@@ -29,6 +29,15 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" },
+          { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), microphone=(self)' },
+        ],
+      },
+      {
         // Cache static assets dài hạn — giảm round-trip trên mobile
         source: '/_next/static/:path*',
         headers: [
@@ -54,4 +63,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
 

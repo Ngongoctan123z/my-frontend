@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit production dependency advisories
+        run: node scripts/audit-security-dependencies.mjs
+
+      - name: Test security boundaries and authentication defaults
+        run: node --experimental-vm-modules tests/security.test.mjs
+
       - name: Prepare validated Writing bank assets
         run: npm run prepare:writing-bank
 
@@ -83,7 +89,12 @@ jobs:
           node tests/public-bundle-privacy.test.mjs
 
       - name: Install browser for grader UI checks
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: |
+          if ! timeout 90s npx playwright install-deps chromium; then
+            echo "::warning::Browser dependency installation did not complete; validating the runner's existing libraries with the browser tests."
+          fi
+          npx playwright install chromium
 
       - name: Test grader inputs and mobile layouts
         run: npm run test:grader-ui
@@ -102,7 +113,9 @@ jobs:
 
       - name: Verify deployed D1 catalogs and private Speaking routes
         if: github.ref == 'refs/heads/main'
-        run: node tests/deployed-speaking.mjs
+        run: |
+          node tests/deployed-speaking.mjs
+          node tests/deployed-security.mjs
 
       - name: Verify indexed legacy URLs and active canonicals on both hostnames
         if: github.ref == 'refs/heads/main'
@@ -122,11 +135,13 @@ jobs:
             test-results/site-retirement-ui
             test-results/seo-index-audit.json
             test-results/worker-runtime.log
+            test-results/security
           if-no-files-found: ignore
 
       # Cloudflare Workers Builds deploys main through the existing GitHub App
       # integration. This workflow verifies the same build without a second
       # deployment path or separate Cloudflare credentials.
+
 
 
 

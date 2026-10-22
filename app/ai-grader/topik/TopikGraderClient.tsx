@@ -1,4 +1,5 @@
 'use client'
+import { usePracticeNavigation } from '@/src/hooks/usePracticeNavigation'
 import { learnerPromptContent, learnerHistoryPrompt } from '@/src/lib/publicWritingPrompt'
 
 import React, { useState, useRef, useEffect, useMemo } from 'react'
@@ -641,6 +642,8 @@ export function TopikGraderClient() {
     setShowHistoryModal(false)
   }
 
+  const practiceTarget = usePracticeNavigation([activeTab,effectiveQuestionKey,currentPrompt?.content].join('|'), !isGenerating, isEditorExpanded || showHistoryModal || !!result || showStudentsModal || isShareModalOpen || !!expandedImage)
+
   return (
     <div className="w-full min-w-0 space-y-3 sm:space-y-6">
       {/* Top Card: Navigation & Settings */}
@@ -685,7 +688,7 @@ export function TopikGraderClient() {
           <div className="flex items-center gap-2 md:gap-3 min-w-0 max-w-full overflow-x-auto snap-x xl:overflow-x-visible pb-1 xl:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {TOPIK_TABS.map(t => {
               const isActive = activeTab === t.key
-              return (
+  return (
                 <button
                   key={t.key}
                   disabled={isGrading}
@@ -737,7 +740,7 @@ export function TopikGraderClient() {
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
+      <div ref={practiceTarget} data-practice-target tabIndex={-1} role="region" aria-label={isEn ? "Current task" : "Bài đang làm"} className="outline-none grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
         {/* Left Column: Prompt Box */}
         <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col">
           <div className="flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
@@ -1158,6 +1161,7 @@ export function TopikGraderClient() {
     </div>
   )
 }
+
 
 
 
