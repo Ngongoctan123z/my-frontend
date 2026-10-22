@@ -39,7 +39,7 @@ jobs:
         run: |
           node --experimental-vm-modules tests/security.test.mjs
           node --experimental-vm-modules tests/turnstile-config.test.mjs
-          node tests/admin-layout-security.test.mjs
+          node --experimental-vm-modules tests/admin-layout-security.test.mjs
           node --experimental-vm-modules tests/auth-secret-provision.test.mjs
 
       - name: Prepare validated Writing bank assets
