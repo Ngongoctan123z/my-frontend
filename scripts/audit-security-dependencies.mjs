@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process'
-import {mkdir,writeFile,readFile} from 'node:fs/promises'
+import {mkdir,writeFile} from 'node:fs/promises'
 await mkdir('test-results/security',{recursive:true})
 let output
 try { output=execFileSync('npm',['audit','--omit=dev','--json'],{encoding:'utf8',timeout:90000,maxBuffer:8*1024*1024}) }
@@ -10,14 +10,4 @@ if(report.error)throw new Error('Dependency advisory service failed: '+report.er
 await writeFile('test-results/security/npm-audit.json',JSON.stringify(report,null,2))
 console.log('PRODUCTION_DEPENDENCY_AUDIT',JSON.stringify(report.metadata?.vulnerabilities||{}))
 for(const [name,item] of Object.entries(report.vulnerabilities||{})) console.log('DEPENDENCY_FINDING',JSON.stringify({name,severity:item.severity,isDirect:item.isDirect,range:item.range,fixAvailable:item.fixAvailable,via:item.via}))
-if((report.metadata?.vulnerabilities?.high||0)+(report.metadata?.vulnerabilities?.critical||0)>0){
- const before=JSON.parse(await readFile('package-lock.json','utf8'))
- const pkg=JSON.parse(await readFile('package.json','utf8'));pkg.overrides={...pkg.overrides,sharp:'^0.35.5'}
- await writeFile('package.json',JSON.stringify(pkg,null,2)+'\n')
- execFileSync('npm',['install','--package-lock-only','--ignore-scripts'],{encoding:'utf8',timeout:90000,maxBuffer:8*1024*1024})
- const after=JSON.parse(await readFile('package-lock.json','utf8'))
- const changed=Object.fromEntries(Object.entries(after.packages).filter(([key,value])=>JSON.stringify(before.packages[key])!==JSON.stringify(value)))
- const removed=Object.keys(before.packages).filter(key=>!Object.hasOwn(after.packages,key))
- console.log('SHARP_LOCK_PATCH',JSON.stringify({changed,removed}))
- process.exitCode=1
-}
+if((report.metadata?.vulnerabilities?.high||0)+(report.metadata?.vulnerabilities?.critical||0)>0)process.exitCode=1

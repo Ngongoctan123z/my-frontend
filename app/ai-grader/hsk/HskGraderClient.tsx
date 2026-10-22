@@ -1,4 +1,5 @@
 'use client'
+import { usePracticeNavigation } from '@/src/hooks/usePracticeNavigation'
 import { learnerPromptContent, learnerHistoryPrompt } from '@/src/lib/publicWritingPrompt'
 
 import React, { useState, useRef, useEffect, useMemo } from 'react'
@@ -495,6 +496,8 @@ export function HskGraderClient() {
     setShowHistoryModal(false)
   }
 
+  const practiceTarget = usePracticeNavigation([activeTab,activeTab==='HSK_5_FULL'?hsk5Step:0,currentPromptObj?.content].join('|'), !isGenerating, isEditorExpanded || showHistoryModal || !!result || showStudentsModal || isShareModalOpen || !!expandedImage)
+
   return (
     <div className="w-full min-w-0 space-y-3 sm:space-y-6">
       {session&&<div className="rounded-xl border bg-white p-4"><WritingSetPicker exam={activeTab==='HSK_6'?'HSK_6':'HSK_5'} currentId={(activeTab==='HSK_6'?hsk6Prompt:hsk5Prompt)?.id?.replace(/-body$/,'')||''} onChoose={id=>void chooseWritingSet(id)} disabled={isGenerating||isGrading} isEn={isEn}/><p className="mt-2 text-[10px] text-slate-400">Cấu trúc hệ 6 cấp (2.0) · đề luyện gốc.</p></div>}
@@ -541,7 +544,7 @@ export function HskGraderClient() {
               { key: 'HSK_6', title: 'HSK 6', subtitle: isEn ? 'Summary Essay' : 'Tóm tắt 400 chữ', max: '100đ' },
             ].map(t => {
               const isActive = activeTab === t.key
-              return (
+  return (
                 <button
                   key={t.key}
                   disabled={isGrading}
@@ -594,7 +597,7 @@ export function HskGraderClient() {
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
+      <div ref={practiceTarget} data-practice-target tabIndex={-1} role="region" aria-label={isEn ? "Current task" : "Bài đang làm"} className="outline-none grid min-w-0 grid-cols-1 lg:grid-cols-2 [&>div]:min-w-0 gap-3 sm:gap-6 items-start">
         {/* Left Column: Prompt Box */}
         <div className="bg-white rounded-none sm:rounded-xl border-y sm:border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col">
           <div className="flex min-w-0 max-w-full overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
@@ -1105,6 +1108,7 @@ export function HskGraderClient() {
     </div>
   )
 }
+
 
 
 

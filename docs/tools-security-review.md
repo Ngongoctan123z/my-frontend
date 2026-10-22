@@ -41,3 +41,14 @@ secret must be treated as exposed. Replace the Google OAuth secret in Google Clo
 and the AUTH_GOOGLE_SECRET binding, and use a new unpredictable AUTH_SECRET in
 Cloudflare (this invalidates old sessions). Rotate any reused administrator password.
 These account-side secret rotations require access outside this repository.
+
+
+## Practice task navigation
+
+One hook serves IELTS, TOEIC, TOPIK, HSK and Speaking in both language routes.
+Task identity changes (part, selected question or new prompt) wait for rendered
+content and modal closure, then scroll and focus the task region below a visible
+fixed/sticky header. Typing and countdown updates never trigger navigation.
+TOEIC picture/email/essay forward and backward navigation retains all answers.
+Tests reproduce scrolling through five picture questions before moving to Q6 and
+cover other Writing/Speaking parts and the fixed-header offset.
