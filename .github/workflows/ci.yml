@@ -35,7 +35,9 @@ jobs:
         run: node scripts/audit-security-dependencies.mjs
 
       - name: Test security boundaries and authentication defaults
-        run: node --experimental-vm-modules tests/security.test.mjs
+        run: |
+          node --experimental-vm-modules tests/security.test.mjs
+          node --experimental-vm-modules tests/auth-secret-provision.test.mjs
 
       - name: Prepare validated Writing bank assets
         run: npm run prepare:writing-bank

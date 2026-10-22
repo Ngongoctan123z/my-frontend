@@ -52,3 +52,11 @@ fixed/sticky header. Typing and countdown updates never trigger navigation.
 TOEIC picture/email/essay forward and backward navigation retains all answers.
 Tests reproduce scrolling through five picture questions before moving to Q6 and
 cover other Writing/Speaking parts and the fixed-header offset.
+
+
+Cloudflare deployments provision a missing AUTH_SECRET through the existing build
+identity with a random 256-bit value. Existing bindings are preserved. Google
+credentials are copied only if already present in the build environment; no
+committed fallback is reinstated and no secret value is printed. Deployment
+credentials are never copied into the Worker. CI exercises idempotency, denied
+permissions and secret redaction.
