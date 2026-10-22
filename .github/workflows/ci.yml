@@ -89,7 +89,12 @@ jobs:
           node tests/public-bundle-privacy.test.mjs
 
       - name: Install browser for grader UI checks
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: |
+          if ! timeout 90s npx playwright install-deps chromium; then
+            echo "::warning::Browser dependency installation did not complete; validating the runner's existing libraries with the browser tests."
+          fi
+          npx playwright install chromium
 
       - name: Test grader inputs and mobile layouts
         run: npm run test:grader-ui
