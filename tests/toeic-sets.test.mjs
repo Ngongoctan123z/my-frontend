@@ -75,7 +75,7 @@ test('public practice API seeds all 50 sets and hides model examples until after
  const h=await fixture(),r=await h.post({action:'generate_prompt_batch',type:'TOEIC_PICTURE'})
  assert.equal(r.response.status,200);assert.equal(h.sqlite.prepare("SELECT COUNT(*) n FROM prompt WHERE type='TOEIC_PICTURE'").get().n,50)
  assert.equal(r.data.prompts.length,3)
- for(const p of r.data.prompts){assert.match(p.id,/toeic-photo-practice/);const set=JSON.parse(p.content);assert.equal(set.questions.length,5);assert.equal(set.questions[0].exampleAnswer,undefined)}
+ for(const p of r.data.prompts){assert.match(p.id,/toeic-photo-practice/);const set=JSON.parse(p.content);assert.equal(set.questions.length,5);assert.equal(set.questions[0].exampleAnswer,undefined);assert.equal(set.questions[0].description,undefined)}
  assert.equal(h.state.calls.length,0)
 })
 
@@ -118,3 +118,4 @@ test('TOEIC essay holistic marks are not averaged, calibrated or mechanically ca
  const r=scoring.postProcessResult(parsed,'TOEIC_ESSAY','The score comes from the rubric rather than an arbitrary word-count formula.',99)
  assert.equal(r.overallBand,4);assert.equal(r.scoreScale,5);assert.ok(r.criteriaNote)
 })
+

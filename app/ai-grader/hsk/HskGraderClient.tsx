@@ -1,4 +1,5 @@
 'use client'
+import { learnerPromptContent, learnerHistoryPrompt } from '@/src/lib/publicWritingPrompt'
 
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { 
@@ -381,6 +382,8 @@ export function HskGraderClient() {
       const data = await callApi({
         action: 'grade_essay',
         type: 'HSK_5',
+        promptId: hsk5Prompt?.id,
+        sourcePrompt: hsk5Prompt?.content,
         prompt: promptText,
         essay: compiledEssay,
         feedbackLang
@@ -1019,7 +1022,7 @@ export function HskGraderClient() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 line-clamp-2 mb-2 bg-slate-50 p-2 rounded">
-                      {item.prompt}
+                      {learnerHistoryPrompt(item.prompt)}
                     </p>
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <span className="text-xs font-bold text-slate-800">
@@ -1102,5 +1105,6 @@ export function HskGraderClient() {
     </div>
   )
 }
+
 
 

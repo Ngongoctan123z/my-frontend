@@ -1,3 +1,4 @@
+import { resolveGradingPrompt } from '../ai-grader/prompt-context'
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/src/db'
 import { sharedExams, users } from '@/src/db/schema'
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Bạn phải đăng nhập' }, { status: 401 })
     }
 
-    const { examType, content, imageUrl, imageDescription, requirePhone, requireEmail } = await req.json()
+    const { examType, promptId, content, imageUrl, imageDescription, requirePhone, requireEmail } = await req.json()
     if (!examType || !content) {
       return NextResponse.json({ error: 'Thiếu dữ liệu' }, { status: 400 })
     }
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
     // Pro user only logic for custom exams
     // (If the UI sent a custom exam, it's allowed if Pro. We don't strictly validate the content vs system prompts here to save time, but we trust the UI)
 
+    const canonical = await resolveGradingPrompt(examType, content, promptId, imageUrl)
     const id = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
 
@@ -40,9 +42,9 @@ export async function POST(req: NextRequest) {
       id,
       creatorId: session.user.email,
       examType,
-      content,
-      imageUrl: imageUrl || null,
-      imageDescription: (plan === 'pro' && imageDescription) ? imageDescription : null,
+      content: canonical?.content || content,
+      imageUrl: canonical?.imageUrl || imageUrl || null,
+      imageDescription: canonical?.imageDescription || ((plan === 'pro' && imageDescription) ? imageDescription : null),
       requirePhone: requirePhone || false,
       requireEmail: requireEmail || false,
       createdAt: new Date(),
@@ -54,3 +56,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+

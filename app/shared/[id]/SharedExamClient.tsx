@@ -1,11 +1,16 @@
 'use client'
+import { learnerSharedExam } from '@/src/lib/publicWritingPrompt'
+import { LearnerPromptContent } from '@/src/components/common/LearnerPromptContent'
 
 import { GradingResultModal } from '@/src/components/common/GradingResultModal'
 import React, { useEffect, useId, useRef, useState } from 'react'
 import { FileEdit, Loader2, Send, AlertCircle, X, Maximize2, Minimize2, Users, Clock3, UserRound, PenLine } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
-export function SharedExamClient({ exam }: { exam: any }) {
+export function SharedExamClient({ exam: input }: { exam: any }) {
+  const exam = learnerSharedExam(input)
+  let inlineImages = false
+  try { const body = JSON.parse(exam.content); inlineImages = !!body.part3?.imageUrl || Array.isArray(body.questions) } catch {}
   const pathname = usePathname()
   const isEn = pathname.startsWith('/en')
   const [studentName, setStudentName] = useState('')
@@ -102,8 +107,8 @@ export function SharedExamClient({ exam }: { exam: any }) {
         <section aria-label={isEn ? 'Exam prompt' : 'Đề bài được giao'} className={`min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white ${isEditorExpanded ? 'min-h-0 overflow-y-auto' : 'lg:sticky lg:top-20'}`}>
           <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-4 sm:px-5"><FileEdit size={17} className="text-blue-600"/><h2 className="text-sm font-semibold text-slate-800">{isEn ? 'Exam prompt' : 'Đề bài được giao'}</h2></div>
           <div className="space-y-4 p-4 sm:p-5">
-            {!!exam.content && <div className="max-h-[60dvh] overflow-y-auto whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">{exam.content}</div>}
-            {exam.imageUrl && <button type="button" onClick={() => setIsFullscreenImage(true)} aria-label={isEn ? 'Enlarge exam image' : 'Phóng to ảnh đề bài'} className="group block w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left focus-visible:outline-2 focus-visible:outline-blue-500"><img src={exam.imageUrl} alt={isEn ? 'Exam prompt image' : 'Hình minh họa đề bài'} className="max-h-[60dvh] w-full object-contain"/><span className="flex items-center justify-center gap-1.5 border-t border-slate-200 py-2 text-[11px] text-slate-500"><Maximize2 size={13}/>{isEn ? 'Open full image' : 'Xem ảnh đầy đủ'}</span></button>}
+            {!!exam.content && <div className="max-h-[60dvh] overflow-y-auto whitespace-pre-wrap break-words text-sm leading-7 text-slate-700"><LearnerPromptContent content={exam.content} isEn={isEn}/></div>}
+            {exam.imageUrl && !inlineImages && <button type="button" onClick={() => setIsFullscreenImage(true)} aria-label={isEn ? 'Enlarge exam image' : 'Phóng to ảnh đề bài'} className="group block w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left focus-visible:outline-2 focus-visible:outline-blue-500"><img src={exam.imageUrl} alt={isEn ? 'Exam prompt image' : 'Hình minh họa đề bài'} className="max-h-[60dvh] w-full object-contain"/><span className="flex items-center justify-center gap-1.5 border-t border-slate-200 py-2 text-[11px] text-slate-500"><Maximize2 size={13}/>{isEn ? 'Open full image' : 'Xem ảnh đầy đủ'}</span></button>}
           </div>
         </section>
 
@@ -128,3 +133,4 @@ export function SharedExamClient({ exam }: { exam: any }) {
     </div>
   )
 }
+

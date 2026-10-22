@@ -1,4 +1,5 @@
 'use client'
+import { learnerPromptContent, learnerHistoryPrompt } from '@/src/lib/publicWritingPrompt'
 
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { 
@@ -782,7 +783,7 @@ export function TopikGraderClient() {
               </div>
             ) : effectiveQuestionKey === 'TOPIK_53' ? (
               <div className="space-y-3">
-                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{currentPrompt.content}</p>
+                <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{learnerPromptContent(currentPrompt.content)}</p>
                 {currentPrompt.source&&<p className="text-[11px] leading-5 text-slate-400">{isEn?'Chart source: ':'Nguồn biểu đồ: '}<a href={currentPrompt.source.url} target="_blank" rel="noopener noreferrer" className="underline">{currentPrompt.source.publisher||currentPrompt.source.title}</a></p>}
                 {currentPrompt.imageUrl ? (
                   <div className="border border-slate-200 rounded-lg overflow-hidden bg-white p-2">
@@ -805,14 +806,14 @@ export function TopikGraderClient() {
                   </div>
                 ) : (
                   <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">
-                    {currentPrompt.content}
+                    {learnerPromptContent(currentPrompt.content)}
                   </div>
                 )}
               </div>
             ) : (
               <div className="space-y-3">
                 <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">
-                  {currentPrompt.content}
+                  {learnerPromptContent(currentPrompt.content)}
                 </div>
                 {currentPrompt.imageUrl && (
                   <div className="border border-slate-200 rounded-lg p-2 bg-white">
@@ -1074,7 +1075,7 @@ export function TopikGraderClient() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 line-clamp-2 mb-2 bg-slate-50 p-2 rounded">
-                      {item.prompt}
+                      {learnerHistoryPrompt(item.prompt)}
                     </p>
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <span className="text-xs font-bold text-slate-800">
@@ -1157,5 +1158,6 @@ export function TopikGraderClient() {
     </div>
   )
 }
+
 
 

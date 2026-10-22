@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
 import {createHash} from 'node:crypto'
 import {createGraderHarness} from './helpers/graderHarness.mjs'
-const seed=JSON.parse(await readFile('public/exam-data/writing-bank-v1.json','utf8'))
+const {writingSeed:seed}=await import('../app/api/ai-grader/writing-seed.generated.ts')
+import {learnerPromptContent} from '../src/lib/publicWritingPrompt.ts'
 async function fixture(){const h=await createGraderHarness();return {...h,bank:await h.loadModule('app/api/ai-grader/writing-bank.ts'),raw:h.db.$client}}
 test('150 complete native-format sets contain 300 distinct questions, full-length HSK 6 and 400 different HSK 5 ordering sentences',()=>{
  assert.equal(seed.sets.length,150);assert.equal(seed.questions.length,300)
@@ -49,8 +50,8 @@ test('public API returns all 50 exact linked sets per exam without AI calls or q
  for(const exam of ['TOPIK','HSK_5','HSK_6']){
   const catalog=await h.post({action:'get_writing_catalog',exam});assert.equal(catalog.response.status,200);assert.equal(catalog.data.totalSets,50)
   const last=catalog.data.sets.at(-1),result=await h.post({action:'get_writing_set',exam,id:last.id});assert.equal(result.response.status,200)
-  for(const [type,id] of Object.entries(last.children)){assert.equal(result.data.set.questions[type].id,id);const row=h.sqlite.prepare('SELECT * FROM prompt WHERE id=?').get(id);assert.equal(row.type,type);assert.equal(result.data.set.questions[type].content,type==='TOPIK_53'?JSON.parse(row.content).text:row.content)}
-  if(exam==='TOPIK'){const q=result.data.set.questions.TOPIK_53;assert.ok(q.imageUrl&&q.imageDescription&&q.source.documentUrl)}
+  for(const [type,id] of Object.entries(last.children)){assert.equal(result.data.set.questions[type].id,id);const row=h.sqlite.prepare('SELECT * FROM prompt WHERE id=?').get(id);assert.equal(row.type,type);assert.equal(result.data.set.questions[type].content,learnerPromptContent(row.content))}
+  if(exam==='TOPIK'){const q=result.data.set.questions.TOPIK_53;assert.ok(q.imageUrl&&q.source.documentUrl);assert.equal(q.imageDescription,undefined)}
  }
  assert.equal(h.state.calls.length,0);assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM api_usage').get().n,0)
 })
@@ -69,9 +70,8 @@ test('practice selection reaches question 50 and compares full HSK 6 passages, n
  assert.equal(result.totalPrompts,50);assert.equal(result.prompts.length,1);assert.equal(result.prompts[0].id,'hsk6-practice-50-body');assert.equal(result.prompts[0].content,rows[49].content)
  const common=rows[0].content.slice(0,100),again=await h.bank.writingPracticePrompts(h.raw,'HSK_6',[common]);assert.equal(again.prompts.length,3)
 })
-test('missing asset binding returns an explicit retryable failure without writing a completion marker',async()=>{
+test('private seed initializes D1 without exposing a public seed asset or depending on ASSETS',async()=>{
  const h=await fixture();h.state.assetsDisabled=true
- const failed=await h.post({action:'get_writing_catalog',exam:'TOPIK'});assert.equal(failed.response.status,503);assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM prompt').get().n,0)
- h.state.assetsDisabled=false
- const retry=await h.post({action:'get_writing_catalog',exam:'TOPIK'});assert.equal(retry.response.status,200);assert.equal(retry.data.totalSets,50)
+ const result=await h.post({action:'get_writing_catalog',exam:'TOPIK'});assert.equal(result.response.status,200);assert.equal(result.data.totalSets,50)
+ await assert.rejects(readFile('public/exam-data/writing-bank-v1.json'),{code:'ENOENT'})
 })

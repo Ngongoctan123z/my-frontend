@@ -1,3 +1,4 @@
+import { learnerSharedExam } from '@/src/lib/publicWritingPrompt'
 import { getDb } from '@/src/db'
 import { sharedExams } from '@/src/db/schema'
 import { eq } from 'drizzle-orm'
@@ -35,5 +36,6 @@ export default async function SharedExamPage({ params }: { params: Promise<{ id:
     )
   }
 
-  return <SharedExamClient exam={examData} />
+  return <SharedExamClient exam={learnerSharedExam(examData)} />
 }
+

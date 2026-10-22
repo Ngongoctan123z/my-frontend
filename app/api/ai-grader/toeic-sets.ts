@@ -1,5 +1,6 @@
+import { TOEIC_PRIVATE_PICTURE_SETS as TOEIC_PICTURE_SETS } from '@/src/data/toeicWritingPrivate'
 import { TOEIC_PAIRED_SETS, TOEIC_RESPOND_FALLBACKS } from '@/src/data/fallbackPrompts'
-import { TOEIC_PICTURE_SETS, parseToeicPictures, publicToeicPictures } from '@/src/data/toeicWriting'
+import { parseToeicPictures, publicToeicPictures } from '@/src/data/toeicWriting'
 import { ensureToeicPhotoBank } from './toeic-photo-bank'
 import { ensurePhotoFullSets } from './toeic-photo-full-sets'
 import { ensureToeicEmailBank } from './toeic-email-bank'
@@ -86,3 +87,4 @@ export async function mutateToeicExamSet(db: SpeakingD1, action: string, payload
   else await db.prepare('UPDATE writing_exam_set SET title=?,picturePromptId=?,email6PromptId=?,email7PromptId=?,essayPromptId=?,isPublished=? WHERE id=?').bind(...values,id).run()
   return (await listToeicExamSets(db)).find(row => row.id === id)
 }
+

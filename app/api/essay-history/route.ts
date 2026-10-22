@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { learnerHistoryPrompt, learnerGradingResult } from '@/src/lib/publicWritingPrompt'
 import { getDb } from '@/src/db'
 import { essayHistory, users } from '@/src/db/schema'
 import { auth } from '@/auth'
@@ -80,9 +81,9 @@ export async function GET(req: NextRequest) {
         id: r.id,
         email: r.email,
         examType: r.examType,
-        prompt: r.prompt,
+        prompt: learnerHistoryPrompt(r.prompt),
         essay: r.essay,
-        result: parsedResult,
+        result: learnerGradingResult(parsedResult),
         timestamp: ts
       }
     })
@@ -176,3 +177,4 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+

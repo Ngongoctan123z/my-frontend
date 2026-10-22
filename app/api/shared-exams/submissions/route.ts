@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { learnerPromptContent, learnerGradingResult } from '@/src/lib/publicWritingPrompt'
 import { getDb } from '@/src/db'
 import { sharedExams, sharedExamSubmissions } from '@/src/db/schema'
 import { auth } from '@/auth'
@@ -37,10 +38,9 @@ export async function GET(req: NextRequest) {
       return {
         ...sub,
         examType: exam?.examType,
-        examContent: exam?.content,
+        examContent: learnerPromptContent(exam?.content),
         imageUrl: exam?.imageUrl || null,
-        imageDescription: exam?.imageDescription || null,
-        gradingResult: JSON.parse(sub.gradingResult)
+        gradingResult: learnerGradingResult(JSON.parse(sub.gradingResult))
       }
     })
 
@@ -49,3 +49,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+

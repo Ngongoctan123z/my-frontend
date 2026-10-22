@@ -118,7 +118,7 @@ test('TOEIC pictures grade the exact five original sentences and sum task marks'
   assert.equal(r.response.status,200,JSON.stringify(r.data));assert.equal(r.data.overallBandFormatted,'9/15');assert.equal(r.data.assessmentStatus,'reference_based')
   assert.deepEqual(r.data.pictureTasks.map(t=>t.answer),answers.map(a=>a.answer))
   assert.deepEqual(r.data.pictureTasks.map(t=>t.score),[3,2,1,0,3])
-  assert.ok(h.state.calls[0].payload.messages[1].content.includes(prompt));assert.ok(h.state.calls[0].payload.messages[1].content.includes(essay))
+  assert.ok(h.state.calls[0].payload.messages[1].content.includes(data.TOEIC_PICTURE_SETS[0].questions[0].imageUrl));assert.ok(h.state.calls[0].payload.messages[1].content.includes('Several people are together around a table'));assert.ok(h.state.calls[0].payload.messages[1].content.includes(essay))
   assert.ok(h.state.calls[0].payload.messages[0].content.includes('Inflections'))
   assert.equal(h.sqlite.prepare('SELECT count FROM api_usage').get().count,1)
 })
@@ -227,3 +227,4 @@ test('invalid request JSON returns a JSON 400 before authentication, quota or pr
   assert.equal(h.state.calls.length, 0)
   assert.equal(h.sqlite.prepare('SELECT COUNT(*) n FROM api_usage').get().n, 0)
 })
+

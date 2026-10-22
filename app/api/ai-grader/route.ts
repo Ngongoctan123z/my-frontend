@@ -1,3 +1,6 @@
+import { learnerPrompt, learnerGradingResult } from '@/src/lib/publicWritingPrompt'
+import { resolveGradingPrompt } from './prompt-context'
+import { TOEIC_PRIVATE_PICTURE_SETS as TOEIC_PICTURE_SETS } from '@/src/data/toeicWritingPrivate'
 import {WRITING_EXAMS,type WritingExam} from '@/src/lib/writingBank'
 import {writingCatalog,getWritingSet,writingPracticePrompts} from './writing-bank'
 import { NextRequest, NextResponse } from 'next/server'
@@ -5,7 +8,7 @@ import Groq from 'groq-sdk'
 import { publicToeicExamSets } from './toeic-sets'
 import { fallbackToeicExamSets } from '@/src/lib/toeicExamSets'
 import type { SpeakingD1 } from '../speaking/store'
-import { TOEIC_PICTURE_SETS, parseToeicPictures, parseToeicPictureAnswers, publicToeicPictures } from '@/src/data/toeicWriting'
+import { parseToeicPictures, parseToeicPictureAnswers, publicToeicPictures } from '@/src/data/toeicWriting'
 import { ensureToeicPhotoBank } from './toeic-photo-bank'
 import { emailPracticePrompts } from './toeic-email-bank'
 import { toeicNativeRubric } from './toeic-native-rubric'
@@ -185,12 +188,13 @@ export async function POST(req: NextRequest) {
     let body: any
     try { body = await req.json() } catch { return NextResponse.json({ error: 'Dữ liệu JSON gửi lên không hợp lệ.', code: 'INVALID_REQUEST_JSON' }, { status: 400 }) }
     if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'Dữ liệu yêu cầu không hợp lệ.', code: 'INVALID_REQUEST_JSON' }, { status: 400 })
-    const { action, prompt, essay, feedbackLang } = body
+    const { action, essay, feedbackLang } = body
+    let prompt = body.prompt
     const requestedType=body.type
     const emailNumber=requestedType==='TOEIC_EMAIL_6'?6:requestedType==='TOEIC_EMAIL_7'?7:undefined
     const type=emailNumber?'TOEIC_RESPOND':requestedType
     // TOPIK clients send chartExtra; retain imageDescription compatibility.
-    const imageDescription = body.imageDescription ?? body.chartExtra
+    let imageDescription = body.imageDescription ?? body.chartExtra
 
     const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'anon'
     // Phân loại: Chấm bài (grade_essay) tốn tài nguyên AI thì giới hạn chặt,
@@ -284,8 +288,8 @@ export async function POST(req: NextRequest) {
           pairedSets.push({
             id: i + 1,
             title: `Bộ đề số #${i + 1}`,
-            part1: { content: p1.content, imageUrl: p1.imageUrl },
-            part2: { content: p2.content, imageUrl: p2.imageUrl },
+            part1: learnerPrompt(p1),
+            part2: learnerPrompt(p2),
           })
         }
 
@@ -363,8 +367,8 @@ export async function POST(req: NextRequest) {
         if (allPrompts.length === 0) {
           if (fallbacks.length > 0) {
             return NextResponse.json({
-              text: fallbacks[0].content,
-              prompts: fallbacks
+              text: learnerPrompt(fallbacks[0]).content,
+              prompts: fallbacks.map(learnerPrompt)
             })
           }
           return NextResponse.json(
@@ -436,22 +440,18 @@ export async function POST(req: NextRequest) {
         }
 
         // Return array of objects containing content and imageUrl
-        const promptObjects = chosenPrompts.map(p => ({
-          id: p.id,
-          content: type === 'TOEIC_PICTURE' ? JSON.stringify(publicToeicPictures(parseToeicPictures(p.content))) : p.content,
-          imageUrl: p.imageUrl
-        }))
+        const promptObjects = chosenPrompts.map(p => learnerPrompt(p))
         return NextResponse.json({
-          text: promptObjects[0]?.content || fallbacks[0]?.content || '',
-          prompts: promptObjects.length > 0 ? promptObjects : fallbacks,
+          text: promptObjects[0]?.content || (fallbacks[0] ? learnerPrompt(fallbacks[0]).content : ''),
+          prompts: promptObjects.length > 0 ? promptObjects : fallbacks.map(learnerPrompt),
           ...(type === 'TOEIC_PICTURE' ? {totalPrompts:allPrompts.length} : {})
         })
       } catch (e: any) {
         console.warn('[AI-Grader] generate_prompt_batch DB error, using fallbacks:', e.message)
         if (fallbacks.length > 0) {
           return NextResponse.json({
-            text: fallbacks[0].content,
-            prompts: fallbacks
+            text: learnerPrompt(fallbacks[0]).content,
+            prompts: fallbacks.map(learnerPrompt)
           })
         }
         return NextResponse.json({ error: 'Lỗi khi lấy đề thi: ' + e.message }, { status: 500 })
@@ -473,9 +473,12 @@ export async function POST(req: NextRequest) {
     }
     if (typeof prompt !== 'string' || !prompt.trim() || typeof essay !== 'string' || !essay.trim()
       || prompt.length > 24000 || essay.length > MAX_ESSAY_LENGTH
+      || (body.sourcePrompt !== undefined && (typeof body.sourcePrompt !== 'string' || body.sourcePrompt.length > 24000))
       || (imageDescription !== undefined && (typeof imageDescription !== 'string' || imageDescription.length > 24000))) {
       return NextResponse.json({ error: 'Đề bài hoặc bài làm không hợp lệ / quá dài.' }, { status: 400 })
     }
+    const canonical = await resolveGradingPrompt(type, typeof body.sourcePrompt === 'string' ? body.sourcePrompt : prompt, body.promptId, body.imageUrl)
+    if (canonical) { prompt = canonical.content; imageDescription = canonical.imageDescription ?? imageDescription }
     if (type === 'TOEIC_PICTURE') {
       try { parseToeicPictures(prompt); parseToeicPictureAnswers(essay) }
       catch (error: any) { return NextResponse.json({ error: error.message }, { status: 400 }) }
@@ -735,7 +738,7 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
       if (emailNumber) finalResult.questionNumber = emailNumber
       finalResult.scoreKind = type.includes('IELTS') ? 'band' : 'score'
       // Keep the task-specific scoring scale calculated by postProcessResult.
-      const response = NextResponse.json(finalResult)
+      const response = NextResponse.json(learnerGradingResult(finalResult))
       gradingCompleted = true
       return response
     }
@@ -816,4 +819,5 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ count: 0, limit: 7, plan: 'free' })
   }
 }
+
 

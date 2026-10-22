@@ -1,4 +1,5 @@
 'use client'
+import { learnerPromptContent, learnerHistoryPrompt } from '@/src/lib/publicWritingPrompt'
 
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { 
@@ -220,7 +221,7 @@ export function ToeicGraderClient() {
     setIsGenerating(true)
     try {
       const data = await callApi({ action: 'generate_prompt_batch', type: 'TOEIC_PICTURE' })
-      const sets = (data.prompts || []).flatMap((p: any) => { try { return [parseToeicPictures(p.content)] } catch { return [] } }) as ToeicPictureSet[]
+      const sets = (data.prompts || []).flatMap((p: any) => { try { return [parseToeicPictures(p.content, true)] } catch { return [] } }) as ToeicPictureSet[]
       if (!manual && pictureTouched.current) return
       const selected = sets.find(set => JSON.stringify(set) !== JSON.stringify(singlePictureSet)) || sets[0] || TOEIC_PICTURE_SETS[0]
       setSinglePictureSet(selected); setSinglePictureAnswers(Array(5).fill('')); pictureTouched.current = false
@@ -873,7 +874,7 @@ export function ToeicGraderClient() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 line-clamp-2 mb-2 bg-slate-50 p-2 rounded">
-                      {item.prompt}
+                      {learnerHistoryPrompt(item.prompt)}
                     </p>
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <span className="text-xs font-bold text-slate-800">
@@ -943,5 +944,6 @@ export function ToeicGraderClient() {
     </div>
   )
 }
+
 
 

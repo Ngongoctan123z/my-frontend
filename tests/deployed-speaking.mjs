@@ -11,7 +11,7 @@ async function request(path, body) {
 let lastError
 for (let attempt = 1; attempt <= 24; attempt++) {
   try {
-    const [ielts,toeic,audio,admin,pictures,linked,email6,email7] = await Promise.all([
+    const [ielts,toeic,audio,admin,pictures,linked,email6,email7,publicSeed] = await Promise.all([
       request('/api/speaking',{action:'catalog',examType:'IELTS_SPEAKING'}),
       request('/api/speaking',{action:'catalog',examType:'TOEIC_SPEAKING'}),
       request('/api/speaking/audio/'+encodeURIComponent('0'.repeat(64)+':0')),
@@ -19,7 +19,9 @@ for (let attempt = 1; attempt <= 24; attempt++) {
       request('/api/ai-grader',{action:'generate_prompt_batch',type:'TOEIC_PICTURE'}),
       request('/api/ai-grader',{action:'get_paired_full_test',exam:'TOEIC'}),
       ...[6,7].map(number=>request('/api/ai-grader',{action:'generate_prompt_batch',type:'TOEIC_EMAIL_'+number})),
+      request('/exam-data/writing-bank-v1.json'),
     ])
+    assert.equal(publicSeed.status,404,'Private Writing seed must not be publicly downloadable')
     assert.equal(audio.status,401,'Private audio route must reject anonymous playback')
     assert.equal(admin.status,401,'Speaking administration must reject anonymous requests')
     for (const [exam,response] of [['IELTS',ielts],['TOEIC',toeic]]) {
@@ -34,6 +36,7 @@ for (let attempt = 1; attempt <= 24; attempt++) {
     assert.ok(data.totalPrompts>=50,'At least 50 real-photo practice sets must be in D1')
     assert.equal(set.questions?.length,5,'Five picture tasks must be available')
     assert.ok(set.questions.every((q,i)=>q.id===i+1 && q.keywords?.length===2 && q.imageUrl))
+    assert.ok(set.questions.every(q=>q.description===undefined && q.exampleAnswer===undefined),'TOEIC references must remain server-side')
     const linkedData=await linked.json()
     assert.equal(linkedData.source,'database','Full Writing sets must use explicit D1 child IDs')
     assert.equal(linkedData.sets.filter(row=>row.id.startsWith('toeic-photo-full-')).length,50,'Every added photo group must belong to a complete Writing exam')
@@ -45,8 +48,8 @@ for (let attempt = 1; attempt <= 24; attempt++) {
       const catalog=await response.json();assert.equal(catalog.source,'database');assert.equal(catalog.totalSets,50,exam+' complete D1 sets')
       const last=catalog.sets.at(-1),loaded=await request('/api/ai-grader',{action:'get_writing_set',exam,id:last.id}),{set}=await loaded.json();assert.equal(loaded.status,200)
       for(const [type,id] of Object.entries(last.children))assert.equal(set.questions[type].id,id)
-      if(exam==='TOPIK'){const q=set.questions.TOPIK_53;assert.ok(q.imageDescription&&q.source.documentUrl);const image=await request(q.imageUrl);assert.equal(image.status,200);assert.match(image.headers.get('content-type'),/image/)}
-      if(exam==='HSK_5'){const body=JSON.parse(set.questions.HSK_5.content);assert.equal(body.part1.length,8);assert.equal(body.part2.keywords.length,5);assert.match(body.part3.imageUrl,/images.unsplash.com/)}
+      if(exam==='TOPIK'){const q=set.questions.TOPIK_53;assert.equal(q.imageDescription,undefined);assert.ok(q.source.documentUrl);const image=await request(q.imageUrl);assert.equal(image.status,200);assert.match(image.headers.get('content-type'),/image/)}
+      if(exam==='HSK_5'){const body=JSON.parse(set.questions.HSK_5.content);assert.equal(body.part1.length,8);assert.equal(body.part2.keywords.length,5);assert.match(body.part3.imageUrl,/images.unsplash.com/);assert.equal(body.part3.description,undefined)}
       if(exam==='HSK_6')assert.ok(set.questions.HSK_6.content.length>1000)
       console.log(exam+' bank: 50 complete D1 sets and exact child IDs')
     }
@@ -69,3 +72,4 @@ for (let attempt = 1; attempt <= 24; attempt++) {
   }
 }
 throw lastError
+

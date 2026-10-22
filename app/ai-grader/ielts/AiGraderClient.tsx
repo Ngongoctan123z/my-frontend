@@ -1,4 +1,5 @@
 'use client'
+import { learnerPromptContent, learnerHistoryPrompt } from '@/src/lib/publicWritingPrompt'
 
 import dynamic from 'next/dynamic'
 import { PracticeAccessGate } from '@/src/components/auth/PracticeAccessGate'
@@ -860,7 +861,7 @@ export function AiGraderClient() {
                 {practiceOwner && userPlan === 'pro' && !activePrompt?.imageUrl ? (
                   <div className="space-y-1">
                     <textarea 
-                      value={activePrompt?.content || ''}
+                      value={learnerPromptContent(activePrompt?.content || '')}
                       onChange={(e) => {
                         const updated = activePrompt ? { ...activePrompt, content: e.target.value } : { content: e.target.value }
                         if (isViewingTask1) setTask1Prompt(updated)
@@ -873,7 +874,7 @@ export function AiGraderClient() {
                 ) : (
                   !activePrompt?.imageUrl && (
                     <div className="w-full min-h-[120px] p-4 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 text-sm whitespace-pre-wrap leading-relaxed select-text">
-                      {activePrompt ? activePrompt.content : (isEn ? "Loading prompt..." : "Đang tải đề thi...")}
+                      {activePrompt ? learnerPromptContent(activePrompt.content) : (isEn ? "Loading prompt..." : "Đang tải đề thi...")}
                     </div>
                   )
                 )}
@@ -1054,7 +1055,7 @@ export function AiGraderClient() {
                         </span>
                       </div>
                       <p className="text-sm text-slate-700 font-medium line-clamp-2 mb-3 bg-slate-50 p-2 rounded border border-slate-100">
-                        <span className="font-bold text-slate-900">{isEn ? 'Prompt:' : 'Đề bài:'}</span> {item.prompt}
+                        <span className="font-bold text-slate-900">{isEn ? 'Prompt:' : 'Đề bài:'}</span> {learnerHistoryPrompt(item.prompt)}
                       </p>
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                         <div className="font-bold text-indigo-600">
@@ -1142,5 +1143,6 @@ export function AiGraderClient() {
     </div>
   )
 }
+
 
 

@@ -1,22 +1,11 @@
+import { learnerPrompt } from '@/src/lib/publicWritingPrompt'
 import type {WritingExam,WritingRow,WritingSetRecord} from '@/src/lib/writingBank'
-import {getCloudflareContext} from '@opennextjs/cloudflare'
+import {writingSeed} from './writing-seed.generated'
 import type {SpeakingD1,D1Statement} from '../speaking/store'
 const marker='TOPIK_HSK_150_SETS_V1'
 const parentType=(exam:WritingExam)=>'WRITING_SET_'+exam
 type Seed={questions:WritingRow[];sets:WritingSetRecord[]}
-let seedRequest:Promise<Seed>|undefined
-async function loadWritingSeed():Promise<Seed>{
- if(!seedRequest)seedRequest=(async()=>{
-  const assets=((await getCloudflareContext({async:true})).env as unknown as {ASSETS?:{fetch:(request:Request)=>Promise<Response>}}).ASSETS
-  if(!assets)throw new Error('Thiếu kho dữ liệu đề đã build.')
-  const response=await assets.fetch(new Request('https://assets.invalid/exam-data/writing-bank-v1.json'))
-  if(!response.ok)throw new Error('Không đọc được dữ liệu kho đề.')
-  const seed=await response.json() as Seed
-  if(!Array.isArray(seed.questions)||seed.questions.length!==300||!Array.isArray(seed.sets)||seed.sets.length!==150)throw new Error('Kho đề không đủ dữ liệu.')
-  return seed
- })().catch(error=>{seedRequest=undefined;throw error})
- return seedRequest
-}
+async function loadWritingSeed():Promise<Seed>{ return writingSeed }
 export async function ensureWritingBank(db:SpeakingD1,loadSeed=loadWritingSeed){
  if(await db.prepare('SELECT value FROM system_config WHERE key=?').bind(marker).first())return
  const bank=await loadSeed(),now=Date.now(),rows:WritingRow[]=[...bank.questions,...bank.sets.map(set=>({id:set.id,type:parentType(set.exam),content:JSON.stringify(set)}))],statements:D1Statement[]=[]
@@ -29,13 +18,8 @@ export async function ensureWritingBank(db:SpeakingD1,loadSeed=loadWritingSeed){
  statements.push(db.prepare('INSERT INTO system_config(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING').bind(marker,'1'))
  await db.batch(statements)
 }
-export function publicWritingPrompt(row:WritingRow){
- if(row.type==='TOPIK_53'){
-  try{const parsed=JSON.parse(row.content);if(typeof parsed.text==='string'&&typeof parsed.imageDescription==='string')return {id:row.id,content:parsed.text,imageUrl:row.imageUrl||null,imageDescription:parsed.imageDescription,source:parsed.source}}
-  catch{}
- }
- return {id:row.id,content:row.content,imageUrl:row.imageUrl||null}
-}
+export function publicWritingPrompt(row:WritingRow){ return learnerPrompt(row) }
+
 const keys:Record<WritingExam,string[]>={TOPIK:['TOPIK_51','TOPIK_52','TOPIK_53','TOPIK_54'],HSK_5:['HSK_5'],HSK_6:['HSK_6']}
 async function bankRows(db:SpeakingD1,exam:WritingExam){
  await ensureWritingBank(db)
@@ -70,3 +54,4 @@ export async function writingPracticePrompts(db:SpeakingD1,type:string,done:stri
  while(pool.length&&selected.length<3)selected.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0])
  return {source:'database',totalPrompts:rows.length,text:selected[0]?.content||'',prompts:selected}
 }
+

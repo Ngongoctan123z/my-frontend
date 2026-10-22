@@ -1,4 +1,6 @@
 'use client'
+import { learnerPromptContent } from '@/src/lib/publicWritingPrompt'
+
 
 import React, { useState, useMemo, useEffect, useId, useRef } from 'react'
 import { 
@@ -133,7 +135,7 @@ export function StudentManagementModal({
 
   // Helper: Làm sạch text đề bài (không hiển thị lại link ảnh thô)
   const cleanPromptText = (sub: any, extractedImg: string | null): string => {
-    let content = (sub.examContent || sub.exam?.content || '').trim()
+    let content = learnerPromptContent(sub.examContent || sub.exam?.content || '')
     if (!content) return ''
     if (extractedImg) {
       if (content === extractedImg) return ''
@@ -807,4 +809,5 @@ export function StudentManagementModal({
     </>
   )
 }
+
 

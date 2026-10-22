@@ -46,6 +46,11 @@ jobs:
       - name: Test grader submissions
         run: npm run test:grader-submissions
 
+      - name: Test learner prompt privacy and server-side grading context
+        run: |
+          node --experimental-vm-modules tests/prompt-context.test.mjs
+          node tests/shared-prompt-privacy.test.mjs
+
       - name: Test linked TOEIC sets and real photo bank
         run: node --experimental-vm-modules tests/toeic-sets.test.mjs
 
@@ -73,7 +78,9 @@ jobs:
         run: npm run pages:build
 
       - name: Run built Worker with local D1 and R2
-        run: node tests/worker-runtime-smoke.mjs
+        run: |
+          node tests/worker-runtime-smoke.mjs
+          node tests/public-bundle-privacy.test.mjs
 
       - name: Install browser for grader UI checks
         run: npx playwright install --with-deps chromium
@@ -120,6 +127,7 @@ jobs:
       # Cloudflare Workers Builds deploys main through the existing GitHub App
       # integration. This workflow verifies the same build without a second
       # deployment path or separate Cloudflare credentials.
+
 
 
 
