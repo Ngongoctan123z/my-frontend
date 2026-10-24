@@ -1,3 +1,4 @@
+import { normalizeFeedbackLanguage, feedbackLanguageInstruction, assertFeedbackLanguage } from '@/src/lib/feedbackLanguage'
 import { learnerPrompt, learnerGradingResult } from '@/src/lib/publicWritingPrompt'
 import { resolveGradingPrompt } from './prompt-context'
 import { TOEIC_PRIVATE_PICTURE_SETS as TOEIC_PICTURE_SETS } from '@/src/data/toeicWritingPrivate'
@@ -188,7 +189,8 @@ export async function POST(req: NextRequest) {
     let body: any
     try { body = await req.json() } catch { return NextResponse.json({ error: 'Dữ liệu JSON gửi lên không hợp lệ.', code: 'INVALID_REQUEST_JSON' }, { status: 400 }) }
     if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'Dữ liệu yêu cầu không hợp lệ.', code: 'INVALID_REQUEST_JSON' }, { status: 400 })
-    const { action, essay, feedbackLang } = body
+    const { action, essay } = body
+    const feedbackLang = normalizeFeedbackLanguage(body.feedbackLang)
     let prompt = body.prompt
     const requestedType=body.type
     const emailNumber=requestedType==='TOEIC_EMAIL_6'?6:requestedType==='TOEIC_EMAIL_7'?7:undefined
@@ -709,10 +711,7 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
 - Điểm Grammar/Language và Vocabulary phải phản ánh mật độ, mức độ nghiêm trọng và tính lặp lại của lỗi so với độ dài bài, đồng thời đánh giá riêng độ tự nhiên/trôi chảy và độ phù hợp của từ vựng theo rubric.
 `
 
-      if (feedbackLang && feedbackLang !== 'Tiếng Việt') {
-        systemPrompt = systemPrompt.replace(/tiếng việt/gi, feedbackLang)
-        systemPrompt += `\n\n[CRITICAL DIRECTIVE: YOU MUST TRANSLATE ALL YOUR FEEDBACK, REASONING, EXPLANATION AND SUGGESTIONS TO ${feedbackLang.toUpperCase()}. DO NOT TRANSLATE THE 'evidence' OR 'original' FIELDS.]`
-      }
+      systemPrompt += feedbackLanguageInstruction(feedbackLang)
 
       // Kiểm tra nguồn theo task
       // Bỏ logic CẢNH BÁO thiếu hình ảnh/đoạn văn gốc do user yêu cầu
@@ -722,6 +721,7 @@ YÊU CẦU CUỐI CÙNG VỀ TÍNH ĐẦY ĐỦ:
         maxTokens: 8192, deadline,
         validate: text => {
           const parsed = parseModelJson(text)
+          assertFeedbackLanguage(parsed, feedbackLang)
           const calibValue = gradingSettings.calibration[type] || 0
           if (type === 'TOEIC_RESPOND') {
             const task = toeicEmailBank().find(row => row.content === prompt)
