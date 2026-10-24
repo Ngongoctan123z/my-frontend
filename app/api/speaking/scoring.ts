@@ -1,3 +1,4 @@
+import { feedbackLanguageInstruction, assertFeedbackLanguage } from '@/src/lib/feedbackLanguage'
 import { deliveryText, type SpeakingDelivery } from '@/src/lib/speechDelivery'
 import type { SpeakingFeedback, SpeakingQuestion, SpeakingMetrics } from '@/src/lib/speaking'
 import { SpeakingRequestError } from './validation'
@@ -40,7 +41,7 @@ Return one JSON object with exactly these fields:
 Return 1-3 distinct issues; never invent an error just to reach three.
 All criterion scores must use ${question.examType === 'IELTS_SPEAKING' ? '0-9 in half bands' : question.part === 'Q11' ? '0-5' : '0-3'}.
 ${audioAvailable && question.examType === 'TOEIC_SPEAKING' ? 'taskScore must use the task-specific 0-3 or 0-5 rubric above.' : 'taskScore must be null.'}
-For IELTS the overall band is computed by the server; do not add an overall score.`
+For IELTS the overall band is computed by the server; do not add an overall score.` + feedbackLanguageInstruction(language)
 }
 export function speakingTaskData(question: SpeakingQuestion, transcript: string, metrics: SpeakingMetrics, pictureAvailable = false, delivery?: SpeakingDelivery) {
   return JSON.stringify({ question: { part: question.part, questionNumber: question.questionNumber, prompt: question.questionEn,
@@ -57,6 +58,7 @@ export function parseSpeakingJson(text: string) {
 }
 export function normalizeSpeakingFeedback(raw: any, question: SpeakingQuestion, transcript: string, metrics: SpeakingMetrics, audioAvailable: boolean, language: string): SpeakingFeedback {
   if (raw.valid !== true || !limited(raw.feedback) || !Array.isArray(raw.issues) || !raw.issues.length) throw new Error('INVALID_SPEAKING_RESULT')
+  assertFeedbackLanguage(raw, language)
   const ielts = question.examType === 'IELTS_SPEAKING', english = language === 'English'
   const max = ielts ? 9 : question.part === 'Q11' ? 5 : 3
   const ids = ielts ? ['fluency', 'lexical', 'grammar', 'pronunciation'] : ['content', 'lexical', 'grammar', 'pronunciation']

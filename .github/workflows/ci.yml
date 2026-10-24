@@ -41,6 +41,7 @@ jobs:
           node --experimental-vm-modules tests/turnstile-config.test.mjs
           node --experimental-vm-modules tests/admin-layout-security.test.mjs
           node --experimental-vm-modules tests/auth-secret-provision.test.mjs
+          node tests/feedback-language.test.mjs
 
       - name: Prepare validated Writing bank assets
         run: npm run prepare:writing-bank
